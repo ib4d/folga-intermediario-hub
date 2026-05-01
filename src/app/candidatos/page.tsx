@@ -1,9 +1,15 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
+import CopyRegistrationLink from "@/components/CopyRegistrationLink";
 
 export default async function CandidatosPage() {
+  const session = await auth();
+  const whereClause = session?.user.role === "INTERMEDIARIO" ? { intermediaryId: session?.user.id } : {};
+
   const candidates = await prisma.candidate.findMany({
+    where: whereClause,
     include: {
       intermediary: true,
       documents: true
@@ -79,9 +85,14 @@ export default async function CandidatosPage() {
                     </span>
                   </td>
                   <td>
-                    <Link href={`/candidatos/${c.id}`} className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>
-                      Ver Detalles
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <Link href={`/candidatos/${c.id}`} className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>
+                        Ver Detalles
+                      </Link>
+                      {!c.selfRegistered && (
+                        <CopyRegistrationLink candidateId={c.id} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

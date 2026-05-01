@@ -16,7 +16,7 @@ export default function NuevoCandidatoPage() {
           <h2>Añadir Nuevo Candidato</h2>
         </div>
 
-        <form action={createCandidate}>
+        <form action={async (formData) => { "use server"; await createCandidate(formData); }}>
           <div className="dashboard-grid" style={{ gap: '1rem' }}>
             <div className="input-group">
               <label className="label" htmlFor="firstName">Nombre(s)</label>

@@ -1,40 +1,55 @@
 "use server";
 
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { candidateSchema } from "@/lib/validations/candidate";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function createCandidate(formData: FormData) {
-  const firstName = formData.get("firstName") as string;
-  const lastName = formData.get("lastName") as string;
-  const country = formData.get("country") as string;
-  const phone = formData.get("phone") as string;
-  const notes = formData.get("notes") as string;
+  const session = await auth();
+  if (!session) throw new Error("No autorizado");
 
-  // We need an intermediary user. For now, create one if it doesn't exist or use a default one.
-  let defaultUser = await prisma.user.findFirst();
-  if (!defaultUser) {
-    defaultUser = await prisma.user.create({
-      data: {
-        email: "demo@folga.com",
-        name: "Coordinador Demo",
-        role: "ADMIN"
-      }
-    });
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = candidateSchema.safeParse(raw);
+  
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors };
   }
 
   await prisma.candidate.create({
     data: {
-      firstName,
-      lastName,
-      country,
-      phone,
-      notes,
-      intermediaryId: defaultUser.id,
-      status: "RECOPILANDO_DOCS"
-    }
+      ...parsed.data,
+      intermediaryId: session.user.id,
+      status: "RECOPILANDO_DOCS",
+    },
   });
 
   revalidatePath("/candidatos");
   redirect("/candidatos");
+}
+
+export async function updateCandidateStatus(
+  candidateId: string,
+  status: string,
+  rejectionReason?: string
+) {
+  const session = await auth();
+  if (!session) throw new Error("No autorizado");
+  
+  // Solo LEGAL, ADMIN, SUPERADMIN pueden cambiar estado
+  if (!["LEGAL", "ADMIN", "SUPERADMIN"].includes(session.user.role)) {
+    throw new Error("Sin permisos");
+  }
+
+  await prisma.candidate.update({
+    where: { id: candidateId },
+    data: { 
+      status: status as any, 
+      rejectionReason: rejectionReason ?? null 
+    },
+  });
+
+  revalidatePath(`/candidatos/${candidateId}`);
+  revalidatePath("/candidatos");
 }

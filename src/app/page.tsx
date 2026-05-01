@@ -1,98 +1,142 @@
-import { Users, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { Users, AlertTriangle, CheckCircle, Clock, Download } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import DashboardCharts from "@/components/DashboardCharts";
+import ExportButton from "@/components/ExportButton"; // Necesitaremos crear este pequeño componente cliente
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const userRole = session.user.role;
+  const userId = session.user.id;
+
+  const whereClause = userRole === "INTERMEDIARIO" 
+    ? { intermediaryId: userId } 
+    : {};
+
+  const [total, recopilando, enRevision, aprobados, recientes, byStatusRaw, byCountryRaw] = await Promise.all([
+    prisma.candidate.count({ where: whereClause }),
+    prisma.candidate.count({ where: { ...whereClause, status: "RECOPILANDO_DOCS" } }),
+    prisma.candidate.count({ where: { ...whereClause, status: "EN_REVISION_LEGAL" } }),
+    prisma.candidate.count({ where: { ...whereClause, status: "APROBADO" } }),
+    prisma.candidate.findMany({
+      where: whereClause,
+      take: 5,
+      orderBy: { updatedAt: "desc" },
+      include: { 
+        intermediary: { select: { name: true } } 
+      },
+    }),
+    prisma.candidate.groupBy({
+      by: ['status'],
+      where: whereClause,
+      _count: { _all: true }
+    }),
+    prisma.candidate.groupBy({
+      by: ['country'],
+      where: whereClause,
+      _count: { _all: true }
+    })
+  ]);
+
+  const chartData = {
+    byStatus: byStatusRaw.map(s => ({ name: s.status, value: s._count._all })),
+    byCountry: byCountryRaw.map(c => ({ name: c.country, value: c._count._all })),
+    byTimeline: [
+      { date: "Semana 1", count: 4 },
+      { date: "Semana 2", count: 7 },
+      { date: "Semana 3", count: 5 },
+      { date: "Semana 4", count: 12 },
+    ]
+  };
+
   return (
     <>
-      <div className="hero-section">
-        <h1>Dashboard Intermediarios</h1>
-        <p>Visión general del estado del reclutamiento y pipeline de candidatos para el equipo legal y de logística.</p>
+      <div className="hero-section" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.5rem' }}>Dashboard Central</h1>
+          <p style={{ margin: 0 }}>Bienvenido, <span style={{ color: 'var(--amber-flame)', fontWeight: 'bold' }}>{session.user.name}</span>. Tienes {recopilando} candidatos pendientes.</p>
+        </div>
+        <ExportButton />
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: '3rem' }}>
+      <div className="dashboard-grid">
+        {/* ... (mismos cards de métricas) ... */}
         <div className="card">
           <div className="card-header">
-            <h3>Candidatos Activos</h3>
+            <h3>Total Candidatos</h3>
             <Users size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>142</div>
-          <p style={{ margin: 0, marginTop: '0.5rem' }}>+12 esta semana</p>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{total}</div>
         </div>
 
-        <div className="card" style={{ backgroundColor: 'var(--amber-flame)', color: 'var(--pitch-black)' }}>
+        <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
           <div className="card-header">
-            <h3>Docs Pendientes</h3>
-            <AlertTriangle size={24} />
+            <h3>Recopilando Docs</h3>
+            <Clock size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>28</div>
-          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--pitch-black)' }}>Requieren atención inmediata</p>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{recopilando}</div>
         </div>
 
         <div className="card">
           <div className="card-header">
             <h3>En Revisión Legal</h3>
-            <Clock size={24} />
+            <AlertTriangle size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>45</div>
-          <p style={{ margin: 0, marginTop: '0.5rem' }}>Tiempo medio: 3 semanas</p>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{enRevision}</div>
         </div>
 
-        <div className="card" style={{ backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)' }}>
+        <div className="card" style={{ border: '2px solid #4ade80' }}>
           <div className="card-header">
-            <h3>Aprobados (Listos)</h3>
-            <CheckCircle size={24} />
+            <h3 style={{ color: '#065F46' }}>Aprobados</h3>
+            <CheckCircle size={24} color="#065F46" />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>19</div>
-          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--grey-olive)' }}>Pendientes de pago 400pln</p>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1, color: '#065F46' }}>{aprobados}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>Candidatos Recientes</h2>
-        <button className="button">Ver Todos</button>
-      </div>
+      <DashboardCharts data={chartData} />
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Candidato</th>
-              <th>País</th>
-              <th>Intermediario</th>
-              <th>Estado</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><div style={{ fontWeight: 'bold' }}>Juan Pérez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Pasaporte: AB123456</div></td>
-              <td>Colombia</td>
-              <td>Maria G.</td>
-              <td><span className="status-badge">Recopilando Docs</span></td>
-              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
-            </tr>
-            <tr>
-              <td><div style={{ fontWeight: 'bold' }}>Carlos Silva</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>PESEL: 90010112345</div></td>
-              <td>Perú (En Polonia)</td>
-              <td>Jorge M.</td>
-              <td><span className="status-badge active">Legal Aprobado</span></td>
-              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
-            </tr>
-            <tr>
-              <td><div style={{ fontWeight: 'bold' }}>Ana Gomez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Pasaporte: XY987654</div></td>
-              <td>Guatemala</td>
-              <td>Maria G.</td>
-              <td><span className="status-badge danger">Rechazado Legal</span></td>
-              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
-            </tr>
-            <tr>
-              <td><div style={{ fontWeight: 'bold' }}>Luis Rodriguez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Karta Pobytu Pendiente</div></td>
-              <td>Venezuela</td>
-              <td>Andres V.</td>
-              <td><span className="status-badge">En Hrappka</span></td>
-              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="card" style={{ marginTop: '2rem' }}>
+        {/* ... (tabla de candidatos recientes) ... */}
+        <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+          <h2>Candidatos Recientes</h2>
+          <Link href="/candidatos" className="button" style={{ fontSize: '0.875rem' }}>Ver todos</Link>
+        </div>
+
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>País</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {recientes.map((candidate) => (
+                <tr key={candidate.id}>
+                  <td style={{ fontWeight: 'bold' }}>{candidate.firstName} {candidate.lastName}</td>
+                  <td>{candidate.country}</td>
+                  <td>
+                    <span className={`status-badge ${candidate.status === 'APROBADO' ? 'active' : ''}`}>
+                      {candidate.status.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <Link href={`/candidatos/${candidate.id}`} className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
+                      Ver
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );

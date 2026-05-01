@@ -1,82 +1,86 @@
-import { Car, MapPin, Calendar, Clock, ArrowRight } from "lucide-react";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/auth-utils";
+import { Car, MapPin, Calendar, Clock, Plane } from "lucide-react";
+import { createLogisticsEvent } from "@/app/actions/logistics";
 
-export default function LogisticaPage() {
+export default async function LogisticaPage() {
+  await requireRole(["SUPERADMIN", "ADMIN", "INTERMEDIARIO"]);
+
+  const session = await auth();
+  const whereClause = session?.user.role === "INTERMEDIARIO" 
+    ? { intermediaryId: session?.user.id, status: { in: ["APROBADO", "EN_PROCESO_PERMISO"] } }
+    : { status: { in: ["APROBADO", "EN_PROCESO_PERMISO"] } };
+
+  const candidates = await prisma.candidate.findMany({
+    where: whereClause as any,
+    include: {
+      logistics: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
+  });
+
   return (
-    <>
-      <div className="hero-section" style={{ padding: '2rem', backgroundColor: 'var(--white-smoke)', color: 'var(--pitch-black)', borderBottom: '2px solid var(--pitch-black)' }}>
-        <h1 style={{ color: 'var(--pitch-black)' }}>Logística y Traslados</h1>
-        <p style={{ color: 'var(--grey-olive)' }}>Gestión de viajes, llegadas a oficinas de Kutno y acomodación inicial.</p>
-      </div>
-
-      <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
-        <div className="card" style={{ backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)' }}>
-          <div className="card-header">
-            <h3 style={{ color: 'var(--ghost-white)' }}>Llegadas Hoy</h3>
-            <Calendar size={24} color="var(--amber-flame)" />
+    <div className="container">
+      <div className="card" style={{ marginBottom: "2rem", backgroundColor: "var(--ghost-white)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <Plane size={32} />
+          <div>
+            <h1 style={{ margin: 0 }}>Centro de Logística</h1>
+            <p style={{ margin: 0, color: "var(--muted)" }}>Planificación de llegadas a Kutno</p>
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>4</div>
-          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--grey-olive)' }}>Estación de Tren: 3 | Coche: 1</p>
         </div>
-        
-        <div className="card">
-          <div className="card-header">
-            <h3>Recogidas Pendientes</h3>
-            <Car size={24} />
+      </div>
+
+      <div className="dashboard-grid">
+        {candidates.map((c) => (
+          <div key={c.id} className="card">
+            <h3>{c.firstName} {c.lastName}</h3>
+            <p style={{ margin: "0 0 1rem 0", color: "var(--muted)" }}>{c.country}</p>
+            
+            {c.logistics.length > 0 ? (
+              <div style={{ backgroundColor: "var(--white-smoke)", padding: "1rem", border: "1px solid var(--pitch-black)", marginBottom: "1rem" }}>
+                <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>Último Viaje Registrado:</p>
+                <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><Calendar size={16}/> {new Date(c.logistics[0].arrivalDate).toLocaleString()}</p>
+                <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><MapPin size={16}/> {c.logistics[0].terminal} ({c.logistics[0].transportType})</p>
+              </div>
+            ) : (
+              <div style={{ padding: "1rem", backgroundColor: "#fef3c7", border: "1px solid #d97706", marginBottom: "1rem" }}>
+                Sin viaje planificado
+              </div>
+            )}
+
+            <form action={async (formData) => { "use server"; await createLogisticsEvent(formData); }} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <input type="hidden" name="candidateId" value={c.id} />
+              
+              <label className="label" style={{ marginBottom: 0 }}>Transporte</label>
+              <select name="transportType" className="input" required>
+                <option value="AVION">Avión</option>
+                <option value="TREN">Tren</option>
+                <option value="COCHE_EMPRESA">Coche de Empresa</option>
+                <option value="PROPIO">Propio</option>
+              </select>
+
+              <label className="label" style={{ marginBottom: 0 }}>Fecha y Hora de Llegada</label>
+              <input type="datetime-local" name="arrivalDate" className="input" required />
+
+              <label className="label" style={{ marginBottom: 0 }}>Terminal / Estación</label>
+              <input type="text" name="terminal" className="input" placeholder="Ej. Modlin, Chopin, Kutno PKP" required />
+
+              <label className="label" style={{ marginBottom: 0 }}>Responsable de recogida</label>
+              <input type="text" name="pickedUpBy" className="input" placeholder="Nombre de quien recoge" />
+
+              <button type="submit" className="button" style={{ marginTop: "0.5rem" }}>
+                Registrar Llegada
+              </button>
+            </form>
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>2</div>
-          <p style={{ margin: 0, marginTop: '0.5rem' }}>Asignar conductor necesario</p>
-        </div>
+        ))}
+        {candidates.length === 0 && (
+          <div style={{ gridColumn: "1 / -1", padding: "2rem", textAlign: "center", backgroundColor: "white", border: "2px solid black" }}>
+            No hay candidatos aprobados pendientes de logística.
+          </div>
+        )}
       </div>
-
-      <div className="card">
-        <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-          <h2>Próximos Viajes a Kutno</h2>
-          <button className="button">
-            Programar Llegada
-          </button>
-        </div>
-
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Candidato</th>
-                <th>Medio</th>
-                <th>Origen</th>
-                <th>Llegada Estimada</th>
-                <th>Estado</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ fontWeight: 'bold' }}>Juan Pérez</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={16} /> Tren (PKP)</div></td>
-                <td>Varsovia Chopin</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Hoy, 14:30</div></td>
-                <td><span className="status-badge" style={{ backgroundColor: 'var(--amber-flame)', color: 'var(--pitch-black)' }}>En Tránsito</span></td>
-                <td><button className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Asignar Recogida</button></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold' }}>Carlos Silva</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Car size={16} /> Coche Privado</div></td>
-                <td>Berlín</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Hoy, 18:00</div></td>
-                <td><span className="status-badge active">Confirmado</span></td>
-                <td><button className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Detalles</button></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold' }}>Ana Gomez</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={16} /> Bus (Flixbus)</div></td>
-                <td>Cracovia</td>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={16} /> Mañana, 09:15</div></td>
-                <td><span className="status-badge">Programado</span></td>
-                <td><button className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Detalles</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

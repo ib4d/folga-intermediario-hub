@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Folga Hub 1.0",
-  description: "Plataforma de gestión de candidatos y documentos migratorios - Folga",
+  title: "Folga Hub - Reclutamiento Inteligente",
+  description: "Plataforma de gestión de candidatos y logística para Folga Sp. z o.o.",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#fcba04",
 };
 
 export default function RootLayout({
@@ -31,12 +37,17 @@ export default function RootLayout({
     >
       <body>
         <div className="app-layout">
-          <Sidebar />
+          <div className="desktop-only">
+            <Sidebar />
+          </div>
           <div className="main-container">
             <Header />
             <main className="main-content">
               {children}
             </main>
+          </div>
+          <div className="mobile-only">
+            <BottomNav />
           </div>
         </div>
       </body>
