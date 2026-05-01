@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  INTERMEDIARIO
+  LEGAL
+}
+
+enum CandidateStatus {
+  RECOPILANDO_DOCS
+  EN_REVISION_LEGAL
+  APROBADO
+  RECHAZADO
+  CONTRATADO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(INTERMEDIARIO)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidates Candidate[]
+}
+
+model Candidate {
+  id           String          @id @default(cuid())
+  firstName    String
+  lastName     String
+  country      String
+  phone        String?
+  status       CandidateStatus @default(RECOPILANDO_DOCS)
+  notes        String?
+  paid400pln   Boolean         @default(false)
+  
+  intermediaryId String
+  intermediary   User          @relation(fields: [intermediaryId], references: [id])
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DocumentType {
+  PASSPORT
+  PESEL
+  KARTA_POBYTU
+  VISA
+  VOIVODATO_DECISION
+  PAYMENT_RECEIPT
+  OTHER
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  type        DocumentType
+  number      String?
+  url         String       // Supabase storage URL
+  extractedData Json?      // For OCR data
+  expiryDate  DateTime?
+
+  candidateId String
+  candidate   Candidate    @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,65 +1,99 @@
-import Image from "next/image";
+import { Users, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      <div className="hero-section">
+        <h1>Dashboard Intermediarios</h1>
+        <p>Visión general del estado del reclutamiento y pipeline de candidatos para el equipo legal y de logística.</p>
+      </div>
+
+      <div className="dashboard-grid" style={{ marginBottom: '3rem' }}>
+        <div className="card">
+          <div className="card-header">
+            <h3>Candidatos Activos</h3>
+            <Users size={24} />
+          </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>142</div>
+          <p style={{ margin: 0, marginTop: '0.5rem' }}>+12 esta semana</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="card" style={{ backgroundColor: 'var(--amber-flame)', color: 'var(--pitch-black)' }}>
+          <div className="card-header">
+            <h3>Docs Pendientes</h3>
+            <AlertTriangle size={24} />
+          </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>28</div>
+          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--pitch-black)' }}>Requieren atención inmediata</p>
         </div>
-      </main>
-    </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3>En Revisión Legal</h3>
+            <Clock size={24} />
+          </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>45</div>
+          <p style={{ margin: 0, marginTop: '0.5rem' }}>Tiempo medio: 3 semanas</p>
+        </div>
+
+        <div className="card" style={{ backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)' }}>
+          <div className="card-header">
+            <h3>Aprobados (Listos)</h3>
+            <CheckCircle size={24} />
+          </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>19</div>
+          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--grey-olive)' }}>Pendientes de pago 400pln</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2>Candidatos Recientes</h2>
+        <button className="button">Ver Todos</button>
+      </div>
+
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Candidato</th>
+              <th>País</th>
+              <th>Intermediario</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div style={{ fontWeight: 'bold' }}>Juan Pérez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Pasaporte: AB123456</div></td>
+              <td>Colombia</td>
+              <td>Maria G.</td>
+              <td><span className="status-badge">Recopilando Docs</span></td>
+              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
+            </tr>
+            <tr>
+              <td><div style={{ fontWeight: 'bold' }}>Carlos Silva</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>PESEL: 90010112345</div></td>
+              <td>Perú (En Polonia)</td>
+              <td>Jorge M.</td>
+              <td><span className="status-badge active">Legal Aprobado</span></td>
+              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
+            </tr>
+            <tr>
+              <td><div style={{ fontWeight: 'bold' }}>Ana Gomez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Pasaporte: XY987654</div></td>
+              <td>Guatemala</td>
+              <td>Maria G.</td>
+              <td><span className="status-badge danger">Rechazado Legal</span></td>
+              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
+            </tr>
+            <tr>
+              <td><div style={{ fontWeight: 'bold' }}>Luis Rodriguez</div><div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Karta Pobytu Pendiente</div></td>
+              <td>Venezuela</td>
+              <td>Andres V.</td>
+              <td><span className="status-badge">En Hrappka</span></td>
+              <td><button className="button button-secondary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>Revisar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
