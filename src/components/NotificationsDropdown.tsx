@@ -109,6 +109,9 @@ export default function NotificationsDropdown({ userId }: { userId: string }) {
               ))
             )}
           </div>
+          <div style={{ padding: "0.75rem", borderTop: "2px solid var(--pitch-black)", textAlign: "center" }}>
+            <a href="/notificaciones" style={{ fontSize: "0.875rem", fontWeight: "bold", color: "var(--pitch-black)", textDecoration: "none" }}>Ver todas</a>
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
-import { Search, UserCircle, LogOut } from "lucide-react";
+import { UserCircle, LogOut } from "lucide-react";
 import NotificationsDropdown from "./NotificationsDropdown";
 import { auth, signOut } from "@/auth";
+import GlobalSearch from "./GlobalSearch";
 
 export default async function Header() {
   const session = await auth();
@@ -8,19 +9,7 @@ export default async function Header() {
 
   return (
     <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', maxWidth: '400px' }}>
-        <div className="input-group" style={{ marginBottom: 0, width: '100%' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-            <input 
-              type="text" 
-              className="input" 
-              placeholder="Buscar candidatos, docs..." 
-              style={{ paddingLeft: '2.5rem' }}
-            />
-          </div>
-        </div>
-      </div>
+      <GlobalSearch />
       
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <NotificationsDropdown userId={session.user.id} />

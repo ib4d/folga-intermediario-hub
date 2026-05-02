@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { generateRegistrationToken } from "@/app/actions/public-registration";
+import { generateRegistrationLink } from "@/app/actions/candidates";
 import { Link as LinkIcon, CheckCircle, Loader2 } from "lucide-react";
 
 export default function CopyRegistrationLink({ candidateId }: { candidateId: string }) {
@@ -11,9 +11,9 @@ export default function CopyRegistrationLink({ candidateId }: { candidateId: str
   const handleGenerateAndCopy = async () => {
     try {
       setLoading(true);
-      const token = await generateRegistrationToken(candidateId);
-      const url = `${window.location.origin}/registro/${token}`;
-      await navigator.clipboard.writeText(url);
+      const { url } = await generateRegistrationLink(candidateId);
+      const fullUrl = `${window.location.origin}${url}`;
+      await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import { submitCandidateRegistration } from "@/app/actions/public-registration";
 import { fullRegistrationSchema } from "@/lib/validations/candidate-registration";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
-export default function RegistroPage({ params }: { params: { token: string } }) {
+export default function RegistroPage({ params }: { params: Promise<{ token: string }> }) {
+  const resolvedParams = use(params);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Record<string, string>>({
     gender: "Hombre",
@@ -25,7 +26,7 @@ export default function RegistroPage({ params }: { params: { token: string } }) 
 
   const totalSteps = 8;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -43,7 +44,7 @@ export default function RegistroPage({ params }: { params: { token: string } }) 
     setError("");
 
     try {
-      const res = await submitCandidateRegistration(params.token, formData);
+      const res = await submitCandidateRegistration(resolvedParams.token, formData);
       if (res.error) {
         setError(JSON.stringify(res.error, null, 2));
       } else {
@@ -143,12 +144,47 @@ export default function RegistroPage({ params }: { params: { token: string } }) 
             </>
           )}
 
-          {/* Simplificando los pasos restantes para esta prueba - En producción esto debería mapear cada campo del Schema */}
-          {step >= 4 && step <= 7 && (
-            <div style={{ padding: "2rem", textAlign: "center", backgroundColor: "var(--white-smoke)", border: "2px solid var(--pitch-black)" }}>
-              <h3>Sección {step}</h3>
-              <p>Campos correspondientes a la sección {step} (Simplificado para el test base).</p>
-            </div>
+          {step === 4 && (
+            <>
+              <h3>4. Documentos Adicionales</h3>
+              <input type="text" name="peselNumber" className="input" placeholder="Número PESEL (si tiene)" onChange={handleChange} />
+              <label className="label">¿Tiene Karta Pobytu?</label>
+              <select name="hasKartaPobytu" className="input" onChange={handleChange}>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <h3>5. Alojamiento y Viaje</h3>
+              <input type="text" name="accommodation" className="input" placeholder="Preferencias de Alojamiento" onChange={handleChange} />
+              <textarea name="arrivalNotes" className="input" placeholder="Notas de llegada o detalles de viaje" onChange={handleChange} />
+            </>
+          )}
+
+          {step === 6 && (
+            <>
+              <h3>6. Experiencia Laboral</h3>
+              <label className="label">¿Ha trabajado antes para Folga?</label>
+              <select name="hasWorkedForFolga" className="input" onChange={handleChange}>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+              <textarea name="workExperience" className="input" placeholder="Experiencia laboral previa" onChange={handleChange} />
+            </>
+          )}
+
+          {step === 7 && (
+            <>
+              <h3>7. Pagos y Términos</h3>
+              <label className="label">¿Comprende que el proceso requiere un pago inicial de 400 PLN?</label>
+              <select name="understands400pln" className="input" onChange={handleChange}>
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </select>
+            </>
           )}
 
           {step === 8 && (

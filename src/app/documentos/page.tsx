@@ -1,6 +1,35 @@
-import { FileText, AlertTriangle, Upload, CheckCircle } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { FileText, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import BatchUploadButton from "@/components/BatchUploadButton";
+import DocumentTable from "@/components/DocumentTable";
+import Link from "next/link";
 
-export default function DocumentosPage() {
+export default async function DocumentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
+  const documents = await prisma.document.findMany({
+    where: status ? { ocrStatus: status } : {},
+    include: { candidate: true },
+    orderBy: { createdAt: 'desc' },
+    take: status ? undefined : 10
+  });
+
+  const candidates = await prisma.candidate.findMany({
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: { firstName: 'asc' }
+  });
+
+  const formattedCandidates = candidates.map(c => ({
+    id: c.id,
+    name: `${c.firstName} ${c.lastName}`
+  }));
+
+  const pendingCount = await prisma.document.count({ where: { ocrStatus: 'PENDING' } });
+  const completedCount = await prisma.document.count({ where: { ocrStatus: 'SUCCESS' } });
+
   return (
     <>
       <div className="hero-section" style={{ padding: '2rem', backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)' }}>
@@ -9,63 +38,33 @@ export default function DocumentosPage() {
       </div>
 
       <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
-        <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
+        <Link href="/documentos?status=PENDING" className="card" style={{ backgroundColor: 'var(--amber-flame)', textDecoration: 'none', color: 'inherit' }}>
           <div className="card-header">
             <h3>Pendientes de Revisión</h3>
             <AlertTriangle size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>12</div>
-          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--pitch-black)' }}>Docs subidos hoy</p>
-        </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{pendingCount}</div>
+          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--pitch-black)' }}>Docs por validar</p>
+        </Link>
         
         <div className="card">
           <div className="card-header">
-            <h3>OCR Completado</h3>
+            <h3>OCR Procesados</h3>
             <CheckCircle size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>84</div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{completedCount}</div>
           <p style={{ margin: 0, marginTop: '0.5rem' }}>Extracción automática exitosa</p>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ marginBottom: '2rem' }}>
         <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-          <h2>Últimos Documentos Procesados</h2>
-          <button className="button">
-            <Upload size={18} /> Subir Lote
-          </button>
-        </div>
-
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Archivo</th>
-                <th>Candidato</th>
-                <th>Tipo Detectado</th>
-                <th>Confianza OCR</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><FileText size={16} /> scan_pass_12.pdf</td>
-                <td>Maria Rodriguez</td>
-                <td>Pasaporte (Colombia)</td>
-                <td><span className="status-badge active" style={{ backgroundColor: '#4ade80' }}>98%</span></td>
-                <td><button className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Verificar</button></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><FileText size={16} /> img_pesel_raw.jpg</td>
-                <td>Desconocido</td>
-                <td>PESEL</td>
-                <td><span className="status-badge danger">42%</span></td>
-                <td><button className="button button-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Corregir</button></td>
-              </tr>
-            </tbody>
-          </table>
+          <h2>Carga de Documentos</h2>
+          <BatchUploadButton candidates={formattedCandidates} />
         </div>
       </div>
+
+      <DocumentTable initialDocuments={documents as any} />
     </>
   );
 }

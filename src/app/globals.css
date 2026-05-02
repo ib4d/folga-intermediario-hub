@@ -42,6 +42,7 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  zoom: 0.85;
 }
 
 /* Base utility classes for the layout */
@@ -331,6 +332,11 @@ p { margin-bottom: 1rem; color: var(--muted); }
   color: white;
 }
 
+.status-badge.warning {
+  background-color: #f59e0b;
+  color: white;
+}
+
 @media (prefers-color-scheme: dark) {
   .status-badge {
     border: 2px solid var(--grey-olive);
@@ -410,3 +416,13 @@ tr:hover td {
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+

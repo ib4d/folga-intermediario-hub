@@ -12,28 +12,30 @@ export async function createLogisticsEvent(formData: FormData) {
   const transportType = formData.get("transportType") as string;
   const arrivalDate = formData.get("arrivalDate") as string;
   const terminal = formData.get("terminal") as string;
-  const flightOrTrain = formData.get("flightOrTrain") as string;
   const pickedUpBy = formData.get("pickedUpBy") as string;
   const notes = formData.get("notes") as string;
 
-  await prisma.logisticsEvent.create({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma as any).logisticsEvent.create({
     data: {
       candidateId,
-      transportType: transportType as any,
-      arrivalDate: new Date(arrivalDate),
-      terminal,
-      flightOrTrain,
-      pickedUpBy,
-      notes,
+      type: transportType || "ARRIVAL",
+      date: arrivalDate ? new Date(arrivalDate) : new Date(),
+      terminal: terminal || null,
+      pickedUpBy: pickedUpBy || null,
+      notes: notes || null,
     },
   });
 
-  // Si no está en tránsito, actualizar estado del candidato
-  await prisma.candidate.update({
+  // Update candidate location status
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma as any).candidate.update({
     where: { id: candidateId },
-    data: { locationStatus: "EN_TRANSITO" },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: { locationStatus: "EN_TRANSITO" } as any,
   });
 
   revalidatePath("/logistica");
+  revalidatePath(`/candidatos`);
   return { success: true };
 }

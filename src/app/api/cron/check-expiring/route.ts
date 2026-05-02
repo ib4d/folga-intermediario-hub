@@ -32,15 +32,14 @@ export async function GET(request: Request) {
     },
   });
 
-  const notifications = expiringDocs.map((doc) => ({
-    userId: doc.candidate.intermediaryId,
+  const notifications = expiringDocs.map((doc: any) => ({
     candidateId: doc.candidate.id,
     type: "DOC_EXPIRING",
     message: `El documento ${doc.type} de ${doc.candidate.firstName} ${doc.candidate.lastName} expira en 30 días.`,
   }));
 
   if (notifications.length > 0) {
-    await prisma.notification.createMany({ data: notifications });
+    await (prisma as any).notification.createMany({ data: notifications as any });
   }
 
   return NextResponse.json({ processed: notifications.length });

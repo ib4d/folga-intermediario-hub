@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { exportCandidatesExcel } from "@/app/actions/exports";
+import { exportCandidatesToXLSX } from "@/app/actions/exports";
 
 export default function ExportButton() {
   const [loading, setLoading] = useState(false);
@@ -10,7 +10,13 @@ export default function ExportButton() {
   const handleExport = async () => {
     try {
       setLoading(true);
-      const base64 = await exportCandidatesExcel();
+      const result = await exportCandidatesToXLSX();
+      if (!result) {
+        alert("No tienes permisos para exportar o la sesión expiró");
+        return;
+      }
+      
+      const { base64, filename } = result;
       
       // Convertir base64 a Blob y descargar
       const byteCharacters = atob(base64);
@@ -24,7 +30,7 @@ export default function ExportButton() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `candidatos_folga_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

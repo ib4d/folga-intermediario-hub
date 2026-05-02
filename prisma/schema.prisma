@@ -16,106 +16,124 @@ enum Role {
 
 enum CandidateStatus {
   RECOPILANDO_DOCS
-  EN_REVISION_LEGAL
+  EN_REVISION
+  REVISION_ADICIONAL
+  DOCUMENTACION_PENDIENTE
   APROBADO
   RECHAZADO
   CONTRATADO
-  EN_PROCESO_PERMISO
+  RETIRADO
 }
 
 enum LocationStatus {
-  EN_POLONIA
   EN_ORIGEN
   EN_TRANSITO
-}
-
-enum TransportType {
-  AVION
-  TREN
-  COCHE_EMPRESA
-  PROPIO
+  EN_POLONIA
 }
 
 enum DocumentType {
   PASSPORT
-  PESEL
   KARTA_POBYTU
-  VISA
-  VOIVODATO_DECISION
-  PAYMENT_RECEIPT
-  ENTRY_STAMP
-  EXIT_STAMP
+  PESEL
+  DECYZJA_WOJEWODY
+  CV
+  OTHER
+}
+
+enum RecruitmentSource {
+  WHATSAPP
+  EMAIL
+  REFERRAL
+  GOOGLE_ADS
+  WEBSITE
   OTHER
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  phone        String?
-  role         Role     @default(INTERMEDIARIO)
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String?
   passwordHash String?
-  isActive     Boolean  @default(true)
-  region       String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  role         Role        @default(INTERMEDIARIO)
+  isActive     Boolean     @default(true)
+  settings     Json?       @default("{}")
   candidates   Candidate[]
-  notifications Notification[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model Candidate {
-  id              String          @id @default(cuid())
-  
-  // Datos personales (de formulario de registro)
-  firstName       String
-  lastName        String
-  email           String?
-  phone           String?
-  gender          String?
-  dateOfBirth     DateTime?
-  birthPlace      String?
-  birthCountry    String?
-  citizenship     String?
-  nationality     String?
-  heightCm        Int?
-  
-  // Datos de localización y país
-  country         String
-  locationStatus  LocationStatus  @default(EN_ORIGEN)
-  
-  // Datos de contacto en Polonia
-  polishAddress   String?
-  polishCity      String?
-  
-  // Documentos migratorios clave (resumen rápido)
-  passportNumber  String?
-  passportExpiry  DateTime?
-  peselNumber     String?
-  voivodatoNumber String?          // número de caso cuando no hay decisión
-  
-  // Estado del pipeline
+  id String @id @default(cuid())
+
+  firstName    String?
+  lastName     String?
+  email        String?   @unique
+  phone        String?
+  gender       String?
+  dateOfBirth  DateTime?
+  birthPlace   String?
+  birthCountry String?
+  citizenship  String?
+  nationality  String?
+  heightCm     Int?
+
+  country        String         @default("COL")
+  locationStatus LocationStatus @default(EN_ORIGEN)
+
+  polishAddress String?
+  polishCity    String?
+
+  passportNumber    String?
+  passportIssueDate DateTime?
+  passportExpiry    DateTime?
+  passportBiometric Boolean?
+
+  kartaPobytuNumber    String?
+  kartaPobytuIssueDate DateTime?
+  kartaPobytuExpiry    DateTime?
+  kartaPobytuType      String?
+
+  peselNumber String?
+
+  voivodatoNumber    String?
+  voivodatoIssueDate DateTime?
+  voivodatoExpiry    DateTime?
+  voivodatoStatus    String?
+
+  recruitmentSource  RecruitmentSource?
+  recruiterId        String?
+  arrivalDate        DateTime?
+  accommodation      String?
+  accommodationNotes String?
+  arrivalNotes       String?
+
   status          CandidateStatus @default(RECOPILANDO_DOCS)
-  rejectionReason String?          // razón estructurada de rechazo legal
+  rejectionReason String?
+  reviewNotes     String?
   notes           String?
-  
-  // Pago 400 PLN
-  paid400pln      Boolean         @default(false)
-  paymentDate     DateTime?
-  
-  // Relaciones
-  intermediaryId  String
-  intermediary    User            @relation(fields: [intermediaryId], references: [id])
-  documents       Document[]
-  logistics       LogisticsEvent[]
-  notifications   Notification[]
 
-  // Formulario autoregistro (raw data del candidato)
-  selfRegistered  Boolean         @default(false)
-  registrationToken String?       @unique  // token único para URL de registro
+  paid400pln  Boolean   @default(false)
+  paymentDate DateTime?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  gdprConsent     Boolean   @default(false)
+  gdprConsentDate DateTime?
+
+  intermediaryId String
+  intermediary   User             @relation(fields: [intermediaryId], references: [id])
+  documents      Document[]
+  logistics      LogisticsEvent[]
+  notifications  Notification[]
+  statusHistory  StatusHistory[]
+
+  selfRegistered    Boolean @default(false)
+  registrationToken String? @unique
+
+  ocrProcessed Boolean @default(false)
+  ocrSource    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Document {
@@ -123,46 +141,61 @@ model Document {
   type          DocumentType
   number        String?
   issuerCountry String?
-  url           String        // Supabase storage URL
-  extractedData Json?         // Para datos de OCR (Azure DI)
+  issueDate     DateTime?
   expiryDate    DateTime?
-  isVerified    Boolean       @default(false)
+  url           String
+  extractedData Json?
+  isVerified    Boolean      @default(false)
   verifiedById  String?
-  
-  candidateId   String
-  candidate     Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  ocrStatus     String?
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StatusHistory {
+  id          String          @id @default(cuid())
+  candidateId String
+  fromStatus  CandidateStatus
+  toStatus    CandidateStatus
+  changedBy   String?
+  reason      String?
+  createdAt   DateTime        @default(now())
+  candidate   Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  details   Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model LogisticsEvent {
-  id             String        @id @default(cuid())
-  candidateId    String
-  candidate      Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-
-  transportType  TransportType
-  arrivalDate    DateTime
-  terminal       String?       // Aeropuerto Varsovia / Estación Kutno / etc.
-  flightOrTrain  String?       // número de vuelo o tren
-  pickedUpBy     String?       // quién recoge
-  notes          String?
-  confirmed      Boolean       @default(false)
-
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id          String    @id @default(cuid())
+  candidateId String
+  type        String
+  date        DateTime?
+  notes       String?
+  terminal    String?
+  pickedUpBy  String?
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  candidateId String?
-  candidate   Candidate? @relation(fields: [candidateId], references: [id])
-  
-  type        String   // DOC_EXPIRING | STATUS_CHANGED | PAYMENT_PENDING | NEW_CANDIDATE
+  id          String    @id @default(cuid())
+  candidateId String
+  type        String
   message     String
-  isRead      Boolean  @default(false)
-  
-  createdAt   DateTime @default(now())
+  isRead      Boolean   @default(false)
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }

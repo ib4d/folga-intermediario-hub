@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Users, AlertTriangle, CheckCircle, Clock, Download } from "lucide-react";
@@ -20,7 +21,7 @@ export default async function Home() {
   const [total, recopilando, enRevision, aprobados, recientes, byStatusRaw, byCountryRaw] = await Promise.all([
     prisma.candidate.count({ where: whereClause }),
     prisma.candidate.count({ where: { ...whereClause, status: "RECOPILANDO_DOCS" } }),
-    prisma.candidate.count({ where: { ...whereClause, status: "EN_REVISION_LEGAL" } }),
+    prisma.candidate.count({ where: { ...whereClause, status: "EN_REVISION" } }),
     prisma.candidate.count({ where: { ...whereClause, status: "APROBADO" } }),
     prisma.candidate.findMany({
       where: whereClause,
@@ -42,15 +43,25 @@ export default async function Home() {
     })
   ]);
 
+  // Estadísticas reales para el timeline (últimas 4 semanas)
+  const timelineData = await Promise.all([3, 2, 1, 0].map(async (weeksAgo, index) => {
+    const start = new Date();
+    start.setDate(start.getDate() - (weeksAgo + 1) * 7);
+    const end = new Date();
+    end.setDate(end.getDate() - weeksAgo * 7);
+    const count = await prisma.candidate.count({
+      where: { createdAt: { gte: start, lte: end }, ...whereClause }
+    });
+    // Si weeksAgo es 0 (actual), queremos que la etiqueta sea Semana 1
+    // Si weeksAgo es 3 (hace 3 semanas), queremos que sea Semana 4
+    const labelNumber = weeksAgo + 1;
+    return { date: `Semana ${labelNumber}`, count };
+  }));
+
   const chartData = {
-    byStatus: byStatusRaw.map(s => ({ name: s.status, value: s._count._all })),
-    byCountry: byCountryRaw.map(c => ({ name: c.country, value: c._count._all })),
-    byTimeline: [
-      { date: "Semana 1", count: 4 },
-      { date: "Semana 2", count: 7 },
-      { date: "Semana 3", count: 5 },
-      { date: "Semana 4", count: 12 },
-    ]
+    byStatus: byStatusRaw.map((s: any) => ({ name: s.status.replace(/_/g, ' '), value: s._count._all })),
+    byCountry: byCountryRaw.map((c: any) => ({ name: c.country, value: c._count._all })),
+    byTimeline: timelineData
   };
 
   return (
@@ -58,50 +69,48 @@ export default async function Home() {
       <div className="hero-section" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ marginBottom: '0.5rem' }}>Dashboard Central</h1>
-          <p style={{ margin: 0 }}>Bienvenido, <span style={{ color: 'var(--amber-flame)', fontWeight: 'bold' }}>{session.user.name}</span>. Tienes {recopilando} candidatos pendientes.</p>
+          <p style={{ margin: 0, color: 'var(--pitch-black)' }}>Bienvenido, <span style={{ fontWeight: 'bold' }}>{session.user.name}</span>. Tienes {recopilando} candidatos pendientes.</p>
         </div>
         <ExportButton />
       </div>
 
       <div className="dashboard-grid">
-        {/* ... (mismos cards de métricas) ... */}
-        <div className="card">
+        <Link href="/candidatos" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="card-header">
             <h3>Total Candidatos</h3>
             <Users size={24} />
           </div>
           <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{total}</div>
-        </div>
+        </Link>
 
-        <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
+        <Link href="/candidatos?status=RECOPILANDO_DOCS" className="card" style={{ backgroundColor: 'var(--amber-flame)', textDecoration: 'none', color: 'inherit' }}>
           <div className="card-header">
             <h3>Recopilando Docs</h3>
             <Clock size={24} />
           </div>
           <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{recopilando}</div>
-        </div>
+        </Link>
 
-        <div className="card">
+        <Link href="/legal" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="card-header">
             <h3>En Revisión Legal</h3>
             <AlertTriangle size={24} />
           </div>
           <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{enRevision}</div>
-        </div>
+        </Link>
 
-        <div className="card" style={{ border: '2px solid #4ade80' }}>
+        <Link href="/logistica" className="card" style={{ border: '2px solid #4ade80', textDecoration: 'none', color: 'inherit' }}>
           <div className="card-header">
-            <h3 style={{ color: '#065F46' }}>Aprobados</h3>
-            <CheckCircle size={24} color="#065F46" />
+            <h3>Aprobados</h3>
+            <CheckCircle size={24} color="#4ade80" />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1, color: '#065F46' }}>{aprobados}</div>
-        </div>
+          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{aprobados}</div>
+        </Link>
       </div>
 
       <DashboardCharts data={chartData} />
 
       <div className="card" style={{ marginTop: '2rem' }}>
-        {/* ... (tabla de candidatos recientes) ... */}
         <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
           <h2>Candidatos Recientes</h2>
           <Link href="/candidatos" className="button" style={{ fontSize: '0.875rem' }}>Ver todos</Link>
@@ -118,7 +127,7 @@ export default async function Home() {
               </tr>
             </thead>
             <tbody>
-              {recientes.map((candidate) => (
+              {recientes.map((candidate: any) => (
                 <tr key={candidate.id}>
                   <td style={{ fontWeight: 'bold' }}>{candidate.firstName} {candidate.lastName}</td>
                   <td>{candidate.country}</td>

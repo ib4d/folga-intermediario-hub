@@ -3,13 +3,51 @@ import { prisma } from "@/lib/prisma";
 import { PlusCircle, Search } from "lucide-react";
 import Link from "next/link";
 import CopyRegistrationLink from "@/components/CopyRegistrationLink";
+import CandidateSearch from "@/components/CandidateSearch";
+import BulkImportCandidates from "@/components/BulkImportCandidates";
 
-export default async function CandidatosPage() {
+export default async function CandidatosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string; limit?: string; status?: string }>;
+}) {
+  const { q, page = "1", limit = "10", status } = await searchParams;
   const session = await auth();
-  const whereClause = session?.user.role === "INTERMEDIARIO" ? { intermediaryId: session?.user.id } : {};
+  
+  const baseWhere = session?.user.role === "INTERMEDIARIO" 
+    ? { intermediaryId: session?.user.id } 
+    : {};
+
+  const whereClause: any = q ? {
+    AND: [
+      baseWhere,
+      {
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q, mode: 'insensitive' } },
+          { country: { contains: q, mode: 'insensitive' } },
+          { passportNumber: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+    ],
+  } : baseWhere;
+
+  if (status) {
+    whereClause.status = status;
+  }
+
+  const pageNumber = parseInt(page, 10) || 1;
+  const limitNumber = limit === "ALL" ? undefined : (parseInt(limit, 10) || 10);
+  const skip = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
+
+  const totalCandidates = await prisma.candidate.count({ where: whereClause as any });
+  const totalPages = limitNumber ? Math.ceil(totalCandidates / limitNumber) : 1;
 
   const candidates = await prisma.candidate.findMany({
-    where: whereClause,
+    where: whereClause as any,
+    take: limitNumber,
+    skip: skip,
     include: {
       intermediary: true,
       documents: true
@@ -25,26 +63,17 @@ export default async function CandidatosPage() {
             <h1>Candidatos</h1>
             <p>Gestión completa de candidatos y sus estados legales.</p>
           </div>
-          <Link href="/candidatos/nuevo" className="button" style={{ backgroundColor: 'var(--pitch-black)', color: 'var(--amber-flame)' }}>
-            <PlusCircle size={20} />
-            Añadir Candidato
-          </Link>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: '2rem', padding: '1rem' }}>
-        <div className="input-group" style={{ marginBottom: 0 }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-            <input 
-              type="text" 
-              className="input" 
-              placeholder="Buscar por nombre, documento, país..." 
-              style={{ paddingLeft: '2.5rem' }}
-            />
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <BulkImportCandidates />
+            <Link href="/candidatos/nuevo" className="button" style={{ backgroundColor: 'var(--pitch-black)', color: 'var(--amber-flame)' }}>
+              <PlusCircle size={20} />
+              Añadir Candidato
+            </Link>
           </div>
         </div>
       </div>
+
+      <CandidateSearch />
 
       <div className="table-container">
         <table>
@@ -66,7 +95,7 @@ export default async function CandidatosPage() {
                 </td>
               </tr>
             ) : (
-              candidates.map((c) => (
+              candidates.map((c: any) => (
                 <tr key={c.id}>
                   <td>
                     <div style={{ fontWeight: 'bold' }}>{c.firstName} {c.lastName}</div>
@@ -100,6 +129,29 @@ export default async function CandidatosPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '2rem' }}>
+          {Array.from({ length: totalPages }).map((_, i) => {
+            const p = i + 1;
+            const params = new URLSearchParams();
+            if (q) params.set("q", q);
+            if (limit) params.set("limit", limit);
+            params.set("page", p.toString());
+            
+            return (
+              <Link 
+                key={p} 
+                href={`?${params.toString()}`}
+                className={`button ${p === pageNumber ? '' : 'button-secondary'}`}
+                style={{ minWidth: '40px', padding: '0.5rem', textAlign: 'center' }}
+              >
+                {p}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
