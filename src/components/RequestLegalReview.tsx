@@ -5,7 +5,7 @@ import { CheckCircle } from "lucide-react";
 
 export default function RequestLegalReview({ candidateId, currentStatus }: { candidateId: string; currentStatus: string }) {
   const [isPending, startTransition] = useTransition();
-  const [sent, setSent] = useState(currentStatus === "EN_REVISION");
+  const [sent, setSent] = useState(currentStatus === "EN_REVISION_LEGAL");
 
   const handleRequest = () => {
     startTransition(async () => {

@@ -69,9 +69,9 @@ export default function LegalSearch() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--grey-olive)' }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="label" style={{ fontSize: '0.75rem' }}>Estado Legal</label>
-            <select className="input" defaultValue={searchParams.get("status") || "EN_REVISION"} onChange={(e) => handleFilter("status", e.target.value)}>
+            <select className="input" defaultValue={searchParams.get("status") || "EN_REVISION_LEGAL"} onChange={(e) => handleFilter("status", e.target.value)}>
               <option value="">Todos</option>
-              <option value="EN_REVISION">En Revisión (Pendientes)</option>
+              <option value="EN_REVISION_LEGAL">En Revisión (Pendientes)</option>
               <option value="APROBADO">Aprobados</option>
               <option value="RECHAZADO">Rechazados</option>
               <option value="REGISTRADO">Registrado</option>

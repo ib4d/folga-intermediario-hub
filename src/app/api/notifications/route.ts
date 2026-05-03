@@ -1,26 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+import { requireRoleApi } from "@/lib/security/requireRole";
 
-export async function GET(req: NextRequest) {
-  const session = await auth();
+export async function GET() {
+  const { session, errorResponse } = await requireRoleApi(["ADMIN", "SUPERADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"]);
+  if (errorResponse) return errorResponse;
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { searchParams } = req.nextUrl;
-  const userId = searchParams.get("userId") || session.user.id;
-
-  const where: any = {};
-  
-  if (session.user.role === "INTERMEDIARIO") {
-    where.candidate = { intermediaryId: session.user.id };
-  } else if (userId && userId !== session.user.id) {
-    // Si un admin pide las de un usuario específico
-    where.candidate = { intermediaryId: userId };
-  }
-
   const notifications = await prisma.notification.findMany({
-    where,
+    where: { 
+      userId: session.user.id,
+      organizationId: session.user.organizationId || undefined 
+    },
     include: {
       candidate: {
         select: { firstName: true, lastName: true }

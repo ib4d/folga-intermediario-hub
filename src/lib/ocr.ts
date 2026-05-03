@@ -73,8 +73,7 @@ function mapAzureIdDocumentFields(fields: Record<string, unknown>): OcrExtracted
 
 async function pdfBufferToPngBuffer(pdfBuffer: Buffer): Promise<Buffer | null> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const data = new Uint8Array(pdfBuffer);
     const loadingTask = pdfjsLib.getDocument({ data });
     const pdfDoc = await loadingTask.promise;
@@ -85,7 +84,7 @@ async function pdfBufferToPngBuffer(pdfBuffer: Buffer): Promise<Buffer | null> {
     const { createCanvas } = require("canvas");
     const canvas = createCanvas(viewport.width, viewport.height);
     const ctx = canvas.getContext("2d");
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
     return canvas.toBuffer("image/png");
   } catch (err) {
     console.error("[OCR] PDF->PNG failed:", err);
@@ -103,13 +102,12 @@ export async function analyzeDocument(
   }
 
   let processBuffer = fileBuffer;
-  let processMime = mimeType;
+  // const processMime = mimeType; // Removed as it is currently unused in the refined OCR flow
 
   if (mimeType === "application/pdf" || mimeType === "application/octet-stream") {
     const pngBuffer = await pdfBufferToPngBuffer(fileBuffer);
     if (pngBuffer) {
       processBuffer = pngBuffer;
-      processMime = "image/png";
     }
   }
 
@@ -118,10 +116,7 @@ export async function analyzeDocument(
     const uint8Data = new Uint8Array(processBuffer);
     const poller = await client.beginAnalyzeDocument(
       "prebuilt-idDocument",
-      uint8Data,
-      {
-        contentType: processMime as any,
-      } as any
+      uint8Data
     );
     const result = await poller.pollUntilDone();
     if (!result.documents || result.documents.length === 0) return null;

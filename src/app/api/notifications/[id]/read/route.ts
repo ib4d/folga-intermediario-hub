@@ -11,6 +11,21 @@ export async function POST(
 
   const resolvedParams = await params;
 
+  const notification = await prisma.notification.findUnique({
+    where: { 
+      id: resolvedParams.id,
+      organizationId: session.user.organizationId || undefined
+    }
+  });
+
+  if (!notification) {
+    return NextResponse.json({ error: "Notificación no encontrada" }, { status: 404 });
+  }
+
+  if (notification.userId !== session.user.id) {
+    return NextResponse.json({ error: "Prohibido" }, { status: 403 });
+  }
+
   await prisma.notification.update({
     where: { id: resolvedParams.id },
     data: { isRead: true },

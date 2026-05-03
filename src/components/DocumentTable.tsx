@@ -50,8 +50,9 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
       setSelectedIds([]);
       router.refresh();
       alert("Documentos eliminados con éxito");
-    } catch (err: any) {
-      alert("Error al eliminar algunos documentos: " + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al eliminar algunos documentos: " + msg);
     } finally {
       setIsDeleting(false);
     }
@@ -64,8 +65,9 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
     try {
       await deleteDocument(id);
       router.refresh();
-    } catch (err: any) {
-      alert("Error al eliminar documento: " + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al eliminar documento: " + msg);
     } finally {
       setIsDeleting(false);
     }

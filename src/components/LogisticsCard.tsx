@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Car, MapPin, Calendar, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { createLogisticsEvent } from "@/app/actions/logistics";
 
-export default function LogisticsCard({ candidate }: { candidate: any }) {
+export default function LogisticsCard({ candidate }: { candidate: import("@prisma/client").Candidate & { logistics: import("@prisma/client").LogisticsEvent[] } }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -14,8 +14,9 @@ export default function LogisticsCard({ candidate }: { candidate: any }) {
     setIsSubmitting(true);
     try {
       await createLogisticsEvent(formData);
-    } catch (e: any) {
-      alert("Error: " + e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      alert("Error: " + msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -40,7 +41,7 @@ export default function LogisticsCard({ candidate }: { candidate: any }) {
             <div style={{ fontSize: "0.875rem", color: "var(--muted)", display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
               <span>{candidate.country}</span>
               {lastEvent && (
-                <span><Calendar size={12} style={{ display: "inline" }}/> {new Date(lastEvent.date).toLocaleString("es-ES")}</span>
+                <span><Calendar size={12} style={{ display: "inline" }}/> {lastEvent.arrivalDate ? new Date(lastEvent.arrivalDate).toLocaleString("es-ES") : "N/A"}</span>
               )}
             </div>
           )}
@@ -57,8 +58,8 @@ export default function LogisticsCard({ candidate }: { candidate: any }) {
           {lastEvent ? (
             <div style={{ backgroundColor: "var(--white-smoke)", padding: "1rem", border: "1px solid var(--pitch-black)", marginBottom: "1rem" }}>
               <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>Último Viaje Registrado:</p>
-              <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><Calendar size={16}/> {lastEvent.date ? new Date(lastEvent.date).toLocaleString("es-ES") : 'N/A'}</p>
-              <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><Car size={16}/> {lastEvent.type}</p>
+              <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><Calendar size={16}/> {lastEvent.arrivalDate ? new Date(lastEvent.arrivalDate).toLocaleString("es-ES") : 'N/A'}</p>
+              <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><Car size={16}/> {lastEvent.transportType}</p>
               {lastEvent.terminal && (
                 <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}><MapPin size={16}/> Terminal: {lastEvent.terminal}</p>
               )}

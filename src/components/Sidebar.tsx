@@ -10,22 +10,27 @@ import {
   BarChart3, 
   Settings,
   Menu,
-  X
+  X,
+  Globe
 } from "lucide-react";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
 
   const links = [
-    { name: "Dashboard", href: "/", icon: BarChart3 },
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Candidatos", href: "/candidatos", icon: Users },
     { name: "Documentos", href: "/documentos", icon: FileText },
     { name: "Logística", href: "/logistica", icon: Car },
     { name: "Legal", href: "/legal", icon: Briefcase },
     { name: "Ajustes", href: "/ajustes", icon: Settings },
   ];
+
+  const isPlatformAdmin = session?.user?.isPlatformAdmin;
 
   return (
     <>
@@ -61,10 +66,22 @@ export default function Sidebar() {
               </Link>
             );
           })}
+
+          {isPlatformAdmin && (
+            <Link 
+              href="/platform"
+              className={`nav-link ${pathname.startsWith('/platform') ? 'active' : ''}`}
+              style={{ marginTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '1rem' }}
+              onClick={() => setIsOpen(false)}
+            >
+              <Globe size={20} />
+              Platform Admin
+            </Link>
+          )}
         </nav>
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--muted)' }}>
-          <div style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>VERSION 1.0</div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Zero-Border UI</div>
+          <div style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>SAAS VERSION 1.0</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Multi-Tenant Ready</div>
         </div>
       </aside>
     </>

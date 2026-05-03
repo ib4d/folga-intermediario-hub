@@ -1,41 +1,152 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireTenant } from "@/lib/tenant";
 
 export async function createLogisticsEvent(formData: FormData) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
+  
+  if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {
+    throw new Error("No autorizado");
+  }
 
   const candidateId = formData.get("candidateId") as string;
   const transportType = formData.get("transportType") as string;
   const arrivalDate = formData.get("arrivalDate") as string;
   const terminal = formData.get("terminal") as string;
+  const flightOrTrain = formData.get("flightOrTrain") as string;
   const pickedUpBy = formData.get("pickedUpBy") as string;
   const notes = formData.get("notes") as string;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (prisma as any).logisticsEvent.create({
+  const event = await prisma.logisticsEvent.create({
     data: {
       candidateId,
-      type: transportType || "ARRIVAL",
-      date: arrivalDate ? new Date(arrivalDate) : new Date(),
-      terminal: terminal || null,
-      pickedUpBy: pickedUpBy || null,
-      notes: notes || null,
+      organizationId: tenant.organizationId!,
+      transportType,
+      arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
+      terminal,
+      flightOrTrain,
+      pickedUpBy,
+      notes,
+    },
+    include: { candidate: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
+      action: "LOGISTICS_EVENT_CREATED",
+      entity: "LogisticsEvent",
+      entityId: event.id,
+      details: { transportType, arrivalDate } as any,
     },
   });
 
-  // Update candidate location status
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (prisma as any).candidate.update({
-    where: { id: candidateId },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: { locationStatus: "EN_TRANSITO" } as any,
+  // Notify Intermediary
+  if (event.candidate.intermediaryId) {
+    await prisma.notification.create({
+      data: {
+        userId: event.candidate.intermediaryId,
+        organizationId: tenant.organizationId!,
+        candidateId: event.candidate.id,
+        type: "LOGISTICS_UPDATE",
+        message: `Se ha programado el transporte (${transportType}) para ${event.candidate.firstName} ${event.candidate.lastName}`,
+      }
+    });
+  }
+
+  revalidatePath("/logistica");
+  revalidatePath(`/candidatos/${candidateId}`);
+  return { success: true };
+}
+
+export async function updateLogisticsEvent(eventId: string, data: any) {
+  const tenant = await requireTenant();
+
+  if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {
+    throw new Error("No autorizado");
+  }
+
+  const event = await prisma.logisticsEvent.update({
+    where: { id: eventId, organizationId: tenant.organizationId! },
+    data,
+    include: { candidate: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
+      action: "LOGISTICS_EVENT_UPDATED",
+      entity: "LogisticsEvent",
+      entityId: eventId,
+      details: data as any,
+    },
   });
 
   revalidatePath("/logistica");
-  revalidatePath(`/candidatos`);
+  revalidatePath(`/candidatos/${event.candidateId}`);
+  return { success: true };
+}
+
+export async function confirmLogisticsEvent(eventId: string) {
+  const tenant = await requireTenant();
+
+  if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {
+    throw new Error("No autorizado");
+  }
+
+  const event = await prisma.logisticsEvent.update({
+    where: { id: eventId, organizationId: tenant.organizationId! },
+    data: { confirmed: true },
+    include: { candidate: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
+      action: "LOGISTICS_EVENT_CONFIRMED",
+      entity: "LogisticsEvent",
+      entityId: eventId,
+    },
+  });
+
+  // Update candidate status to EN_POLONIA if confirmed
+  await prisma.candidate.update({
+    where: { id: event.candidateId, organizationId: tenant.organizationId! },
+    data: { status: "EN_POLONIA" },
+  });
+
+  revalidatePath("/logistica");
+  revalidatePath(`/candidatos/${event.candidateId}`);
+  return { success: true };
+}
+
+export async function deleteLogisticsEvent(eventId: string) {
+  const tenant = await requireTenant();
+
+  if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {
+    throw new Error("No autorizado");
+  }
+
+  const event = await prisma.logisticsEvent.delete({
+    where: { id: eventId, organizationId: tenant.organizationId! },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
+      action: "LOGISTICS_EVENT_DELETED",
+      entity: "LogisticsEvent",
+      entityId: eventId,
+    },
+  });
+
+  revalidatePath("/logistica");
+  revalidatePath(`/candidatos/${event.candidateId}`);
   return { success: true };
 }

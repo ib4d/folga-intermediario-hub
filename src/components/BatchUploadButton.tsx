@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Upload, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { batchUploadDocuments, smartBatchUpload } from "@/app/actions/documents";
-import { Brain, UserCircle, Settings } from "lucide-react";
+import { Brain, UserCircle } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "PASSPORT", label: "Pasaporte" },

@@ -82,9 +82,9 @@ export const fullRegistrationSchema = z.object({
     .optional(),
   accommodation: z.string().optional(),
   arrivalNotes: z.string().optional(),
-  gdprConsent: z.literal(true, {
-    errorMap: () => ({ message: "Debes aceptar el consentimiento GDPR" }),
-  } as any),
+  gdprConsent: z.boolean().refine(val => val === true, {
+    message: "Debes aceptar el consentimiento GDPR",
+  }),
 });
 
 export type CandidateFormData = z.infer<typeof candidateSchema>;

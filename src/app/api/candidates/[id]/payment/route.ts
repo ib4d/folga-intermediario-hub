@@ -7,20 +7,28 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!session?.user?.organizationId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
 
   const { id } = await params;
+  const orgId = session.user.organizationId;
   const body = await req.json();
 
-  const candidate = await prisma.candidate.findUnique({ where: { id } });
-  if (!candidate) return NextResponse.json({ error: "Candidato no encontrado" }, { status: 404 });
+  const candidate = await prisma.candidate.findUnique({ 
+    where: { id, organizationId: orgId } 
+  });
+  
+  if (!candidate) {
+    return NextResponse.json({ error: "Candidato no encontrado en esta organización" }, { status: 404 });
+  }
 
   // Only the managing intermediary or admins can update payment
   if (
     session.user.role === "INTERMEDIARIO" &&
     candidate.intermediaryId !== session.user.id
   ) {
-    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403 });
   }
 
   await prisma.candidate.update({
@@ -34,6 +42,7 @@ export async function PATCH(
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
+      organizationId: orgId,
       action: "PAYMENT_UPDATED",
       entity: "Candidate",
       entityId: id,

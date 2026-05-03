@@ -24,8 +24,9 @@ export default function BulkImportCandidates() {
       } else {
         alert("Error al importar: " + res.error);
       }
-    } catch (err: any) {
-      alert("Error inesperado: " + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error inesperado: " + msg);
     } finally {
       setIsUploading(false);
       e.target.value = ''; // reset input

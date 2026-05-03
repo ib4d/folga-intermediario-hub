@@ -1,16 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { candidateSchema } from "@/lib/validations/candidate";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as XLSX from "xlsx";
+import { requireTenant } from "@/lib/tenant";
+import { assertWithinPlanLimit } from "@/lib/billing/limits";
+import { emitEvent } from "@/core/events";
 
 export async function createCandidate(formData: FormData) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
+  
+  // Check plan limits
+  await assertWithinPlanLimit(tenant.organizationId!, "candidates");
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = candidateSchema.safeParse(raw);
@@ -22,23 +25,27 @@ export async function createCandidate(formData: FormData) {
   const candidate = await prisma.candidate.create({
     data: {
       ...parsed.data,
-      intermediaryId: session.user.id,
+      intermediaryId: tenant.userId,
+      organizationId: tenant.organizationId!,
       status: "RECOPILANDO_DOCS",
     },
   });
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
       action: "CANDIDATE_CREATED",
       entity: "Candidate",
       entityId: candidate.id,
-      details: { firstName: candidate.firstName, lastName: candidate.lastName } as never,
+      details: { firstName: candidate.firstName, lastName: candidate.lastName } as any,
     },
   });
 
   await prisma.notification.create({
     data: {
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
       candidateId: candidate.id,
       type: "NEW_CANDIDATE",
       message: `Nuevo candidato creado: ${candidate.firstName} ${candidate.lastName}`,
@@ -46,25 +53,38 @@ export async function createCandidate(formData: FormData) {
   });
 
   revalidatePath("/candidatos");
+  
+  // Platform Event (P7)
+  await emitEvent("CANDIDATE_CREATED", tenant.organizationId!, {
+    userId: tenant.userId,
+    candidateId: candidate.id,
+    candidate: candidate
+  }, tenant.userId);
+
   redirect("/candidatos");
 }
 
 export async function updateCandidate(candidateId: string, formData: FormData) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
 
-  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } });
-  if (!candidate) throw new Error("Candidato no encontrado");
+  const candidate = await prisma.candidate.findUnique({ 
+    where: { 
+      id: candidateId,
+      organizationId: tenant.organizationId! 
+    } 
+  });
+  
+  if (!candidate) throw new Error("Candidato no encontrado en esta organización");
 
   if (
-    session.user.role === "INTERMEDIARIO" &&
-    candidate.intermediaryId !== session.user.id
+    tenant.role === "INTERMEDIARIO" &&
+    candidate.intermediaryId !== tenant.userId
   ) {
     throw new Error("Sin permisos sobre este candidato");
   }
 
   const raw = Object.fromEntries(formData.entries());
-  const updateData: Record<string, unknown> = { ...raw };
+  const updateData: Record<string, any> = { ...raw };
 
   const dateFields = [
     "dateOfBirth", "passportIssueDate", "passportExpiry",
@@ -103,11 +123,12 @@ export async function updateCandidate(candidateId: string, formData: FormData) {
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
       action: "CANDIDATE_UPDATED",
       entity: "Candidate",
       entityId: candidateId,
-      details: { fields: Object.keys(raw) } as never,
+      details: { fields: Object.keys(raw) } as any,
     },
   });
 
@@ -122,20 +143,25 @@ export async function updateCandidateStatus(
   rejectionReason?: string,
   reviewNotes?: string
 ) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
 
-  if (!["LEGAL", "ADMIN", "SUPERADMIN"].includes(session.user.role)) {
+  if (!["LEGAL", "ADMIN", "SUPERADMIN"].includes(tenant.role)) {
     throw new Error("Sin permisos para cambiar estado");
   }
 
-  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } });
+  const candidate = await prisma.candidate.findUnique({ 
+    where: { 
+      id: candidateId,
+      organizationId: tenant.organizationId! 
+    } 
+  });
+  
   if (!candidate) throw new Error("Candidato no encontrado");
 
   await prisma.candidate.update({
     where: { id: candidateId },
     data: {
-      status: status as never,
+      status: status as any,
       rejectionReason: rejectionReason ?? null,
       reviewNotes: reviewNotes ?? null,
     },
@@ -144,44 +170,89 @@ export async function updateCandidateStatus(
   await prisma.statusHistory.create({
     data: {
       candidateId,
+      organizationId: tenant.organizationId!,
       fromStatus: candidate.status,
-      toStatus: status as never,
-      changedBy: session.user.id,
+      toStatus: status as any,
+      changedBy: tenant.userId,
       reason: rejectionReason ?? null,
     },
   });
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
       action: "STATUS_CHANGED",
       entity: "Candidate",
       entityId: candidateId,
-      details: { from: candidate.status, to: status } as never,
+      details: { from: candidate.status, to: status } as any,
     },
   });
 
-  await prisma.notification.create({
-    data: {
-      candidateId,
-      type: "STATUS_UPDATE",
-      message: `Estado actualizado a ${status.replace(/_/g, " ")}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""}`,
+  // Create notification for the Intermediary
+  if (candidate.intermediaryId) {
+    await prisma.notification.create({
+      data: {
+        userId: candidate.intermediaryId,
+        organizationId: tenant.organizationId!,
+        candidateId,
+        type: "STATUS_UPDATE",
+        message: `El estado de ${candidate.firstName} ${candidate.lastName} ha cambiado a ${status.replace(/_/g, " ")}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""}`,
+      }
+    });
+  }
+
+  // If approved, notify ADMIN and LOGISTICS in the same organization
+  if (status === "APROBADO") {
+    const adminLogistics = await prisma.membership.findMany({
+      where: {
+        organizationId: tenant.organizationId!,
+        role: { in: ["ADMIN", "SUPERADMIN", "LOGISTICA"] },
+        isActive: true
+      },
+      select: { userId: true }
+    });
+
+    if (adminLogistics.length > 0) {
+      await prisma.notification.createMany({
+        data: adminLogistics.map(m => ({
+          userId: m.userId,
+          organizationId: tenant.organizationId!,
+          candidateId,
+          type: "CANDIDATE_APPROVED",
+          message: `${candidate.firstName} ${candidate.lastName} ha sido aprobado. Pendiente de logística.`,
+        }))
+      });
     }
-  });
+  }
 
   revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/candidatos");
   revalidatePath("/legal");
+
+  // Platform Event (P7)
+  await emitEvent("STATUS_CHANGED", tenant.organizationId!, {
+    userId: tenant.userId,
+    candidateId,
+    candidate: { ...candidate, status },
+    newStatus: status,
+    oldStatus: candidate.status
+  }, tenant.userId);
 }
 
 export async function updateCandidateNotes(candidateId: string, notes: string) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
 
-  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } });
+  const candidate = await prisma.candidate.findUnique({ 
+    where: { 
+      id: candidateId,
+      organizationId: tenant.organizationId! 
+    } 
+  });
+  
   if (!candidate) throw new Error("Candidato no encontrado");
 
-  if (session.user.role === "INTERMEDIARIO" && candidate.intermediaryId !== session.user.id) {
+  if (tenant.role === "INTERMEDIARIO" && candidate.intermediaryId !== tenant.userId) {
     throw new Error("Sin permisos");
   }
 
@@ -192,11 +263,12 @@ export async function updateCandidateNotes(candidateId: string, notes: string) {
 
   await prisma.auditLog.create({
     data: {
-      userId: session.user.id,
+      userId: tenant.userId,
+      organizationId: tenant.organizationId!,
       action: "CANDIDATE_NOTES_UPDATED",
       entity: "Candidate",
       entityId: candidateId,
-      details: { notes } as never,
+      details: { notes } as any,
     },
   });
 
@@ -204,8 +276,7 @@ export async function updateCandidateNotes(candidateId: string, notes: string) {
 }
 
 export async function importCandidatesFromExcel(formData: FormData) {
-  const session = await auth();
-  if (!session) return { success: false, error: "No autorizado" };
+  const tenant = await requireTenant();
   
   const file = formData.get("file") as File;
   if (!file) return { success: false, error: "No file provided" };
@@ -215,11 +286,14 @@ export async function importCandidatesFromExcel(formData: FormData) {
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const data: any[] = XLSX.utils.sheet_to_json(worksheet);
+    const data = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
 
+    // Check limits before starting (rough check)
+    const currentCount = await prisma.candidate.count({ where: { organizationId: tenant.organizationId! } });
+    // This is a simplified check, ideally we'd check inside the loop if count is huge
+    
     let count = 0;
     for (const row of data) {
-      // Find imie/nazwisko with case-insensitive check
       const keys = Object.keys(row);
       const imieKey = keys.find(k => k.toLowerCase() === 'imie' || k.toLowerCase() === 'firstname' || k.toLowerCase() === 'nombre');
       const nazwiskoKey = keys.find(k => k.toLowerCase() === 'nazwisko' || k.toLowerCase() === 'lastname' || k.toLowerCase() === 'apellido');
@@ -234,7 +308,7 @@ export async function importCandidatesFromExcel(formData: FormData) {
         return k ? row[k] : undefined;
       };
 
-      const candidateData = {
+      const candidateData: any = {
         firstName: imie,
         lastName: nazwisko,
         gender: String(findVal(['plec', 'gender', 'sexo', 'pe']) || ""),
@@ -261,12 +335,14 @@ export async function importCandidatesFromExcel(formData: FormData) {
         polishAddress: String(findVal(['adres_polska', 'address']) || ""),
         polishCity: String(findVal(['miasto_polska', 'city']) || ""),
         notes: String(findVal(['uwagi', 'notes']) || ""),
-        intermediaryId: session.user.id,
+        intermediaryId: tenant.userId,
+        organizationId: tenant.organizationId!,
       };
 
-      // Try to find existing
+      // Try to find existing in same organization
       const existing = await prisma.candidate.findFirst({
         where: {
+          organizationId: tenant.organizationId!,
           OR: [
             { peselNumber: candidateData.peselNumber ? { equals: candidateData.peselNumber, not: "" } : "none" },
             { passportNumber: candidateData.passportNumber ? { equals: candidateData.passportNumber, not: "" } : "none" },
@@ -276,8 +352,7 @@ export async function importCandidatesFromExcel(formData: FormData) {
                 { lastName: { equals: nazwisko, mode: 'insensitive' } }
               ]
             }
-          ],
-          intermediaryId: session.user.role === "INTERMEDIARIO" ? session.user.id : undefined
+          ]
         }
       });
 
@@ -287,27 +362,37 @@ export async function importCandidatesFromExcel(formData: FormData) {
           data: candidateData
         });
       } else {
-        await prisma.candidate.create({
-          data: { ...candidateData, status: "RECOPILANDO_DOCS" }
-        });
+        // Re-check limit for every new candidate to be safe
+        try {
+          await assertWithinPlanLimit(tenant.organizationId!, "candidates");
+          await prisma.candidate.create({
+            data: { ...candidateData, status: "RECOPILANDO_DOCS" }
+          });
+          count++;
+        } catch (e) {
+          // Limit reached, stop importing
+          break;
+        }
       }
-      count++;
     }
 
     return { success: true, count };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    return { success: false, error: msg };
   }
 }
 
 export async function generateRegistrationLink(candidateId: string) {
-  const session = await auth();
-  if (!session) throw new Error("No autorizado");
+  const tenant = await requireTenant();
 
   const token = crypto.randomUUID();
 
   await prisma.candidate.update({
-    where: { id: candidateId },
+    where: { 
+      id: candidateId,
+      organizationId: tenant.organizationId!
+    },
     data: { registrationToken: token },
   });
 

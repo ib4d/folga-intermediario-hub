@@ -27,19 +27,21 @@ export async function GET(request: Request) {
     },
     include: {
       candidate: {
-        select: { id: true, firstName: true, lastName: true, intermediaryId: true },
+        select: { id: true, firstName: true, lastName: true, intermediaryId: true, organizationId: true },
       },
     },
   });
 
-  const notifications = expiringDocs.map((doc: any) => ({
+  const notifications = expiringDocs.filter(doc => doc.candidate.intermediaryId).map((doc) => ({
+    userId: doc.candidate.intermediaryId!,
+    organizationId: doc.candidate.organizationId,
     candidateId: doc.candidate.id,
     type: "DOC_EXPIRING",
     message: `El documento ${doc.type} de ${doc.candidate.firstName} ${doc.candidate.lastName} expira en 30 días.`,
   }));
 
   if (notifications.length > 0) {
-    await (prisma as any).notification.createMany({ data: notifications as any });
+    await prisma.notification.createMany({ data: notifications });
   }
 
   return NextResponse.json({ processed: notifications.length });

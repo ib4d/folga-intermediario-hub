@@ -6,26 +6,74 @@ const prisma = new PrismaClient();
 
 async function main() {
   const passwordHash = await bcrypt.hash("folga2024admin", 12);
-  
-  const admin = await prisma.user.upsert({
+
+  // Create default organization
+  const org = await (prisma as any).organization.upsert({
+    where: { slug: "folga-default" },
+    update: {},
+    create: {
+      id: "org_default_migration",
+      name: "Folga Sp. z o.o.",
+      slug: "folga-default",
+      plan: "ENTERPRISE",
+      isActive: true,
+    },
+  });
+
+  const admin = await (prisma as any).user.upsert({
     where: { email: "admin@folga.com" },
-    update: { passwordHash, role: "SUPERADMIN" },
-    create: { email: "admin@folga.com", name: "Administrador Principal", role: "SUPERADMIN", passwordHash },
+    update: { passwordHash, isPlatformAdmin: true, organizationId: org.id },
+    create: {
+      email: "admin@folga.com",
+      name: "Administrador Principal",
+      passwordHash,
+      isPlatformAdmin: true,
+      organizationId: org.id,
+    },
   });
 
-  const legal = await prisma.user.upsert({
+  const legal = await (prisma as any).user.upsert({
     where: { email: "legal@folga.com" },
-    update: { passwordHash, role: "LEGAL" },
-    create: { email: "legal@folga.com", name: "Equipo Legal 1", role: "LEGAL", passwordHash },
+    update: { passwordHash, organizationId: org.id },
+    create: {
+      email: "legal@folga.com",
+      name: "Equipo Legal 1",
+      passwordHash,
+      organizationId: org.id,
+    },
   });
 
-  const intermediary = await prisma.user.upsert({
+  const intermediary = await (prisma as any).user.upsert({
     where: { email: "maria@folga.com" },
-    update: { passwordHash, role: "INTERMEDIARIO" },
-    create: { email: "maria@folga.com", name: "Maria G. (Intermediaria)", role: "INTERMEDIARIO", passwordHash },
+    update: { passwordHash, organizationId: org.id },
+    create: {
+      email: "maria@folga.com",
+      name: "Maria G. (Intermediaria)",
+      passwordHash,
+      organizationId: org.id,
+    },
   });
 
-  // Crear Candidato de prueba
+  // Create memberships
+  await (prisma as any).membership.upsert({
+    where: { userId_organizationId: { userId: admin.id, organizationId: org.id } },
+    update: {},
+    create: { userId: admin.id, organizationId: org.id, role: "SUPERADMIN", isActive: true },
+  });
+
+  await (prisma as any).membership.upsert({
+    where: { userId_organizationId: { userId: legal.id, organizationId: org.id } },
+    update: {},
+    create: { userId: legal.id, organizationId: org.id, role: "LEGAL", isActive: true },
+  });
+
+  await (prisma as any).membership.upsert({
+    where: { userId_organizationId: { userId: intermediary.id, organizationId: org.id } },
+    update: {},
+    create: { userId: intermediary.id, organizationId: org.id, role: "INTERMEDIARIO", isActive: true },
+  });
+
+  // Create test candidates
   const candidate1 = await (prisma as any).candidate.upsert({
     where: { email: "abad@bolanos.com" },
     update: {},
@@ -37,12 +85,13 @@ async function main() {
       country: "Cuba",
       status: "RECOPILANDO_DOCS",
       intermediaryId: intermediary.id,
+      organizationId: org.id,
       locationStatus: "EN_ORIGEN",
       paid400pln: false,
-    } as any,
+    },
   });
 
-  const candidate2 = await (prisma as any).candidate.upsert({
+  await (prisma as any).candidate.upsert({
     where: { email: "juan@perez.com" },
     update: {},
     create: {
@@ -53,24 +102,28 @@ async function main() {
       country: "Colombia",
       status: "APROBADO",
       intermediaryId: intermediary.id,
+      organizationId: org.id,
       locationStatus: "EN_TRANSITO",
       paid400pln: true,
       paymentDate: new Date(),
-    } as any,
+    },
   });
 
-  // Crear Notificación
+  // Create a notification
   await (prisma as any).notification.create({
     data: {
+      userId: intermediary.id,
+      organizationId: org.id,
       candidateId: candidate1.id,
       type: "DOC_REQUIRED",
       message: "Abad Bolanos necesita subir su pasaporte para continuar.",
-    } as any,
+    },
   });
 
   console.log("✅ Seed ejecutado.");
-  console.log("- Admin: admin@folga.com / folga2024admin");
-  console.log("- Legal: legal@folga.com / folga2024admin");
+  console.log("- Org:          folga-default (ENTERPRISE)");
+  console.log("- Admin:        admin@folga.com / folga2024admin (isPlatformAdmin=true)");
+  console.log("- Legal:        legal@folga.com / folga2024admin");
   console.log("- Intermediario: maria@folga.com / folga2024admin");
 }
 

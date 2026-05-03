@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import BottomNav from "@/components/BottomNav";
+import PWALoader from "@/components/PWALoader";
+import { Providers } from "@/components/Providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Folga Hub - Reclutamiento Inteligente",
-  description: "Plataforma de gestión de candidatos y logística para Folga Sp. z o.o.",
+  title: "Folga Hub - SaaS Reclutamiento",
+  description: "Plataforma SaaS de gestión de candidatos extranjeros y logística.",
   manifest: "/manifest.json",
 };
 
@@ -34,22 +33,13 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
     >
       <body>
-        <div className="app-layout">
-          <div className="desktop-only">
-            <Sidebar />
-          </div>
-          <div className="main-container">
-            <Header />
-            <main className="main-content">
-              {children}
-            </main>
-          </div>
-          <div className="mobile-only">
-            <BottomNav />
-          </div>
-        </div>
+        <Providers>
+          <PWALoader />
+          {children}
+        </Providers>
       </body>
     </html>
   );

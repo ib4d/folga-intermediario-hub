@@ -2,7 +2,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { fullRegistrationSchema } from "@/lib/validations/candidate-registration";
+import { candidateRegistrationSchema } from "@/lib/validations/candidate-registration";
 
 function parseDateSafe(val: string | undefined | null): Date | null {
   if (!val) return null;
@@ -16,17 +16,21 @@ function parseDateSafe(val: string | undefined | null): Date | null {
 
 export async function submitCandidateRegistration(token: string, data: any) {
   const preparedData = { ...data };
-  if (preparedData.gender === "Hombre") preparedData.gender = "M";
-  if (preparedData.gender === "Mujer") preparedData.gender = "F";
+  
+  // Normalize types for Zod
+  if (preparedData.paid400pln === "true") preparedData.paid400pln = true;
+  if (preparedData.paid400pln === "false") preparedData.paid400pln = false;
   if (preparedData.gdprConsent === "true") preparedData.gdprConsent = true;
+  if (preparedData.passportBiometric === "true") preparedData.passportBiometric = true;
+  if (preparedData.passportBiometric === "false") preparedData.passportBiometric = false;
 
-  const parsed = fullRegistrationSchema.safeParse(preparedData);
+  const parsed = candidateRegistrationSchema.safeParse(preparedData);
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const candidate = await (prisma as any).candidate.findUnique({
-    where: { registrationToken: token } as any,
+  const candidate = await prisma.candidate.findUnique({
+    where: { registrationToken: token },
   });
 
   if (!candidate) {
@@ -37,63 +41,114 @@ export async function submitCandidateRegistration(token: string, data: any) {
     return { error: { _global: ["Este formulario ya fue completado"] } };
   }
 
-  const {
-    firstName, lastName, email, phone, gender, dateOfBirth, birthPlace,
-    citizenship, country, passportNumber, passportExpiry, peselNumber,
-    recruitmentSource, accommodation, arrivalNotes,
-  } = parsed.data;
+  const d = parsed.data;
 
-  await (prisma as any).candidate.update({
+  await prisma.candidate.update({
     where: { id: candidate.id },
     data: {
-      firstName,
-      lastName,
-      email,
-      phone,
-      gender,
-      dateOfBirth: parseDateSafe(dateOfBirth),
-      birthPlace,
-      citizenship,
-      country,
-      passportNumber: passportNumber || candidate.passportNumber,
-      passportExpiry: parseDateSafe(passportExpiry) || candidate.passportExpiry,
-      peselNumber: peselNumber || candidate.peselNumber,
-      recruitmentSource: recruitmentSource as never,
-      accommodation,
-      arrivalNotes,
+      firstName: d.firstName,
+      lastName: d.lastName,
+      email: d.email,
+      phone: d.phone,
+      gender: d.gender,
+      dateOfBirth: parseDateSafe(d.dateOfBirth),
+      birthPlace: d.birthPlace,
+      birthCountry: d.birthCountry,
+      citizenship: d.citizenship,
+      nationality: d.nationality,
+      country: d.country,
+      locationStatus: d.locationStatus as any,
+      polishAddress: d.polishAddress,
+      polishCity: d.polishCity,
+      
+      passportNumber: d.passportNumber,
+      passportIssueDate: parseDateSafe(d.passportIssueDate),
+      passportExpiry: parseDateSafe(d.passportExpiry),
+      passportBiometric: d.passportBiometric,
+      
+      kartaPobytuNumber: d.kartaPobytuNumber,
+      kartaPobytuIssueDate: parseDateSafe(d.kartaPobytuIssueDate),
+      kartaPobytuExpiry: parseDateSafe(d.kartaPobytuExpiry),
+      kartaPobytuType: d.kartaPobytuType,
+      
+      peselNumber: d.peselNumber,
+      
+      voivodatoNumber: d.voivodatoNumber,
+      voivodatoIssueDate: parseDateSafe(d.voivodatoIssueDate),
+      voivodatoExpiry: parseDateSafe(d.voivodatoExpiry),
+      voivodatoStatus: d.voivodatoStatus,
+      
+      recruitmentSource: d.recruitmentSource as any,
+      arrivalDate: parseDateSafe(d.arrivalDate),
+      arrivalNotes: d.arrivalNotes,
+      accommodation: d.accommodation,
+      accommodationNotes: d.accommodationNotes,
+      
+      paid400pln: d.paid400pln,
+      paymentDate: parseDateSafe(d.paymentDate),
+      
       gdprConsent: true,
       gdprConsentDate: new Date(),
       selfRegistered: true,
-      status: "EN_REVISION" as any,
+      status: "EN_REVISION_LEGAL" as any,
     },
   });
 
-  await (prisma as any).statusHistory.create({
+  await prisma.statusHistory.create({
     data: {
       candidateId: candidate.id,
+      organizationId: candidate.organizationId,
       fromStatus: candidate.status,
-      toStatus: "EN_REVISION" as any,
+      toStatus: "EN_REVISION_LEGAL" as any,
       changedBy: "SELF_REGISTRATION",
       reason: "Candidato completó el formulario de autoregistro",
     },
   });
 
-  await (prisma as any).auditLog.create({
+  await prisma.auditLog.create({
     data: {
+      organizationId: candidate.organizationId,
       action: "SELF_REGISTRATION_COMPLETED",
       entity: "Candidate",
       entityId: candidate.id,
-      details: { email, firstName, lastName } as never,
+      details: { firstName: candidate.firstName, lastName: candidate.lastName } as any,
     },
   });
 
-  await (prisma as any).notification.create({
-    data: {
-      candidateId: candidate.id,
-      type: "REGISTRATION_COMPLETE",
-      message: `Registro completado por candidato: ${firstName} ${lastName}`,
-    }
+  // Notify Intermediary
+  if (candidate.intermediaryId) {
+    await prisma.notification.create({
+      data: {
+        userId: candidate.intermediaryId,
+        organizationId: candidate.organizationId,
+        candidateId: candidate.id,
+        type: "REGISTRATION_COMPLETE",
+        message: `Registro completado por candidato: ${d.firstName} ${d.lastName}`,
+      }
+    });
+  }
+
+  // Notify Legal Users
+  const legalUsers = await prisma.membership.findMany({
+    where: { 
+      organizationId: candidate.organizationId,
+      role: { in: ["LEGAL", "ADMIN", "SUPERADMIN"] },
+      isActive: true 
+    },
+    select: { userId: true }
   });
+
+  for (const user of legalUsers) {
+    await prisma.notification.create({
+      data: {
+        userId: user.userId,
+        organizationId: candidate.organizationId,
+        candidateId: candidate.id,
+        type: "LEGAL_REVIEW_PENDING",
+        message: `Nuevo candidato para revisión legal: ${d.firstName} ${d.lastName}`,
+      }
+    });
+  }
 
   return { success: true };
 }

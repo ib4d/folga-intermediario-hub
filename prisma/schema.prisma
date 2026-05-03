@@ -12,17 +12,27 @@ enum Role {
   ADMIN
   INTERMEDIARIO
   LEGAL
+  LOGISTICA
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  BUSINESS
+  ENTERPRISE
 }
 
 enum CandidateStatus {
   RECOPILANDO_DOCS
-  EN_REVISION
+  EN_REVISION_LEGAL
   REVISION_ADICIONAL
   DOCUMENTACION_PENDIENTE
   APROBADO
   RECHAZADO
   CONTRATADO
   RETIRADO
+  EN_POLONIA
 }
 
 enum LocationStatus {
@@ -49,17 +59,81 @@ enum RecruitmentSource {
   OTHER
 }
 
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  taxId       String?
+  country     String?
+  plan        Plan     @default(FREE)
+  isActive    Boolean  @default(true)
+  
+  // Branding
+  logoUrl       String?
+  primaryColor  String?
+  secondaryColor String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  memberships     Membership[]
+  candidates      Candidate[]
+  documents       Document[]
+  auditLogs       AuditLog[]
+  logisticsEvents LogisticsEvent[]
+  notifications   Notification[]
+  statusHistories StatusHistory[]
+  subscription    Subscription?
+  apiKeys         ApiKey[]
+  workflows       Workflow[]
+  leads           Lead[]
+
+  referralCode    String?      @unique
+  referredById    String?
+  referredBy      Organization? @relation("Referrals", fields: [referredById], references: [id])
+  referrals       Organization[] @relation("Referrals")
+}
+
+model Membership {
+  id             String @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role   @default(INTERMEDIARIO)
+  isActive       Boolean @default(true)
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, organizationId])
+}
+
 model User {
   id           String      @id @default(cuid())
   email        String      @unique
   name         String?
   passwordHash String?
+  // Convenience role — reflects primary membership role, updated at login
   role         Role        @default(INTERMEDIARIO)
   isActive     Boolean     @default(true)
   settings     Json?       @default("{}")
-  candidates   Candidate[]
-  auditLogs    AuditLog[]
-  createdAt    DateTime    @default(now())
+  
+  // Platform Level
+  isPlatformAdmin Boolean @default(false)
+  
+  // Multi-tenant
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  memberships   Membership[]
+  candidates    Candidate[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  
+  createdAt     DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
 
@@ -121,6 +195,11 @@ model Candidate {
 
   intermediaryId String
   intermediary   User             @relation(fields: [intermediaryId], references: [id])
+  
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   documents      Document[]
   logistics      LogisticsEvent[]
   notifications  Notification[]
@@ -131,6 +210,14 @@ model Candidate {
 
   ocrProcessed Boolean @default(false)
   ocrSource    String?
+
+  dataRetentionUntil DateTime?
+  isArchived      Boolean @default(false)
+
+  // AI Intelligence
+  score           Int?
+  scoreLevel      String?
+  scoreUpdatedAt  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -152,6 +239,10 @@ model Document {
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -163,8 +254,14 @@ model StatusHistory {
   toStatus    CandidateStatus
   changedBy   String?
   reason      String?
-  createdAt   DateTime        @default(now())
+
   candidate   Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime        @default(now())
 }
 
 model AuditLog {
@@ -174,28 +271,127 @@ model AuditLog {
   entity    String
   entityId  String
   details   Json?
-  createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+  
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model LogisticsEvent {
-  id          String    @id @default(cuid())
-  candidateId String
-  type        String
-  date        DateTime?
-  notes       String?
-  terminal    String?
-  pickedUpBy  String?
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  candidateId   String
+  transportType String?
+  arrivalDate   DateTime?
+  terminal      String?
+  flightOrTrain String?
+  pickedUpBy    String?
+  notes         String?
+  confirmed     Boolean   @default(false)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Notification {
-  id          String    @id @default(cuid())
-  candidateId String
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  candidateId String?
+  candidate   Candidate? @relation(fields: [candidateId], references: [id])
   type        String
   message     String
-  isRead      Boolean   @default(false)
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  isRead      Boolean  @default(false)
+  
+  // Multi-tenant
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+}
+
+model Subscription {
+  id             String @id @default(cuid())
+  organizationId String @unique
+  plan           Plan
+  status         String
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  provider       String?
+  providerCustomerId String?
+  providerSubscriptionId String?
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ApiKey {
+  id             String @id @default(cuid())
+  organizationId String
+  name           String
+  keyHash        String
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime @default(now())
+}
+model Workflow {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  isActive       Boolean        @default(true)
+  triggerType    String         // CANDIDATE_CREATED, DOCUMENT_UPLOADED, STATUS_CHANGED, etc.
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  steps          WorkflowStep[]
+}
+
+model WorkflowStep {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  type       String   // SEND_NOTIFICATION, SEND_EMAIL, UPDATE_CANDIDATE, etc.
+  config     Json
+  order      Int
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  phone          String?
+  company        String?
+  status         String       @default("NEW")
+  source         String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  outreaches     Outreach[]
+}
+
+model Outreach {
+  id        String    @id @default(cuid())
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  step      Int
+  message   String
+  sentAt    DateTime?
+  reply     String?
+  createdAt DateTime  @default(now())
 }

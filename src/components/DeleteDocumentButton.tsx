@@ -16,8 +16,9 @@ export default function DeleteDocumentButton({ documentId }: { documentId: strin
     try {
       await deleteDocument(documentId);
       router.refresh();
-    } catch (err: any) {
-      alert("Error al eliminar documento: " + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      alert("Error al eliminar documento: " + msg);
     } finally {
       setIsDeleting(false);
     }

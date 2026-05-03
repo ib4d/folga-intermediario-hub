@@ -11,20 +11,22 @@ type Notification = {
   createdAt: string;
 };
 
-export default function NotificationsDropdown({ userId }: { userId: string }) {
+export default function NotificationsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    fetch(`/api/notifications?userId=${userId}`)
+    fetch("/api/notifications")
       .then((res) => res.json())
       .then((data) => {
-        setNotifications(data);
-        setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+        }
       })
       .catch(console.error);
-  }, [userId]);
+  }, []);
 
   const markAsRead = async (id: string) => {
     await fetch(`/api/notifications/${id}/read`, { method: "POST" });

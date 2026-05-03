@@ -15,8 +15,9 @@ export default function UpdateNotes({ candidateId, initialNotes }: { candidateId
       await updateCandidateNotes(candidateId, notes);
       router.refresh();
       alert("Notas guardadas correctamente.");
-    } catch (e: any) {
-      alert("Error: " + e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      alert("Error: " + msg);
     } finally {
       setIsSaving(false);
     }
