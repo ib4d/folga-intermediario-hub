@@ -3,7 +3,7 @@ import { TriggerType } from "@/lib/automation/engine";
 export interface SystemEvent {
   type: TriggerType | "LEAD_CREATED" | "OUTREACH_SENT" | "REPLY_RECEIVED";
   organizationId: string;
-  payload: any;
+  payload: Record<string, unknown>;
   userId?: string;
   timestamp: Date;
 }
@@ -40,7 +40,7 @@ export const eventBus = new EventBus();
 /**
  * Standard function to emit events across the platform
  */
-export async function emitEvent(type: SystemEvent["type"], organizationId: string, payload: any, userId?: string) {
+export async function emitEvent(type: SystemEvent["type"], organizationId: string, payload: Record<string, unknown>, userId?: string) {
   const event: SystemEvent = {
     type,
     organizationId,

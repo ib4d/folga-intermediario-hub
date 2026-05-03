@@ -31,7 +31,7 @@ export async function createLead(formData: FormData) {
 export async function sendLeadOutreach(leadId: string, message: string, step: number) {
   const tenant = await requireTenant();
 
-  const lead = await prisma.lead.findUnique({
+  const lead = await prisma.lead.findFirst({
     where: { id: leadId, organizationId: tenant.organizationId! }
   });
 
@@ -41,6 +41,7 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
   const outreach = await prisma.outreach.create({
     data: {
       leadId,
+      organizationId: tenant.organizationId!,
       step,
       message,
       sentAt: new Date()
@@ -55,7 +56,7 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
   });
 
   await prisma.lead.update({
-    where: { id: leadId },
+    where: { id: leadId, organizationId: tenant.organizationId! },
     data: { status: "CONTACTED" }
   });
 

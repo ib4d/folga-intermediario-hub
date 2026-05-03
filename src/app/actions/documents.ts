@@ -59,7 +59,7 @@ export async function uploadDocument(formData: FormData) {
   }
 
   // 2. Validate Candidate in this organization
-  const candidate = await prisma.candidate.findUnique({ 
+  const candidate = await prisma.candidate.findFirst({ 
     where: { id: candidateId, organizationId: tenant.organizationId! } 
   });
   if (!candidate) throw new Error("Candidato no encontrado en esta organización");
@@ -286,7 +286,7 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
 export async function deleteDocument(documentId: string) {
   const tenant = await requireTenant();
 
-  const document = await prisma.document.findUnique({
+  const document = await prisma.document.findFirst({
     where: { id: documentId, organizationId: tenant.organizationId! },
     include: { candidate: true }
   });
@@ -346,7 +346,7 @@ export async function smartBatchUpload(formData: FormData) {
       }
 
       // 3. Identify candidate by Passport, PESEL or Name in this organization
-      let candidate = await prisma.candidate.findFirst({
+      const candidate = await prisma.candidate.findFirst({
         where: {
           organizationId: tenant.organizationId!,
           OR: [
@@ -362,24 +362,8 @@ export async function smartBatchUpload(formData: FormData) {
         }
       });
 
-        // 4. Create candidate if not found (Automatic Profile Creation)
-        if (!candidate && ocrData.firstName && ocrData.lastName) {
-          // Check candidate limit
-          await assertWithinPlanLimit(tenant.organizationId!, "candidates");
-
-        candidate = await prisma.candidate.create({
-          data: {
-            firstName: ocrData.firstName,
-            lastName: ocrData.lastName,
-            passportNumber: ocrData.documentType === "PASSPORT" ? ocrData.documentNumber : null,
-              peselNumber: ocrData.documentType === "PESEL" ? ocrData.documentNumber : null,
-              intermediaryId: tenant.userId,
-              organizationId: tenant.organizationId!,
-              status: "RECOPILANDO_DOCS",
-            country: ocrData.nationality || "COL",
-          }
-        });
-      }
+      // 4. Removed automatic candidate creation to ensure OCR safety (FIX P8.1)
+      // Candidates must be created manually or via registration.
 
       if (!candidate) {
         results.push({ filename: file.name, success: false, message: "No se pudo identificar ni crear al candidato" });

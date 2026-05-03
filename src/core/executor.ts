@@ -23,7 +23,10 @@ export function initPlatform() {
     ];
     
     if (triggerTypes.includes(event.type)) {
-      await executeWorkflows(event.type as TriggerType, event.payload);
+      await executeWorkflows(event.type as TriggerType, {
+        ...event.payload,
+        organizationId: event.organizationId
+      });
     }
   });
 

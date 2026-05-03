@@ -4,7 +4,7 @@ export interface Plugin {
   name: string;
   version: string;
   onEvent?: (event: SystemEvent) => Promise<void>;
-  actions?: Record<string, Function>;
+  actions?: Record<string, (...args: unknown[]) => unknown>;
 }
 
 export interface Agent {

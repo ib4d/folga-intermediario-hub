@@ -61,14 +61,14 @@ export default function CandidateRegistrationForm({ token, initialData }: Props)
     try {
       const result = await submitCandidateRegistration(token, formData);
       if (result.error) {
-        setErrors(result.error as any);
+        setErrors(result.error as Record<string, string[]>);
         // If there's an error, we might need to jump to the step with the error, 
         // but for now let's just show them.
         alert("Hay errores en el formulario. Por favor revise los datos.");
       } else {
         router.push(`/registro/${token}/success`);
       }
-    } catch (err) {
+    } catch (_err) {
       alert("Error al enviar el formulario");
     } finally {
       setIsSubmitting(false);

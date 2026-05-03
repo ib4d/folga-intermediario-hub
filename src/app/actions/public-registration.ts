@@ -14,7 +14,7 @@ function parseDateSafe(val: string | undefined | null): Date | null {
   }
 }
 
-export async function submitCandidateRegistration(token: string, data: any) {
+export async function submitCandidateRegistration(token: string, data: Record<string, unknown>) {
   const preparedData = { ...data };
   
   // Normalize types for Zod
@@ -29,7 +29,7 @@ export async function submitCandidateRegistration(token: string, data: any) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const candidate = await prisma.candidate.findUnique({
+  const candidate = await prisma.candidate.findFirst({
     where: { registrationToken: token },
   });
 
@@ -154,7 +154,7 @@ export async function submitCandidateRegistration(token: string, data: any) {
 }
 
 export async function getCandidateByToken(token: string) {
-  return prisma.candidate.findUnique({
+  return prisma.candidate.findFirst({
     where: { registrationToken: token },
     select: {
       id: true,

@@ -4,16 +4,16 @@
  */
 
 export interface OcrEnhancementResult {
-  cleanedData: any;
+  cleanedData: Record<string, unknown>;
   confidenceScore: number;
   warnings: string[];
-  suggestedUpdates: any;
+  suggestedUpdates: Record<string, unknown>;
   documentType: string;
 }
 
-export async function enhanceOcrData(ocrData: any): Promise<OcrEnhancementResult> {
+export async function enhanceOcrData(ocrData: Record<string, unknown>): Promise<OcrEnhancementResult> {
   const warnings: string[] = [];
-  const cleanedData = { ...ocrData };
+  const cleanedData = { ...ocrData } as any;
   let confidenceScore = 0.85; // Base confidence
 
   // 1. Detect Document Type
@@ -38,7 +38,7 @@ export async function enhanceOcrData(ocrData: any): Promise<OcrEnhancementResult
 
   // 4. Infer Country from OCR Text if missing
   if (!cleanedData.country && ocrData.rawText) {
-    const raw = ocrData.rawText.toUpperCase();
+    const raw = (ocrData.rawText as string).toUpperCase();
     if (raw.includes("COLOMBIA")) cleanedData.country = "Colombia";
     else if (raw.includes("VENEZUELA")) cleanedData.country = "Venezuela";
     else if (raw.includes("POLSKA") || raw.includes("POLAND")) cleanedData.country = "Polonia";
@@ -63,8 +63,8 @@ export async function enhanceOcrData(ocrData: any): Promise<OcrEnhancementResult
   };
 }
 
-function detectDocumentType(data: any): string {
-  const raw = (data.rawText || "").toUpperCase();
+function detectDocumentType(data: Record<string, unknown>): string {
+  const raw = ((data.rawText as string) || "").toUpperCase();
   if (raw.includes("PASSPORT") || raw.includes("PASAPORTE")) return "PASSPORT";
   if (raw.includes("IDENTITY CARD") || raw.includes("CEDULA")) return "ID_CARD";
   if (raw.includes("DRIVING LICENSE") || raw.includes("LICENCIA")) return "DRIVING_LICENSE";
@@ -80,7 +80,7 @@ function normalizeName(name: string): string {
     .join(' ');
 }
 
-export function validateOcrData(data: any): boolean {
+export function validateOcrData(data: Record<string, unknown>): boolean {
   // Returns true if data is solid enough for automatic approval
   if (!data.firstName || !data.lastName || !data.passportNumber) return false;
   return true;

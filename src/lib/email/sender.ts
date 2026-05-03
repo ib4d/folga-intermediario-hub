@@ -8,7 +8,7 @@ export interface EmailPayload {
   subject: string;
   body: string;
   templateId?: string;
-  templateData?: any;
+  templateData?: Record<string, unknown>;
 }
 
 export async function sendEmail(payload: EmailPayload) {

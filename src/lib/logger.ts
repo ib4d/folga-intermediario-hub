@@ -5,7 +5,7 @@
 
 type LogLevel = 'info' | 'warn' | 'error';
 
-function log(level: LogLevel, message: string, meta?: any) {
+function log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
   const timestamp = new Date().toISOString();
   const logObj = { timestamp, level, message, ...meta };
   
@@ -22,7 +22,7 @@ function log(level: LogLevel, message: string, meta?: any) {
 }
 
 export const logger = {
-  info: (message: string, meta?: any) => log('info', message, meta),
-  warn: (message: string, meta?: any) => log('warn', message, meta),
-  error: (message: string, meta?: any) => log('error', message, meta),
+  info: (message: string, meta?: Record<string, unknown>) => log('info', message, meta),
+  warn: (message: string, meta?: Record<string, unknown>) => log('warn', message, meta),
+  error: (message: string, meta?: Record<string, unknown>) => log('error', message, meta),
 };

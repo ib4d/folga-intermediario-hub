@@ -62,7 +62,7 @@ export async function createLogisticsEvent(formData: FormData) {
   return { success: true };
 }
 
-export async function updateLogisticsEvent(eventId: string, data: any) {
+export async function updateLogisticsEvent(eventId: string, data: Record<string, unknown>) {
   const tenant = await requireTenant();
 
   if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {

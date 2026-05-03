@@ -1,4 +1,4 @@
-import { Candidate, User } from "@prisma/client";
+import { Candidate } from "@prisma/client";
 
 /**
  * Masks sensitive data for display purposes.
@@ -40,7 +40,7 @@ export function canViewFullData(user: { id: string; role: string }, candidate: C
 /**
  * Returns an exportable object for a candidate (Right to Data Portability).
  */
-export function exportCandidateData(candidate: any) {
+export function exportCandidateData(candidate: Record<string, unknown>) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { registrationToken, ...exportData } = candidate;
   return exportData;
@@ -49,7 +49,7 @@ export function exportCandidateData(candidate: any) {
 /**
  * Anonymizes a candidate's record (Right to be Forgotten).
  */
-export async function anonymizeCandidate(prisma: any, candidateId: string) {
+export async function anonymizeCandidate(prisma: { candidate: { update: (args: { where: { id: string }, data: Record<string, unknown> }) => Promise<unknown> } }, candidateId: string) {
   return await prisma.candidate.update({
     where: { id: candidateId },
     data: {
@@ -69,7 +69,7 @@ export async function anonymizeCandidate(prisma: any, candidateId: string) {
 /**
  * Archives candidates whose data retention period has expired.
  */
-export async function archiveExpiredCandidates(prisma: any) {
+export async function archiveExpiredCandidates(prisma: { candidate: { updateMany: (args: { where: Record<string, unknown>, data: Record<string, unknown> }) => Promise<unknown> } }) {
   const now = new Date();
   return await prisma.candidate.updateMany({
     where: {

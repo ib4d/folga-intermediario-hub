@@ -67,7 +67,7 @@ export async function createCandidate(formData: FormData) {
 export async function updateCandidate(candidateId: string, formData: FormData) {
   const tenant = await requireTenant();
 
-  const candidate = await prisma.candidate.findUnique({ 
+  const candidate = await prisma.candidate.findFirst({ 
     where: { 
       id: candidateId,
       organizationId: tenant.organizationId! 
@@ -84,7 +84,7 @@ export async function updateCandidate(candidateId: string, formData: FormData) {
   }
 
   const raw = Object.fromEntries(formData.entries());
-  const updateData: Record<string, any> = { ...raw };
+  const updateData: Record<string, unknown> = { ...raw };
 
   const dateFields = [
     "dateOfBirth", "passportIssueDate", "passportExpiry",
@@ -149,7 +149,7 @@ export async function updateCandidateStatus(
     throw new Error("Sin permisos para cambiar estado");
   }
 
-  const candidate = await prisma.candidate.findUnique({ 
+  const candidate = await prisma.candidate.findFirst({ 
     where: { 
       id: candidateId,
       organizationId: tenant.organizationId! 
@@ -243,7 +243,7 @@ export async function updateCandidateStatus(
 export async function updateCandidateNotes(candidateId: string, notes: string) {
   const tenant = await requireTenant();
 
-  const candidate = await prisma.candidate.findUnique({ 
+  const candidate = await prisma.candidate.findFirst({ 
     where: { 
       id: candidateId,
       organizationId: tenant.organizationId! 
@@ -308,7 +308,7 @@ export async function importCandidatesFromExcel(formData: FormData) {
         return k ? row[k] : undefined;
       };
 
-      const candidateData: any = {
+      const candidateData: Record<string, unknown> = {
         firstName: imie,
         lastName: nazwisko,
         gender: String(findVal(['plec', 'gender', 'sexo', 'pe']) || ""),
@@ -344,8 +344,8 @@ export async function importCandidatesFromExcel(formData: FormData) {
         where: {
           organizationId: tenant.organizationId!,
           OR: [
-            { peselNumber: candidateData.peselNumber ? { equals: candidateData.peselNumber, not: "" } : "none" },
-            { passportNumber: candidateData.passportNumber ? { equals: candidateData.passportNumber, not: "" } : "none" },
+            { peselNumber: candidateData.peselNumber ? { equals: candidateData.peselNumber as string, not: "" } : "none" },
+            { passportNumber: candidateData.passportNumber ? { equals: candidateData.passportNumber as string, not: "" } : "none" },
             { 
               AND: [
                 { firstName: { equals: imie, mode: 'insensitive' } },
@@ -359,14 +359,14 @@ export async function importCandidatesFromExcel(formData: FormData) {
       if (existing) {
         await prisma.candidate.update({
           where: { id: existing.id },
-          data: candidateData
+          data: candidateData as any
         });
       } else {
         // Re-check limit for every new candidate to be safe
         try {
           await assertWithinPlanLimit(tenant.organizationId!, "candidates");
           await prisma.candidate.create({
-            data: { ...candidateData, status: "RECOPILANDO_DOCS" }
+            data: { ...(candidateData as any), status: "RECOPILANDO_DOCS" }
           });
           count++;
         } catch (e) {

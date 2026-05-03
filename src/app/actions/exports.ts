@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { requireTenant } from "@/lib/tenant";
 
-export async function exportCandidatesXLSX(filters: any = {}) {
+export async function exportCandidatesXLSX(filters: Record<string, unknown> = {}) {
   const tenant = await requireTenant();
   
   if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {

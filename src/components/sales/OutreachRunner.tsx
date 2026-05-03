@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, CheckCircle, ChevronRight, ChevronLeft, Mail } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { sendLeadOutreach } from "@/app/actions/sales";
 
 interface Lead {

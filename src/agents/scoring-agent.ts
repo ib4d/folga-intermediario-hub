@@ -7,7 +7,7 @@ export const scoringAgent: Agent = {
   role: "Analytics",
   triggers: ["STATUS_CHANGED", "OCR_COMPLETED", "DOCUMENT_UPLOADED"],
   execute: async (event: SystemEvent) => {
-    const candidateId = event.payload.candidateId;
+    const candidateId = event.payload.candidateId as string;
     if (!candidateId) return;
 
     console.log(`[Scoring-Agent] Recalculating score for candidate: ${candidateId}`);

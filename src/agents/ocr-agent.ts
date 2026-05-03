@@ -10,10 +10,10 @@ export const ocrAgent: Agent = {
   execute: async (event: SystemEvent) => {
     console.log(`[OCR-Agent] Processing OCR for document: ${event.payload.documentId}`);
     
-    const { documentId, ocrData } = event.payload;
+    const { documentId, ocrData } = event.payload as { documentId: string, ocrData: any };
 
     // 1. AI Enhancement
-    const enhanced = await enhanceOcrData(ocrData);
+    const enhanced = await enhanceOcrData(ocrData as Record<string, unknown>);
 
     // 2. Update Document with Clean Data
     await prisma.document.update({

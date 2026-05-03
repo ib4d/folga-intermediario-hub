@@ -93,6 +93,7 @@ model Organization {
   referredById    String?
   referredBy      Organization? @relation("Referrals", fields: [referredById], references: [id])
   referrals       Organization[] @relation("Referrals")
+  outreaches      Outreach[]
 }
 
 model Membership {
@@ -142,7 +143,7 @@ model Candidate {
 
   firstName    String?
   lastName     String?
-  email        String?   @unique
+  email        String?
   phone        String?
   gender       String?
   dateOfBirth  DateTime?
@@ -221,6 +222,9 @@ model Candidate {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([id, organizationId])
+  @@index([organizationId, email])
 }
 
 model Document {
@@ -245,6 +249,8 @@ model Document {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([id, organizationId])
 }
 
 model StatusHistory {
@@ -262,6 +268,8 @@ model StatusHistory {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt   DateTime        @default(now())
+
+  @@unique([id, organizationId])
 }
 
 model AuditLog {
@@ -278,6 +286,8 @@ model AuditLog {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@unique([id, organizationId])
 }
 
 model LogisticsEvent {
@@ -332,6 +342,8 @@ model Subscription {
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@unique([id, organizationId])
 }
 
 model ApiKey {
@@ -357,6 +369,8 @@ model Workflow {
   updatedAt      DateTime       @updatedAt
 
   steps          WorkflowStep[]
+
+  @@unique([id, organizationId])
 }
 
 model WorkflowStep {
@@ -383,10 +397,15 @@ model Lead {
   updatedAt      DateTime     @updatedAt
   
   outreaches     Outreach[]
+
+  @@unique([id, organizationId])
 }
 
 model Outreach {
   id        String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
   leadId    String
   lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   step      Int
@@ -394,4 +413,6 @@ model Outreach {
   sentAt    DateTime?
   reply     String?
   createdAt DateTime  @default(now())
+
+  @@unique([id, organizationId])
 }

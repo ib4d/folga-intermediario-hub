@@ -25,7 +25,6 @@ test.describe('Main Operational Flow', () => {
     await page.click('button[type="submit"]');
     
     await expect(page).toHaveURL(/\/candidatos\/[a-zA-Z0-9-]+/);
-    const candidateId = page.url().split('/').pop();
 
     // 3. Generate Registration Link
     await page.click('text=Generar Link');

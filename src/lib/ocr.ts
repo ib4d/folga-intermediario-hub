@@ -84,6 +84,7 @@ async function pdfBufferToPngBuffer(pdfBuffer: Buffer): Promise<Buffer | null> {
     const { createCanvas } = require("canvas");
     const canvas = createCanvas(viewport.width, viewport.height);
     const ctx = canvas.getContext("2d");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
     return canvas.toBuffer("image/png");
   } catch (err) {
