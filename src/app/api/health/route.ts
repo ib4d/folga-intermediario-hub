@@ -13,10 +13,10 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       version: "1.0.0-p3"
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({
       status: "error",
-      message: err.message,
+      message: err instanceof Error ? err.message : "Error",
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

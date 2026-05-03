@@ -21,7 +21,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       await createLogisticsEvent(formData);
       e.currentTarget.reset();
       onSuccess?.();
-    } catch (_err) {
+    } catch {
       alert("Error al crear evento");
     } finally {
       setIsSubmitting(false);

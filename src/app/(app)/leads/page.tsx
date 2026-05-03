@@ -18,7 +18,7 @@ export default async function LeadsPage() {
     include: { _count: { select: { outreaches: true } } }
   });
 
-  const leadsForOutreach = leads.filter(l => l.status === "NEW" && l.email);
+  const leadsForOutreach = leads.filter((l: any) => l.status === "NEW" && l.email);
 
   return (
     <div className="main-content">
@@ -47,7 +47,7 @@ export default async function LeadsPage() {
         </div>
         <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
           <h3>Contactados</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.filter(l => l.status === "CONTACTED").length}</div>
+          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.filter((l: any) => l.status === "CONTACTED").length}</div>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default async function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {leads.map(lead => (
+              {leads.map((lead: any) => (
                 <tr key={lead.id}>
                   <td>
                     <div style={{ fontWeight: 'bold' }}>{lead.company || "Empresa Desconocida"}</div>

@@ -24,7 +24,7 @@ export async function exportCandidatesXLSX(filters: Record<string, unknown> = {}
     },
   });
 
-  const data = candidates.map((c) => ({
+  const data = candidates.map((c: any) => ({
     ID: c.id,
     Nombre: c.firstName,
     Apellido: c.lastName,
@@ -70,7 +70,7 @@ export async function exportLegalReviewXLSX() {
     include: { intermediary: { select: { name: true } } },
   });
 
-  const data = candidates.map(c => ({
+  const data = candidates.map((c: any) => ({
     Candidato: `${c.firstName} ${c.lastName}`,
     Pasaporte: c.passportNumber,
     "Exp. Pasaporte": c.passportExpiry?.toLocaleDateString() || "",
@@ -104,7 +104,7 @@ export async function exportLogisticsArrivalsXLSX() {
     orderBy: { arrivalDate: "asc" },
   });
 
-  const data = events.map(e => ({
+  const data = events.map((e: any) => ({
     Fecha: e.arrivalDate?.toLocaleString() || "Pendiente",
     Candidato: `${e.candidate.firstName} ${e.candidate.lastName}`,
     Transporte: e.transportType,

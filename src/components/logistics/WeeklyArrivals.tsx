@@ -22,7 +22,7 @@ export default function WeeklyArrivals({ events }: Props) {
   const handleConfirm = async (id: string) => {
     try {
       await confirmLogisticsEvent(id);
-    } catch (_err) {
+    } catch {
       alert("Error al confirmar");
     }
   };

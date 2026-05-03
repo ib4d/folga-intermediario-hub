@@ -2,29 +2,122 @@ import { Agent } from "@/core/registry";
 import { SystemEvent } from "@/core/events";
 import { enhanceOcrData } from "@/lib/ai/ocr-agent";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type OcrCompletedPayload = {
+  organizationId: string;
+  documentId?: string;
+  candidateId?: string;
+  ocrData?: Record<string, unknown>;
+  ocrStatus?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toInputJsonValue(value: unknown): Prisma.JsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.JsonValue;
+}
+
+function getPayload(event: SystemEvent): OcrCompletedPayload {
+  const payload = event.payload;
+
+  if (!isRecord(payload)) {
+    return { organizationId: event.organizationId };
+  }
+
+  return {
+    organizationId:
+      typeof payload.organizationId === "string"
+        ? payload.organizationId
+        : event.organizationId,
+    documentId: typeof payload.documentId === "string" ? payload.documentId : undefined,
+    candidateId: typeof payload.candidateId === "string" ? payload.candidateId : undefined,
+    ocrData: isRecord(payload.ocrData) ? payload.ocrData : undefined,
+    ocrStatus: typeof payload.ocrStatus === "string" ? payload.ocrStatus : undefined,
+  };
+}
 
 export const ocrAgent: Agent = {
   name: "OCR-Agent",
   role: "Intelligence",
   triggers: ["OCR_COMPLETED"],
+
   execute: async (event: SystemEvent) => {
-    console.log(`[OCR-Agent] Processing OCR for document: ${event.payload.documentId}`);
-    
-    const { documentId, ocrData } = event.payload as { documentId: string, ocrData: any };
+    const payload = getPayload(event);
 
-    // 1. AI Enhancement
-    const enhanced = await enhanceOcrData(ocrData as Record<string, unknown>);
+    if (!payload.organizationId || !payload.documentId) {
+      console.warn("[OCR-Agent] Skipped: missing organizationId or documentId");
+      return;
+    }
 
-    // 2. Update Document with Clean Data
-    await prisma.document.update({
-      where: { id: documentId },
-      data: {
-        extractedData: enhanced.cleanedData as any,
-        ocrStatus: enhanced.confidenceScore > 0.9 ? "AUTO_VERIFIED" : "REVIEW_REQUIRED",
-        isVerified: enhanced.confidenceScore > 0.9,
-      }
+    const document = await prisma.document.findFirst({
+      where: {
+        id: payload.documentId,
+        organizationId: payload.organizationId,
+      },
+      select: {
+        id: true,
+        extractedData: true,
+        ocrStatus: true,
+      },
     });
 
-    console.log(`[OCR-Agent] Document ${documentId} updated with confidence ${enhanced.confidenceScore}`);
-  }
+    if (!document) {
+      console.warn(`[OCR-Agent] Document not found: ${payload.documentId}`);
+      return;
+    }
+
+    const sourceOcrData =
+      payload.ocrData ??
+      (isRecord(document.extractedData) ? document.extractedData : undefined);
+
+    if (!sourceOcrData) {
+      console.warn(`[OCR-Agent] No OCR data found for document: ${payload.documentId}`);
+      return;
+    }
+
+    const enhanced = await enhanceOcrData(sourceOcrData);
+
+    const updatedExtractedData = toInputJsonValue({
+      ...sourceOcrData,
+      _enhancement: {
+        cleanedData: enhanced.cleanedData,
+        confidenceScore: enhanced.confidenceScore,
+        warnings: enhanced.warnings,
+        suggestedUpdates: enhanced.suggestedUpdates,
+        documentType: enhanced.documentType,
+        processedAt: new Date().toISOString(),
+      },
+    });
+
+    await prisma.document.update({
+      where: { id: document.id },
+      data: {
+        extractedData: updatedExtractedData,
+        ocrStatus: "REVIEW_REQUIRED",
+        isVerified: false,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        organizationId: payload.organizationId,
+        userId: event.userId ?? null,
+        action: "OCR_AGENT_ENHANCED",
+        entity: "Document",
+        entityId: document.id,
+        details: toInputJsonValue({
+          confidenceScore: enhanced.confidenceScore,
+          warnings: enhanced.warnings,
+          documentType: enhanced.documentType,
+        }),
+      },
+    });
+
+    console.log(
+      `[OCR-Agent] Document ${document.id} enhanced. Confidence: ${enhanced.confidenceScore}`
+    );
+  },
 };

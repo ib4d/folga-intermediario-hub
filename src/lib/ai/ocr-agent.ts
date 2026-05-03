@@ -13,7 +13,7 @@ export interface OcrEnhancementResult {
 
 export async function enhanceOcrData(ocrData: Record<string, unknown>): Promise<OcrEnhancementResult> {
   const warnings: string[] = [];
-  const cleanedData = { ...ocrData } as any;
+  const cleanedData: Record<string, unknown> = { ...ocrData };
   let confidenceScore = 0.85; // Base confidence
 
   // 1. Detect Document Type
@@ -21,15 +21,15 @@ export async function enhanceOcrData(ocrData: Record<string, unknown>): Promise<
 
   // 2. Normalize Names (Uppercase first letter)
   if (cleanedData.firstName) {
-    cleanedData.firstName = normalizeName(cleanedData.firstName);
+    cleanedData.firstName = normalizeName(cleanedData.firstName as string);
   }
   if (cleanedData.lastName) {
-    cleanedData.lastName = normalizeName(cleanedData.lastName);
+    cleanedData.lastName = normalizeName(cleanedData.lastName as string);
   }
 
   // 3. Validate Passport Numbers (Basic regex for various countries)
   if (cleanedData.passportNumber) {
-    const isValid = /^[A-Z0-9]{6,12}$/i.test(cleanedData.passportNumber);
+    const isValid = /^[A-Z0-9]{6,12}$/i.test(cleanedData.passportNumber as string);
     if (!isValid) {
       warnings.push("El número de pasaporte tiene un formato inusual.");
       confidenceScore -= 0.2;

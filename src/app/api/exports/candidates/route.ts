@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type") || "full";
   
   try {
-    let result: any = null;
+    let result: { base64: string; filename: string; error?: string } | null = null;
     let base64 = "";
     let filename = "export.xlsx";
 
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Error desconocido" }, { status: 500 });
   }
 }

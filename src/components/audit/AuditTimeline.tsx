@@ -20,7 +20,7 @@ interface AuditLog {
   action: string;
   entity: string;
   entityId: string;
-  details: any;
+  details: Record<string, unknown> | null;
   createdAt: Date;
   user: {
     name: string | null;

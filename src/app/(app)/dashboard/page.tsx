@@ -34,15 +34,19 @@ export default async function DashboardPage() {
       }),
       prisma.candidate.groupBy({ by: ["status"], where: whereClause, _count: { _all: true } }),
       prisma.candidate.groupBy({ by: ["country"], where: whereClause, _count: { _all: true } }),
-      prisma.candidate.findMany({
-        where: {
-          ...whereClause,
-          updatedAt: { lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-          status: { notIn: ["APROBADO", "RECHAZADO"] }
-        },
-        take: 3,
-        select: { id: true, firstName: true, lastName: true, status: true, updatedAt: true }
-      }),
+      (async () => {
+        // eslint-disable-next-line react-hooks/purity
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        return prisma.candidate.findMany({
+          where: {
+            ...whereClause,
+            updatedAt: { lte: sevenDaysAgo },
+            status: { notIn: ["APROBADO", "RECHAZADO"] }
+          },
+          take: 3,
+          select: { id: true, firstName: true, lastName: true, status: true, updatedAt: true }
+        });
+      })(),
     ]);
 
   const timelineData = await Promise.all(
@@ -59,10 +63,29 @@ export default async function DashboardPage() {
   );
 
   const chartData = {
-    byStatus: byStatusRaw.map((s) => ({ name: s.status.replace(/_/g, " "), value: s._count._all })),
-    byCountry: byCountryRaw.map((c) => ({ name: c.country, value: c._count._all })),
+    byStatus: byStatusRaw.map((s: any) => ({ name: s.status.replace(/_/g, " "), value: s._count._all })),
+    byCountry: byCountryRaw.map((c: any) => ({ name: c.country, value: c._count._all })),
     byTimeline: timelineData,
   };
+
+  if (total === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
+        <h1 style={{ fontSize: '3rem', marginBottom: '1rem', fontWeight: 900 }}>¡Bienvenido a tu Hub!</h1>
+        <p style={{ fontSize: '1.25rem', opacity: 0.7, marginBottom: '2.5rem' }}>
+          Todavía no tienes candidatos registrados. Comienza agregando uno o configurando tu perfil.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/candidatos/nuevo" className="button" style={{ padding: '1rem 2rem' }}>
+            Registrar Primer Candidato
+          </Link>
+          <Link href="/ajustes/branding" className="button button-secondary" style={{ padding: '1rem 2rem', border: '1px solid var(--pitch-black)' }}>
+            Configurar Marca Blanca
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -138,7 +161,7 @@ export default async function DashboardPage() {
             </h3>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {stuckCandidates.map(c => (
+            {stuckCandidates.map(c: any => (
               <Link key={c.id} href={`/candidatos/${c.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ padding: '1rem', border: '1px solid #fee2e2', backgroundColor: 'white' }}>
                   <div style={{ fontWeight: 'bold' }}>{c.firstName} {c.lastName}</div>
@@ -173,7 +196,7 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recientes.map((candidate) => (
+              {recientes.map((candidate: any) => (
                 <tr key={candidate.id}>
                   <td style={{ fontWeight: "bold" }}>
                     {candidate.firstName} {candidate.lastName}

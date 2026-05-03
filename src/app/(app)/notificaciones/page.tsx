@@ -38,7 +38,7 @@ export default async function NotificationsPage() {
               No hay notificaciones registradas.
             </div>
           ) : (
-            notifications.map((n) => (
+            notifications.map((n: any) => (
               <div key={n.id} style={{ 
                 display: 'flex', 
                 gap: '1rem', 

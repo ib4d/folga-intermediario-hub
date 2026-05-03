@@ -91,7 +91,7 @@ export default async function LegalPage() {
           <h2 className="text-2xl font-bold text-gray-900">Candidatos Pendientes</h2>
           <div className="h-px flex-1 bg-gray-200"></div>
         </div>
-        <LegalReviewQueue initialCandidates={candidates as any} />
+        <LegalReviewQueue initialCandidates={candidates as React.ComponentProps<typeof LegalReviewQueue>['initialCandidates']} />
       </section>
     </div>
   );

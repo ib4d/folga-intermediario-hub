@@ -63,7 +63,7 @@ export default async function LogisticaPage() {
 
       <LogisticsDashboard 
         pendingCandidates={pendingCandidates} 
-        weeklyEvents={weeklyEvents as any} 
+        weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>['weeklyEvents']} 
       />
     </div>
   );

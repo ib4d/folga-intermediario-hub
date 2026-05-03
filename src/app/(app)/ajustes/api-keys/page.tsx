@@ -87,7 +87,7 @@ export default async function ApiKeysPage() {
                 </tr>
               </thead>
               <tbody>
-                {apiKeys.map((key) => (
+                {apiKeys.map((key: any) => (
                   <tr key={key.id}>
                     <td style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <Key size={14} /> {key.name}

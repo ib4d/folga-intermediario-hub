@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitCandidateRegistration } from "@/app/actions/public-registration";
 import { CandidateRegistrationData } from "@/lib/validations/candidate-registration";
-import { RecruitmentSource, LocationStatus } from "@prisma/client";
 
 interface Props {
   token: string;
@@ -68,7 +67,7 @@ export default function CandidateRegistrationForm({ token, initialData }: Props)
       } else {
         router.push(`/registro/${token}/success`);
       }
-    } catch (_err) {
+    } catch {
       alert("Error al enviar el formulario");
     } finally {
       setIsSubmitting(false);

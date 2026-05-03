@@ -73,7 +73,7 @@ export default async function PlatformAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {orgs.map((org) => (
+              {orgs.map((org: any) => (
                 <tr key={org.id}>
                   <td style={{ fontWeight: 'bold' }}>
                     {org.name}

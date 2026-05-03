@@ -1,9 +1,16 @@
-import { TriggerType } from "@/lib/automation/engine";
+import { executeWorkflows, TriggerType } from "@/lib/automation/engine";
+import { registry } from "@/core/registry";
 
-export interface SystemEvent {
-  type: TriggerType | "LEAD_CREATED" | "OUTREACH_SENT" | "REPLY_RECEIVED";
+export type SystemEventType =
+  | TriggerType
+  | "LEAD_CREATED"
+  | "OUTREACH_SENT"
+  | "REPLY_RECEIVED";
+
+export interface SystemEvent<TPayload = Record<string, unknown>> {
+  type: SystemEventType;
   organizationId: string;
-  payload: Record<string, unknown>;
+  payload: TPayload & { organizationId: string };
   userId?: string;
   timestamp: Date;
 }
@@ -11,43 +18,109 @@ export interface SystemEvent {
 type EventHandler = (event: SystemEvent) => Promise<void>;
 
 class EventBus {
-  private handlers: Map<string, EventHandler[]> = new Map();
+  private handlers = new Map<string, EventHandler[]>();
 
   subscribe(eventType: string, handler: EventHandler) {
-    if (!this.handlers.has(eventType)) {
-      this.handlers.set(eventType, []);
-    }
-    this.handlers.get(eventType)?.push(handler);
+    const current = this.handlers.get(eventType) ?? [];
+    this.handlers.set(eventType, [...current, handler]);
   }
 
   async emit(event: SystemEvent) {
-    console.log(`[EventBus] Emitting event: ${event.type} for org: ${event.organizationId}`);
-    
-    const handlers = this.handlers.get(event.type) || [];
-    const globalHandlers = this.handlers.get("*") || [];
-    
+    const handlers = this.handlers.get(event.type) ?? [];
+    const globalHandlers = this.handlers.get("*") ?? [];
     const allHandlers = [...handlers, ...globalHandlers];
 
-    // Execute all handlers in parallel (non-blocking for the emitter)
-    Promise.all(allHandlers.map(handler => 
-      handler(event).catch(err => console.error(`[EventBus] Error in handler for ${event.type}:`, err))
-    ));
+    await Promise.all(
+      allHandlers.map(async (handler) => {
+        try {
+          await handler(event);
+        } catch (error) {
+          console.error(`[EventBus] Handler failed for ${event.type}:`, error);
+        }
+      })
+    );
   }
 }
 
 export const eventBus = new EventBus();
 
-/**
- * Standard function to emit events across the platform
- */
-export async function emitEvent(type: SystemEvent["type"], organizationId: string, payload: Record<string, unknown>, userId?: string) {
-  const event: SystemEvent = {
+const workflowTriggerTypes: TriggerType[] = [
+  "CANDIDATE_CREATED",
+  "REGISTRATION_COMPLETED",
+  "DOCUMENT_UPLOADED",
+  "OCR_COMPLETED",
+  "STATUS_CHANGED",
+  "LOGISTICS_CREATED",
+  "DAILY_SUMMARY",
+];
+
+let platformHandlersRegistered = false;
+
+function registerPlatformHandlersOnce() {
+  if (platformHandlersRegistered) return;
+  platformHandlersRegistered = true;
+
+  eventBus.subscribe("*", async (event) => {
+    if (workflowTriggerTypes.includes(event.type as TriggerType)) {
+      await executeWorkflows(event.type as TriggerType, event.payload);
+    }
+  });
+
+  eventBus.subscribe("*", async (event) => {
+    const plugins = registry.getPlugins();
+
+    await Promise.all(
+      plugins.map(async (plugin) => {
+        if (!plugin.onEvent) return;
+
+        try {
+          await plugin.onEvent(event);
+        } catch (error) {
+          console.error(`[Plugin:${plugin.name}] Failed on ${event.type}:`, error);
+        }
+      })
+    );
+  });
+
+  eventBus.subscribe("*", async (event) => {
+    const agents = registry.getAgents();
+
+    await Promise.all(
+      agents.map(async (agent) => {
+        if (!agent.triggers.includes(event.type) && !agent.triggers.includes("*")) return;
+
+        try {
+          await agent.execute(event);
+        } catch (error) {
+          console.error(`[Agent:${agent.name}] Failed on ${event.type}:`, error);
+        }
+      })
+    );
+  });
+}
+
+export async function emitEvent<TPayload extends Record<string, unknown>>(
+  type: SystemEventType,
+  organizationId: string,
+  payload: TPayload,
+  userId?: string
+) {
+  if (!organizationId) {
+    throw new Error(`[EventBus] Missing organizationId for event ${type}`);
+  }
+
+  registerPlatformHandlersOnce();
+
+  const event: SystemEvent<TPayload> = {
     type,
     organizationId,
-    payload,
+    payload: {
+      ...payload,
+      organizationId,
+    },
     userId,
-    timestamp: new Date()
+    timestamp: new Date(),
   };
-  
-  return eventBus.emit(event);
+
+  await eventBus.emit(event);
 }

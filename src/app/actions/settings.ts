@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
@@ -35,7 +36,7 @@ export async function createApiKey(name: string) {
       action: "API_KEY_CREATED",
       entity: "ApiKey",
       entityId: name,
-      details: { name } as any,
+      details: { name } as Prisma.InputJsonValue,
     },
   });
 

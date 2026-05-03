@@ -1,35 +1,54 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { prisma } from "@/lib/prisma";
 import { candidateRegistrationSchema } from "@/lib/validations/candidate-registration";
+import { CandidateStatus, LocationStatus, RecruitmentSource, Role } from "@prisma/client";
 
-function parseDateSafe(val: string | undefined | null): Date | null {
-  if (!val) return null;
-  try {
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  } catch {
-    return null;
-  }
+function parseDateSafe(value: string | undefined | null): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function submitCandidateRegistration(token: string, data: Record<string, unknown>) {
-  const preparedData = { ...data };
-  
-  // Normalize types for Zod
-  if (preparedData.paid400pln === "true") preparedData.paid400pln = true;
-  if (preparedData.paid400pln === "false") preparedData.paid400pln = false;
-  if (preparedData.gdprConsent === "true") preparedData.gdprConsent = true;
-  if (preparedData.passportBiometric === "true") preparedData.passportBiometric = true;
-  if (preparedData.passportBiometric === "false") preparedData.passportBiometric = false;
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || value === "true" || value === "1" || value === "yes";
+}
+
+function parseLocationStatus(value: string): LocationStatus {
+  if (Object.values(LocationStatus).includes(value as LocationStatus)) {
+    return value as LocationStatus;
+  }
+  return LocationStatus.EN_ORIGEN;
+}
+
+function parseRecruitmentSource(value: unknown): RecruitmentSource | null {
+  if (typeof value !== "string") return null;
+
+  if (Object.values(RecruitmentSource).includes(value as RecruitmentSource)) {
+    return value as RecruitmentSource;
+  }
+
+  return null;
+}
+
+export async function submitCandidateRegistration(token: string, data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { error: { _global: ["Datos inválidos"] } };
+  }
+
+  const preparedData = { ...(data as Record<string, unknown>) };
+
+  preparedData.paid400pln = normalizeBoolean(preparedData.paid400pln);
+  preparedData.gdprConsent = normalizeBoolean(preparedData.gdprConsent);
+  preparedData.passportBiometric = normalizeBoolean(preparedData.passportBiometric);
 
   const parsed = candidateRegistrationSchema.safeParse(preparedData);
+
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const candidate = await prisma.candidate.findFirst({
+  const candidate = await prisma.candidate.findUnique({
     where: { registrationToken: token },
   });
 
@@ -41,56 +60,57 @@ export async function submitCandidateRegistration(token: string, data: Record<st
     return { error: { _global: ["Este formulario ya fue completado"] } };
   }
 
-  const d = parsed.data;
+  const registration = parsed.data;
 
   await prisma.candidate.update({
     where: { id: candidate.id },
     data: {
-      firstName: d.firstName,
-      lastName: d.lastName,
-      email: d.email,
-      phone: d.phone,
-      gender: d.gender,
-      dateOfBirth: parseDateSafe(d.dateOfBirth),
-      birthPlace: d.birthPlace,
-      birthCountry: d.birthCountry,
-      citizenship: d.citizenship,
-      nationality: d.nationality,
-      country: d.country,
-      locationStatus: d.locationStatus as any,
-      polishAddress: d.polishAddress,
-      polishCity: d.polishCity,
-      
-      passportNumber: d.passportNumber,
-      passportIssueDate: parseDateSafe(d.passportIssueDate),
-      passportExpiry: parseDateSafe(d.passportExpiry),
-      passportBiometric: d.passportBiometric,
-      
-      kartaPobytuNumber: d.kartaPobytuNumber,
-      kartaPobytuIssueDate: parseDateSafe(d.kartaPobytuIssueDate),
-      kartaPobytuExpiry: parseDateSafe(d.kartaPobytuExpiry),
-      kartaPobytuType: d.kartaPobytuType,
-      
-      peselNumber: d.peselNumber,
-      
-      voivodatoNumber: d.voivodatoNumber,
-      voivodatoIssueDate: parseDateSafe(d.voivodatoIssueDate),
-      voivodatoExpiry: parseDateSafe(d.voivodatoExpiry),
-      voivodatoStatus: d.voivodatoStatus,
-      
-      recruitmentSource: d.recruitmentSource as any,
-      arrivalDate: parseDateSafe(d.arrivalDate),
-      arrivalNotes: d.arrivalNotes,
-      accommodation: d.accommodation,
-      accommodationNotes: d.accommodationNotes,
-      
-      paid400pln: d.paid400pln,
-      paymentDate: parseDateSafe(d.paymentDate),
-      
+      firstName: registration.firstName,
+      lastName: registration.lastName,
+      email: registration.email || null,
+      phone: registration.phone,
+      gender: registration.gender,
+      dateOfBirth: parseDateSafe(registration.dateOfBirth),
+      birthPlace: registration.birthPlace,
+      birthCountry: registration.birthCountry,
+      citizenship: registration.citizenship,
+      nationality: registration.nationality,
+      country: registration.country,
+      locationStatus: parseLocationStatus(registration.locationStatus),
+      polishAddress: registration.polishAddress || null,
+      polishCity: registration.polishCity || null,
+
+      passportNumber: registration.passportNumber,
+      passportIssueDate: parseDateSafe(registration.passportIssueDate),
+      passportExpiry: parseDateSafe(registration.passportExpiry),
+      passportBiometric: registration.passportBiometric,
+
+      kartaPobytuNumber: registration.kartaPobytuNumber || null,
+      kartaPobytuIssueDate: parseDateSafe(registration.kartaPobytuIssueDate),
+      kartaPobytuExpiry: parseDateSafe(registration.kartaPobytuExpiry),
+      kartaPobytuType: registration.kartaPobytuType || null,
+
+      peselNumber: registration.peselNumber || null,
+
+      voivodatoNumber: registration.voivodatoNumber || null,
+      voivodatoIssueDate: parseDateSafe(registration.voivodatoIssueDate),
+      voivodatoExpiry: parseDateSafe(registration.voivodatoExpiry),
+      voivodatoStatus: registration.voivodatoStatus || null,
+
+      recruitmentSource: parseRecruitmentSource(registration.recruitmentSource),
+
+      arrivalDate: parseDateSafe(registration.arrivalDate),
+      arrivalNotes: registration.arrivalNotes || null,
+      accommodation: registration.accommodation || null,
+      accommodationNotes: registration.accommodationNotes || null,
+
+      paid400pln: registration.paid400pln,
+      paymentDate: parseDateSafe(registration.paymentDate),
+
       gdprConsent: true,
       gdprConsentDate: new Date(),
       selfRegistered: true,
-      status: "EN_REVISION_LEGAL" as any,
+      status: CandidateStatus.EN_REVISION_LEGAL,
     },
   });
 
@@ -99,7 +119,7 @@ export async function submitCandidateRegistration(token: string, data: Record<st
       candidateId: candidate.id,
       organizationId: candidate.organizationId,
       fromStatus: candidate.status,
-      toStatus: "EN_REVISION_LEGAL" as any,
+      toStatus: CandidateStatus.EN_REVISION_LEGAL,
       changedBy: "SELF_REGISTRATION",
       reason: "Candidato completó el formulario de autoregistro",
     },
@@ -111,42 +131,42 @@ export async function submitCandidateRegistration(token: string, data: Record<st
       action: "SELF_REGISTRATION_COMPLETED",
       entity: "Candidate",
       entityId: candidate.id,
-      details: { firstName: candidate.firstName, lastName: candidate.lastName } as any,
+      details: {
+        firstName: registration.firstName,
+        lastName: registration.lastName,
+        email: registration.email || null,
+      },
     },
   });
 
-  // Notify Intermediary
-  if (candidate.intermediaryId) {
-    await prisma.notification.create({
-      data: {
-        userId: candidate.intermediaryId,
-        organizationId: candidate.organizationId,
-        candidateId: candidate.id,
-        type: "REGISTRATION_COMPLETE",
-        message: `Registro completado por candidato: ${d.firstName} ${d.lastName}`,
-      }
-    });
-  }
-
-  // Notify Legal Users
-  const legalUsers = await prisma.membership.findMany({
-    where: { 
+  await prisma.notification.create({
+    data: {
+      userId: candidate.intermediaryId,
       organizationId: candidate.organizationId,
-      role: { in: ["LEGAL", "ADMIN", "SUPERADMIN"] },
-      isActive: true 
+      candidateId: candidate.id,
+      type: "REGISTRATION_COMPLETE",
+      message: `Registro completado por candidato: ${registration.firstName} ${registration.lastName}`,
     },
-    select: { userId: true }
   });
 
-  for (const user of legalUsers) {
-    await prisma.notification.create({
-      data: {
+  const legalUsers = await prisma.membership.findMany({
+    where: {
+      organizationId: candidate.organizationId,
+      role: { in: [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] },
+      isActive: true,
+    },
+    select: { userId: true },
+  });
+
+  if (legalUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: legalUsers.map((user: any) => ({
         userId: user.userId,
         organizationId: candidate.organizationId,
         candidateId: candidate.id,
         type: "LEGAL_REVIEW_PENDING",
-        message: `Nuevo candidato para revisión legal: ${d.firstName} ${d.lastName}`,
-      }
+        message: `Nuevo candidato para revisión legal: ${registration.firstName} ${registration.lastName}`,
+      })),
     });
   }
 
@@ -154,7 +174,7 @@ export async function submitCandidateRegistration(token: string, data: Record<st
 }
 
 export async function getCandidateByToken(token: string) {
-  return prisma.candidate.findFirst({
+  return prisma.candidate.findUnique({
     where: { registrationToken: token },
     select: {
       id: true,

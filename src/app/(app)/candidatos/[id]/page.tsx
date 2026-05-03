@@ -51,7 +51,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
     take: 10
   });
 
-  const checklist = getCandidateDocumentChecklist(candidate as any);
+  const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const role = session.user.role;
 
   return (
@@ -283,7 +283,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               {checklist.required.map((req) => (
                 <div key={req} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                   <div className="flex items-center gap-3">
-                    {checklist.uploaded.includes(req as any) ? (
+                    {checklist.uploaded.includes(req as Parameters<typeof checklist.uploaded.includes>[0]) ? (
                       <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center">
                         <CheckCircle2 size={14} />
                       </div>
@@ -294,7 +294,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     )}
                     <span className="text-sm font-bold text-gray-700">{req}</span>
                   </div>
-                  {!checklist.uploaded.includes(req as any) && (
+                  {!checklist.uploaded.includes(req as Parameters<typeof checklist.uploaded.includes>[0]) && (
                     <span className="text-[10px] font-black text-red-500 uppercase">Faltante</span>
                   )}
                 </div>
@@ -372,7 +372,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           {/* Audit Timeline */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <AuditTimeline logs={auditLogs as any} />
+            <AuditTimeline logs={auditLogs as React.ComponentProps<typeof AuditTimeline>['logs']} />
           </div>
         </div>
       </div>

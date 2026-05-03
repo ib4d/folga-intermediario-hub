@@ -7,6 +7,7 @@ import { analyzeDocument } from "@/lib/ocr";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
+import { DocumentType, Prisma, Role } from "@prisma/client";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,41 +16,59 @@ const supabase = createClient(
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "documentos-candidatos";
 
-function parseDateSafe(val: string | undefined | null): Date | null {
-  if (!val) return null;
-  try {
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  } catch {
-    return null;
-  }
-}
-
 const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+function parseDateSafe(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
 function normalizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9.-]/g, "_").toLowerCase();
 }
 
+function parseDocumentType(value: string): DocumentType {
+  if (Object.values(DocumentType).includes(value as DocumentType)) {
+    return value as DocumentType;
+  }
+
+  return DocumentType.OTHER;
+}
+
+function canAccessCandidate(role: Role, candidateIntermediaryId: string, userId: string): boolean {
+  if (([Role.ADMIN, Role.SUPERADMIN, Role.LEGAL, Role.LOGISTICA] as Role[]).includes(role)) {
+    return true;
+  }
+
+  return candidateIntermediaryId === userId;
+}
+
+function isOcrSupported(type: DocumentType): boolean {
+  return type === DocumentType.PASSPORT || type === DocumentType.KARTA_POBYTU;
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
 export async function uploadDocument(formData: FormData) {
   const tenant = await requireTenant();
-  
-  // Check monthly document limit
+
   await assertWithinPlanLimit(tenant.organizationId!, "documentsPerMonth");
 
-  const file = formData.get("file") as File;
-  const candidateId = formData.get("candidateId") as string;
-  const docType = formData.get("type") as string;
-  const docNumber = formData.get("number") as string | null;
-  const issuerCountry = formData.get("issuerCountry") as string | null;
-  const expiryDateStr = formData.get("expiryDate") as string | null;
+  const file = formData.get("file") as File | null;
+  const candidateId = formData.get("candidateId");
+  const rawType = formData.get("type");
+  const docNumber = formData.get("number");
+  const issuerCountry = formData.get("issuerCountry");
+  const expiryDate = formData.get("expiryDate");
 
-  if (!file || !candidateId || !docType) {
+  if (!(file instanceof File) || typeof candidateId !== "string" || typeof rawType !== "string") {
     throw new Error("Faltan campos requeridos: file, candidateId, type");
   }
 
-  // 1. Validate File
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     throw new Error(`Tipo de archivo no permitido: ${file.type}. Use PDF, JPG, PNG o WEBP.`);
   }
@@ -58,25 +77,25 @@ export async function uploadDocument(formData: FormData) {
     throw new Error("El archivo excede el límite de 10MB");
   }
 
-  // 2. Validate Candidate in this organization
-  const candidate = await prisma.candidate.findFirst({ 
-    where: { id: candidateId, organizationId: tenant.organizationId! } 
+  const docType = parseDocumentType(rawType);
+
+  const candidate = await prisma.candidate.findFirst({
+    where: {
+      id: candidateId,
+      organizationId: tenant.organizationId!,
+    },
   });
+
   if (!candidate) throw new Error("Candidato no encontrado en esta organización");
 
-  if (
-    tenant.role === "INTERMEDIARIO" &&
-    candidate.intermediaryId !== tenant.userId
-  ) {
+  if (!canAccessCandidate(tenant.role, candidate.intermediaryId, tenant.userId)) {
     throw new Error("Sin permisos sobre este candidato");
   }
 
-  // 3. Normalize Filename and Path
   const safeFileName = normalizeFileName(file.name);
-  const filePath = `${candidateId}/${docType}_${Date.now()}_${safeFileName}`.replace(/\.\./g, ""); // Prevent path injection
-  
-  const arrayBuffer = await file.arrayBuffer();
-  const fileBuffer = Buffer.from(arrayBuffer);
+  const filePath = `${candidateId}/${docType}_${Date.now()}_${safeFileName}`.replace(/\.\./g, "");
+
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -84,17 +103,23 @@ export async function uploadDocument(formData: FormData) {
 
   if (uploadError) throw new Error(`Error de subida: ${uploadError.message}`);
 
-  const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
 
-  if (docNumber) {
+  const documentNumber =
+    typeof docNumber === "string" && docNumber.trim().length > 0 ? docNumber.trim() : null;
+
+  if (documentNumber) {
     const existing = await prisma.document.findFirst({
-      where: { 
-        candidateId, 
-        number: docNumber, 
-        type: docType as any,
-        organizationId: tenant.organizationId!
+      where: {
+        candidateId,
+        number: documentNumber,
+        type: docType,
+        organizationId: tenant.organizationId!,
       },
     });
+
     if (existing) {
       return {
         success: false,
@@ -107,22 +132,22 @@ export async function uploadDocument(formData: FormData) {
 
   const newDoc = await prisma.document.create({
     data: {
-      type: docType as any,
-      number: docNumber || null,
+      type: docType,
+      number: documentNumber,
       url: publicUrl,
-      issuerCountry: issuerCountry || null,
-      expiryDate: parseDateSafe(expiryDateStr),
-      ocrStatus: "PENDING",
+      issuerCountry:
+        typeof issuerCountry === "string" && issuerCountry.trim().length > 0
+          ? issuerCountry.trim()
+          : null,
+      expiryDate: typeof expiryDate === "string" ? parseDateSafe(expiryDate) : null,
+      ocrStatus: isOcrSupported(docType) ? "PENDING" : null,
       candidateId,
       organizationId: tenant.organizationId!,
     },
   });
 
-  const ocrTargetTypes = ["PASSPORT", "KARTA_POBYTU", "PESEL", "DECYZJA_WOJEWODY"];
-
-  if (ocrTargetTypes.includes(docType)) {
+  if (isOcrSupported(docType)) {
     try {
-      // Check OCR limit
       await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
 
       const ocrData = await analyzeDocument(fileBuffer, file.type);
@@ -131,22 +156,18 @@ export async function uploadDocument(formData: FormData) {
         await prisma.document.update({
           where: { id: newDoc.id },
           data: {
-            extractedData: ocrData as any,
-            number: ocrData.documentNumber || docNumber || null,
-            issuerCountry: ocrData.issuingCountry || issuerCountry || null,
+            extractedData: toInputJsonValue(ocrData),
+            number: ocrData.documentNumber || documentNumber,
+            issuerCountry:
+              ocrData.issuingCountry ||
+              (typeof issuerCountry === "string" && issuerCountry.trim().length > 0
+                ? issuerCountry.trim()
+                : null),
             issueDate: parseDateSafe(ocrData.dateOfIssue),
             expiryDate: parseDateSafe(ocrData.dateOfExpiry),
             ocrStatus: "REVIEW_REQUIRED",
           },
         });
-
-        // Platform Event (P7)
-        await emitEvent("OCR_COMPLETED", tenant.organizationId!, {
-          documentId: newDoc.id,
-          candidateId,
-          ocrData,
-          ocrStatus: "REVIEW_REQUIRED"
-        }, tenant.userId);
 
         await prisma.auditLog.create({
           data: {
@@ -155,14 +176,31 @@ export async function uploadDocument(formData: FormData) {
             action: "OCR_EXTRACTED_PENDING_REVIEW",
             entity: "Document",
             entityId: newDoc.id,
-            details: { docType, documentNumber: ocrData.documentNumber, ocrSource: "AZURE" } as any,
+            details: toInputJsonValue({
+              docType,
+              documentNumber: ocrData.documentNumber ?? null,
+              ocrSource: "AZURE",
+            }),
           },
         });
+
+        await emitEvent(
+          "OCR_COMPLETED",
+          tenant.organizationId!,
+          {
+            documentId: newDoc.id,
+            candidateId,
+            ocrData,
+            ocrStatus: "REVIEW_REQUIRED",
+          },
+          tenant.userId
+        );
       } else {
         await prisma.document.update({
           where: { id: newDoc.id },
           data: { ocrStatus: "FAILED" },
         });
+
         await prisma.auditLog.create({
           data: {
             userId: tenant.userId,
@@ -170,12 +208,16 @@ export async function uploadDocument(formData: FormData) {
             action: "OCR_FAILED",
             entity: "Document",
             entityId: newDoc.id,
-            details: { docType, reason: "OCR engine returned no data" } as any,
+            details: toInputJsonValue({
+              docType,
+              reason: "OCR engine returned no data",
+            }),
           },
         });
       }
-    } catch (ocrError) {
-      console.error("[uploadDocument] OCR error:", ocrError);
+    } catch (error) {
+      console.error("[uploadDocument] OCR error:", error);
+
       await prisma.document.update({
         where: { id: newDoc.id },
         data: { ocrStatus: "FAILED" },
@@ -190,54 +232,68 @@ export async function uploadDocument(formData: FormData) {
       action: "DOCUMENT_UPLOADED",
       entity: "Document",
       entityId: newDoc.id,
-      details: { url: publicUrl, type: docType } as any,
+      details: toInputJsonValue({ url: publicUrl, type: docType }),
     },
   });
 
-  // Notify INTERMEDIARIO of the upload
-  if (candidate.intermediaryId) {
-    await prisma.notification.create({
-      data: {
-        userId: candidate.intermediaryId,
-        organizationId: tenant.organizationId!,
-        candidateId,
-        type: "DOCUMENT_UPLOADED",
-        message: `Nuevo documento subido (${docType}) para ${candidate.firstName} ${candidate.lastName}`,
-      }
-    });
-  }
+  await prisma.notification.create({
+    data: {
+      userId: candidate.intermediaryId,
+      organizationId: tenant.organizationId!,
+      candidateId,
+      type: "DOCUMENT_UPLOADED",
+      message: `Nuevo documento subido (${docType}) para ${candidate.firstName ?? ""} ${candidate.lastName ?? ""
+        }`.trim(),
+    },
+  });
 
-  // Platform Event (P7)
-  await emitEvent("DOCUMENT_UPLOADED", tenant.organizationId!, {
-    documentId: newDoc.id,
-    candidateId,
-    type: docType
-  }, tenant.userId);
+  await emitEvent(
+    "DOCUMENT_UPLOADED",
+    tenant.organizationId!,
+    {
+      documentId: newDoc.id,
+      candidateId,
+      type: docType,
+    },
+    tenant.userId
+  );
 
   revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/candidatos");
+  revalidatePath("/documentos");
 
   return {
     success: true,
     documentId: newDoc.id,
     publicUrl,
-    message: "Documento subido y enviado a revisión OCR",
+    message: isOcrSupported(docType)
+      ? "Documento subido y enviado a revisión OCR"
+      : "Documento subido correctamente",
   };
 }
 
 export async function verifyDocument(documentId: string) {
   const tenant = await requireTenant();
-  
-  if (!["LEGAL", "ADMIN", "SUPERADMIN"].includes(tenant.role)) {
+
+  if (!([Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(tenant.role)) {
     throw new Error("Sin permisos para verificar documentos");
   }
 
-  const doc = await prisma.document.update({
-    where: { 
+  const doc = await prisma.document.findFirst({
+    where: {
       id: documentId,
-      organizationId: tenant.organizationId!
+      organizationId: tenant.organizationId!,
     },
-    data: { isVerified: true, verifiedById: tenant.userId },
+  });
+
+  if (!doc) throw new Error("Documento no encontrado");
+
+  const updated = await prisma.document.update({
+    where: { id: documentId },
+    data: {
+      isVerified: true,
+      verifiedById: tenant.userId,
+    },
   });
 
   await prisma.auditLog.create({
@@ -247,39 +303,46 @@ export async function verifyDocument(documentId: string) {
       action: "DOCUMENT_VERIFIED",
       entity: "Document",
       entityId: documentId,
-      details: { verifiedBy: tenant.userId } as any,
+      details: toInputJsonValue({ verifiedBy: tenant.userId }),
     },
   });
 
-  revalidatePath(`/candidatos/${doc.candidateId}`);
+  revalidatePath(`/candidatos/${updated.candidateId}`);
+
   return { success: true };
 }
 
 export async function batchUploadDocuments(candidateId: string, formData: FormData) {
-  // Logic remains similar as it calls uploadDocument which handles multi-tenancy
-  const tenant = await requireTenant();
-
   const files = formData.getAll("files") as File[];
   const docType = (formData.get("docType") as string) || "OTHER";
-  const results = [];
+  const results: Array<{ filename: string; success: boolean; message: string }> = [];
 
   for (const file of files) {
-    const fileFormData = new FormData();
-    fileFormData.append("file", file);
-    fileFormData.append("candidateId", candidateId);
-    fileFormData.append("type", docType);
-    
+    const single = new FormData();
+    single.append("file", file);
+    single.append("candidateId", candidateId);
+    single.append("type", docType);
+
     try {
-      const res = await uploadDocument(fileFormData);
-      results.push({ filename: file.name, success: res.success, message: res.message });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error interno";
-      results.push({ filename: file.name, success: false, message: msg });
+      const result = await uploadDocument(single);
+
+      results.push({
+        filename: file.name,
+        success: result.success,
+        message: result.message,
+      });
+    } catch (error) {
+      results.push({
+        filename: file.name,
+        success: false,
+        message: error instanceof Error ? error.message : "Error interno",
+      });
     }
   }
 
   revalidatePath(`/candidatos/${candidateId}`);
-  revalidatePath('/documentos');
+  revalidatePath("/documentos");
+
   return { success: true, results };
 }
 
@@ -287,25 +350,28 @@ export async function deleteDocument(documentId: string) {
   const tenant = await requireTenant();
 
   const document = await prisma.document.findFirst({
-    where: { id: documentId, organizationId: tenant.organizationId! },
-    include: { candidate: true }
+    where: {
+      id: documentId,
+      organizationId: tenant.organizationId!,
+    },
+    include: { candidate: true },
   });
 
   if (!document) throw new Error("Documento no encontrado");
 
-  if (tenant.role === "INTERMEDIARIO" && document.candidate.intermediaryId !== tenant.userId) {
+  if (!canAccessCandidate(tenant.role, document.candidate.intermediaryId, tenant.userId)) {
     throw new Error("Sin permisos");
   }
 
-  // extract filepath from URL
   const urlParts = document.url.split(`${BUCKET}/`);
+
   if (urlParts.length > 1) {
     const filePath = urlParts[1];
     await supabase.storage.from(BUCKET).remove([filePath]);
   }
 
-  await prisma.document.delete({ 
-    where: { id: documentId, organizationId: tenant.organizationId! } 
+  await prisma.document.delete({
+    where: { id: documentId },
   });
 
   await prisma.auditLog.create({
@@ -315,95 +381,55 @@ export async function deleteDocument(documentId: string) {
       action: "DOCUMENT_DELETED",
       entity: "Document",
       entityId: documentId,
-      details: { url: document.url, type: document.type } as any,
+      details: toInputJsonValue({ url: document.url, type: document.type }),
     },
   });
 
   revalidatePath(`/candidatos/${document.candidateId}`);
-  revalidatePath('/documentos');
+  revalidatePath("/documentos");
+
   return { success: true };
 }
 
 export async function smartBatchUpload(formData: FormData) {
-  const tenant = await requireTenant();
-
+  const candidateId = formData.get("candidateId");
   const files = formData.getAll("files") as File[];
-  const results = [];
+
+  if (typeof candidateId !== "string") {
+    return {
+      success: false,
+      results: [],
+      error: "smartBatchUpload requiere candidateId explícito. No se crean candidatos automáticamente desde OCR.",
+    };
+  }
+
+  const results: Array<{ filename: string; success: boolean; message: string }> = [];
 
   for (const file of files) {
+    const single = new FormData();
+    single.append("file", file);
+    single.append("candidateId", candidateId);
+    single.append("type", "OTHER");
+
     try {
-      // 1. Check Limits (OCR and Documents)
-      await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
-      await assertWithinPlanLimit(tenant.organizationId!, "documentsPerMonth");
+      const result = await uploadDocument(single);
 
-      const buffer = Buffer.from(await file.arrayBuffer());
-      // 2. Run OCR to identify content
-      const ocrData = await analyzeDocument(buffer, file.type);
-      
-      if (!ocrData) {
-        results.push({ filename: file.name, success: false, message: "No se pudo leer información (OCR)" });
-        continue;
-      }
-
-      // 3. Identify candidate by Passport, PESEL or Name in this organization
-      const candidate = await prisma.candidate.findFirst({
-        where: {
-          organizationId: tenant.organizationId!,
-          OR: [
-            { passportNumber: { equals: ocrData.documentNumber, not: null } },
-            { peselNumber: { equals: ocrData.documentNumber, not: null } },
-            {
-              AND: [
-                { firstName: { contains: ocrData.firstName || "", mode: 'insensitive' } },
-                { lastName: { contains: ocrData.lastName || "", mode: 'insensitive' } }
-              ]
-            }
-          ]
-        }
+      results.push({
+        filename: file.name,
+        success: result.success,
+        message: "Documento subido. OCR no modifica candidatos automáticamente.",
       });
-
-      // 4. Removed automatic candidate creation to ensure OCR safety (FIX P8.1)
-      // Candidates must be created manually or via registration.
-
-      if (!candidate) {
-        results.push({ filename: file.name, success: false, message: "No se pudo identificar ni crear al candidato" });
-        continue;
-      }
-
-      // 5. Upload to Supabase and save Document record
-      const fileName = `${candidate.id}/${Date.now()}-${file.name}`;
-      const { data, error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(fileName, buffer, { contentType: file.type });
-
-      if (uploadError) throw uploadError;
-
-      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${data.path}`;
-
-      await prisma.document.create({
-        data: {
-          candidateId: candidate.id,
-          organizationId: tenant.organizationId!,
-          type: (ocrData.documentType as any) || "OTHER",
-          url: publicUrl,
-          ocrStatus: "REVIEW_REQUIRED",
-          extractedData: ocrData as any,
-          number: ocrData.documentNumber,
-          issuerCountry: ocrData.issuingCountry || ocrData.nationality,
-          issueDate: parseDateSafe(ocrData.dateOfIssue),
-          expiryDate: parseDateSafe(ocrData.dateOfExpiry),
-        }
+    } catch (error) {
+      results.push({
+        filename: file.name,
+        success: false,
+        message: error instanceof Error ? error.message : "Error desconocido",
       });
-
-      results.push({ filename: file.name, success: true, message: `Asignado a ${candidate.firstName} ${candidate.lastName}` });
-
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error desconocido";
-      results.push({ filename: file.name, success: false, message: msg });
     }
   }
 
-  revalidatePath("/candidatos");
+  revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/documentos");
+
   return { success: true, results };
 }

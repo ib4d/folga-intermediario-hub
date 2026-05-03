@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma, CandidateStatus, LocationStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/tenant";
 
@@ -40,7 +41,7 @@ export async function createLogisticsEvent(formData: FormData) {
       action: "LOGISTICS_EVENT_CREATED",
       entity: "LogisticsEvent",
       entityId: event.id,
-      details: { transportType, arrivalDate } as any,
+      details: { transportType, arrivalDate } as Prisma.InputJsonValue,
     },
   });
 
@@ -82,7 +83,7 @@ export async function updateLogisticsEvent(eventId: string, data: Record<string,
       action: "LOGISTICS_EVENT_UPDATED",
       entity: "LogisticsEvent",
       entityId: eventId,
-      details: data as any,
+      details: data as Prisma.InputJsonValue,
     },
   });
 
@@ -117,7 +118,7 @@ export async function confirmLogisticsEvent(eventId: string) {
   // Update candidate status to EN_POLONIA if confirmed
   await prisma.candidate.update({
     where: { id: event.candidateId, organizationId: tenant.organizationId! },
-    data: { status: "EN_POLONIA" },
+    data: { locationStatus: LocationStatus.EN_POLONIA },
   });
 
   revalidatePath("/logistica");

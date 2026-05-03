@@ -139,7 +139,7 @@ export default async function AjustesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((membership) => (
+                  {users.map((membership: any) => (
                     <tr key={membership.id}>
                       <td style={{ fontWeight: "bold" }}>{membership.user.name}</td>
                       <td>{membership.user.email}</td>
