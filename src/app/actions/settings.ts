@@ -34,7 +34,7 @@ export async function createApiKey(name: string) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "API_KEY_CREATED",
-      entity: "ApiKey",
+      entityType: "ApiKey",
       entityId: name,
       details: { name } as Prisma.InputJsonValue,
     },

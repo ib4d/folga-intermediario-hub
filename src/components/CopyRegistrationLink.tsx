@@ -43,17 +43,23 @@ export default function CopyRegistrationLink({ candidateId, token }: Props) {
     <button 
       onClick={handleCopy}
       disabled={loading || copied}
-      className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${
-        copied ? "bg-green-500 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
-      }`}
+      className="button button-outline"
+      style={{ 
+        padding: '0.25rem 0.75rem', 
+        fontSize: '0.7rem', 
+        backgroundColor: copied ? '#4ade80' : 'white',
+        color: 'var(--pitch-black)',
+        borderColor: 'var(--pitch-black)',
+        boxShadow: '3px 3px 0px var(--pitch-black)'
+      }}
       title="Copiar link de autoregistro"
     >
       {loading ? (
-        <Loader2 size={16} className="animate-spin" />
+        <Loader2 size={14} className="animate-spin" />
       ) : (
-        copied ? <CheckCircle size={16} /> : <LinkIcon size={16} />
+        copied ? <CheckCircle size={14} /> : <LinkIcon size={14} />
       )}
-      {copied ? "Link Copiado!" : "Copiar Link de Registro"}
+      {copied ? "Link Copiado!" : "COPIAR LINK DE REGISTRO"}
     </button>
   );
 }

@@ -39,11 +39,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   const auditLogs = await prisma.auditLog.findMany({
     where: {
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidate.id
     },
     include: {
-      user: {
+      User: {
         select: { name: true, role: true }
       }
     },

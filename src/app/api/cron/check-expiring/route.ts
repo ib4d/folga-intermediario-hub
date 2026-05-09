@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     organizationId: doc.candidate.organizationId,
     candidateId: doc.candidate.id,
     type: "DOC_EXPIRING",
+    title: "Documento por expirar",
     message: `El documento ${doc.type} de ${doc.candidate.firstName} ${doc.candidate.lastName} expira en 30 días.`,
   }));
 

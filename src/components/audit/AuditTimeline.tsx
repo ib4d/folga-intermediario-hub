@@ -18,11 +18,11 @@ import {
 interface AuditLog {
   id: string;
   action: string;
-  entity: string;
+  entityType: string;
   entityId: string;
   details: Record<string, unknown> | null;
   createdAt: Date;
-  user: {
+  User: {
     name: string | null;
     role: string;
   } | null;
@@ -78,7 +78,7 @@ export default function AuditTimeline({ logs }: Props) {
                   {getLabel(log.action)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Por <span className="font-medium text-foreground">{log.user?.name || "Sistema"}</span> ({log.user?.role || "SYSTEM"})
+                  Por <span className="font-medium text-foreground">{log.User?.name || "Sistema"}</span> ({log.User?.role || "SYSTEM"})
                 </p>
               </div>
               <time className="text-[10px] sm:text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded-md self-start">

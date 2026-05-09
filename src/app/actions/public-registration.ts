@@ -120,7 +120,7 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
       organizationId: candidate.organizationId,
       fromStatus: candidate.status,
       toStatus: CandidateStatus.EN_REVISION_LEGAL,
-      changedBy: "SELF_REGISTRATION",
+      changedById: "SELF_REGISTRATION",
       reason: "Candidato completó el formulario de autoregistro",
     },
   });
@@ -129,7 +129,7 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
     data: {
       organizationId: candidate.organizationId,
       action: "SELF_REGISTRATION_COMPLETED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidate.id,
       details: {
         firstName: registration.firstName,
@@ -145,6 +145,7 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
       organizationId: candidate.organizationId,
       candidateId: candidate.id,
       type: "REGISTRATION_COMPLETE",
+      title: "Registro Completado",
       message: `Registro completado por candidato: ${registration.firstName} ${registration.lastName}`,
     },
   });
@@ -160,11 +161,12 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
 
   if (legalUsers.length > 0) {
     await prisma.notification.createMany({
-      data: legalUsers.map((user: any) => ({
+      data: legalUsers.map((user: { userId: string }) => ({
         userId: user.userId,
         organizationId: candidate.organizationId,
         candidateId: candidate.id,
         type: "LEGAL_REVIEW_PENDING",
+        title: "Revisión Legal Pendiente",
         message: `Nuevo candidato para revisión legal: ${registration.firstName} ${registration.lastName}`,
       })),
     });

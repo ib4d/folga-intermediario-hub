@@ -44,7 +44,7 @@ export async function PATCH(
       userId: session.user.id,
       organizationId: orgId,
       action: "PAYMENT_UPDATED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: id,
       details: { paid400pln: body.paid400pln, paymentDate: body.paymentDate } as never,
     },

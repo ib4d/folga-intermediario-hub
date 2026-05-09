@@ -34,7 +34,7 @@ export default async function CandidatosPage({
   } : baseWhere;
 
   if (status) {
-    whereClause.status = status as never;
+    whereClause.status = status as import("@prisma/client").CandidateStatus;
   }
 
   const pageNumber = parseInt(page, 10) || 1;
@@ -109,7 +109,12 @@ export default async function CandidatosPage({
                   </td>
                   <td>{c.intermediary.name}</td>
                   <td>
-                    <span className={`status-badge ${c.status === 'APROBADO' ? 'active' : ''} ${c.status === 'RECHAZADO' ? 'danger' : ''}`}>
+                    <span className={`status-badge ${
+                      c.status === 'APROBADO' ? 'active' : 
+                      c.status === 'RECHAZADO' ? 'danger' : 
+                      c.status === 'RECOPILANDO_DOCS' ? 'info' : 
+                      c.status === 'EN_REVISION_LEGAL' ? 'warning' : ''
+                    }`}>
                       {c.status.replace(/_/g, ' ')}
                     </span>
                   </td>

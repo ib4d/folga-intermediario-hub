@@ -2,9 +2,10 @@
 
 import { Candidate, Document, User } from "@prisma/client";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
-import { Calendar, FileText, User as UserIcon, MapPin, AlertCircle } from "lucide-react";
+import { FileText, User as UserIcon, MapPin, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import LegalDecisionModal from "./LegalDecisionModal";
+import Link from "next/link";
 
 interface Props {
   candidate: Candidate & { 
@@ -22,101 +23,127 @@ export default function LegalCandidateCard({ candidate }: Props) {
     return new Date(date).toLocaleDateString("es-ES");
   };
 
+  const now = typeof window !== 'undefined' ? new Date().getTime() : 0;
+
+  const isExpiringSoon = (date: Date | null) => {
+    if (!date) return false;
+    const diffDays = (new Date(date).getTime() - now) / (1000 * 60 * 60 * 24);
+    return diffDays < 90;
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-4">
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Card Header */}
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '2px solid var(--pitch-black)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               {candidate.firstName} {candidate.lastName}
             </h3>
-            <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-              <MapPin size={14} />
-              <span>{candidate.country}</span>
-              <span className="mx-1">•</span>
-              <UserIcon size={14} />
-              <span>{candidate.intermediary.name}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <MapPin size={14} />
+                {candidate.country}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <UserIcon size={14} />
+                {candidate.intermediary.name}
+              </span>
             </div>
           </div>
-          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-            candidate.paid400pln ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-          }`}>
-            {candidate.paid400pln ? "400 PLN Pagado" : "Pendiente Pago"}
-          </div>
+          <span 
+            className="status-badge"
+            style={{ 
+              backgroundColor: candidate.paid400pln ? '#4ade80' : 'var(--primary)',
+              fontSize: '0.65rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {candidate.paid400pln ? "400 PLN ✓" : "PENDIENTE PAGO"}
+          </span>
         </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-          <div className="space-y-2">
-            <div className="flex flex-col">
-              <span className="text-gray-400 text-xs uppercase font-semibold">Pasaporte</span>
-              <span className="font-medium">{candidate.passportNumber || "N/A"}</span>
-              <span className={`text-[10px] ${
-                checklist.warnings.some(w => w.includes("Pasaporte")) ? "text-red-500" : "text-gray-500"
-              }`}>
-                Exp: {formatDate(candidate.passportExpiry)}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-400 text-xs uppercase font-semibold">Karta Pobytu</span>
-              <span className="font-medium">{candidate.kartaPobytuNumber || "No tiene"}</span>
-              {candidate.kartaPobytuExpiry && (
-                <span className="text-[10px] text-gray-500">Exp: {formatDate(candidate.kartaPobytuExpiry)}</span>
-              )}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex flex-col">
-              <span className="text-gray-400 text-xs uppercase font-semibold">PESEL / Voivodato</span>
-              <span className="font-medium">{candidate.peselNumber || "N/A"}</span>
-              <span className="text-[10px] text-gray-500">
-                {candidate.voivodatoStatus || "Sin trámite"}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-400 text-xs uppercase font-semibold">Documentos</span>
-              <span className="font-medium flex items-center gap-1">
-                <FileText size={14} />
-                {candidate.documents.length} subidos
-              </span>
-              {checklist.missing.length > 0 && (
-                <span className="text-[10px] text-red-500 font-bold">
-                  Faltan: {checklist.missing.length}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {checklist.warnings.length > 0 && (
-          <div className="mb-4 p-2 bg-red-50 rounded border border-red-100">
-            <div className="flex items-center gap-1 text-red-700 text-[10px] font-bold uppercase mb-1">
-              <AlertCircle size={12} />
-              Alertas
-            </div>
-            <ul className="text-[10px] text-red-600 space-y-0.5">
-              {checklist.warnings.slice(0, 2).map((w, i) => (
-                <li key={i}>• {w}</li>
-              ))}
-              {checklist.warnings.length > 2 && <li>• y {checklist.warnings.length - 2} más...</li>}
-            </ul>
-          </div>
-        )}
-
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
-        >
-          Revisar Candidato
-        </button>
       </div>
 
-      <div className="bg-gray-50 px-5 py-2 border-t border-gray-100 flex justify-between items-center">
-        <span className="text-[10px] text-gray-400">
-          Último cambio: {new Date(candidate.updatedAt).toLocaleString("es-ES", { dateStyle: 'short', timeStyle: 'short' })}
-        </span>
-        <a href={`/candidatos/${candidate.id}`} className="text-[10px] text-blue-600 font-bold hover:underline">
-          Ver Detalles →
-        </a>
+      {/* Card Body */}
+      <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', borderBottom: '2px solid var(--pitch-black)' }}>
+        <div>
+          <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>PASAPORTE</div>
+          <div style={{ fontWeight: '900', fontSize: '0.9rem' }}>{candidate.passportNumber || "N/A"}</div>
+          <div style={{ 
+            fontSize: '0.7rem', 
+            fontWeight: 'bold',
+            color: isExpiringSoon(candidate.passportExpiry) ? '#e63946' : 'var(--muted)'
+          }}>
+            EXP: {formatDate(candidate.passportExpiry)}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>KARTA POBYTU</div>
+          <div style={{ fontWeight: '900', fontSize: '0.9rem' }}>{candidate.kartaPobytuNumber || "NO TIENE"}</div>
+          {candidate.kartaPobytuExpiry && (
+            <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--muted)' }}>
+              EXP: {formatDate(candidate.kartaPobytuExpiry)}
+            </div>
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>PESEL / VOIVODATO</div>
+          <div style={{ fontWeight: '900', fontSize: '0.9rem' }}>{candidate.peselNumber || "N/A"}</div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--muted)' }}>
+            {candidate.voivodatoStatus || "SIN TRÁMITE"}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>DOCUMENTOS</div>
+          <div style={{ fontWeight: '900', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <FileText size={14} />
+            {candidate.documents.length} SUBIDOS
+          </div>
+          {checklist.missing.length > 0 && (
+            <div style={{ fontSize: '0.7rem', fontWeight: '900', color: '#e63946' }}>
+              FALTAN: {checklist.missing.length}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {checklist.warnings.length > 0 && (
+        <div style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ffccd5', borderBottom: '2px solid var(--pitch-black)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '900', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+            <AlertCircle size={14} strokeWidth={3} />
+            ALERTAS
+          </div>
+          <ul style={{ fontSize: '0.7rem', fontWeight: 'bold', paddingLeft: '0.5rem' }}>
+            {checklist.warnings.slice(0, 2).map((w, i) => (
+              <li key={i}>• {w}</li>
+            ))}
+            {checklist.warnings.length > 2 && <li>• y {checklist.warnings.length - 2} más...</li>}
+          </ul>
+        </div>
+      )}
+
+      {/* Footer Actions */}
+      <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--white-smoke)' }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--muted)' }}>
+          {new Date(candidate.updatedAt).toLocaleString("es-ES", { dateStyle: 'short', timeStyle: 'short' })}
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <Link 
+            href={`/candidatos/${candidate.id}`} 
+            className="button button-secondary"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.7rem' }}
+          >
+            VER DETALLES
+          </Link>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="button"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.7rem' }}
+          >
+            REVISAR
+          </button>
+        </div>
       </div>
 
       <LegalDecisionModal 

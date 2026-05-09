@@ -1,55 +1,73 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { candidateSchema } from "@/lib/validations/candidate";
+import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import * as XLSX from "xlsx";
-import type { CandidateStatus, Prisma, Role } from "@prisma/client";
-const CandidateStatus = {
-  RECOPILANDO_DOCS: 'RECOPILANDO_DOCS',
-  DOCUMENTACION_PENDIENTE: 'DOCUMENTACION_PENDIENTE',
-  EN_REVISION_LEGAL: 'EN_REVISION_LEGAL',
-  REVISION_ADICIONAL: 'REVISION_ADICIONAL',
-  APROBADO: 'APROBADO',
-  RECHAZADO: 'RECHAZADO',
-  EN_PROCESO_PERMISO: 'EN_PROCESO_PERMISO',
-  CONTRATADO: 'CONTRATADO',
-  RETIRADO: 'RETIRADO'
-} as any;
-const Role = {
-  SUPERADMIN: 'SUPERADMIN',
-  ADMIN: 'ADMIN',
-  INTERMEDIARIO: 'INTERMEDIARIO',
-  LEGAL: 'LEGAL',
-  LOGISTICA: 'LOGISTICA'
-} as any;
+import { CandidateStatus, Prisma, Role } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
+import { candidateSchema } from "@/lib/validations/candidate";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
 
 function parseDateSafe(value: unknown): Date | null {
-  if (!value || typeof value !== "string") return null;
-  const date = new Date(value);
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const date = new Date(trimmed);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function parseBoolean(value: unknown): boolean {
-  return value === true || value === "true" || value === "Tak" || value === "yes" || value === "1";
+  if (typeof value === "boolean") return value;
+
+  if (typeof value === "number") return value === 1;
+
+  if (typeof value !== "string") return false;
+
+  const normalized = value.trim().toLowerCase();
+
+  return ["true", "tak", "yes", "sí", "si", "1", "y"].includes(normalized);
 }
 
 function normalizeOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  if (value === null || value === undefined) return null;
+
+  const stringValue = String(value).trim();
+
+  return stringValue.length > 0 ? stringValue : null;
 }
 
 function canChangeStatus(role: Role): boolean {
-  return ([Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(role);
+  const allowedRoles: Role[] = [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN];
+
+  return allowedRoles.includes(role);
 }
 
-function canAccessCandidate(role: Role, candidateIntermediaryId: string, userId: string): boolean {
-  if (([Role.ADMIN, Role.SUPERADMIN, Role.LEGAL, Role.LOGISTICA] as Role[]).includes(role)) return true;
+function canAccessCandidate(
+  role: Role,
+  candidateIntermediaryId: string,
+  userId: string
+): boolean {
+  const privilegedRoles: Role[] = [Role.ADMIN, Role.SUPERADMIN, Role.LEGAL, Role.LOGISTICA];
+  if (privilegedRoles.includes(role)) {
+    return true;
+  }
+
   return candidateIntermediaryId === userId;
 }
 
@@ -63,6 +81,79 @@ function parseCandidateStatus(value: string): CandidateStatus {
   }
 
   throw new Error(`Estado de candidato inválido: ${value}`);
+}
+
+type ExcelRow = Record<string, unknown>;
+
+function getCellValue(row: ExcelRow, aliases: string[]): unknown {
+  const keys = Object.keys(row);
+
+  const matchingKey = keys.find((candidateKey) =>
+    aliases.some(
+      (alias) => candidateKey.trim().toLowerCase() === alias.trim().toLowerCase()
+    )
+  );
+
+  return matchingKey ? row[matchingKey] : undefined;
+}
+
+function excelCellToValue(value: ExcelJS.CellValue): unknown {
+  if (value === null || value === undefined) return undefined;
+
+  if (value instanceof Date) return value;
+
+  if (typeof value === "object") {
+    if ("text" in value && typeof value.text === "string") return value.text;
+    if ("result" in value) return value.result;
+    if ("richText" in value && Array.isArray(value.richText)) {
+      return value.richText.map((part) => part.text).join("");
+    }
+  }
+
+  return value;
+}
+
+function worksheetToRows(worksheet: ExcelJS.Worksheet): ExcelRow[] {
+  const rows: ExcelRow[] = [];
+  const headers: string[] = [];
+
+  worksheet.eachRow((row, rowNumber) => {
+    const values = row.values;
+
+    if (!Array.isArray(values)) return;
+
+    if (rowNumber === 1) {
+      values.forEach((value, index) => {
+        if (index === 0) return;
+
+        const header = normalizeOptionalString(excelCellToValue(value as ExcelJS.CellValue));
+
+        if (header) {
+          headers[index] = header;
+        }
+      });
+
+      return;
+    }
+
+    const rowData: ExcelRow = {};
+
+    values.forEach((value, index) => {
+      if (index === 0) return;
+
+      const header = headers[index];
+
+      if (!header) return;
+
+      rowData[header] = excelCellToValue(value as ExcelJS.CellValue);
+    });
+
+    if (Object.keys(rowData).length > 0) {
+      rows.push(rowData);
+    }
+  });
+
+  return rows;
 }
 
 export async function createCandidate(formData: FormData) {
@@ -91,7 +182,7 @@ export async function createCandidate(formData: FormData) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "CANDIDATE_CREATED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidate.id,
       details: {
         firstName: candidate.firstName,
@@ -106,7 +197,9 @@ export async function createCandidate(formData: FormData) {
       organizationId: tenant.organizationId!,
       candidateId: candidate.id,
       type: "NEW_CANDIDATE",
-      message: `Nuevo candidato creado: ${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim(),
+      title: "Nuevo candidato",
+      message: `Nuevo candidato creado: ${candidate.firstName ?? ""} ${candidate.lastName ?? ""
+        }`.trim(),
     },
   });
 
@@ -197,7 +290,7 @@ export async function updateCandidate(candidateId: string, formData: FormData) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "CANDIDATE_UPDATED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidateId,
       details: { fields: Object.keys(raw) },
     },
@@ -239,7 +332,8 @@ export async function updateCandidateStatus(
       rejectionReason: rejectionReason ?? null,
       reviewNotes: reviewNotes ?? null,
       dataRetentionUntil:
-        parsedStatus === CandidateStatus.RECHAZADO || parsedStatus === CandidateStatus.RETIRADO
+        parsedStatus === CandidateStatus.RECHAZADO ||
+          parsedStatus === CandidateStatus.RETIRADO
           ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 183)
           : candidate.dataRetentionUntil,
     },
@@ -251,7 +345,7 @@ export async function updateCandidateStatus(
       organizationId: tenant.organizationId!,
       fromStatus: candidate.status,
       toStatus: parsedStatus,
-      changedBy: tenant.userId,
+      changedById: tenant.userId,
       reason: rejectionReason ?? reviewNotes ?? null,
     },
   });
@@ -261,7 +355,7 @@ export async function updateCandidateStatus(
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "STATUS_CHANGED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidateId,
       details: {
         from: candidate.status,
@@ -273,12 +367,19 @@ export async function updateCandidateStatus(
   });
 
   await prisma.notification.create({
-      data: { ...(candidate as any), intermediaryId: candidate.intermediaryId, organizationId: tenant.organizationId!, candidateId, type: "STATUS_UPDATE", message: `El estado de ${candidate.firstName ?? ""} ${candidate.lastName ?? ""} cambió a ${parsedStatus.replace(/_/g, " ")}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""}`.trim() } as any,
+    data: {
+      userId: candidate.intermediaryId,
+      organizationId: tenant.organizationId!,
+      candidateId,
+      type: "STATUS_UPDATE",
+      title: "Actualización de estado",
+      message: `El estado de ${candidate.firstName ?? ""} ${candidate.lastName ?? ""
+        } cambió a ${parsedStatus.replace(/_/g, " ")}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""
+        }`.trim(),
+    },
   });
 
   if (parsedStatus === CandidateStatus.APROBADO) {
-    const memberships = await prisma.membership.findMany({ where: { organizationId: tenant.organizationId! } });
-    const isPlatformAdmin = memberships.some((membership: any) => (membership as any).role === "SUPERADMIN");
     const adminLogistics = await prisma.membership.findMany({
       where: {
         organizationId: tenant.organizationId!,
@@ -290,12 +391,14 @@ export async function updateCandidateStatus(
 
     if (adminLogistics.length > 0) {
       await prisma.notification.createMany({
-        data: adminLogistics.map((membership: any) => ({
+        data: adminLogistics.map((membership) => ({
           userId: membership.userId,
           organizationId: tenant.organizationId!,
           candidateId,
           type: "CANDIDATE_APPROVED",
-          message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""} ha sido aprobado. Pendiente de logística.`.trim(),
+          title: "Candidato aprobado",
+          message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""
+            } ha sido aprobado. Pendiente de logística.`.trim(),
         })),
       });
     }
@@ -347,7 +450,7 @@ export async function updateCandidateNotes(candidateId: string, notes: string) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "CANDIDATE_NOTES_UPDATED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: candidateId,
       details: { notes },
     },
@@ -362,35 +465,40 @@ export async function importCandidatesFromExcel(formData: FormData) {
   const tenant = await requireTenant();
 
   const file = formData.get("file") as File | null;
+
   if (!file) return { success: false, error: "No file provided" };
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as any);
+
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      return { success: false, error: "El archivo no contiene hojas válidas" };
+    }
+
+    const rows = worksheetToRows(worksheet);
 
     let count = 0;
 
     for (const row of rows) {
-      const keys = Object.keys(row);
-
-      const findValue = (aliases: string[]) => {
-        const key = keys.find((candidateKey) =>
-          aliases.some((alias) => candidateKey.toLowerCase() === alias.toLowerCase())
-        );
-        return key ? row[key] : undefined;
-      };
-
-      const firstName = normalizeOptionalString(findValue(["imie", "firstname", "nombre"]));
-      const lastName = normalizeOptionalString(findValue(["nazwisko", "lastname", "apellido"]));
+      const firstName = normalizeOptionalString(
+        getCellValue(row, ["imie", "firstname", "nombre"])
+      );
+      const lastName = normalizeOptionalString(
+        getCellValue(row, ["nazwisko", "lastname", "apellido"])
+      );
 
       if (!firstName || !lastName) continue;
 
-      const peselNumber = normalizeOptionalString(findValue(["pesel"]));
-      const passportNumber = normalizeOptionalString(findValue(["paszport_seria_numer", "passportnumber", "paszport"]));
-      const email = normalizeOptionalString(findValue(["email", "correo"]));
+      const peselNumber = normalizeOptionalString(getCellValue(row, ["pesel"]));
+      const passportNumber = normalizeOptionalString(
+        getCellValue(row, ["paszport_seria_numer", "passportnumber", "paszport"])
+      );
+      const email = normalizeOptionalString(getCellValue(row, ["email", "correo"]));
 
       const existing = await prisma.candidate.findFirst({
         where: {
@@ -412,29 +520,58 @@ export async function importCandidatesFromExcel(formData: FormData) {
         firstName,
         lastName,
         email,
-        gender: normalizeOptionalString(findValue(["plec", "gender", "sexo"])),
-        country: normalizeOptionalString(findValue(["obywatelstwo", "country", "pais"])) ?? "COL",
-        citizenship: normalizeOptionalString(findValue(["obywatelstwo", "citizenship"])),
-        birthCountry: normalizeOptionalString(findValue(["panstwo_urodzenia", "birthcountry"])),
-        nationality: normalizeOptionalString(findValue(["narodowosc", "nationality"])),
-        phone: normalizeOptionalString(findValue(["telefon", "phone", "tel"])),
+        gender: normalizeOptionalString(getCellValue(row, ["plec", "gender", "sexo"])),
+        country:
+          normalizeOptionalString(
+            getCellValue(row, ["obywatelstwo", "country", "pais"])
+          ) ?? "COL",
+        citizenship: normalizeOptionalString(
+          getCellValue(row, ["obywatelstwo", "citizenship"])
+        ),
+        birthCountry: normalizeOptionalString(
+          getCellValue(row, ["panstwo_urodzenia", "birthcountry"])
+        ),
+        nationality: normalizeOptionalString(
+          getCellValue(row, ["narodowosc", "nationality"])
+        ),
+        phone: normalizeOptionalString(getCellValue(row, ["telefon", "phone", "tel"])),
         peselNumber,
         passportNumber,
-        passportBiometric: parseBoolean(findValue(["paszport_biometryczny"])),
-        kartaPobytuNumber: normalizeOptionalString(findValue(["karta_pobytu_seria_numer", "kartapobytu"])),
-        kartaPobytuType: normalizeOptionalString(findValue(["karta_pobytu_typ"])),
-        voivodatoNumber: normalizeOptionalString(findValue(["decyzja_seria_numer", "voivodato"])),
-        voivodatoStatus: normalizeOptionalString(findValue(["decyzja_status"])),
-        recruiterId: normalizeOptionalString(findValue(["opiekun_rekrutacji", "recruiter"])),
-        accommodation: normalizeOptionalString(findValue(["zakwaterowanie", "accommodation"])),
-        accommodationNotes: normalizeOptionalString(findValue(["szczegoly_zakwaterowania"])),
-        arrivalNotes: normalizeOptionalString(findValue(["uwagi_do_przyjazdu"])),
-        rejectionReason: normalizeOptionalString(findValue(["powod_rezygnacji", "rejectionreason"])),
-        paid400pln: parseBoolean(findValue(["zaplacil_400pln"])),
-        gdprConsent: parseBoolean(findValue(["gdpr_rodo"])),
-        polishAddress: normalizeOptionalString(findValue(["adres_polska", "address"])),
-        polishCity: normalizeOptionalString(findValue(["miasto_polska", "city"])),
-        notes: normalizeOptionalString(findValue(["uwagi", "notes"])),
+        passportBiometric: parseBoolean(getCellValue(row, ["paszport_biometryczny"])),
+        kartaPobytuNumber: normalizeOptionalString(
+          getCellValue(row, ["karta_pobytu_seria_numer", "kartapobytu"])
+        ),
+        kartaPobytuType: normalizeOptionalString(
+          getCellValue(row, ["karta_pobytu_typ"])
+        ),
+        voivodatoNumber: normalizeOptionalString(
+          getCellValue(row, ["decyzja_seria_numer", "voivodato"])
+        ),
+        voivodatoStatus: normalizeOptionalString(
+          getCellValue(row, ["decyzja_status"])
+        ),
+        recruiterId: normalizeOptionalString(
+          getCellValue(row, ["opiekun_rekrutacji", "recruiter"])
+        ),
+        accommodation: normalizeOptionalString(
+          getCellValue(row, ["zakwaterowanie", "accommodation"])
+        ),
+        accommodationNotes: normalizeOptionalString(
+          getCellValue(row, ["szczegoly_zakwaterowania"])
+        ),
+        arrivalNotes: normalizeOptionalString(
+          getCellValue(row, ["uwagi_do_przyjazdu"])
+        ),
+        rejectionReason: normalizeOptionalString(
+          getCellValue(row, ["powod_rezygnacji", "rejectionreason"])
+        ),
+        paid400pln: parseBoolean(getCellValue(row, ["zaplacil_400pln"])),
+        gdprConsent: parseBoolean(getCellValue(row, ["gdpr_rodo"])),
+        polishAddress: normalizeOptionalString(
+          getCellValue(row, ["adres_polska", "address"])
+        ),
+        polishCity: normalizeOptionalString(getCellValue(row, ["miasto_polska", "city"])),
+        notes: normalizeOptionalString(getCellValue(row, ["uwagi", "notes"])),
         intermediaryId: tenant.userId,
         organizationId: tenant.organizationId!,
         status: CandidateStatus.RECOPILANDO_DOCS,

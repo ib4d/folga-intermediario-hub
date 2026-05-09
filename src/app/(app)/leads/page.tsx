@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
-import { Plus, Mail, MessageSquare, TrendingUp, Play } from "lucide-react";
+import { Plus, Mail, MessageSquare, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import OutreachRunner from "@/components/sales/OutreachRunner";
 
@@ -47,7 +47,7 @@ export default async function LeadsPage() {
         </div>
         <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
           <h3>Contactados</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.filter((l: any) => l.status === "CONTACTED").length}</div>
+          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.filter((l) => l.status === "CONTACTED").length}</div>
         </div>
       </div>
 

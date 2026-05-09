@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate, LogisticsEvent } from "@prisma/client";
-import { Plane, Train, Car, User, MapPin, CheckCircle2, Clock } from "lucide-react";
+import { Plane, Train, Car, User, MapPin, CheckCircle, Clock } from "lucide-react";
 import { confirmLogisticsEvent } from "@/app/actions/logistics";
 
 interface Props {
@@ -10,11 +10,11 @@ interface Props {
 
 const TransportIcon = ({ type }: { type: string | null }) => {
   switch (type) {
-    case "AVION": return <Plane size={18} />;
-    case "TREN": return <Train size={18} />;
+    case "AVION": return <Plane size={20} strokeWidth={2.5} />;
+    case "TREN": return <Train size={20} strokeWidth={2.5} />;
     case "COCHE_EMPRESA":
-    case "PROPIO": return <Car size={18} />;
-    default: return <Clock size={18} />;
+    case "PROPIO": return <Car size={20} strokeWidth={2.5} />;
+    default: return <Clock size={20} strokeWidth={2.5} />;
   }
 };
 
@@ -29,56 +29,73 @@ export default function WeeklyArrivals({ events }: Props) {
 
   if (events.length === 0) {
     return (
-      <div className="bg-white p-10 rounded-2xl border border-gray-100 text-center">
-        <p className="text-gray-400">No hay llegadas programadas para esta semana.</p>
+      <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+        <p style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>NO HAY LLEGADAS PROGRAMADAS PARA ESTA SEMANA.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
       {events.map((event) => (
-        <div key={event.id} className={`bg-white rounded-xl shadow-sm border p-4 transition-all ${event.confirmed ? "border-green-200 bg-green-50/30" : "border-gray-200"}`}>
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${event.confirmed ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}>
+        <div 
+          key={event.id} 
+          className="card"
+          style={{ 
+            backgroundColor: event.confirmed ? '#f0fdf4' : 'var(--background)',
+            borderColor: event.confirmed ? '#4ade80' : 'var(--pitch-black)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ 
+                padding: '0.5rem', 
+                backgroundColor: event.confirmed ? '#4ade80' : 'var(--primary)', 
+                border: '2px solid var(--pitch-black)' 
+              }}>
                 <TransportIcon type={event.transportType} />
               </div>
               <div>
-                <h4 className="font-bold text-gray-900">
+                <h4 style={{ fontWeight: '900', fontSize: '1rem', textTransform: 'uppercase' }}>
                   {event.candidate.firstName} {event.candidate.lastName}
                 </h4>
-                <p className="text-xs text-gray-500">
-                  {event.arrivalDate ? new Date(event.arrivalDate).toLocaleString("es-ES", { dateStyle: 'short', timeStyle: 'short' }) : 'Fecha pendiente'}
+                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--muted)', margin: 0 }}>
+                  {event.arrivalDate 
+                    ? new Date(event.arrivalDate).toLocaleString("es-ES", { dateStyle: 'short', timeStyle: 'short' }) 
+                    : 'FECHA PENDIENTE'}
                 </p>
               </div>
             </div>
             {event.confirmed ? (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full uppercase">
-                <CheckCircle2 size={12} />
-                Confirmado
+              <span className="status-badge active" style={{ fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <CheckCircle size={10} /> CONFIRMADO
               </span>
             ) : (
-              <button 
+              <button
                 onClick={() => handleConfirm(event.id)}
-                className="text-[10px] font-bold text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 transition-colors uppercase"
+                className="button"
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.7rem' }}
               >
-                Confirmar
+                CONFIRMAR
               </button>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <MapPin size={14} className="text-gray-400" />
-              <span className="truncate">{event.terminal || "TBA"}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MapPin size={14} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {event.terminal || "TBA"}
+              </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <User size={14} className="text-gray-400" />
-              <span className="truncate">{event.pickedUpBy || "Sin asignar"}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <User size={14} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {event.pickedUpBy || "SIN ASIGNAR"}
+              </span>
             </div>
             {event.flightOrTrain && (
-              <div className="col-span-2 mt-1 text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500 font-mono">
+              <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--white-smoke)', border: '1px solid var(--pitch-black)', fontFamily: 'monospace', fontSize: '0.75rem' }}>
                 REF: {event.flightOrTrain}
               </div>
             )}

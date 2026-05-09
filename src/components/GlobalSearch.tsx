@@ -16,19 +16,24 @@ export default function GlobalSearch() {
   };
 
   return (
-    <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', maxWidth: '400px' }}>
-      <div className="input-group" style={{ marginBottom: 0, width: '100%' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-          <input 
-            type="text" 
-            className="input" 
-            placeholder="Buscar candidatos, docs..." 
-            style={{ paddingLeft: '2.5rem' }}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+    <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '350px' }}>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <Search size={20} strokeWidth={2.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pitch-black)' }} />
+        <input 
+          type="text" 
+          className="input" 
+          placeholder="BUSCAR CANDIDATOS..." 
+          style={{ 
+            paddingLeft: '2.75rem', 
+            fontWeight: 'bold', 
+            fontSize: '0.8rem',
+            letterSpacing: '0.02em',
+            borderWidth: '2px',
+            backgroundColor: 'var(--white-smoke)'
+          }}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
     </form>
   );

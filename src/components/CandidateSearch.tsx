@@ -32,39 +32,37 @@ export default function CandidateSearch() {
   }
 
   return (
-    <div className="card" style={{ marginBottom: '2rem', padding: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      <div className="input-group" style={{ marginBottom: 0, flex: 1, minWidth: '300px' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-          <input 
-            type="text" 
-            className="input" 
-            placeholder="Buscar por nombre, documento, país..." 
-            style={{ paddingLeft: '2.5rem' }}
-            defaultValue={searchParams.get("q")?.toString()}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {isPending && (
-            <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--muted)' }}>
-              Buscando...
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="input-group" style={{ marginBottom: 0, width: '150px' }}>
-        <select 
+    <div className="card" style={{ marginBottom: '2rem', padding: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ position: 'relative', flex: 1, minWidth: '300px', maxWidth: '600px' }}>
+        <Search size={20} strokeWidth={2.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pitch-black)' }} />
+        <input 
+          type="text" 
           className="input" 
+          placeholder="BUSCAR POR NOMBRE, DOCUMENTO, PAÍS..." 
+          style={{ paddingLeft: '2.75rem', fontWeight: 'bold', fontSize: '0.8rem' }}
+          defaultValue={searchParams.get("q")?.toString()}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+        {isPending && (
+          <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', fontWeight: '900', color: 'var(--muted)' }}>
+            ...
+          </div>
+        )}
+      </div>
+      <div style={{ width: '160px' }}>
+        <select 
+          className="select" 
           defaultValue={searchParams.get("limit")?.toString() || "10"}
           onChange={(e) => handleLimit(e.target.value)}
         >
-          <option value="10">10 por pág.</option>
-          <option value="20">20 por pág.</option>
-          <option value="50">50 por pág.</option>
-          <option value="100">100 por pág.</option>
-          <option value="200">200 por pág.</option>
-          <option value="500">500 por pág.</option>
-          <option value="1000">1000 por pág.</option>
-          <option value="ALL">1000+ (Todos)</option>
+          <option value="10">10 POR PÁG.</option>
+          <option value="20">20 POR PÁG.</option>
+          <option value="50">50 POR PÁG.</option>
+          <option value="100">100 POR PÁG.</option>
+          <option value="200">200 POR PÁG.</option>
+          <option value="500">500 POR PÁG.</option>
+          <option value="1000">1000 POR PÁG.</option>
+          <option value="ALL">TODOS</option>
         </select>
       </div>
     </div>

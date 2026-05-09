@@ -2,7 +2,7 @@
 
 import { Candidate, Document, User } from "@prisma/client";
 import LegalCandidateCard from "./LegalCandidateCard";
-import { Search, Filter, LayoutGrid, List } from "lucide-react";
+import { Search, LayoutGrid, List } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -22,55 +22,74 @@ export default function LegalReviewQueue({ initialCandidates }: Props) {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o pasaporte..." 
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Search + View toggle bar */}
+      <div className="card" style={{ padding: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+          <Search size={20} strokeWidth={2.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pitch-black)' }} />
+          <input
+            type="text"
+            placeholder="BUSCAR POR NOMBRE O PASAPORTE..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+            className="input"
+            style={{ paddingLeft: '2.75rem', fontWeight: 'bold', fontSize: '0.8rem' }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button 
-              onClick={() => setView("grid")}
-              className={`p-1.5 rounded-md transition-all ${view === "grid" ? "bg-white shadow-sm text-blue-600" : "text-gray-500"}`}
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button 
-              onClick={() => setView("list")}
-              className={`p-1.5 rounded-md transition-all ${view === "list" ? "bg-white shadow-sm text-blue-600" : "text-gray-500"}`}
-            >
-              <List size={18} />
-            </button>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors">
-            <Filter size={16} />
-            Filtros
+        {/* View toggle */}
+        <div style={{ display: 'flex', border: '2px solid var(--pitch-black)', overflow: 'hidden' }}>
+          <button
+            onClick={() => setView("grid")}
+            style={{
+              padding: '0.5rem 0.75rem',
+              backgroundColor: view === "grid" ? 'var(--primary)' : 'var(--background)',
+              border: 'none',
+              borderRight: '2px solid var(--pitch-black)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <LayoutGrid size={18} strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={() => setView("list")}
+            style={{
+              padding: '0.5rem 0.75rem',
+              backgroundColor: view === "list" ? 'var(--primary)' : 'var(--background)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <List size={18} strokeWidth={2.5} />
           </button>
         </div>
       </div>
 
       {filteredCandidates.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <div className="w-16 h-16 bg-gray-200 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Search size={32} />
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <div style={{ 
+            width: '64px', height: '64px', 
+            backgroundColor: 'var(--white-smoke)', 
+            border: '2px solid var(--pitch-black)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            margin: '0 auto 1.5rem' 
+          }}>
+            <Search size={32} strokeWidth={2.5} />
           </div>
-          <h3 className="text-xl font-bold text-gray-900">No hay candidatos pendientes</h3>
-          <p className="text-gray-500 max-w-xs mx-auto">
-            Todos los candidatos han sido revisados o no coinciden con la búsqueda.
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>NO HAY CANDIDATOS PENDIENTES</h3>
+          <p style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.875rem' }}>
+            TODOS LOS CANDIDATOS HAN SIDO REVISADOS O NO COINCIDEN CON LA BÚSQUEDA.
           </p>
         </div>
       ) : (
-        <div className={view === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-          : "flex flex-col gap-4"
-        }>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: view === "grid" ? 'repeat(auto-fill, minmax(320px, 1fr))' : '1fr', 
+          gap: '1.5rem' 
+        }}>
           {filteredCandidates.map(c => (
             <LegalCandidateCard key={c.id} candidate={c} />
           ))}

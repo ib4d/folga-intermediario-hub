@@ -41,6 +41,7 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
   const outreach = await prisma.outreach.create({
     data: {
       leadId,
+      organizationId: tenant.organizationId!,
       step,
       message,
       sentAt: new Date()

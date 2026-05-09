@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Candidate } from "@prisma/client";
 import { updateCandidateStatus } from "@/app/actions/candidates";
+import { X, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
     try {
       await updateCandidateStatus(candidate.id, decision, reason || undefined, notes || undefined);
       onClose();
-    } catch (err) {
+    } catch {
       alert("Error al procesar la decisión");
     } finally {
       setIsSubmitting(false);
@@ -51,101 +52,159 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-900">Decisión Legal</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <div style={{ 
+      position: 'fixed', inset: 0, zIndex: 50, 
+      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+      padding: '1rem',
+      backgroundColor: 'rgba(11, 5, 0, 0.75)'
+    }}>
+      <div className="card" style={{ 
+        width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden',
+        boxShadow: '8px 8px 0px var(--pitch-black)'
+      }}>
+        {/* Modal Header */}
+        <div style={{ 
+          padding: '1.25rem 1.5rem', 
+          borderBottom: '2px solid var(--pitch-black)', 
+          backgroundColor: 'var(--pitch-black)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+        }}>
+          <h2 style={{ color: 'var(--primary)', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>DECISIÓN LEGAL</h2>
+          <button 
+            onClick={onClose} 
+            className="icon-button"
+            style={{ backgroundColor: 'transparent', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+          >
+            <X size={20} strokeWidth={3} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div className="text-sm text-gray-600">
-            Candidato: <span className="font-bold text-gray-900">{candidate.firstName} {candidate.lastName}</span>
+        {/* Modal Body */}
+        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: 'var(--ghost-white)' }}>
+          <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--white-smoke)', border: '2px solid var(--pitch-black)', fontSize: '0.875rem', fontWeight: 'bold' }}>
+            CANDIDATO: <span style={{ fontWeight: '900' }}>{candidate.firstName?.toUpperCase()} {candidate.lastName?.toUpperCase()}</span>
           </div>
 
-          <div className="flex gap-2">
-            <button 
+          {/* Decision Buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <button
               onClick={() => setDecision("APROBADO")}
-              className={`flex-1 py-3 rounded-xl font-bold transition-all ${
-                decision === "APROBADO" 
-                ? "bg-green-600 text-white shadow-lg scale-105" 
-                : "bg-green-50 text-green-700 hover:bg-green-100"
-              }`}
+              style={{
+                padding: '1rem',
+                fontWeight: '900',
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                border: '2px solid var(--pitch-black)',
+                cursor: 'pointer',
+                backgroundColor: decision === "APROBADO" ? '#4ade80' : 'var(--background)',
+                boxShadow: decision === "APROBADO" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                transition: 'all 0.15s'
+              }}
             >
-              Aprobar
+              <CheckCircle size={24} strokeWidth={2.5} color={decision === "APROBADO" ? "var(--pitch-black)" : "#4ade80"} />
+              APROBAR
             </button>
-            <button 
+            <button
               onClick={() => setDecision("RECHAZADO")}
-              className={`flex-1 py-3 rounded-xl font-bold transition-all ${
-                decision === "RECHAZADO" 
-                ? "bg-red-600 text-white shadow-lg scale-105" 
-                : "bg-red-50 text-red-700 hover:bg-red-100"
-              }`}
+              style={{
+                padding: '1rem',
+                fontWeight: '900',
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                border: '2px solid var(--pitch-black)',
+                cursor: 'pointer',
+                backgroundColor: decision === "RECHAZADO" ? '#e63946' : 'var(--background)',
+                color: decision === "RECHAZADO" ? 'white' : 'var(--foreground)',
+                boxShadow: decision === "RECHAZADO" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                transition: 'all 0.15s'
+              }}
             >
-              Rechazar
+              <XCircle size={24} strokeWidth={2.5} />
+              RECHAZAR
             </button>
-            <button 
+            <button
               onClick={() => setDecision("REVISION_ADICIONAL")}
-              className={`flex-1 py-3 rounded-xl font-bold transition-all ${
-                decision === "REVISION_ADICIONAL" 
-                ? "bg-amber-500 text-white shadow-lg scale-105" 
-                : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-              }`}
+              style={{
+                padding: '1rem',
+                fontWeight: '900',
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                border: '2px solid var(--pitch-black)',
+                cursor: 'pointer',
+                backgroundColor: decision === "REVISION_ADICIONAL" ? 'var(--primary)' : 'var(--background)',
+                boxShadow: decision === "REVISION_ADICIONAL" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+                transition: 'all 0.15s'
+              }}
             >
-              Revisión
+              <AlertTriangle size={24} strokeWidth={2.5} />
+              REVISIÓN
             </button>
           </div>
 
+          {/* Rejection Reason */}
           {decision === "RECHAZADO" && (
-            <div className="space-y-2 animate-in slide-in-from-top-2">
-              <label className="text-sm font-semibold text-gray-700">Motivo de Rechazo</label>
-              <select 
-                value={reason} 
+            <div className="input-group">
+              <label className="label">MOTIVO DE RECHAZO</label>
+              <select
+                value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none"
+                className="select"
               >
-                <option value="">Seleccione un motivo...</option>
+                <option value="">SELECCIONE UN MOTIVO...</option>
                 {REJECTION_REASONS.map(r => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>{r.toUpperCase()}</option>
                 ))}
               </select>
             </div>
           )}
 
+          {/* Additional Notes */}
           {(decision === "REVISION_ADICIONAL" || decision === "RECHAZADO") && (
-            <div className="space-y-2 animate-in slide-in-from-top-2">
-              <label className="text-sm font-semibold text-gray-700">
-                {decision === "RECHAZADO" ? "Detalles adicionales (Opcional)" : "Notas de revisión requerida"}
+            <div className="input-group">
+              <label className="label">
+                {decision === "RECHAZADO" ? "DETALLES ADICIONALES (OPCIONAL)" : "NOTAS DE REVISIÓN REQUERIDA"}
               </label>
-              <textarea 
+              <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Escriba aquí los detalles..."
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none"
+                placeholder="ESCRIBA AQUÍ LOS DETALLES..."
+                className="input"
+                style={{ height: '96px', resize: 'none' }}
               />
             </div>
           )}
         </div>
 
-        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
-          <button 
+        {/* Modal Footer */}
+        <div style={{ 
+          padding: '1.25rem 1.5rem', 
+          backgroundColor: 'var(--white-smoke)',
+          borderTop: '2px solid var(--pitch-black)',
+          display: 'flex', gap: '1rem'
+        }}>
+          <button
             onClick={onClose}
-            className="flex-1 py-3 bg-white border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+            className="button button-secondary"
+            style={{ flex: 1 }}
           >
-            Cancelar
+            CANCELAR
           </button>
-          <button 
+          <button
             onClick={handleSubmit}
             disabled={!decision || isSubmitting}
-            className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${
-              !decision || isSubmitting ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 shadow-md"
-            }`}
+            className="button"
+            style={{ 
+              flex: 1,
+              opacity: (!decision || isSubmitting) ? 0.5 : 1,
+              cursor: (!decision || isSubmitting) ? 'not-allowed' : 'pointer',
+              backgroundColor: decision === "APROBADO" ? '#4ade80' : decision === "RECHAZADO" ? '#e63946' : 'var(--primary)',
+              color: decision === "RECHAZADO" ? 'white' : 'var(--pitch-black)'
+            }}
           >
-            {isSubmitting ? "Procesando..." : "Confirmar Decisión"}
+            {isSubmitting ? "PROCESANDO..." : "CONFIRMAR DECISIÓN"}
           </button>
         </div>
       </div>

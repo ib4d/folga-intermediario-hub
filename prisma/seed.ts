@@ -22,13 +22,14 @@ async function main() {
 
   const admin = await (prisma as any).user.upsert({
     where: { email: "admin@folga.com" },
-    update: { passwordHash, isPlatformAdmin: true, organizationId: org.id },
+    update: { passwordHash, isPlatformAdmin: true, organizationId: org.id, role: "SUPERADMIN" },
     create: {
       email: "admin@folga.com",
       name: "Administrador Principal",
       passwordHash,
       isPlatformAdmin: true,
       organizationId: org.id,
+      role: "SUPERADMIN",
     },
   });
 
@@ -74,10 +75,8 @@ async function main() {
   });
 
   // Create test candidates
-  const candidate1 = await (prisma as any).candidate.upsert({
-    where: { email: "abad@bolanos.com" },
-    update: {},
-    create: {
+  const candidate1 = await (prisma as any).candidate.create({
+    data: {
       firstName: "Abad",
       lastName: "Bolanos",
       email: "abad@bolanos.com",
@@ -91,10 +90,8 @@ async function main() {
     },
   });
 
-  await (prisma as any).candidate.upsert({
-    where: { email: "juan@perez.com" },
-    update: {},
-    create: {
+  await (prisma as any).candidate.create({
+    data: {
       firstName: "Juan",
       lastName: "Perez",
       email: "juan@perez.com",
@@ -116,6 +113,7 @@ async function main() {
       organizationId: org.id,
       candidateId: candidate1.id,
       type: "DOC_REQUIRED",
+      title: "Documentación Requerida",
       message: "Abad Bolanos necesita subir su pasaporte para continuar.",
     },
   });

@@ -23,7 +23,7 @@ export async function generatePerformanceReport() {
     })
   ]);
 
-  const data = candidates.map((c: any) => ({
+  const data = candidates.map((c) => ({
     "Nombre": `${c.firstName} ${c.lastName}`,
     "País": c.country,
     "Estado": c.status,
@@ -74,10 +74,10 @@ export async function generateLegalComplianceReport() {
     }
   });
 
-  const data = candidates.map((c: any) => {
-    const hasPassport = c.documents.some(d: any => d: any.type === "PASSPORT");
-    const hasPesel = c.documents.some(d: any => d: any.type === "PESEL");
-    const hasKarta = c.documents.some(d: any => d: any.type === "KARTA_POBYTU");
+  const data = candidates.map((c) => {
+    const hasPassport = c.documents.some((d) => d.type === "PASSPORT");
+    const hasPesel = c.documents.some((d) => d.type === "PESEL");
+    const hasKarta = c.documents.some((d) => d.type === "KARTA_POBYTU");
 
     return {
       "Candidato": `${c.firstName} ${c.lastName}`,

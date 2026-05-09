@@ -52,10 +52,11 @@ export default async function AjustesPage() {
                 backgroundColor: "var(--amber-flame)",
                 color: "var(--pitch-black)",
                 padding: "2px 8px",
-                borderRadius: "12px",
+                border: "2px solid var(--pitch-black)",
                 fontSize: "0.75rem",
-                fontWeight: "bold",
+                fontWeight: "900",
                 marginTop: "0.25rem",
+                boxShadow: "2px 2px 0px var(--pitch-black)"
               }}
             >
               {organization.plan}
@@ -139,7 +140,7 @@ export default async function AjustesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((membership: any) => (
+                  {users.map((membership) => (
                     <tr key={membership.id}>
                       <td style={{ fontWeight: "bold" }}>{membership.user.name}</td>
                       <td>{membership.user.email}</td>

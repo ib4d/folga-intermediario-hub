@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --amber-flame: #fcba04;
   --ghost-white: #fbf9ff;
@@ -256,6 +258,41 @@ body {
   color: var(--secondary-foreground);
 }
 
+.button-outline {
+  background-color: transparent;
+  color: var(--foreground);
+  border: 2px solid var(--pitch-black);
+  box-shadow: 2px 2px 0px var(--pitch-black);
+}
+
+.button-outline:hover {
+  background-color: var(--white-smoke);
+  box-shadow: 4px 4px 0px var(--pitch-black);
+}
+
+.icon-button {
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background);
+  border: 2px solid var(--pitch-black);
+  box-shadow: 3px 3px 0px var(--pitch-black);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px var(--pitch-black);
+  background-color: var(--primary);
+}
+
+.icon-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0px 0px 0px var(--pitch-black);
+}
+
 /* Form inputs */
 .input-group {
   display: flex;
@@ -284,6 +321,42 @@ body {
   outline: none;
   border-color: var(--primary);
   background-color: var(--ghost-white);
+}
+
+.select {
+  appearance: none;
+  width: 100%;
+  padding: 0.75rem;
+  padding-right: 2.5rem;
+  border: 2px solid var(--pitch-black);
+  background-color: var(--white-smoke);
+  color: var(--pitch-black);
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background-color: var(--primary);
+  color: var(--pitch-black);
+  border: 2px solid var(--pitch-black);
+  box-shadow: 2px 2px 0px var(--pitch-black);
+  letter-spacing: 0.05em;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -317,13 +390,14 @@ p { margin-bottom: 1rem; color: var(--muted); }
   font-size: 0.75rem;
   font-weight: 900;
   text-transform: uppercase;
-  background-color: var(--grey-olive);
-  color: var(--ghost-white);
+  background-color: var(--white-smoke);
+  color: var(--pitch-black);
   border: 2px solid var(--pitch-black);
+  box-shadow: 2px 2px 0px var(--pitch-black);
 }
 
 .status-badge.active {
-  background-color: var(--amber-flame);
+  background-color: #4ade80;
   color: var(--pitch-black);
 }
 
@@ -333,13 +407,19 @@ p { margin-bottom: 1rem; color: var(--muted); }
 }
 
 .status-badge.warning {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--amber-flame);
+  color: var(--pitch-black);
+}
+
+.status-badge.info {
+  background-color: #60a5fa;
+  color: var(--pitch-black);
 }
 
 @media (prefers-color-scheme: dark) {
   .status-badge {
     border: 2px solid var(--grey-olive);
+    box-shadow: 2px 2px 0px var(--amber-flame);
   }
 }
 

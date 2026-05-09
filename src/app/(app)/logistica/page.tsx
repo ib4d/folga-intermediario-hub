@@ -10,20 +10,14 @@ export default async function LogisticaPage() {
     redirect("/dashboard");
   }
 
-  // Candidates approved but without logistics events
   const pendingCandidates = await prisma.candidate.findMany({
     where: {
       status: "APROBADO",
-      logistics: {
-        none: {}
-      }
+      logistics: { none: {} }
     },
-    orderBy: {
-      updatedAt: "desc"
-    }
+    orderBy: { updatedAt: "desc" }
   });
 
-  // Weekly arrivals (from today to 7 days from now)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const nextWeek = new Date(today);
@@ -31,40 +25,29 @@ export default async function LogisticaPage() {
 
   const weeklyEvents = await prisma.logisticsEvent.findMany({
     where: {
-      arrivalDate: {
-        gte: today,
-        lte: nextWeek
-      }
+      arrivalDate: { gte: today, lte: nextWeek }
     },
-    include: {
-      candidate: true
-    },
-    orderBy: {
-      arrivalDate: "asc"
-    }
+    include: { candidate: true },
+    orderBy: { arrivalDate: "asc" }
   });
 
   return (
-    <div className="p-6 lg:p-10 max-w-[1600px] mx-auto space-y-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 text-blue-600 font-bold uppercase tracking-wider text-sm">
-            <Truck size={20} />
-            Departamento Logística
-          </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-            Gestión de Llegadas
-          </h1>
-          <p className="text-gray-500 text-lg">
-            Monitoreo y coordinación de transporte para candidatos aprobados.
-          </p>
+    <>
+      <div className="hero-section" style={{ padding: '2rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '900', textTransform: 'uppercase' }}>
+          <Truck size={20} strokeWidth={3} />
+          DEPARTAMENTO LOGÍSTICA
         </div>
-      </header>
+        <h1 style={{ marginBottom: '0.5rem' }}>GESTIÓN DE LLEGADAS</h1>
+        <p style={{ color: 'var(--pitch-black)', fontSize: '1.1rem', margin: 0 }}>
+          MONITOREO Y COORDINACIÓN DE TRANSPORTE PARA CANDIDATOS APROBADOS.
+        </p>
+      </div>
 
-      <LogisticsDashboard 
-        pendingCandidates={pendingCandidates} 
-        weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>['weeklyEvents']} 
+      <LogisticsDashboard
+        pendingCandidates={pendingCandidates}
+        weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>['weeklyEvents']}
       />
-    </div>
+    </>
   );
 }

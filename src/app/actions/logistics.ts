@@ -24,12 +24,13 @@ export async function createLogisticsEvent(formData: FormData) {
     data: {
       candidateId,
       organizationId: tenant.organizationId!,
+      type: "PICKUP",
       transportType,
       arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
       terminal,
       flightOrTrain,
       pickedUpBy,
-      notes,
+      description: notes || null,
     },
     include: { candidate: true },
   });
@@ -39,20 +40,21 @@ export async function createLogisticsEvent(formData: FormData) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "LOGISTICS_EVENT_CREATED",
-      entity: "LogisticsEvent",
+      entityType: "LogisticsEvent",
       entityId: event.id,
       details: { transportType, arrivalDate } as Prisma.InputJsonValue,
     },
   });
 
   // Notify Intermediary
-  if (event.candidate.intermediaryId) {
+  if (event.candidate?.intermediaryId) {
     await prisma.notification.create({
       data: {
         userId: event.candidate.intermediaryId,
         organizationId: tenant.organizationId!,
         candidateId: event.candidate.id,
         type: "LOGISTICS_UPDATE",
+        title: "Actualización de Logística",
         message: `Se ha programado el transporte (${transportType}) para ${event.candidate.firstName} ${event.candidate.lastName}`,
       }
     });
@@ -81,7 +83,7 @@ export async function updateLogisticsEvent(eventId: string, data: Record<string,
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "LOGISTICS_EVENT_UPDATED",
-      entity: "LogisticsEvent",
+      entityType: "LogisticsEvent",
       entityId: eventId,
       details: data as Prisma.InputJsonValue,
     },
@@ -110,7 +112,7 @@ export async function confirmLogisticsEvent(eventId: string) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "LOGISTICS_EVENT_CONFIRMED",
-      entity: "LogisticsEvent",
+      entityType: "LogisticsEvent",
       entityId: eventId,
     },
   });
@@ -142,7 +144,7 @@ export async function deleteLogisticsEvent(eventId: string) {
       userId: tenant.userId,
       organizationId: tenant.organizationId!,
       action: "LOGISTICS_EVENT_DELETED",
-      entity: "LogisticsEvent",
+      entityType: "LogisticsEvent",
       entityId: eventId,
     },
   });

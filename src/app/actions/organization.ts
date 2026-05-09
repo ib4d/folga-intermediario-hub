@@ -54,8 +54,9 @@ export async function createOrganizationAction(formData: FormData) {
 
     console.log("[Onboarding] Success! Created organization:", result.id);
   } catch (error) {
-    console.error("[Onboarding] Error creating organization:", error);
-    throw new Error("Hubo un error al crear la organización. Por favor intente de nuevo.");
+    const message = error instanceof Error ? error.message : "Error desconocido";
+    console.error("[Onboarding] Error creating organization:", message);
+    throw new Error(`Hubo un error al crear la organización: ${message}`);
   }
 
   revalidatePath("/", "layout");

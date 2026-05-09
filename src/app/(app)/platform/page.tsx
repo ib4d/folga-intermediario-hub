@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
-import Link from "next/link";
 import { Building2, Users, FileText, Activity } from "lucide-react";
 
 export default async function PlatformAdminPage() {
@@ -73,7 +72,7 @@ export default async function PlatformAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {orgs.map((org: any) => (
+              {orgs.map((org) => (
                 <tr key={org.id}>
                   <td style={{ fontWeight: 'bold' }}>
                     {org.name}

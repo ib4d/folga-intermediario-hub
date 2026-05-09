@@ -63,8 +63,8 @@ export default async function DashboardPage() {
   );
 
   const chartData = {
-    byStatus: byStatusRaw.map((s: any) => ({ name: s.status.replace(/_/g, " "), value: s._count._all })),
-    byCountry: byCountryRaw.map((c: any) => ({ name: c.country, value: c._count._all })),
+    byStatus: byStatusRaw.map((s) => ({ name: s.status.replace(/_/g, " "), value: s._count._all })),
+    byCountry: byCountryRaw.map((c) => ({ name: c.country, value: c._count._all })),
     byTimeline: timelineData,
   };
 
@@ -141,32 +141,37 @@ export default async function DashboardPage() {
         <Link
           href="/logistica"
           className="card"
-          style={{ border: "2px solid #4ade80", textDecoration: "none", color: "inherit" }}
+          style={{ 
+            backgroundColor: "#4ade80", 
+            textDecoration: "none", 
+            color: "var(--pitch-black)",
+            boxShadow: '6px 6px 0px var(--pitch-black)' 
+          }}
         >
           <div className="card-header">
             <h3>Aprobados</h3>
-            <CheckCircle size={24} color="#4ade80" />
+            <CheckCircle size={24} color="var(--pitch-black)" />
           </div>
           <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>{aprobados}</div>
         </Link>
       </div>
-
+ 
       <DashboardCharts data={chartData} />
-
+ 
       {stuckCandidates.length > 0 && (
-        <div className="card" style={{ marginTop: "2rem", border: "2px solid #ef4444", backgroundColor: "#fef2f2" }}>
-          <div className="card-header" style={{ marginBottom: '1rem' }}>
-            <h3 style={{ color: "#b91c1c", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertTriangle size={20} /> Candidatos Estancados (Inactivos {'>'} 7 días)
+        <div className="card" style={{ marginTop: "2rem", backgroundColor: "#ffccd5" }}>
+          <div className="card-header" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 900 }}>
+              <AlertTriangle size={28} strokeWidth={3} /> CANDIDATOS ESTANCADOS (INACTIVOS {'>'} 7 DÍAS)
             </h3>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {stuckCandidates.map(c: any => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+            {stuckCandidates.map((c) => (
               <Link key={c.id} href={`/candidatos/${c.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ padding: '1rem', border: '1px solid #fee2e2', backgroundColor: 'white' }}>
-                  <div style={{ fontWeight: 'bold' }}>{c.firstName} {c.lastName}</div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{c.status.replace(/_/g, ' ')}</div>
-                  <div style={{ fontSize: '0.7rem', color: '#b91c1c' }}>Sin cambios desde {new Date(c.updatedAt).toLocaleDateString()}</div>
+                <div className="card" style={{ padding: '1rem', backgroundColor: 'white', boxShadow: '4px 4px 0px var(--pitch-black)' }}>
+                  <div style={{ fontWeight: '900', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{c.firstName} {c.lastName}</div>
+                  <div className="status-badge" style={{ marginBottom: '0.5rem', fontSize: '0.65rem' }}>{c.status.replace(/_/g, ' ')}</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#b91c1c' }}>SIN CAMBIOS DESDE {new Date(c.updatedAt).toLocaleDateString()}</div>
                 </div>
               </Link>
             ))}
@@ -196,7 +201,7 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recientes.map((candidate: any) => (
+            {recientes.map((candidate) => (
                 <tr key={candidate.id}>
                   <td style={{ fontWeight: "bold" }}>
                     {candidate.firstName} {candidate.lastName}

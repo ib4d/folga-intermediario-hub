@@ -95,7 +95,7 @@ export const ocrAgent: Agent = {
     await prisma.document.update({
       where: { id: document.id },
       data: {
-        extractedData: updatedExtractedData,
+        extractedData: updatedExtractedData as Prisma.InputJsonValue,
         ocrStatus: "REVIEW_REQUIRED",
         isVerified: false,
       },
@@ -106,13 +106,13 @@ export const ocrAgent: Agent = {
         organizationId: payload.organizationId,
         userId: event.userId ?? null,
         action: "OCR_AGENT_ENHANCED",
-        entity: "Document",
+        entityType: "Document",
         entityId: document.id,
         details: toInputJsonValue({
           confidenceScore: enhanced.confidenceScore,
           warnings: enhanced.warnings,
           documentType: enhanced.documentType,
-        }),
+        }) as Prisma.InputJsonValue,
       },
     });
 

@@ -1,6 +1,5 @@
 import { getCandidateByToken } from "@/app/actions/public-registration";
 import CandidateRegistrationForm from "@/components/registration/CandidateRegistrationForm";
-import { notFound } from "next/navigation";
 
 export default async function RegistroPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -8,10 +7,17 @@ export default async function RegistroPage({ params }: { params: Promise<{ token
   
   if (!candidate) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md text-center border border-red-100">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Enlace inválido</h1>
-          <p className="text-gray-600">Este enlace de registro no es válido o ha expirado. Por favor, contacte a su reclutador.</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '2.5rem', 
+          border: '4px solid var(--pitch-black)', 
+          boxShadow: '8px 8px 0px var(--pitch-black)',
+          maxWidth: '450px', 
+          textAlign: 'center' 
+        }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: '900', color: '#ef4444', marginBottom: '1.5rem', textTransform: 'uppercase' }}>ENLACE INVÁLIDO</h1>
+          <p style={{ fontWeight: 'bold', fontSize: '1rem' }}>Este enlace de registro no es válido o ha expirado. Por favor, contacte a su reclutador.</p>
         </div>
       </div>
     );
@@ -19,41 +25,72 @@ export default async function RegistroPage({ params }: { params: Promise<{ token
   
   if (candidate.selfRegistered) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md text-center border border-amber-100">
-          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '2.5rem', 
+          border: '4px solid var(--pitch-black)', 
+          boxShadow: '8px 8px 0px var(--pitch-black)',
+          maxWidth: '450px', 
+          textAlign: 'center' 
+        }}>
+          <div style={{ 
+            width: '80px', 
+            height: '80px', 
+            backgroundColor: 'var(--amber-flame)', 
+            border: '3px solid var(--pitch-black)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            margin: '0 auto 1.5rem' 
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-amber-800 mb-2">Formulario ya completado</h1>
-          <p className="text-gray-600">Este enlace de registro ya ha sido utilizado. Si necesita realizar cambios, contacte con su intermediario.</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: '900', marginBottom: '1rem', textTransform: 'uppercase' }}>YA REGISTRADO</h1>
+          <p style={{ fontWeight: 'bold' }}>Este enlace ya ha sido utilizado. Si necesita realizar cambios, contacte con su reclutador.</p>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-10">
-          <div className="inline-block px-4 py-1.5 mb-4 text-sm font-semibold tracking-wide text-blue-600 uppercase bg-blue-100 rounded-full">
-            Registro Oficial
+    <div className="min-h-screen bg-white py-16 px-4">
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <div style={{ 
+            display: 'inline-block', 
+            padding: '0.5rem 1.5rem', 
+            marginBottom: '1.5rem', 
+            fontSize: '0.8rem', 
+            fontWeight: '900', 
+            textTransform: 'uppercase', 
+            backgroundColor: 'var(--pitch-black)', 
+            color: 'white',
+            letterSpacing: '2px'
+          }}>
+            REGISTRO OFICIAL
           </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+          <h1 style={{ fontSize: '4rem', fontWeight: '900', marginBottom: '0.5rem', letterSpacing: '-2px' }}>
             FOLGA HUB
           </h1>
-          <p className="text-lg text-gray-600">
+          <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--muted)' }}>
             Complete su información para iniciar el proceso de legalización.
           </p>
           {candidate.intermediary?.name && (
-            <p className="mt-2 text-sm text-gray-500">
-              Reclutador asignado: <span className="font-medium text-gray-900">{candidate.intermediary.name}</span>
+            <p style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
+              RECLUTADOR: <span style={{ backgroundColor: 'var(--amber-flame)', padding: '0 0.5rem' }}>{candidate.intermediary.name.toUpperCase()}</span>
             </p>
           )}
         </div>
         
-        <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
+        <div style={{ 
+          backgroundColor: 'white', 
+          border: '4px solid var(--pitch-black)', 
+          boxShadow: '12px 12px 0px var(--pitch-black)',
+          padding: '2rem'
+        }}>
           <CandidateRegistrationForm 
             token={token} 
             initialData={{
@@ -63,8 +100,8 @@ export default async function RegistroPage({ params }: { params: Promise<{ token
           />
         </div>
         
-        <div className="mt-8 text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} FOLGA SP. Z O.O. Todos los derechos reservados.
+        <div style={{ marginTop: '4rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          &copy; {new Date().getFullYear()} FOLGA SP. Z O.O. TODOS LOS DERECHOS RESERVADOS.
         </div>
       </div>
     </div>

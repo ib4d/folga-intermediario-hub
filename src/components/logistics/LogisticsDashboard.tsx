@@ -3,7 +3,8 @@
 import { Candidate, LogisticsEvent } from "@prisma/client";
 import WeeklyArrivals from "./WeeklyArrivals";
 import LogisticsEventForm from "./LogisticsEventForm";
-import { Truck, AlertTriangle, CheckCircle2, UserCheck } from "lucide-react";
+import { Truck, AlertTriangle, CheckCircle, UserCheck } from "lucide-react";
+import Link from "next/link";
 
 interface Props {
   pendingCandidates: Candidate[];
@@ -11,91 +12,127 @@ interface Props {
 }
 
 export default function LogisticsDashboard({ pendingCandidates, weeklyEvents }: Props) {
+  const confirmedCount = weeklyEvents.filter(e => e.confirmed).length;
+  const pendingConfirm = weeklyEvents.filter(
+    e => !e.confirmed && e.arrivalDate && new Date(e.arrivalDate) < new Date()
+  ).length;
+
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
-            <UserCheck size={24} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      {/* Stat Cards */}
+      <div className="dashboard-grid">
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ 
+            width: '56px', height: '56px', 
+            backgroundColor: 'var(--primary)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--pitch-black)',
+            flexShrink: 0
+          }}>
+            <UserCheck size={28} strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-2xl font-black text-gray-900">{pendingCandidates.length}</div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Sin Logística</div>
+            <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{pendingCandidates.length}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginTop: '0.25rem' }}>SIN LOGÍSTICA</div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
-            <Truck size={24} />
+
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ 
+            width: '56px', height: '56px', 
+            backgroundColor: 'var(--pitch-black)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--pitch-black)',
+            flexShrink: 0
+          }}>
+            <Truck size={28} strokeWidth={2.5} color="var(--primary)" />
           </div>
           <div>
-            <div className="text-2xl font-black text-gray-900">{weeklyEvents.length}</div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Llegadas Semana</div>
+            <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{weeklyEvents.length}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginTop: '0.25rem' }}>LLEGADAS SEMANA</div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-            <CheckCircle2 size={24} />
+
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', backgroundColor: '#4ade80' }}>
+          <div style={{ 
+            width: '56px', height: '56px', 
+            backgroundColor: 'var(--pitch-black)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--pitch-black)',
+            flexShrink: 0
+          }}>
+            <CheckCircle size={28} strokeWidth={2.5} color="#4ade80" />
           </div>
           <div>
-            <div className="text-2xl font-black text-gray-900">
-              {weeklyEvents.filter(e => e.confirmed).length}
-            </div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Confirmadas</div>
+            <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{confirmedCount}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--pitch-black)', marginTop: '0.25rem' }}>CONFIRMADAS</div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center">
-            <AlertTriangle size={24} />
+
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', backgroundColor: pendingConfirm > 0 ? '#ffccd5' : 'var(--background)' }}>
+          <div style={{ 
+            width: '56px', height: '56px', 
+            backgroundColor: '#e63946', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--pitch-black)',
+            flexShrink: 0
+          }}>
+            <AlertTriangle size={28} strokeWidth={2.5} color="white" />
           </div>
           <div>
-            <div className="text-2xl font-black text-gray-900">
-              {weeklyEvents.filter(e => !e.confirmed && e.arrivalDate && new Date(e.arrivalDate) < new Date()).length}
-            </div>
-            <div className="text-xs font-bold text-gray-400 uppercase">Pendiente Confirmar</div>
+            <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{pendingConfirm}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', color: 'var(--muted)', marginTop: '0.25rem' }}>PENDIENTE CONFIRMAR</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      {/* Main content grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+          {/* Weekly Arrivals */}
           <section>
-            <div className="flex items-center gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Llegadas de la Semana</h2>
-              <div className="h-px flex-1 bg-gray-200"></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <h2 style={{ whiteSpace: 'nowrap', fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase' }}>LLEGADAS DE LA SEMANA</h2>
+              <div style={{ flex: 1, height: '2px', backgroundColor: 'var(--pitch-black)' }}></div>
             </div>
             <WeeklyArrivals events={weeklyEvents} />
           </section>
 
+          {/* Pending Logistics Table */}
           <section>
-            <div className="flex items-center gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Candidatos Aprobados sin Logística</h2>
-              <div className="h-px flex-1 bg-gray-200"></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+              <h2 style={{ whiteSpace: 'nowrap', fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase' }}>APROBADOS SIN LOGÍSTICA</h2>
+              <div style={{ flex: 1, height: '2px', backgroundColor: 'var(--pitch-black)' }}></div>
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-100">
+            <div className="table-container">
+              <table>
+                <thead>
                   <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Candidato</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">País</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Acción</th>
+                    <th>CANDIDATO</th>
+                    <th>PAÍS</th>
+                    <th>ACCIÓN</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                   {pendingCandidates.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-6 py-10 text-center text-gray-400 italic">
-                        No hay candidatos aprobados pendientes de logística.
+                      <td colSpan={3} style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)', fontWeight: 'bold', fontSize: '0.875rem' }}>
+                        NO HAY CANDIDATOS APROBADOS PENDIENTES DE LOGÍSTICA.
                       </td>
                     </tr>
                   ) : (
                     pendingCandidates.map(c => (
-                      <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-900">{c.firstName} {c.lastName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{c.country}</td>
-                        <td className="px-6 py-4">
-                          <button className="text-blue-600 font-bold text-xs hover:underline uppercase">
-                            Programar
-                          </button>
+                      <tr key={c.id}>
+                        <td style={{ fontWeight: '900' }}>{c.firstName} {c.lastName}</td>
+                        <td style={{ fontWeight: 'bold' }}>{c.country}</td>
+                        <td>
+                          <Link 
+                            href={`/candidatos/${c.id}`}
+                            className="button button-secondary" 
+                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+                          >
+                            VER CANDIDATO
+                          </Link>
                         </td>
                       </tr>
                     ))
@@ -106,6 +143,7 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents }: 
           </section>
         </div>
 
+        {/* Sidebar Form */}
         <aside>
           <LogisticsEventForm candidates={pendingCandidates} />
         </aside>

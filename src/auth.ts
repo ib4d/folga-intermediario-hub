@@ -4,8 +4,10 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { checkBruteForce, registerFailedAttempt, resetAttempts } from "@/lib/security/brute-force";
 import { Role } from "@prisma/client";
+import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -50,7 +52,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         resetAttempts(email);
 
         // Determine current organization and role
-        // Priority: Direct organizationId on user, then first active membership
         let currentOrgId = user.organizationId;
         let currentRole = user.role;
 
@@ -70,27 +71,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role as string;
-        token.organizationId = user.organizationId;
-        token.isPlatformAdmin = user.isPlatformAdmin;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
-        session.user.organizationId = token.organizationId as string | null;
-        session.user.isPlatformAdmin = !!token.isPlatformAdmin;
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
 });

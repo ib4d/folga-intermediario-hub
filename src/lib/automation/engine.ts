@@ -147,10 +147,8 @@ async function executeStep(
           userId,
           candidateId: getCandidateId(payload),
           type: typeof config.type === "string" ? config.type : "INFO",
-          message: `${interpolate(config.title, payload)} ${interpolate(
-            config.message,
-            payload
-          )}`.trim(),
+          title: interpolate(config.title, payload),
+          message: interpolate(config.message, payload),
         },
       });
 

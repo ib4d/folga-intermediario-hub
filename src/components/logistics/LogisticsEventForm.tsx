@@ -29,62 +29,63 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-      <h3 className="text-lg font-bold text-gray-900 mb-2">Programar Nueva Llegada</h3>
+    <form onSubmit={handleSubmit} className="card" style={{ padding: '2rem' }}>
+      <h3 style={{ fontSize: '1.5rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1.5rem' }}>PROGRAMAR NUEVA LLEGADA</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Candidato</label>
-          <select name="candidateId" className="input" required>
-            <option value="">Seleccione...</option>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Candidato</label>
+          <select name="candidateId" className="select" required>
+            <option value="">SELECCIONE...</option>
             {candidates.map(c => (
-              <option key={c.id} value={c.id}>{c.firstName} {c.lastName} ({c.country})</option>
+              <option key={c.id} value={c.id}>{c.firstName?.toUpperCase()} {c.lastName?.toUpperCase()} ({c.country?.toUpperCase()})</option>
             ))}
           </select>
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Medio de Transporte</label>
-          <select name="transportType" className="input" required>
-            <option value="AVION">Avión</option>
-            <option value="TREN">Tren</option>
-            <option value="COCHE_EMPRESA">Coche Empresa</option>
-            <option value="PROPIO">Propio / Flixbus</option>
+ 
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Medio de Transporte</label>
+          <select name="transportType" className="select" required>
+            <option value="AVION">AVIÓN</option>
+            <option value="TREN">TREN</option>
+            <option value="COCHE_EMPRESA">COCHE EMPRESA</option>
+            <option value="PROPIO">PROPIO / FLIXBUS</option>
           </select>
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Fecha y Hora de Llegada</label>
+ 
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Fecha y Hora de Llegada</label>
           <input type="datetime-local" name="arrivalDate" className="input" required />
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Terminal / Estación</label>
-          <input type="text" name="terminal" className="input" placeholder="Ej: Chopin Airport, Kutno PKP..." required />
+ 
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Terminal / Estación</label>
+          <input type="text" name="terminal" className="input" placeholder="EJ: CHOPIN AIRPORT, KUTNO PKP..." required />
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Vuelo / Tren / Placa</label>
-          <input type="text" name="flightOrTrain" className="input" placeholder="Ej: FR1234, WAW-KUT..." />
+ 
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Vuelo / Tren / Placa</label>
+          <input type="text" name="flightOrTrain" className="input" placeholder="EJ: FR1234, WAW-KUT..." />
         </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-gray-400 uppercase">Recoge</label>
-          <input type="text" name="pickedUpBy" className="input" placeholder="Nombre del responsable..." />
+ 
+        <div className="input-group" style={{ marginBottom: 0 }}>
+          <label className="label">Recoge</label>
+          <input type="text" name="pickedUpBy" className="input" placeholder="NOMBRE DEL RESPONSABLE..." />
         </div>
       </div>
-
-      <div className="space-y-1">
-        <label className="text-xs font-bold text-gray-400 uppercase">Notas Adicionales</label>
-        <textarea name="notes" className="input h-20 resize-none" placeholder="Cualquier detalle relevante..."></textarea>
+ 
+      <div className="input-group">
+        <label className="label">Notas Adicionales</label>
+        <textarea name="notes" className="input" style={{ height: '80px', resize: 'none' }} placeholder="CUALQUIER DETALLE RELEVANTE..."></textarea>
       </div>
-
+ 
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md disabled:opacity-50"
+        className="button"
+        style={{ width: '100%', marginTop: '1rem' }}
       >
-        {isSubmitting ? "Programando..." : "Programar Llegada"}
+        {isSubmitting ? "PROGRAMANDO..." : "PROGRAMAR LLEGADA"}
       </button>
     </form>
   );

@@ -33,7 +33,7 @@ export async function POST(
   // Change status to EN_REVISION_LEGAL
   await prisma.candidate.update({
     where: { id },
-    data: { status: "EN_REVISION_LEGAL" as never },
+    data: { status: "EN_REVISION_LEGAL" as import("@prisma/client").CandidateStatus },
   });
   
   // Record status history
@@ -42,8 +42,8 @@ export async function POST(
       candidateId: id,
       organizationId: orgId,
       fromStatus: candidate.status,
-      toStatus: "EN_REVISION_LEGAL" as never,
-      changedBy: session.user.id,
+      toStatus: "EN_REVISION_LEGAL" as import("@prisma/client").CandidateStatus,
+      changedById: session.user.id!,
       reason: "Revisión legal solicitada por intermediario",
     },
   });
@@ -65,6 +65,7 @@ export async function POST(
         organizationId: orgId,
         candidateId: id,
         type: "LEGAL_REVIEW_REQUESTED",
+        title: "Revisión Legal Solicitada",
         message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""} necesita revisión legal. Solicitado por ${session.user.name ?? "Intermediario"}.`,
       }))
     });
@@ -75,7 +76,7 @@ export async function POST(
       userId: session.user.id,
       organizationId: orgId,
       action: "LEGAL_REVIEW_REQUESTED",
-      entity: "Candidate",
+      entityType: "Candidate",
       entityId: id,
       details: { requestedBy: session.user.id } as never,
     },

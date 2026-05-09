@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
-import { TrendingUp, Users, Target, Banknote, Calendar, BarChart3, Share2 } from "lucide-react";
+import { TrendingUp, Target, Banknote, Calendar } from "lucide-react";
 import Link from "next/link";
 import ReferralWidget from "@/components/ReferralWidget";
 

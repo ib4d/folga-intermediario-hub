@@ -13,11 +13,11 @@ export default async function Header() {
     : null;
 
   return (
-    <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <header className="header" style={{ padding: '0.75rem 2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
         <GlobalSearch />
         {organization && (
-          <span className="badge" style={{ backgroundColor: 'var(--amber-flame)', color: 'var(--pitch-black)', fontWeight: 'bold' }}>
+          <span className="badge">
             {organization.name}
           </span>
         )}
@@ -26,17 +26,27 @@ export default async function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <NotificationsDropdown />
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.875rem' }}>{session.user.name}</div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{session.user.role}</div>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '1rem', 
+          padding: '0.4rem 0.75rem', 
+          border: '2px solid var(--pitch-black)',
+          backgroundColor: 'var(--white-smoke)',
+          boxShadow: '3px 3px 0px var(--pitch-black)'
+        }}>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: '900', textTransform: 'uppercase', lineHeight: 1 }}>{session.user.name}</div>
+            <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--muted)', textTransform: 'uppercase', lineHeight: 1 }}>{session.user.role}</div>
           </div>
-          <UserCircle size={28} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <UserCircle size={28} strokeWidth={2.5} />
+          </div>
         </div>
-
+ 
         <form action={async () => { "use server"; await signOut(); }}>
-          <button type="submit" className="button button-secondary" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center' }}>
-            <LogOut size={20} />
+          <button type="submit" className="icon-button" title="CERRAR SESIÓN" style={{ backgroundColor: '#ffccd5' }}>
+            <LogOut size={18} strokeWidth={3} />
           </button>
         </form>
       </div>
