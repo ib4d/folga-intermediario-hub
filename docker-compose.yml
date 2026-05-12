@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
@@ -7,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-folga}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-folga123}
-      POSTGRES_DB: ${DB_NAME:-folgahub}
+      POSTGRES_DB: ${DB_NAME:-folga_hub}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -19,10 +17,12 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-folga}:${DB_PASSWORD:-folga123}@db:5432/${DB_NAME:-folgahub}?schema=public
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      DATABASE_URL: postgresql://${DB_USER:-folga}:${DB_PASSWORD:-folga123}@db:5432/${DB_NAME:-folga_hub}?schema=public
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_SECRET: ${AUTH_SECRET}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET}
       AZURE_DI_ENDPOINT: ${AZURE_DI_ENDPOINT}

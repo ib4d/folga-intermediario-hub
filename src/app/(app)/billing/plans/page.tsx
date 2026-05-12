@@ -3,7 +3,7 @@ import { PLAN_LIMITS } from "@/lib/billing/limits";
 import { CheckCircle2 } from "lucide-react";
 
 export default async function PlansPage() {
-  const tenant = await requireTenant();
+  await requireTenant();
 
   const plans = [
     { name: "FREE", price: "0€", desc: "Para reclutadores individuales" },
@@ -22,7 +22,6 @@ export default async function PlansPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
         {plans.map((p) => {
           const limits = PLAN_LIMITS[p.name as keyof typeof PLAN_LIMITS];
-          const isCurrent = tenant.role === "SUPERADMIN" && false; // Logic for current plan highlight
 
           return (
             <div key={p.name} className="card" style={{ 
@@ -76,7 +75,14 @@ export default async function PlansPage() {
                 </ul>
               </div>
 
-              <button className="button" style={{ width: '100%', backgroundColor: p.name === 'PRO' ? 'var(--amber-flame)' : 'var(--pitch-black)' }}>
+              <button
+                className="button"
+                style={{
+                  width: '100%',
+                  backgroundColor: p.name === 'PRO' ? 'var(--amber-flame)' : 'var(--surface)',
+                  color: 'var(--pitch-black)',
+                }}
+              >
                 {p.name === 'FREE' ? 'Plan Actual' : 'Seleccionar Plan'}
               </button>
             </div>

@@ -17,10 +17,19 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      const pathname = nextUrl.pathname;
       const isPublicRoute =
-        nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/registro") ||
-        nextUrl.pathname.startsWith("/api/auth");
+        pathname === "/" ||
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/registro") ||
+        pathname.startsWith("/api/auth") ||
+        pathname.startsWith("/api/health") ||
+        pathname.startsWith("/api/v1") ||
+        pathname.startsWith("/api/v2/events") ||
+        pathname.startsWith("/api/cron") ||
+        pathname === "/manifest.json" ||
+        pathname === "/sw.js" ||
+        /\.[^/]+$/.test(pathname);
 
       if (!isLoggedIn && !isPublicRoute) {
         return false; // Redirect to login

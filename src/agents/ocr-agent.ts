@@ -1,5 +1,5 @@
 import { Agent } from "@/core/registry";
-import { SystemEvent } from "@/core/events";
+import type { SystemEvent } from "@/core/events";
 import { enhanceOcrData } from "@/lib/ai/ocr-agent";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { marketplacePlugins } from "@/plugins";
-import { Puzzle, ShieldCheck, Zap, Download } from "lucide-react";
+import { Puzzle, ShieldCheck, Zap } from "lucide-react";
 
 export default async function MarketplacePage() {
   const session = await auth();

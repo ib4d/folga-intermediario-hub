@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle } from "lucide-react";
 import BatchUploadButton from "@/components/BatchUploadButton";
 import DocumentTable from "@/components/DocumentTable";
 import Link from "next/link";
+import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
+import { Prisma } from "@prisma/client";
 
 export default async function DocumentosPage({
   searchParams,
@@ -10,14 +12,24 @@ export default async function DocumentosPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
+  const tenant = await requireTenant();
+  const documentWhere: Prisma.DocumentWhereInput = {
+    organizationId: tenant.organizationId,
+    ...(status ? { ocrStatus: status } : {}),
+    ...(canAccessAllCandidates(tenant.role)
+      ? {}
+      : { candidate: { intermediaryId: tenant.userId } }),
+  };
+
   const documents = await prisma.document.findMany({
-    where: status ? { ocrStatus: status } : {},
+    where: documentWhere,
     include: { candidate: true },
     orderBy: { createdAt: 'desc' },
     take: status ? undefined : 10
   });
 
   const candidates = await prisma.candidate.findMany({
+    where: candidateVisibilityWhere(tenant),
     select: { id: true, firstName: true, lastName: true },
     orderBy: { firstName: 'asc' }
   });
@@ -27,8 +39,12 @@ export default async function DocumentosPage({
     name: `${c.firstName} ${c.lastName}`
   }));
 
-  const pendingCount = await prisma.document.count({ where: { ocrStatus: 'PENDING' } });
-  const completedCount = await prisma.document.count({ where: { ocrStatus: 'SUCCESS' } });
+  const pendingCount = await prisma.document.count({
+    where: { ...documentWhere, ocrStatus: "PENDING" },
+  });
+  const completedCount = await prisma.document.count({
+    where: { ...documentWhere, ocrStatus: { in: ["REVIEW_REQUIRED", "OCR_CAPTURED", "SUCCESS"] } },
+  });
 
   return (
     <>

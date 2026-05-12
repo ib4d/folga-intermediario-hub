@@ -1,213 +1,446 @@
 "use client";
 
-import { useState } from "react";
-import { Candidate } from "@prisma/client";
 import { updateCandidateStatus } from "@/app/actions/candidates";
-import { X, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { Candidate, Document } from "@prisma/client";
+import { AlertTriangle, CheckCircle, ShieldAlert, X, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  candidate: Candidate;
+  candidate: Candidate & { documents: Document[] };
 }
 
-const REJECTION_REASONS = [
+const BASE_REJECTION_REASONS = [
   "Documentos faltantes",
   "Documento expirado",
   "Documento ilegible",
   "Historial negativo en FOLGA",
   "Proceso migratorio incompleto",
   "Falta pago 400 PLN",
-  "Otro"
+  "Otro",
 ];
 
+const REVIEW_CATEGORIES = [
+  "Correccion OCR requerida",
+  "Falta validar expiracion",
+  "Falta clasificar duplicados",
+  "Falta soporte adicional",
+  "Pendiente confirmacion legal",
+];
+
+const FOLLOW_UP_ACTIONS = [
+  "Solicitar nuevo pasaporte",
+  "Solicitar mejor foto o escaneo",
+  "Solicitar comprobante de pago",
+  "Solicitar documento faltante",
+  "Revisar duplicados / frente-reverso",
+  "Escalar a legal senior",
+  "Preparar para logistica",
+];
+
+function buildOutcomeSummary({
+  decision,
+  category,
+  notes,
+  followUpActions,
+}: {
+  decision: "APROBADO" | "RECHAZADO" | "REVISION_ADICIONAL";
+  category: string;
+  notes: string;
+  followUpActions: string[];
+}) {
+  const lines = [
+    `Decision: ${decision.replace(/_/g, " ")}`,
+    category ? `Categoria: ${category}` : null,
+    followUpActions.length > 0 ? `Acciones: ${followUpActions.join(", ")}` : null,
+    notes.trim() ? `Notas: ${notes.trim()}` : null,
+  ].filter(Boolean);
+
+  return lines.join("\n");
+}
+
 export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props) {
+  const checklist = useMemo(() => getCandidateDocumentChecklist(candidate), [candidate]);
   const [decision, setDecision] = useState<"APROBADO" | "RECHAZADO" | "REVISION_ADICIONAL" | null>(null);
-  const [reason, setReason] = useState("");
+  const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  const [followUpActions, setFollowUpActions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const suggestedReasons = useMemo(() => {
+    const reasons = new Set(BASE_REJECTION_REASONS);
+
+    if (checklist.missing.length > 0) reasons.add("Documentos faltantes");
+    if (checklist.warnings.some((warning) => warning.toLowerCase().includes("vence"))) {
+      reasons.add("Documento expirado");
+    }
+    if (checklist.blockers.some((blocker) => blocker.toLowerCase().includes("verific"))) {
+      reasons.add("Proceso migratorio incompleto");
+    }
+    if (checklist.warnings.some((warning) => warning.toLowerCase().includes("400 pln"))) {
+      reasons.add("Falta pago 400 PLN");
+    }
+
+    return Array.from(reasons);
+  }, [checklist]);
 
   if (!isOpen) return null;
 
+  const defaultReviewNotes =
+    checklist.blockers.length > 0 ? checklist.blockers.join("; ") : checklist.warnings.slice(0, 3).join("; ");
+
+  const currentCategoryOptions =
+    decision === "RECHAZADO"
+      ? suggestedReasons
+      : decision === "REVISION_ADICIONAL"
+        ? REVIEW_CATEGORIES
+        : ["Aprobacion completa", "Aprobacion con seguimiento operativo"];
+
+  const handleDecisionChange = (nextDecision: "APROBADO" | "RECHAZADO" | "REVISION_ADICIONAL") => {
+    setDecision(nextDecision);
+    setCategory("");
+    setFollowUpActions([]);
+    if (!notes.trim() && defaultReviewNotes) {
+      setNotes(defaultReviewNotes);
+    }
+  };
+
+  const toggleFollowUpAction = (action: string) => {
+    setFollowUpActions((current) =>
+      current.includes(action) ? current.filter((item) => item !== action) : [...current, action],
+    );
+  };
+
   const handleSubmit = async () => {
     if (!decision) return;
-    if (decision === "RECHAZADO" && !reason) {
-      alert("Debe seleccionar un motivo de rechazo");
-      return;
-    }
-    if (decision === "REVISION_ADICIONAL" && !notes) {
-      alert("Debe agregar notas para la revisión adicional");
+
+    if (decision === "APROBADO" && !checklist.isReadyForLegal) {
+      alert(`No se puede aprobar mientras existan bloqueos: ${checklist.blockers.join("; ")}`);
       return;
     }
 
+    if ((decision === "RECHAZADO" || decision === "REVISION_ADICIONAL") && !category) {
+      alert("Debe seleccionar una categoria");
+      return;
+    }
+
+    if (decision === "REVISION_ADICIONAL" && !notes.trim()) {
+      alert("Debe agregar notas para la revision adicional");
+      return;
+    }
+
+    const summary = buildOutcomeSummary({
+      decision,
+      category,
+      notes,
+      followUpActions,
+    });
+
     setIsSubmitting(true);
     try {
-      await updateCandidateStatus(candidate.id, decision, reason || undefined, notes || undefined);
+      await updateCandidateStatus(
+        candidate.id,
+        decision,
+        decision === "RECHAZADO" ? summary : undefined,
+        decision !== "RECHAZADO" ? summary : notes || undefined,
+        {
+          category,
+          followUpActions,
+        },
+      );
       onClose();
-    } catch {
-      alert("Error al procesar la decisión");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error al procesar la decision";
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div style={{ 
-      position: 'fixed', inset: 0, zIndex: 50, 
-      display: 'flex', alignItems: 'center', justifyContent: 'center', 
-      padding: '1rem',
-      backgroundColor: 'rgba(11, 5, 0, 0.75)'
-    }}>
-      <div className="card" style={{ 
-        width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden',
-        boxShadow: '8px 8px 0px var(--pitch-black)'
-      }}>
-        {/* Modal Header */}
-        <div style={{ 
-          padding: '1.25rem 1.5rem', 
-          borderBottom: '2px solid var(--pitch-black)', 
-          backgroundColor: 'var(--pitch-black)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-        }}>
-          <h2 style={{ color: 'var(--primary)', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>DECISIÓN LEGAL</h2>
-          <button 
-            onClick={onClose} 
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        backgroundColor: "rgba(11, 5, 0, 0.75)",
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          width: "100%",
+          maxWidth: "760px",
+          padding: 0,
+          overflow: "hidden",
+          boxShadow: "8px 8px 0px var(--pitch-black)",
+        }}
+      >
+        <div
+          style={{
+            padding: "1.25rem 1.5rem",
+            borderBottom: "2px solid var(--pitch-black)",
+            backgroundColor: "var(--pitch-black)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <h2 style={{ color: "var(--primary)", fontWeight: "900", textTransform: "uppercase", margin: 0 }}>
+            Decision Legal
+          </h2>
+          <button
+            onClick={onClose}
             className="icon-button"
-            style={{ backgroundColor: 'transparent', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+            style={{ backgroundColor: "transparent", borderColor: "var(--primary)", color: "var(--primary)" }}
           >
             <X size={20} strokeWidth={3} />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: 'var(--ghost-white)' }}>
-          <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--white-smoke)', border: '2px solid var(--pitch-black)', fontSize: '0.875rem', fontWeight: 'bold' }}>
-            CANDIDATO: <span style={{ fontWeight: '900' }}>{candidate.firstName?.toUpperCase()} {candidate.lastName?.toUpperCase()}</span>
+        <div
+          style={{
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.25rem",
+            backgroundColor: "var(--ghost-white)",
+          }}
+        >
+          <div
+            style={{
+              padding: "0.75rem 1rem",
+              backgroundColor: "var(--white-smoke)",
+              border: "2px solid var(--pitch-black)",
+              fontSize: "0.875rem",
+              fontWeight: "bold",
+            }}
+          >
+            CANDIDATO:{" "}
+            <span style={{ fontWeight: "900" }}>
+              {candidate.firstName?.toUpperCase()} {candidate.lastName?.toUpperCase()}
+            </span>
           </div>
 
-          {/* Decision Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.75rem" }}>
+            <SummaryCard
+              label="Documentos"
+              value={`${checklist.stats.verifiedDocuments}/${checklist.stats.totalDocuments}`}
+              tone="neutral"
+            />
+            <SummaryCard
+              label="Bloqueos"
+              value={String(checklist.blockers.length)}
+              tone={checklist.blockers.length > 0 ? "danger" : "success"}
+            />
+            <SummaryCard
+              label="Pendientes OCR"
+              value={String(checklist.stats.pendingReviewDocuments)}
+              tone={checklist.stats.pendingReviewDocuments > 0 ? "warning" : "success"}
+            />
+          </div>
+
+          {checklist.blockers.length > 0 ? (
+            <div style={{ padding: "1rem", backgroundColor: "#fee2e2", border: "2px solid #991b1b" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+                <ShieldAlert size={16} /> Bloqueos que impiden aprobar
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
+                {checklist.blockers.map((blocker, index) => (
+                  <li key={`${blocker}-${index}`}>{blocker}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {checklist.warnings.length > 0 ? (
+            <div style={{ padding: "1rem", backgroundColor: "#fef3c7", border: "2px solid #92400e" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+                <AlertTriangle size={16} /> Alertas operativas
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
+                {checklist.warnings.slice(0, 4).map((warning, index) => (
+                  <li key={`${warning}-${index}`}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
             <button
-              onClick={() => setDecision("APROBADO")}
-              style={{
-                padding: '1rem',
-                fontWeight: '900',
-                fontSize: '0.8rem',
-                textTransform: 'uppercase',
-                border: '2px solid var(--pitch-black)',
-                cursor: 'pointer',
-                backgroundColor: decision === "APROBADO" ? '#4ade80' : 'var(--background)',
-                boxShadow: decision === "APROBADO" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                transition: 'all 0.15s'
-              }}
+              onClick={() => handleDecisionChange("APROBADO")}
+              disabled={!checklist.isReadyForLegal}
+              style={decisionButtonStyle(decision === "APROBADO", "#4ade80", !checklist.isReadyForLegal)}
             >
               <CheckCircle size={24} strokeWidth={2.5} color={decision === "APROBADO" ? "var(--pitch-black)" : "#4ade80"} />
               APROBAR
             </button>
+
             <button
-              onClick={() => setDecision("RECHAZADO")}
-              style={{
-                padding: '1rem',
-                fontWeight: '900',
-                fontSize: '0.8rem',
-                textTransform: 'uppercase',
-                border: '2px solid var(--pitch-black)',
-                cursor: 'pointer',
-                backgroundColor: decision === "RECHAZADO" ? '#e63946' : 'var(--background)',
-                color: decision === "RECHAZADO" ? 'white' : 'var(--foreground)',
-                boxShadow: decision === "RECHAZADO" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                transition: 'all 0.15s'
-              }}
+              onClick={() => handleDecisionChange("RECHAZADO")}
+              style={decisionButtonStyle(decision === "RECHAZADO", "#e63946", false, true)}
             >
               <XCircle size={24} strokeWidth={2.5} />
               RECHAZAR
             </button>
+
             <button
-              onClick={() => setDecision("REVISION_ADICIONAL")}
-              style={{
-                padding: '1rem',
-                fontWeight: '900',
-                fontSize: '0.8rem',
-                textTransform: 'uppercase',
-                border: '2px solid var(--pitch-black)',
-                cursor: 'pointer',
-                backgroundColor: decision === "REVISION_ADICIONAL" ? 'var(--primary)' : 'var(--background)',
-                boxShadow: decision === "REVISION_ADICIONAL" ? '4px 4px 0px var(--pitch-black)' : '2px 2px 0px var(--pitch-black)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
-                transition: 'all 0.15s'
-              }}
+              onClick={() => handleDecisionChange("REVISION_ADICIONAL")}
+              style={decisionButtonStyle(decision === "REVISION_ADICIONAL", "var(--primary)", false)}
             >
               <AlertTriangle size={24} strokeWidth={2.5} />
-              REVISIÓN
+              REVISION
             </button>
           </div>
 
-          {/* Rejection Reason */}
-          {decision === "RECHAZADO" && (
+          {decision ? (
             <div className="input-group">
-              <label className="label">MOTIVO DE RECHAZO</label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="select"
-              >
-                <option value="">SELECCIONE UN MOTIVO...</option>
-                {REJECTION_REASONS.map(r => (
-                  <option key={r} value={r}>{r.toUpperCase()}</option>
+              <label className="label">Categoria de decision</label>
+              <select value={category} onChange={(event) => setCategory(event.target.value)} className="select">
+                <option value="">Seleccione una categoria...</option>
+                {currentCategoryOptions.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {entry.toUpperCase()}
+                  </option>
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
 
-          {/* Additional Notes */}
-          {(decision === "REVISION_ADICIONAL" || decision === "RECHAZADO") && (
+          {decision ? (
+            <div className="input-group" style={{ marginBottom: 0 }}>
+              <label className="label">Acciones de seguimiento</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.75rem" }}>
+                {FOLLOW_UP_ACTIONS.map((action) => (
+                  <label
+                    key={action}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.75rem",
+                      border: "1px solid var(--grey-olive)",
+                      backgroundColor: followUpActions.includes(action) ? "rgba(252, 186, 4, 0.14)" : "white",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={followUpActions.includes(action)}
+                      onChange={() => toggleFollowUpAction(action)}
+                    />
+                    {action}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {decision === "REVISION_ADICIONAL" || decision === "RECHAZADO" || decision === "APROBADO" ? (
             <div className="input-group">
               <label className="label">
-                {decision === "RECHAZADO" ? "DETALLES ADICIONALES (OPCIONAL)" : "NOTAS DE REVISIÓN REQUERIDA"}
+                {decision === "RECHAZADO"
+                  ? "Detalles adicionales"
+                  : decision === "REVISION_ADICIONAL"
+                    ? "Notas de revision requerida"
+                    : "Notas de aprobacion"}
               </label>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ESCRIBA AQUÍ LOS DETALLES..."
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Escriba aqui los detalles..."
                 className="input"
-                style={{ height: '96px', resize: 'none' }}
+                style={{ height: "112px", resize: "none" }}
               />
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Modal Footer */}
-        <div style={{ 
-          padding: '1.25rem 1.5rem', 
-          backgroundColor: 'var(--white-smoke)',
-          borderTop: '2px solid var(--pitch-black)',
-          display: 'flex', gap: '1rem'
-        }}>
-          <button
-            onClick={onClose}
-            className="button button-secondary"
-            style={{ flex: 1 }}
-          >
-            CANCELAR
+        <div
+          style={{
+            padding: "1.25rem 1.5rem",
+            backgroundColor: "var(--white-smoke)",
+            borderTop: "2px solid var(--pitch-black)",
+            display: "flex",
+            gap: "1rem",
+          }}
+        >
+          <button onClick={onClose} className="button button-secondary" style={{ flex: 1 }}>
+            Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!decision || isSubmitting}
             className="button"
-            style={{ 
+            style={{
               flex: 1,
-              opacity: (!decision || isSubmitting) ? 0.5 : 1,
-              cursor: (!decision || isSubmitting) ? 'not-allowed' : 'pointer',
-              backgroundColor: decision === "APROBADO" ? '#4ade80' : decision === "RECHAZADO" ? '#e63946' : 'var(--primary)',
-              color: decision === "RECHAZADO" ? 'white' : 'var(--pitch-black)'
+              opacity: !decision || isSubmitting ? 0.5 : 1,
+              cursor: !decision || isSubmitting ? "not-allowed" : "pointer",
+              backgroundColor:
+                decision === "APROBADO"
+                  ? "#4ade80"
+                  : decision === "RECHAZADO"
+                    ? "#e63946"
+                    : "var(--primary)",
+              color: decision === "RECHAZADO" ? "white" : "var(--pitch-black)",
             }}
           >
-            {isSubmitting ? "PROCESANDO..." : "CONFIRMAR DECISIÓN"}
+            {isSubmitting ? "Procesando..." : "Confirmar decision"}
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function SummaryCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "neutral" | "warning" | "danger" | "success";
+}) {
+  const backgroundColor =
+    tone === "danger"
+      ? "#fee2e2"
+      : tone === "warning"
+        ? "#fef3c7"
+        : tone === "success"
+          ? "#d1fae5"
+          : "var(--white-smoke)";
+
+  return (
+    <div style={{ padding: "0.85rem", border: "2px solid var(--pitch-black)", backgroundColor }}>
+      <div style={{ fontSize: "0.65rem", fontWeight: 900, textTransform: "uppercase", marginBottom: "0.35rem" }}>{label}</div>
+      <div style={{ fontSize: "1.4rem", fontWeight: 900, lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
+function decisionButtonStyle(active: boolean, activeBackground: string, disabled: boolean, invertText = false) {
+  return {
+    padding: "1rem",
+    fontWeight: "900",
+    fontSize: "0.8rem",
+    textTransform: "uppercase" as const,
+    border: "2px solid var(--pitch-black)",
+    cursor: disabled ? "not-allowed" : "pointer",
+    backgroundColor: active ? activeBackground : "var(--background)",
+    color: active && invertText ? "white" : "var(--foreground)",
+    boxShadow: active ? "4px 4px 0px var(--pitch-black)" : "2px 2px 0px var(--pitch-black)",
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center" as const,
+    gap: "0.5rem",
+    transition: "all 0.15s",
+    opacity: disabled ? 0.45 : 1,
+  };
 }

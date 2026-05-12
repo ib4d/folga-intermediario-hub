@@ -2,17 +2,17 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { 
-  FileText, 
-  User, 
-  RefreshCw, 
-  CheckCircle, 
-  XCircle, 
-  Truck, 
-  Upload, 
-  Search,
+import {
+  CheckCircle,
+  FileText,
+  Lock,
   MessageSquare,
-  Lock
+  RefreshCw,
+  Search,
+  Truck,
+  Upload,
+  User,
+  XCircle,
 } from "lucide-react";
 
 interface AuditLog {
@@ -32,65 +32,225 @@ interface Props {
   logs: AuditLog[];
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+}
+
+function prettifyStatus(value: string | null) {
+  return value ? value.replace(/_/g, " ") : null;
+}
+
+function renderStructuredDetails(details: Record<string, unknown>) {
+  const from = prettifyStatus(asString(details.from));
+  const to = prettifyStatus(asString(details.to));
+  const category = asString(details.outcomeCategory);
+  const followUpActions = asStringArray(details.followUpActions);
+  const rejectionReason = asString(details.rejectionReason);
+  const reviewNotes = asString(details.reviewNotes);
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+      {from || to ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-black uppercase tracking-wide text-slate-500">Estado</span>
+          <span className="rounded-md bg-white px-2 py-1 font-semibold text-slate-700">
+            {from || "SIN ESTADO"}
+          </span>
+          <span className="text-slate-400">-&gt;</span>
+          <span className="rounded-md bg-indigo-50 px-2 py-1 font-semibold text-indigo-700">
+            {to || "SIN ESTADO"}
+          </span>
+        </div>
+      ) : null}
+
+      {category ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Categoria</span>
+          <p className="mt-1 font-semibold text-slate-800">{category}</p>
+        </div>
+      ) : null}
+
+      {followUpActions.length > 0 ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Seguimiento</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {followUpActions.map((action) => (
+              <span
+                key={action}
+                className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 font-semibold text-amber-800"
+              >
+                {action}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {rejectionReason ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Resultado</span>
+          <p className="mt-1 whitespace-pre-line font-medium text-slate-700">{rejectionReason}</p>
+        </div>
+      ) : null}
+
+      {reviewNotes && reviewNotes !== rejectionReason ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Notas</span>
+          <p className="mt-1 whitespace-pre-line font-medium text-slate-700">{reviewNotes}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function renderGenericDetails(details: Record<string, unknown>) {
+  const note = asString(details.notes);
+  const filename = asString(details.filename);
+  const paymentDate = asString(details.paymentDate);
+  const docType = asString(details.docType);
+  const firstName = asString(details.firstName);
+  const lastName = asString(details.lastName);
+  const appliedFields = asStringArray(details.appliedFields);
+
+  if (!note && !filename && !paymentDate && !docType && !firstName && !lastName && appliedFields.length === 0) {
+    return (
+      <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">
+        {JSON.stringify(details, null, 2)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+      {firstName || lastName ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Candidato</span>
+          <p className="mt-1 font-medium text-slate-800">{`${firstName ?? ""} ${lastName ?? ""}`.trim()}</p>
+        </div>
+      ) : null}
+      {filename ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Archivo</span>
+          <p className="mt-1 font-medium text-slate-800">{filename}</p>
+        </div>
+      ) : null}
+      {docType ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Documento</span>
+          <p className="mt-1 font-medium text-slate-800">{docType}</p>
+        </div>
+      ) : null}
+      {paymentDate ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Pago</span>
+          <p className="mt-1 font-medium text-slate-800">{paymentDate}</p>
+        </div>
+      ) : null}
+      {note ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Nota</span>
+          <p className="mt-1 whitespace-pre-line font-medium text-slate-800">{note}</p>
+        </div>
+      ) : null}
+      {appliedFields.length > 0 ? (
+        <div>
+          <span className="font-black uppercase tracking-wide text-slate-500">Campos aplicados</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {appliedFields.map((field) => (
+              <span key={field} className="rounded-full border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-700">
+                {field}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AuditTimeline({ logs }: Props) {
   const getIcon = (action: string) => {
     switch (action) {
-      case "CANDIDATE_CREATED": return <User size={16} className="text-blue-500" />;
-      case "CANDIDATE_UPDATED": return <RefreshCw size={16} className="text-amber-500" />;
-      case "DOCUMENT_UPLOADED": return <Upload size={16} className="text-green-500" />;
-      case "DOCUMENT_DELETED": return <XCircle size={16} className="text-red-500" />;
-      case "DOCUMENT_VERIFIED": return <CheckCircle size={16} className="text-emerald-500" />;
-      case "OCR_EXTRACTED_PENDING_REVIEW": return <Search size={16} className="text-purple-500" />;
-      case "STATUS_CHANGED": return <CheckCircle size={16} className="text-indigo-500" />;
-      case "LOGISTICS_EVENT_CREATED": return <Truck size={16} className="text-sky-500" />;
-      case "LOGISTICS_EVENT_CONFIRMED": return <CheckCircle size={16} className="text-emerald-600" />;
-      case "CANDIDATE_NOTES_UPDATED": return <MessageSquare size={16} className="text-gray-500" />;
-      case "LOGIN": return <Lock size={16} className="text-slate-600" />;
-      default: return <FileText size={16} className="text-gray-400" />;
+      case "CANDIDATE_CREATED":
+        return <User size={16} className="text-blue-500" />;
+      case "CANDIDATE_UPDATED":
+        return <RefreshCw size={16} className="text-amber-500" />;
+      case "CANDIDATE_DELETED":
+        return <XCircle size={16} className="text-red-500" />;
+      case "DOCUMENT_UPLOADED":
+        return <Upload size={16} className="text-green-500" />;
+      case "DOCUMENT_DELETED":
+        return <XCircle size={16} className="text-red-500" />;
+      case "DOCUMENT_VERIFIED":
+        return <CheckCircle size={16} className="text-emerald-500" />;
+      case "OCR_EXTRACTED_PENDING_REVIEW":
+        return <Search size={16} className="text-purple-500" />;
+      case "STATUS_CHANGED":
+        return <CheckCircle size={16} className="text-indigo-500" />;
+      case "LOGISTICS_EVENT_CREATED":
+        return <Truck size={16} className="text-sky-500" />;
+      case "LOGISTICS_EVENT_CONFIRMED":
+        return <CheckCircle size={16} className="text-emerald-600" />;
+      case "CANDIDATE_NOTES_UPDATED":
+        return <MessageSquare size={16} className="text-gray-500" />;
+      case "LOGIN":
+        return <Lock size={16} className="text-slate-600" />;
+      default:
+        return <FileText size={16} className="text-gray-400" />;
     }
   };
 
-  const getLabel = (action: string) => {
-    return action.replace(/_/g, " ").toLowerCase();
-  };
+  const getLabel = (action: string) => action.replace(/_/g, " ").toLowerCase();
 
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-bold flex items-center gap-2">
-        <Search size={20} /> Historial de Auditoría (Trazabilidad)
+        <Search size={20} /> Historial de Auditoria
       </h3>
-      
-      <div className="relative border-l-2 border-gray-200 ml-3 pl-6 space-y-8">
-        {logs.length === 0 && (
-          <p className="text-muted-foreground italic">No hay registros de auditoría disponibles.</p>
-        )}
-        
+
+      <div className="relative ml-3 space-y-8 border-l-2 border-gray-200 pl-6">
+        {logs.length === 0 ? (
+          <p className="text-muted-foreground italic">No hay registros de auditoria disponibles.</p>
+        ) : null}
+
         {logs.map((log) => (
           <div key={log.id} className="relative">
-            {/* Dot */}
-            <div className="absolute -left-[31px] top-1 bg-white p-1 rounded-full border-2 border-gray-200">
+            <div className="absolute -left-[31px] top-1 rounded-full border-2 border-gray-200 bg-white p-1">
               {getIcon(log.action)}
             </div>
-            
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="font-semibold capitalize text-sm sm:text-base">
-                  {getLabel(log.action)}
-                </p>
+                <p className="text-sm font-semibold capitalize sm:text-base">{getLabel(log.action)}</p>
                 <p className="text-xs text-muted-foreground">
                   Por <span className="font-medium text-foreground">{log.User?.name || "Sistema"}</span> ({log.User?.role || "SYSTEM"})
                 </p>
               </div>
-              <time className="text-[10px] sm:text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded-md self-start">
+              <time className="self-start rounded-md bg-gray-100 px-2 py-1 text-[10px] text-muted-foreground sm:text-xs">
                 {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: es })}
               </time>
             </div>
-            
-            {log.details && (
-              <div className="mt-2 p-2 bg-slate-50 rounded border border-slate-100 text-xs font-mono overflow-x-auto max-h-24">
-                {typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : log.details}
-              </div>
-            )}
+
+            {log.details ? (
+              log.action === "STATUS_CHANGED" && asRecord(log.details) ? (
+                renderStructuredDetails(asRecord(log.details)!)
+              ) : (
+                renderGenericDetails(asRecord(log.details) ?? {})
+              )
+            ) : null}
           </div>
         ))}
       </div>

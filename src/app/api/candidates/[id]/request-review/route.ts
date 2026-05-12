@@ -1,10 +1,11 @@
+import { auth } from "@/auth";
+import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 
 export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session?.user?.organizationId) {
@@ -12,73 +13,100 @@ export async function POST(
   }
 
   const { id } = await params;
-  const orgId = session.user.organizationId;
+  const organizationId = session.user.organizationId;
 
-  const candidate = await prisma.candidate.findUnique({ 
-    where: { id, organizationId: orgId } 
+  const candidate = await prisma.candidate.findFirst({
+    where: {
+      id,
+      organizationId,
+    },
+    include: {
+      documents: true,
+    },
   });
-  
+
   if (!candidate) {
-    return NextResponse.json({ error: "Candidato no encontrado en esta organización" }, { status: 404 });
+    return NextResponse.json({ error: "Candidato no encontrado en esta organizacion" }, { status: 404 });
   }
 
-  // Intermediaries can only request review for their own candidates
-  if (
-    session.user.role === "INTERMEDIARIO" &&
-    candidate.intermediaryId !== session.user.id
-  ) {
+  if (session.user.role === "INTERMEDIARIO" && candidate.intermediaryId !== session.user.id) {
     return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403 });
   }
 
-  // Change status to EN_REVISION_LEGAL
+  const checklist = getCandidateDocumentChecklist(candidate);
+
+  if (!checklist.isComplete) {
+    return NextResponse.json(
+      {
+        error: `No se puede enviar a legal. Documentos faltantes: ${checklist.missing.join(", ")}`,
+        missing: checklist.missing,
+        blockers: checklist.blockers,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (!checklist.isReadyForLegal) {
+    return NextResponse.json(
+      {
+        error: `No se puede enviar a legal. Bloqueos activos: ${checklist.blockers.join("; ")}`,
+        missing: checklist.missing,
+        blockers: checklist.blockers,
+      },
+      { status: 400 },
+    );
+  }
+
   await prisma.candidate.update({
     where: { id },
     data: { status: "EN_REVISION_LEGAL" as import("@prisma/client").CandidateStatus },
   });
-  
-  // Record status history
+
   await prisma.statusHistory.create({
     data: {
       candidateId: id,
-      organizationId: orgId,
+      organizationId,
       fromStatus: candidate.status,
       toStatus: "EN_REVISION_LEGAL" as import("@prisma/client").CandidateStatus,
       changedById: session.user.id!,
-      reason: "Revisión legal solicitada por intermediario",
+      reason: "Revision legal solicitada por intermediario",
     },
   });
 
-  // Create notifications for users with LEGAL, ADMIN or SUPERADMIN roles IN THE SAME ORGANIZATION
   const membershipsToNotify = await prisma.membership.findMany({
     where: {
-      organizationId: orgId,
+      organizationId,
       role: { in: ["LEGAL", "ADMIN", "SUPERADMIN"] },
-      isActive: true
+      isActive: true,
     },
-    select: { userId: true }
+    select: { userId: true },
   });
 
   if (membershipsToNotify.length > 0) {
     await prisma.notification.createMany({
-      data: membershipsToNotify.map(m => ({
-        userId: m.userId,
-        organizationId: orgId,
+      data: membershipsToNotify.map((membership) => ({
+        userId: membership.userId,
+        organizationId,
         candidateId: id,
         type: "LEGAL_REVIEW_REQUESTED",
-        title: "Revisión Legal Solicitada",
-        message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""} necesita revisión legal. Solicitado por ${session.user.name ?? "Intermediario"}.`,
-      }))
+        title: "Revision Legal Solicitada",
+        message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""} necesita revision legal. Solicitado por ${session.user.name ?? "Intermediario"}.`,
+      })),
     });
   }
 
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
-      organizationId: orgId,
+      organizationId,
       action: "LEGAL_REVIEW_REQUESTED",
       entityType: "Candidate",
       entityId: id,
-      details: { requestedBy: session.user.id } as never,
+      details: {
+        requestedBy: session.user.id,
+        blockersAtRequest: checklist.blockers,
+        warningsAtRequest: checklist.warnings,
+      } as never,
     },
   });
 

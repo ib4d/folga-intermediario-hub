@@ -1,5 +1,8 @@
 import { executeWorkflows, TriggerType } from "@/lib/automation/engine";
 import { registry } from "@/core/registry";
+import { ocrAgent } from "@/agents/ocr-agent";
+import { scoringAgent } from "@/agents/scoring-agent";
+import { loadEnabledPlugins } from "@/plugins";
 
 export type SystemEventType =
   | TriggerType
@@ -55,10 +58,21 @@ const workflowTriggerTypes: TriggerType[] = [
 ];
 
 let platformHandlersRegistered = false;
+let platformModulesRegistered = false;
+
+function registerPlatformModulesOnce() {
+  if (platformModulesRegistered) return;
+  platformModulesRegistered = true;
+
+  registry.registerAgent(ocrAgent);
+  registry.registerAgent(scoringAgent);
+  loadEnabledPlugins();
+}
 
 function registerPlatformHandlersOnce() {
   if (platformHandlersRegistered) return;
   platformHandlersRegistered = true;
+  registerPlatformModulesOnce();
 
   eventBus.subscribe("*", async (event) => {
     if (workflowTriggerTypes.includes(event.type as TriggerType)) {

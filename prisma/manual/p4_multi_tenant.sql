@@ -1,5 +1,5 @@
 -- =====================================================================
--- FOLGA HUB — P4 Multi-Tenant Migration
+-- FOLGA HUB - P4 Multi-Tenant Migration
 -- Run this AFTER ensuring the current DB schema matches P0-P3 baseline.
 -- =====================================================================
 

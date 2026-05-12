@@ -10,9 +10,15 @@ export interface ScoringResult {
  * AI Candidate Scoring
  * Evaluates candidate readiness based on data and documents
  */
-export async function calculateCandidateScore(candidateId: string): Promise<ScoringResult> {
-  const candidate = await prisma.candidate.findUnique({
-    where: { id: candidateId },
+export async function calculateCandidateScore(
+  candidateId: string,
+  organizationId?: string
+): Promise<ScoringResult> {
+  const candidate = await prisma.candidate.findFirst({
+    where: {
+      id: candidateId,
+      ...(organizationId ? { organizationId } : {}),
+    },
     include: {
       documents: true
     }
@@ -60,7 +66,7 @@ export async function calculateCandidateScore(candidateId: string): Promise<Scor
 
   // Update candidate in DB
   await prisma.candidate.update({
-    where: { id: candidateId },
+    where: { id: candidate.id },
     data: {
       score,
       scoreLevel: level,

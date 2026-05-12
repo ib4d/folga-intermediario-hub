@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
+
+function hashKey(raw: string) {
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
 
 /**
  * Platform API v2 - Webhook Subscription
@@ -11,7 +16,7 @@ export async function POST(req: Request) {
 
   // Validate API Key and get Organization
   const keyRecord = await prisma.apiKey.findFirst({
-    where: { keyHash: apiKey } // Simplified for demo
+    where: { keyHash: hashKey(apiKey), revokedAt: null }
   });
 
   if (!keyRecord) return NextResponse.json({ error: "Invalid API Key" }, { status: 401 });
@@ -22,9 +27,6 @@ export async function POST(req: Request) {
   if (!eventType || !webhookUrl) {
     return NextResponse.json({ error: "Missing eventType or webhookUrl" }, { status: 400 });
   }
-
-  // In a real implementation, we would store this in a 'Subscriptions' table
-  console.log(`[API v2] New subscription: ${eventType} -> ${webhookUrl} for org: ${keyRecord.organizationId}`);
 
   return NextResponse.json({ 
     success: true, 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Upload, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import type { CSSProperties } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Upload, X, Loader2, CheckCircle2, AlertCircle, Brain, UserCircle } from "lucide-react";
 import { batchUploadDocuments, smartBatchUpload } from "@/app/actions/documents";
-import { Brain, UserCircle } from "lucide-react";
 
 const DOC_TYPES = [
   { value: "PASSPORT", label: "Pasaporte" },
@@ -14,35 +15,56 @@ const DOC_TYPES = [
   { value: "OTHER", label: "Otro" },
 ];
 
-export default function BatchUploadButton({ candidates }: { candidates: { id: string, name: string }[] }) {
+export default function BatchUploadButton({
+  candidates,
+}: {
+  candidates: { id: string; name: string }[];
+}) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [selectedCandidateId, setSelectedCandidateId] = useState(candidates[0]?.id || "");
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [docType, setDocType] = useState("PASSPORT");
   const [files, setFiles] = useState<FileList | null>(null);
-  const [results, setResults] = useState<{ filename: string, success: boolean, message?: string }[] | null>(null);
+  const [results, setResults] = useState<
+    { filename: string; success: boolean; message?: string }[] | null
+  >(null);
   const [isSmartMode, setIsSmartMode] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!files || !selectedCandidateId) return;
+    if (!files || (!isSmartMode && !selectedCandidateId)) return;
 
     startTransition(async () => {
-      const formData = new FormData();
-      Array.from(files).forEach(file => formData.append("files", file));
-      
-      let res;
-      if (isSmartMode) {
-        res = await smartBatchUpload(formData);
-      } else {
-        formData.append("docType", docType);
-        res = await batchUploadDocuments(selectedCandidateId, formData);
-      }
+      try {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => formData.append("files", file));
+        formData.append("candidateId", selectedCandidateId);
 
-      if (res.success) {
-        setResults(res.results || []);
-      } else {
-        alert("Error en la subida por lotes");
+        const res = isSmartMode
+          ? await smartBatchUpload(formData)
+          : await batchUploadDocuments(selectedCandidateId, formDataWithDocType(formData, docType));
+
+        if (res.success) {
+          setResults(res.results || []);
+          router.refresh();
+        } else {
+          alert("Error en la subida por lotes");
+        }
+      } catch (error) {
+        console.error(error);
+        const message =
+          error instanceof Error ? error.message : "Error inesperado durante la carga";
+        alert(`No se pudo completar la subida.\n\n${message}`);
       }
     });
   };
@@ -52,156 +74,230 @@ export default function BatchUploadButton({ candidates }: { candidates: { id: st
     setResults(null);
     setFiles(null);
     setDocType("PASSPORT");
+    setSelectedCandidateId("");
+    setIsSmartMode(false);
   };
 
   return (
     <>
-      <button 
-        onClick={() => { setIsOpen(true); setResults(null); }}
-        className="button" 
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(true);
+          setResults(null);
+        }}
+        className="button"
       >
         <Upload size={18} /> Subir Lote
       </button>
 
-      {isOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
-          <div className="card" style={{ maxWidth: '600px', width: '100%', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <button 
+      {isOpen ? (
+        <div className="modal-overlay" onClick={reset}>
+          <div
+            className="modal-panel card"
+            style={{ maxWidth: "680px" }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
               onClick={reset}
-              style={{ position: 'absolute', right: '1rem', top: '1rem', border: 'none', background: 'none', cursor: 'pointer' }}
+              className="icon-button"
+              style={{ position: "absolute", right: "1rem", top: "1rem" }}
             >
               <X size={24} />
             </button>
-            
-            <h2 style={{ marginBottom: '0.5rem' }}>Subida de Documentos</h2>
-            <p style={{ color: 'var(--muted)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Selecciona el modo de carga para procesar múltiples archivos.
+
+            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>Subida de Documentos</h2>
+            <p style={{ color: "var(--muted)", marginBottom: "1.5rem", fontSize: "0.875rem" }}>
+              Selecciona el modo de carga para procesar multiples archivos.
             </p>
-            
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', padding: '0.5rem', backgroundColor: 'var(--white-smoke)', border: '2px solid var(--pitch-black)' }}>
-               <button 
-                  onClick={() => setIsSmartMode(false)}
-                  style={{ 
-                     flex: 1, 
-                     padding: '0.75rem', 
-                     border: 'none', 
-                     backgroundColor: !isSmartMode ? 'var(--amber-flame)' : 'transparent',
-                     fontWeight: 'bold',
-                     cursor: 'pointer',
-                     display: 'flex',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     gap: '0.5rem'
-                  }}
-               >
-                  <UserCircle size={18} /> Manual
-               </button>
-               <button 
-                  onClick={() => setIsSmartMode(true)}
-                  style={{ 
-                     flex: 1, 
-                     padding: '0.75rem', 
-                     border: 'none', 
-                     backgroundColor: isSmartMode ? 'var(--amber-flame)' : 'transparent',
-                     fontWeight: 'bold',
-                     cursor: 'pointer',
-                     display: 'flex',
-                     alignItems: 'center',
-                     justifyContent: 'center',
-                     gap: '0.5rem'
-                  }}
-               >
-                  <Brain size={18} /> Inteligente
-               </button>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                marginBottom: "1.5rem",
+                padding: "0.5rem",
+                backgroundColor: "var(--surface-muted)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "8px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsSmartMode(false)}
+                style={modeButtonStyle(!isSmartMode)}
+              >
+                <UserCircle size={18} /> Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSmartMode(true)}
+                style={modeButtonStyle(isSmartMode)}
+              >
+                <Brain size={18} /> Inteligente
+              </button>
             </div>
-            
+
             {!results ? (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {!isSmartMode ? (
-                   <>
-                      <div className="input-group">
-                        <label className="label">Seleccionar Candidato</label>
-                        <select 
-                          className="input" 
-                          value={selectedCandidateId} 
-                          onChange={(e) => setSelectedCandidateId(e.target.value)}
-                          required
-                        >
-                          <option value="">Seleccione un candidato...</option>
-                          {candidates.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
+              <form onSubmit={handleSubmit} className="compact-stack">
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="label">Seleccionar Candidato</label>
+                  <select
+                    className="select"
+                    value={selectedCandidateId}
+                    onChange={(e) => setSelectedCandidateId(e.target.value)}
+                    required={!isSmartMode}
+                  >
+                    <option value="">
+                      {isSmartMode
+                        ? "Opcional: dejar vacio para detectar o crear candidato"
+                        : "Seleccione un candidato..."}
+                    </option>
+                    {candidates.map((candidate) => (
+                      <option key={candidate.id} value={candidate.id}>
+                        {candidate.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                      <div className="input-group">
-                        <label className="label">Tipo de Documento</label>
-                        <select 
-                          className="input" 
-                          value={docType} 
-                          onChange={(e) => setDocType(e.target.value)}
-                          required
-                        >
-                          {DOC_TYPES.map(t => (
-                            <option key={t.value} value={t.value}>{t.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                   </>
-                ) : (
-                   <div style={{ padding: '1rem', border: '1px dashed var(--amber-flame)', backgroundColor: 'rgba(252, 186, 4, 0.05)', borderRadius: '4px' }}>
-                      <p style={{ margin: 0, fontSize: '0.875rem' }}>
-                        <strong>Modo Inteligente:</strong> El sistema usará OCR para identificar el tipo de documento y asignar automáticamente cada archivo al candidato correspondiente (o crear un perfil nuevo si no existe).
-                      </p>
-                   </div>
-                )}
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="label">Tipo de Documento</label>
+                  <select
+                    className="select"
+                    value={docType}
+                    onChange={(e) => setDocType(e.target.value)}
+                    required
+                    disabled={isSmartMode}
+                  >
+                    {DOC_TYPES.map((doc) => (
+                      <option key={doc.value} value={doc.value}>
+                        {doc.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <div className="input-group">
+                {isSmartMode ? (
+                  <div
+                    style={{
+                      padding: "1rem",
+                      border: "1px dashed var(--amber-flame)",
+                      backgroundColor: "rgba(252, 186, 4, 0.08)",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: "0.875rem" }}>
+                      <strong>Modo Inteligente:</strong> el OCR intentara identificar el tipo de
+                      documento, localizar un candidato existente por numero o nombre, y si no lo
+                      encuentra podra crear un perfil nuevo con los datos detectados.
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
                   <label className="label">Archivos (puedes seleccionar varios)</label>
-                  <input 
-                    type="file" 
-                    className="input" 
+                  <input
+                    type="file"
+                    className="input"
                     multiple
                     accept="application/pdf,image/*"
                     onChange={(e) => setFiles(e.target.files)}
                     required
                   />
-                  {files && (
-                    <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+                  {files ? (
+                    <p style={{ fontSize: "0.875rem", color: "var(--muted)", marginTop: "0.5rem" }}>
                       {files.length} archivo(s) seleccionado(s)
                     </p>
-                  )}
+                  ) : null}
                 </div>
 
-                <button 
-                  type="submit" 
-                  className="button" 
-                  style={{ width: '100%' }}
+                <button
+                  type="submit"
+                  className="button"
+                  style={{ width: "100%" }}
                   disabled={isPending || !files || (!isSmartMode && !selectedCandidateId)}
                 >
-                  {isPending ? <><Loader2 className="animate-spin" size={20} /> Procesando con OCR...</> : "Subir y Procesar"}
+                  {isPending ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} /> Procesando con OCR...
+                    </>
+                  ) : (
+                    "Subir y Procesar"
+                  )}
                 </button>
               </form>
             ) : (
               <div>
-                <h3 style={{ marginBottom: '1rem' }}>Resultados del Procesamiento</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {results.map((r, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', backgroundColor: 'var(--white-smoke)', borderRadius: '4px', border: '1px solid var(--pitch-black)' }}>
-                      {r.success ? <CheckCircle2 size={18} color="green" /> : <AlertCircle size={18} color="red" />}
-                      <span style={{ fontSize: '0.875rem', flex: 1, fontWeight: 'bold' }}>{r.filename}</span>
-                      <span style={{ fontSize: '0.75rem', color: r.success ? 'green' : 'red' }}>
-                        {r.success ? 'OCR procesado' : r.message}
+                <h3 style={{ marginBottom: "1rem" }}>Resultados del Procesamiento</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {results.map((result, index) => (
+                    <div
+                      key={`${result.filename}-${index}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.75rem",
+                        backgroundColor: "var(--white-smoke)",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border-subtle)",
+                      }}
+                    >
+                      {result.success ? (
+                        <CheckCircle2 size={18} color="green" />
+                      ) : (
+                        <AlertCircle size={18} color="red" />
+                      )}
+                      <span style={{ fontSize: "0.875rem", flex: 1, fontWeight: "bold" }}>
+                        {result.filename}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          color: result.success ? "green" : "red",
+                        }}
+                      >
+                        {result.message || (result.success ? "OCR procesado" : "Error")}
                       </span>
                     </div>
                   ))}
                 </div>
-                <button onClick={reset} className="button" style={{ width: '100%', marginTop: '1.5rem' }}>Cerrar</button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="button"
+                  style={{ width: "100%", marginTop: "1.5rem" }}
+                >
+                  Cerrar
+                </button>
               </div>
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
+}
+
+function formDataWithDocType(formData: FormData, docType: string) {
+  formData.append("docType", docType);
+  return formData;
+}
+
+function modeButtonStyle(active: boolean) {
+  return {
+    flex: 1,
+    padding: "0.75rem",
+    border: "1px solid transparent",
+    borderRadius: "8px",
+    backgroundColor: active ? "var(--amber-flame)" : "transparent",
+    fontWeight: 700,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+  } satisfies CSSProperties;
 }

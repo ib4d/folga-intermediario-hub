@@ -1,39 +1,68 @@
-# Despliegue en Producción - Folga Hub
+# Despliegue en Produccion - Folga Hub
 
-Este proyecto está preparado para ser desplegado usando Docker o cualquier plataforma compatible con Next.js (como Vercel).
+Este proyecto puede desplegarse en Docker o en cualquier plataforma compatible con Next.js 16.
 
-## Opción 1: Docker (Recomendado)
+## Opcion 1: Docker
 
-El proyecto incluye un `Dockerfile` multietapa y un `docker-compose.yml`.
+El repositorio incluye `Dockerfile` y `docker-compose.yml`.
 
-1. **Configurar el entorno:**
-   Asegúrate de tener un archivo `.env` con las variables de producción.
+1. Configura un archivo `.env` con las variables de produccion.
+2. Construye y levanta los servicios:
 
-2. **Construir y levantar:**
-   ```bash
-   docker-compose up -d --build
-   ```
+```bash
+docker compose up -d --build
+```
 
-3. **Ejecutar migraciones en el contenedor:**
-   ```bash
-   docker-compose exec web npx prisma db push
-   ```
+3. Ejecuta las migraciones en el contenedor web:
 
-## Opción 2: Despliegue Manual (VPS)
+```bash
+docker compose exec web npx prisma migrate deploy
+```
 
-1. **Instalar Node.js 20+ y PM2.**
-2. **Construir la aplicación:**
-   ```bash
-   npm ci
-   npx prisma generate
-   npm run build
-   ```
-3. **Iniciar con PM2:**
-   ```bash
-   pm2 start npm --name "folga-hub" -- run start:prod
-   ```
+4. Verifica salud basica:
 
-## Consideraciones de Producción
-- Usa una base de datos PostgreSQL gestionada (RDS, Supabase DB).
-- Configura un certificado SSL (Nginx Reverse Proxy + Certbot).
-- Establece `NODE_ENV=production`.
+```bash
+curl http://localhost:3000/api/health
+```
+
+## Opcion 2: VPS o servidor manual
+
+1. Instala Node.js 20+.
+2. Instala dependencias:
+
+```bash
+npm ci
+```
+
+3. Genera Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+4. Ejecuta migraciones:
+
+```bash
+npx prisma migrate deploy
+```
+
+5. Construye la aplicacion:
+
+```bash
+npm run build
+```
+
+6. Inicia el servidor:
+
+```bash
+npm run start:prod
+```
+
+## Notas operativas
+
+- Desarrollo usa `.next-dev`.
+- Produccion usa `.next-prod`.
+- Evita `prisma db push` en produccion salvo una intervencion controlada y excepcional.
+- Configura SSL delante de la aplicacion si la expones publicamente.
+- Usa una base de datos PostgreSQL gestionada o un backup verificado antes de cada despliegue.
+- Para enviar invitaciones reales configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` y `SMTP_FROM_NAME`. Si SMTP no esta configurado, la app crea el usuario y muestra una contrasena temporal para entrega manual.

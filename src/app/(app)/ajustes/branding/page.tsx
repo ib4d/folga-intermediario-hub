@@ -1,5 +1,6 @@
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 import Link from "next/link";
 
 export default async function BrandingSettingsPage() {
@@ -48,9 +49,12 @@ export default async function BrandingSettingsPage() {
               style={{ width: "100%" }}
             />
             {org.logoUrl && (
-              <img
+              <Image
                 src={org.logoUrl}
                 alt="Logo actual"
+                width={160}
+                height={48}
+                unoptimized
                 style={{ marginTop: "0.75rem", height: "48px", objectFit: "contain" }}
               />
             )}

@@ -1,0 +1,135 @@
+# Prompt Maestro para Codex
+
+Usa este prompt cuando abras el proyecto `folga-intermediario-hub` en Codex:
+
+---
+
+Read AGENTS.md and plan.md first.
+
+Context:
+This is an existing Next.js recruitment operations platform called "FOLGA Intermediario Hub". It's already functional with 15 Prisma models, multi-tenant architecture, authentication, and multiple pages. The codebase is at ~70% completion.
+
+Your role:
+Act as lead product designer + senior full-stack engineer taking ownership of product quality and UX refinement.
+
+Your mission:
+
+Audit the current state deeply (read code, understand architecture, identify weaknesses)
+
+Detect incomplete areas, inconsistent UI, duplicated patterns, and weak UX flows
+
+Propose a phased improvement plan following plan.md priorities
+
+Implement improvements in safe incremental steps
+
+After every major step: lint, build (when meaningful), fix issues, summarize progress
+
+Take initiative when UX or architecture is weak, but preserve working business logic
+
+What matters most:
+
+Operational clarity and speed for recruiters
+
+Candidate pipeline visibility and usability
+
+Document-heavy workflow optimization
+
+Legal review tracking and structured decisions
+
+Payment and logistics coordination
+
+Professional internal SaaS design quality
+
+Reusable component architecture
+
+Multi-tenant data isolation
+
+Tech stack (already in place):
+
+Next.js 16.2.4 (App Router)
+
+React 19.2.4
+
+Prisma 5.22 + PostgreSQL
+
+NextAuth 5.0 beta
+
+Tailwind CSS 4
+
+TypeScript 5
+
+Current key pages:
+
+/dashboard
+
+/candidatos (pipeline)
+
+/candidatos/[id] (detail)
+
+/documentos
+
+/legal
+
+/logistica
+
+/ajustes (settings)
+
+Start now by:
+
+Reading AGENTS.md and plan.md completely
+
+Running Phase 0 audit:
+
+Inspect project structure
+
+Review Prisma schema for unused fields or missing indexes
+
+Check for duplicated UI patterns
+
+Identify inconsistent status handling
+
+List pages that are complete vs. placeholder
+
+Document technical debt
+
+Summarize findings in markdown
+
+List top 10 priority improvements ranked by operational impact
+
+Propose which phase to start with (likely Phase 1 or 2)
+
+Then begin execution
+
+Remember:
+
+This is refinement, not a rebuild
+
+Preserve working features unless replacing with something provably better
+
+Focus on recruiter operational speed
+
+Make the app feel like a serious internal tool, not a generic template
+
+text
+
+---
+
+## Quick Commands for Daily Use
+
+**Start audit:**
+Codex, run Phase 0 audit as described in plan.md
+
+text
+
+**Continue from specific phase:**
+Codex, start Phase 2 (Dashboard Redesign) following plan.md
+
+text
+
+**Fix specific issue:**
+Codex, the legal page has inconsistent status badges. Audit it, propose fix, and implement using the design system from Phase 1.
+
+text
+
+**Generate report:**
+Codex, generate a summary of all changes made today with before/after screenshots where applicable.

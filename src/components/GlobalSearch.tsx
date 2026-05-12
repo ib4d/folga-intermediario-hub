@@ -16,7 +16,7 @@ export default function GlobalSearch() {
   };
 
   return (
-    <form onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '350px' }}>
+    <form onSubmit={handleSearch} className="global-search-form">
       <div style={{ position: 'relative', width: '100%' }}>
         <Search size={20} strokeWidth={2.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pitch-black)' }} />
         <input 

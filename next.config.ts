@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig: NextConfig = {
+  distDir: isDev ? ".next-dev" : ".next-prod",
   output: "standalone",
   turbopack: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
   serverExternalPackages: [
     "@azure/ai-form-recognizer",
     "canvas",

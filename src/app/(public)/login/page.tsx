@@ -1,8 +1,10 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import AuthShell from "@/components/public/AuthShell";
+import { clearSessionAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,8 +13,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
 
@@ -21,70 +23,113 @@ export default function LoginPage() {
         redirect: false,
         email,
         password,
+        callbackUrl: "/dashboard",
       });
 
       if (result?.error) {
-        setError("Correo o contraseña incorrectos");
+        setError("Correo o contrasena incorrectos.");
       } else {
-        router.push("/");
+        router.push(result?.url || "/dashboard");
         router.refresh();
       }
     } catch {
-      setError("Error al iniciar sesión");
+      setError("Error al iniciar sesion.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--ghost-white)", padding: "1rem" }}>
-      <div className="card" style={{ maxWidth: "400px", width: "100%" }}>
-        <h1 style={{ marginBottom: "0.5rem" }}>Bienvenido</h1>
-        <p style={{ color: "var(--muted)", marginBottom: "2rem" }}>Inicia sesión en Folga Hub</p>
+    <AuthShell
+      badge="Acceso seguro"
+      title="Entra a tu mesa de control"
+      description="Accede al flujo operativo de Folga Hub para revisar candidatos, documentos y tareas pendientes."
+      footer={
+        <span>
+          Si tu cuenta aun no tiene organizacion asignada, el sistema te llevara al
+          onboarding despues de entrar.
+        </span>
+      }
+    >
+      <div style={{ display: "grid", gap: "1.25rem" }}>
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>Iniciar sesion</div>
+          <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
+            Usa tus credenciales para continuar con el trabajo diario del equipo.
+          </p>
+        </div>
 
-        {error && (
-          <div style={{ padding: "0.75rem", backgroundColor: "#fee2e2", color: "#991b1b", border: "2px solid #991b1b", marginBottom: "1.5rem", fontSize: "0.875rem", fontWeight: "bold" }}>
+        {error ? (
+          <div
+            style={{
+              padding: "0.85rem 1rem",
+              backgroundColor: "#fee2e2",
+              color: "#991b1b",
+              border: "2px solid #991b1b",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+            }}
+          >
             {error}
           </div>
-        )}
+        ) : null}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div className="input-group">
-            <label className="label" htmlFor="email">Correo Electrónico</label>
+        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="label" htmlFor="email">
+              Correo electronico
+            </label>
             <input
               id="email"
               type="email"
               className="input"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               required
               disabled={loading}
+              autoComplete="email"
+              placeholder="tu@empresa.com"
             />
           </div>
 
-          <div className="input-group">
-            <label className="label" htmlFor="password">Contraseña</label>
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="label" htmlFor="password">
+              Contrasena
+            </label>
             <input
               id="password"
               type="password"
               className="input"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               required
               disabled={loading}
+              autoComplete="current-password"
+              placeholder="Introduce tu contrasena"
             />
           </div>
 
           <button
             type="submit"
             className="button"
-            style={{ width: "100%", marginTop: "1rem" }}
+            style={{ width: "100%", marginTop: "0.5rem" }}
             disabled={loading}
           >
-            {loading ? "Cargando..." : "Entrar"}
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+
+        <form action={clearSessionAction}>
+          <button
+            type="submit"
+            className="button button-secondary"
+            style={{ width: "100%" }}
+            disabled={loading}
+          >
+            Limpiar sesion antigua
           </button>
         </form>
       </div>
-    </div>
+    </AuthShell>
   );
 }

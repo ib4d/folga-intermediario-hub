@@ -19,7 +19,13 @@ export default function BulkImportCandidates() {
       formData.append("file", file);
       const res = await importCandidatesFromExcel(formData);
       if (res.success) {
-        alert(`Importados/Actualizados ${res.count} candidatos exitosamente.`);
+        const summary = [
+          `Filas leidas: ${res.totalRows ?? res.count ?? 0}`,
+          `Creados: ${res.createdCount ?? 0}`,
+          `Actualizados: ${res.updatedCount ?? res.count ?? 0}`,
+          `Saltados: ${res.skippedCount ?? 0}`,
+        ].join("\n");
+        alert(`Importacion completada.\n\n${summary}`);
         router.refresh();
       } else {
         alert("Error al importar: " + res.error);

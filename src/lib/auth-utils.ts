@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
-export type AppRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL";
+export type AppRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
 export async function requireSession() {
   const session = await auth();

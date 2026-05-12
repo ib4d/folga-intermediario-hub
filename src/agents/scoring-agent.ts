@@ -1,5 +1,5 @@
 import { Agent } from "@/core/registry";
-import { SystemEvent } from "@/core/events";
+import type { SystemEvent } from "@/core/events";
 import { calculateCandidateScore } from "@/lib/ai/candidate-scoring";
 
 export const scoringAgent: Agent = {
@@ -12,7 +12,7 @@ export const scoringAgent: Agent = {
 
     console.log(`[Scoring-Agent] Recalculating score for candidate: ${candidateId}`);
     
-    await calculateCandidateScore(candidateId).catch(err => 
+    await calculateCandidateScore(candidateId, event.organizationId).catch(err => 
       console.error(`[Scoring-Agent] Failed for candidate ${candidateId}:`, err)
     );
   }

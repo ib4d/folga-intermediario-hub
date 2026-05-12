@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, Plane, ShieldAlert } from "lucide-react";
+import { FileText, Home, Plane, ShieldAlert, Users } from "lucide-react";
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { name: "Inicio", href: "/", icon: Home },
+    { name: "Inicio", href: "/dashboard", icon: Home },
     { name: "Candidatos", href: "/candidatos", icon: Users },
-    { name: "Logística", href: "/logistica", icon: Plane },
+    { name: "Docs", href: "/documentos", icon: FileText },
+    { name: "Logistica", href: "/logistica", icon: Plane },
     { name: "Legal", href: "/legal", icon: ShieldAlert },
   ];
 
@@ -20,12 +21,8 @@ export default function BottomNav() {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         return (
-          <Link 
-            key={item.href} 
-            href={item.href} 
-            className={`bottom-nav-item ${isActive ? 'active' : ''}`}
-          >
-            <Icon size={24} />
+          <Link key={item.href} href={item.href} className={`bottom-nav-item ${isActive ? "active" : ""}`}>
+            <Icon size={22} />
             <span>{item.name}</span>
           </Link>
         );

@@ -3,15 +3,21 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import LegalReviewQueue from "@/components/legal/LegalReviewQueue";
 import { Scale, Users, CheckCircle, XCircle } from "lucide-react";
+import { requireTenant } from "@/lib/tenant";
+import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 
 export default async function LegalPage() {
   const session = await auth();
   if (!session || !["LEGAL", "ADMIN", "SUPERADMIN"].includes(session.user.role)) {
     redirect("/dashboard");
   }
+  const tenant = await requireTenant();
 
   const candidates = await prisma.candidate.findMany({
-    where: { status: "EN_REVISION_LEGAL" },
+    where: {
+      organizationId: tenant.organizationId,
+      status: "EN_REVISION_LEGAL",
+    },
     include: { documents: true, intermediary: true },
     orderBy: { updatedAt: "desc" },
   });
@@ -22,12 +28,19 @@ export default async function LegalPage() {
 
   const stats = await prisma.candidate.groupBy({
     by: ["status"],
-    where: { updatedAt: { gte: startOfMonth } },
+    where: {
+      organizationId: tenant.organizationId,
+      updatedAt: { gte: startOfMonth },
+    },
     _count: true,
   });
 
   const approvedThisMonth = stats.find(s => s.status === "APROBADO")?._count || 0;
   const rejectedThisMonth = stats.find(s => s.status === "RECHAZADO")?._count || 0;
+  const readyForDecisionCount = candidates.filter((candidate) =>
+    getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]).isReadyForLegal
+  ).length;
+  const blockedCount = candidates.length - readyForDecisionCount;
 
   return (
     <>
@@ -90,6 +103,36 @@ export default async function LegalPage() {
               <div>
                 <div style={{ fontSize: '2.5rem', fontWeight: '900', lineHeight: 1 }}>{rejectedThisMonth}</div>
                 <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', opacity: 0.7 }}>RECHAZADOS MES</div>
+              </div>
+            </div>
+            <div style={{ 
+              backgroundColor: '#dbeafe', 
+              color: 'var(--pitch-black)',
+              padding: '1rem 1.5rem',
+              border: '2px solid var(--pitch-black)',
+              boxShadow: '4px 4px 0px rgba(0,0,0,0.25)',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              minWidth: '160px'
+            }}>
+              <CheckCircle size={28} strokeWidth={2.5} />
+              <div>
+                <div style={{ fontSize: '2.5rem', fontWeight: '900', lineHeight: 1 }}>{readyForDecisionCount}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', opacity: 0.7 }}>LISTOS</div>
+              </div>
+            </div>
+            <div style={{ 
+              backgroundColor: '#fee2e2', 
+              color: 'var(--pitch-black)',
+              padding: '1rem 1.5rem',
+              border: '2px solid var(--pitch-black)',
+              boxShadow: '4px 4px 0px rgba(0,0,0,0.25)',
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              minWidth: '160px'
+            }}>
+              <XCircle size={28} strokeWidth={2.5} />
+              <div>
+                <div style={{ fontSize: '2.5rem', fontWeight: '900', lineHeight: 1 }}>{blockedCount}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: '900', textTransform: 'uppercase', opacity: 0.7 }}>BLOQUEADOS</div>
               </div>
             </div>
           </div>

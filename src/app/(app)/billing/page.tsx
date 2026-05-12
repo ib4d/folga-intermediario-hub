@@ -1,6 +1,6 @@
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { CreditCard, Zap, CheckCircle2 } from "lucide-react";
+import { CreditCard, Zap } from "lucide-react";
 import Link from "next/link";
 import { getPlanLimits } from "@/lib/billing/limits";
 
@@ -37,7 +37,7 @@ export default async function BillingPage() {
           <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--amber-flame)', marginBottom: '1rem' }}>
             {organization.plan}
           </div>
-          <Link href="/billing/plans" className="button" style={{ width: '100%' }}>Cambiar Plan</Link>
+          <Link href="/billing/plans" className="button" style={{ width: '100%', backgroundColor: 'var(--surface)', color: 'var(--pitch-black)' }}>Cambiar Plan</Link>
         </div>
 
         <div className="card">
@@ -48,7 +48,7 @@ export default async function BillingPage() {
           <div style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
             {organization.subscription?.provider ? 'Gestionado vía Stripe' : 'Sin método de pago'}
           </div>
-          <button className="button button-secondary" style={{ width: '100%' }} disabled>Gestionar en Stripe</button>
+          <button className="button button-secondary" style={{ width: '100%', backgroundColor: 'var(--surface)', color: 'var(--pitch-black)' }} disabled>Gestionar en Stripe</button>
         </div>
       </div>
 

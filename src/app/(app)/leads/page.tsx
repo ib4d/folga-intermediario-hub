@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { Plus, Mail, MessageSquare, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import OutreachRunner from "@/components/sales/OutreachRunner";
+import { Prisma } from "@prisma/client";
+
+type LeadWithOutreachCount = Prisma.LeadGetPayload<{
+  include: { _count: { select: { outreaches: true } } };
+}>;
 
 export default async function LeadsPage() {
   const session = await auth();
@@ -12,13 +17,13 @@ export default async function LeadsPage() {
 
   const tenant = await requireTenant();
 
-  const leads = await prisma.lead.findMany({
+  const leads: LeadWithOutreachCount[] = await prisma.lead.findMany({
     where: { organizationId: tenant.organizationId! },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { outreaches: true } } }
   });
 
-  const leadsForOutreach = leads.filter((l: any) => l.status === "NEW" && l.email);
+  const leadsForOutreach = leads.filter((lead) => lead.status === "NEW" && lead.email);
 
   return (
     <div className="main-content">
@@ -64,7 +69,7 @@ export default async function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {leads.map((lead: any) => (
+              {leads.map((lead) => (
                 <tr key={lead.id}>
                   <td>
                     <div style={{ fontWeight: 'bold' }}>{lead.company || "Empresa Desconocida"}</div>

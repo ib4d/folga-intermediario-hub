@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -7,8 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash("folga2024admin", 12);
 
-  // Create default organization
-  const org = await (prisma as any).organization.upsert({
+  const org = await prisma.organization.upsert({
     where: { slug: "folga-default" },
     update: {},
     create: {
@@ -20,9 +18,14 @@ async function main() {
     },
   });
 
-  const admin = await (prisma as any).user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: "admin@folga.com" },
-    update: { passwordHash, isPlatformAdmin: true, organizationId: org.id, role: "SUPERADMIN" },
+    update: {
+      passwordHash,
+      isPlatformAdmin: true,
+      organizationId: org.id,
+      role: "SUPERADMIN",
+    },
     create: {
       email: "admin@folga.com",
       name: "Administrador Principal",
@@ -33,49 +36,49 @@ async function main() {
     },
   });
 
-  const legal = await (prisma as any).user.upsert({
+  const legal = await prisma.user.upsert({
     where: { email: "legal@folga.com" },
-    update: { passwordHash, organizationId: org.id },
+    update: { passwordHash, organizationId: org.id, role: "LEGAL" },
     create: {
       email: "legal@folga.com",
       name: "Equipo Legal 1",
       passwordHash,
       organizationId: org.id,
+      role: "LEGAL",
     },
   });
 
-  const intermediary = await (prisma as any).user.upsert({
+  const intermediary = await prisma.user.upsert({
     where: { email: "maria@folga.com" },
-    update: { passwordHash, organizationId: org.id },
+    update: { passwordHash, organizationId: org.id, role: "INTERMEDIARIO" },
     create: {
       email: "maria@folga.com",
       name: "Maria G. (Intermediaria)",
       passwordHash,
       organizationId: org.id,
+      role: "INTERMEDIARIO",
     },
   });
 
-  // Create memberships
-  await (prisma as any).membership.upsert({
+  await prisma.membership.upsert({
     where: { userId_organizationId: { userId: admin.id, organizationId: org.id } },
     update: {},
     create: { userId: admin.id, organizationId: org.id, role: "SUPERADMIN", isActive: true },
   });
 
-  await (prisma as any).membership.upsert({
+  await prisma.membership.upsert({
     where: { userId_organizationId: { userId: legal.id, organizationId: org.id } },
     update: {},
     create: { userId: legal.id, organizationId: org.id, role: "LEGAL", isActive: true },
   });
 
-  await (prisma as any).membership.upsert({
+  await prisma.membership.upsert({
     where: { userId_organizationId: { userId: intermediary.id, organizationId: org.id } },
     update: {},
     create: { userId: intermediary.id, organizationId: org.id, role: "INTERMEDIARIO", isActive: true },
   });
 
-  // Create test candidates
-  const candidate1 = await (prisma as any).candidate.create({
+  const candidate1 = await prisma.candidate.create({
     data: {
       firstName: "Abad",
       lastName: "Bolanos",
@@ -90,7 +93,7 @@ async function main() {
     },
   });
 
-  await (prisma as any).candidate.create({
+  await prisma.candidate.create({
     data: {
       firstName: "Juan",
       lastName: "Perez",
@@ -106,19 +109,18 @@ async function main() {
     },
   });
 
-  // Create a notification
-  await (prisma as any).notification.create({
+  await prisma.notification.create({
     data: {
       userId: intermediary.id,
       organizationId: org.id,
       candidateId: candidate1.id,
       type: "DOC_REQUIRED",
-      title: "Documentación Requerida",
+      title: "Documentacion requerida",
       message: "Abad Bolanos necesita subir su pasaporte para continuar.",
     },
   });
 
-  console.log("✅ Seed ejecutado.");
+  console.log("Seed ejecutado.");
   console.log("- Org:          folga-default (ENTERPRISE)");
   console.log("- Admin:        admin@folga.com / folga2024admin (isPlatformAdmin=true)");
   console.log("- Legal:        legal@folga.com / folga2024admin");

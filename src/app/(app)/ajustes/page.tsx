@@ -1,26 +1,24 @@
 import { Users, Database, Key, Palette, CreditCard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import ExportButton from "@/components/ExportButton";
 import AjustesSettings from "@/components/AjustesSettings";
 import InviteUserModal from "@/components/InviteUserModal";
 import Link from "next/link";
+import { requireTenant } from "@/lib/tenant";
 
 export default async function AjustesPage() {
-  const session = await auth();
+  const tenant = await requireTenant();
 
   const users = await prisma.membership.findMany({
-    where: { organizationId: session?.user?.organizationId || "" },
+    where: { organizationId: tenant.organizationId },
     include: { user: { select: { name: true, email: true, isActive: true } } },
     orderBy: { role: "asc" },
   });
 
-  const organization = session?.user?.organizationId
-    ? await prisma.organization.findUnique({
-        where: { id: session.user.organizationId },
-        select: { name: true, plan: true, slug: true },
-      })
-    : null;
+  const organization = await prisma.organization.findUnique({
+    where: { id: tenant.organizationId },
+    select: { name: true, plan: true, slug: true },
+  });
 
   return (
     <>
@@ -120,7 +118,7 @@ export default async function AjustesPage() {
                 <Users size={24} />
                 <h2 style={{ margin: 0 }}>Miembros de la Organización</h2>
               </div>
-              {["SUPERADMIN", "ADMIN"].includes(session?.user?.role || "") ? (
+              {["SUPERADMIN", "ADMIN"].includes(tenant.role) ? (
                 <InviteUserModal />
               ) : (
                 <button className="button" disabled title="Solo ADMIN">
