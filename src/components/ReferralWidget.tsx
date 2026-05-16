@@ -17,7 +17,7 @@ export default function ReferralWidget({ code }: { code: string | null }) {
     <div className="card" style={{ border: '1px dashed var(--amber-flame)', backgroundColor: '#fffcf5' }}>
       <h3>Motor de Referidos 🎁</h3>
       <p style={{ fontSize: '0.8rem', margin: '0.5rem 0' }}>
-        Comparte Folga Hub con otros socios y obtén un 20% de descuento vitalicio por cada referido que active su plan.
+        Comparte ORI CRUIT HUB con otros socios y obtén un 20% de descuento vitalicio por cada referido que active su plan.
       </p>
       
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>

@@ -3,7 +3,7 @@ import net from "node:net";
 import tls from "node:tls";
 
 /**
- * Folga Hub Email Service
+ * ORI CRUIT HUB Email Service
  * Supports direct SMTP delivery through environment configuration.
  */
 
@@ -57,7 +57,7 @@ function getSmtpConfig(): SmtpConfig | null {
     user,
     pass,
     from: process.env.SMTP_FROM?.trim() || user,
-    fromName: process.env.SMTP_FROM_NAME?.trim() || "Folga Hub",
+    fromName: process.env.SMTP_FROM_NAME?.trim() || "ORI CRUIT HUB",
     allowInsecure: isLocalHost || process.env.SMTP_ALLOW_INSECURE === "true",
   };
 }
@@ -345,10 +345,10 @@ export const EmailTemplates = {
   },
   DEMO_INVITE: {
     id: "demo-invite",
-    subject: "Tu demo personalizada de Folga Hub",
+    subject: "Tu demo personalizada de ORI CRUIT HUB",
   },
   WELCOME: {
     id: "welcome",
-    subject: "Bienvenido a Folga Hub - Vamos a configurar tu organizacion",
+    subject: "Bienvenido a ORI CRUIT HUB - Vamos a configurar tu organizacion",
   },
 };

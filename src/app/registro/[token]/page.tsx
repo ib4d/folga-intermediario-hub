@@ -73,7 +73,7 @@ export default async function RegistroPage({ params }: { params: Promise<{ token
             REGISTRO OFICIAL
           </div>
           <h1 style={{ fontSize: '4rem', fontWeight: '900', marginBottom: '0.5rem', letterSpacing: '-2px' }}>
-            FOLGA HUB
+            ORI CRUIT HUB
           </h1>
           <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--muted)' }}>
             Complete su información para iniciar el proceso de legalización.

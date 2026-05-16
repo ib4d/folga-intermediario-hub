@@ -25,7 +25,7 @@ export default function Loading() {
         gap: '1rem'
       }}>
         <Loader2 className="animate-spin" size={48} color="var(--amber-flame)" />
-        <h2 style={{ color: 'var(--ghost-white)', margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>CARGANDO FOLGA HUB...</h2>
+        <h2 style={{ color: 'var(--ghost-white)', margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>CARGANDO ORI CRUIT HUB...</h2>
         <div style={{ width: '100%', height: '4px', backgroundColor: '#333', marginTop: '0.5rem' }}>
           <div className="loading-bar-animation" style={{ height: '100%', backgroundColor: 'var(--amber-flame)' }}></div>
         </div>

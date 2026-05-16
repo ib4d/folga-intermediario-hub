@@ -2,7 +2,7 @@ import { Plugin } from "@/core/registry";
 import { registry } from "@/core/registry";
 
 /**
- * Standard interface for Folga Hub Plugins
+ * Standard interface for ORI CRUIT HUB plugins
  */
 export interface FolgaPlugin extends Plugin {
   id: string;

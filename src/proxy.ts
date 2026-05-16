@@ -1,22 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-
-const PUBLIC_ROUTE_PREFIXES = [
-  "/login",
-  "/registro",
-  "/api/auth",
-  "/api/health",
-  "/api/v1",
-  "/api/v2/events",
-  "/api/cron",
-];
-
-const PUBLIC_EXACT_ROUTES = new Set(["/", "/manifest.json", "/sw.js"]);
-
-function isPublicRoute(pathname: string) {
-  if (PUBLIC_EXACT_ROUTES.has(pathname)) return true;
-  if (PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
-  return /\.[^/]+$/.test(pathname);
-}
+import { isPublicRoute } from "@/lib/public-routes";
 
 function hasAuthSessionCookie(request: NextRequest) {
   return request.cookies.get("authjs.session-token") ||

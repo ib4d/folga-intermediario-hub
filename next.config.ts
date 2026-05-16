@@ -1,10 +1,24 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
+const distDir = process.env.NEXT_DIST_DIR || (isDev ? ".next-dev" : ".next-prod");
 
 const nextConfig: NextConfig = {
-  distDir: isDev ? ".next-dev" : ".next-prod",
+  distDir,
   output: "standalone",
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
+  },
   turbopack: {},
   experimental: {
     serverActions: {

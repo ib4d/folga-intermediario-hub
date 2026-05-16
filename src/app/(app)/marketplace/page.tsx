@@ -11,7 +11,7 @@ export default async function MarketplacePage() {
     <div className="main-content">
       <div style={{ marginBottom: '2rem' }}>
         <h1>ORI-OS Marketplace</h1>
-        <p>Extiende las capacidades de Folga Hub con plugins y agentes de terceros.</p>
+        <p>Extiende las capacidades de ORI CRUIT HUB con plugins y agentes de terceros.</p>
       </div>
 
       <div className="dashboard-grid">

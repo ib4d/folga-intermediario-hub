@@ -4,7 +4,22 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("folga2024admin", 12);
+  const isProduction = process.env.NODE_ENV === "production";
+  const allowDemoSeed = process.env.ALLOW_DEMO_SEED === "true";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@folga.com";
+  const legalEmail = process.env.SEED_LEGAL_EMAIL || "legal@folga.com";
+  const intermediaryEmail = process.env.SEED_INTERMEDIARY_EMAIL || "maria@folga.com";
+  const seedPassword = process.env.SEED_ADMIN_PASSWORD || "folga2024admin";
+
+  if (isProduction && !allowDemoSeed) {
+    throw new Error("Production seed blocked. Set ALLOW_DEMO_SEED=true and SEED_ADMIN_PASSWORD to seed intentionally.");
+  }
+
+  if (isProduction && seedPassword === "folga2024admin") {
+    throw new Error("Refusing to seed production with the default demo password.");
+  }
+
+  const passwordHash = await bcrypt.hash(seedPassword, 12);
 
   const org = await prisma.organization.upsert({
     where: { slug: "folga-default" },
@@ -19,7 +34,7 @@ async function main() {
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@folga.com" },
+    where: { email: adminEmail },
     update: {
       passwordHash,
       isPlatformAdmin: true,
@@ -27,7 +42,7 @@ async function main() {
       role: "SUPERADMIN",
     },
     create: {
-      email: "admin@folga.com",
+      email: adminEmail,
       name: "Administrador Principal",
       passwordHash,
       isPlatformAdmin: true,
@@ -37,10 +52,10 @@ async function main() {
   });
 
   const legal = await prisma.user.upsert({
-    where: { email: "legal@folga.com" },
+    where: { email: legalEmail },
     update: { passwordHash, organizationId: org.id, role: "LEGAL" },
     create: {
-      email: "legal@folga.com",
+      email: legalEmail,
       name: "Equipo Legal 1",
       passwordHash,
       organizationId: org.id,
@@ -49,10 +64,10 @@ async function main() {
   });
 
   const intermediary = await prisma.user.upsert({
-    where: { email: "maria@folga.com" },
+    where: { email: intermediaryEmail },
     update: { passwordHash, organizationId: org.id, role: "INTERMEDIARIO" },
     create: {
-      email: "maria@folga.com",
+      email: intermediaryEmail,
       name: "Maria G. (Intermediaria)",
       passwordHash,
       organizationId: org.id,
@@ -122,9 +137,9 @@ async function main() {
 
   console.log("Seed ejecutado.");
   console.log("- Org:          folga-default (ENTERPRISE)");
-  console.log("- Admin:        admin@folga.com / folga2024admin (isPlatformAdmin=true)");
-  console.log("- Legal:        legal@folga.com / folga2024admin");
-  console.log("- Intermediario: maria@folga.com / folga2024admin");
+  console.log(`- Admin:        ${adminEmail} / ${isProduction ? "[configured password]" : seedPassword} (isPlatformAdmin=true)`);
+  console.log(`- Legal:        ${legalEmail} / ${isProduction ? "[configured password]" : seedPassword}`);
+  console.log(`- Intermediario: ${intermediaryEmail} / ${isProduction ? "[configured password]" : seedPassword}`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

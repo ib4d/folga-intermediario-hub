@@ -1,0 +1,15 @@
+.git
+.next
+.next-*
+node_modules
+npm-debug.log
+Dockerfile
+docker-compose*.yml
+.env
+.env.*
+!.env.example
+tmp-*
+*.tmp
+backup_before_migration.sql
+lint-results.json
+tsconfig.tsbuildinfo

@@ -22,7 +22,7 @@ export default function OutreachRunner({ leads }: { leads: Lead[] }) {
     if (!currentLead) return;
     setIsSending(true);
     try {
-      const message = `Hola ${currentLead.name},\n\nTrabajo con agencias que tienen caos en WhatsApp y Excel para su reclutamiento internacional. Hemos creado Folga Hub para automatizar precisamente eso.\n\n¿Te interesaría ver una demo de 10 min?\n\n- Daniel`;
+      const message = `Hola ${currentLead.name},\n\nTrabajo con agencias que tienen caos en WhatsApp y Excel para su reclutamiento internacional. Hemos creado ORI CRUIT HUB para automatizar precisamente eso.\n\n¿Te interesaría ver una demo de 10 min?\n\n- Daniel`;
       await sendLeadOutreach(currentLead.id, message, 1);
       setSentLeads([...sentLeads, currentLead.id]);
       if (currentIndex < leads.length - 1) {
@@ -62,12 +62,12 @@ export default function OutreachRunner({ leads }: { leads: Lead[] }) {
         <div style={{ opacity: 0.7 }}>{currentLead.name} ({currentLead.email})</div>
 
         <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f9f9f9', border: '1px solid #ddd', textAlign: 'left', fontFamily: 'monospace', fontSize: '0.9rem' }}>
-          <strong>De:</strong> Daniel @ Folga Hub<br/>
+          <strong>De:</strong> Daniel @ ORI CRUIT HUB<br/>
           <strong>Para:</strong> {currentLead.email}<br/>
           <strong>Asunto:</strong> Propuesta para {currentLead.company}<br/>
           <hr style={{ margin: '1rem 0' }} />
           Hola {currentLead.name},<br/><br/>
-          Trabajo con agencias que tienen caos en WhatsApp y Excel para su reclutamiento internacional. Hemos creado Folga Hub para automatizar precisamente eso.<br/><br/>
+          Trabajo con agencias que tienen caos en WhatsApp y Excel para su reclutamiento internacional. Hemos creado ORI CRUIT HUB para automatizar precisamente eso.<br/><br/>
           ¿Te interesaría ver una demo de 10 min?<br/><br/>
           - Daniel
         </div>

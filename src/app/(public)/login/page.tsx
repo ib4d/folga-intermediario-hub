@@ -43,7 +43,7 @@ export default function LoginPage() {
     <AuthShell
       badge="Acceso seguro"
       title="Entra a tu mesa de control"
-      description="Accede al flujo operativo de Folga Hub para revisar candidatos, documentos y tareas pendientes."
+      description="Accede al flujo operativo de ORI CRUIT HUB para revisar candidatos, documentos y tareas pendientes."
       footer={
         <span>
           Si tu cuenta aun no tiene organizacion asignada, el sistema te llevara al

@@ -124,7 +124,7 @@ export async function exportCandidatesXLSX(
 
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = "Folga Intermediario Hub";
+  workbook.creator = "ORI CRUIT HUB";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet("Candidatos");
@@ -199,7 +199,7 @@ export async function exportLegalReviewXLSX(): Promise<ExportResponse> {
 
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = "Folga Intermediario Hub";
+  workbook.creator = "ORI CRUIT HUB";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet("Revision Legal");
@@ -257,7 +257,7 @@ export async function exportLogisticsArrivalsXLSX(): Promise<ExportResponse> {
 
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = "Folga Intermediario Hub";
+  workbook.creator = "ORI CRUIT HUB";
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet("Llegadas");

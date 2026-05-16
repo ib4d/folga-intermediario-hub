@@ -30,7 +30,7 @@ export default async function LeadsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1>Gestión de Leads (Ventas)</h1>
-          <p>Usa Folga Hub para captar más agencias y partners.</p>
+          <p>Usa ORI CRUIT HUB para captar más agencias y partners.</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="button">

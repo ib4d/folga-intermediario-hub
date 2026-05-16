@@ -18,7 +18,7 @@ export function generateOutreachMessage(lead: LeadContext, step: number = 1): st
 
 He visto que en ${companyName} estáis escalando vuestro reclutamiento internacional. 
 
-Normalmente, el mayor cuello de botella en este punto es el caos de gestionar documentos por WhatsApp y Excel. Hemos creado Folga Hub para automatizar precisamente eso: lectura de pasaportes por IA y control logístico centralizado.
+Normalmente, el mayor cuello de botella en este punto es el caos de gestionar documentos por WhatsApp y Excel. Hemos creado ORI CRUIT HUB para automatizar precisamente eso: lectura de pasaportes por IA y control logístico centralizado.
 
 ¿Te interesaría ver cómo podrías ahorrar unas 10 horas semanales por reclutador con una breve demo?
 

@@ -4,24 +4,35 @@ import { auth, signOut } from "@/auth";
 import GlobalSearch from "./GlobalSearch";
 import { prisma } from "@/lib/prisma";
 
+async function getOrganizationName(organizationId: string | null | undefined) {
+  if (!organizationId) return null;
+
+  try {
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+
+    return organization?.name ?? null;
+  } catch (error) {
+    console.error("[Header] Organization lookup failed", error);
+    return null;
+  }
+}
+
 export default async function Header() {
   const session = await auth();
   if (!session) return null;
 
-  const organization = session.user.organizationId
-    ? await prisma.organization.findUnique({
-        where: { id: session.user.organizationId },
-        select: { name: true },
-      })
-    : null;
+  const organizationName = await getOrganizationName(session.user.organizationId);
 
   return (
     <header className="header">
       <div className="header-primary">
         <GlobalSearch />
-        {organization ? (
-          <span className="badge org-badge" title={organization.name}>
-            {organization.name}
+        {organizationName ? (
+          <span className="badge org-badge" title={organizationName}>
+            {organizationName}
           </span>
         ) : null}
       </div>

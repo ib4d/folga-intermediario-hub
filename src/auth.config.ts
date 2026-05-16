@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { isPublicRoute } from "@/lib/public-routes";
 
 export const authConfig = {
   providers: [
@@ -18,20 +19,8 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const pathname = nextUrl.pathname;
-      const isPublicRoute =
-        pathname === "/" ||
-        pathname.startsWith("/login") ||
-        pathname.startsWith("/registro") ||
-        pathname.startsWith("/api/auth") ||
-        pathname.startsWith("/api/health") ||
-        pathname.startsWith("/api/v1") ||
-        pathname.startsWith("/api/v2/events") ||
-        pathname.startsWith("/api/cron") ||
-        pathname === "/manifest.json" ||
-        pathname === "/sw.js" ||
-        /\.[^/]+$/.test(pathname);
 
-      if (!isLoggedIn && !isPublicRoute) {
+      if (!isLoggedIn && !isPublicRoute(pathname)) {
         return false; // Redirect to login
       }
       return true;

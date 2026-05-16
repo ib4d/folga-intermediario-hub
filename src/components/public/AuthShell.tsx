@@ -71,7 +71,7 @@ export default function AuthShell({
                   border: "1px solid var(--ghost-white)",
                 }}
               />
-              FOLGA HUB
+              ORI CRUIT HUB
             </Link>
 
             <span className="badge" style={{ width: "fit-content" }}>

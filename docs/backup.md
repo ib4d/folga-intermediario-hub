@@ -1,32 +1,71 @@
-# Estrategia de Backups
+# Backup and Restore - ORI CRUIT HUB
 
-La integridad de la información es vital. Se han establecido los siguientes procedimientos.
+Production data lives in two places:
 
-## Base de Datos (PostgreSQL)
+- PostgreSQL in Docker on the Hostinger VPS.
+- Supabase Storage for uploaded candidate documents.
 
-Se incluye un script en `scripts/backup-db.sh`.
+## PostgreSQL Backup
 
-### Ejecución Manual
+Run from the repository root on the VPS:
+
 ```bash
-cd scripts
-chmod +x backup-db.sh
-./backup-db.sh
+chmod +x scripts/backup-db.sh
+./scripts/backup-db.sh
 ```
 
-### Automatización (Cron)
-Se recomienda configurar una tarea cron para realizar backups diarios:
+The script uses `docker compose -f docker-compose.prod.yml exec -T db pg_dump`,
+writes to `./backups`, compresses the SQL dump, and removes backups older than
+30 days.
+
+Optional environment overrides:
+
 ```bash
-0 2 * * * /path/to/project/scripts/backup-db.sh >> /var/log/folga-backup.log 2>&1
+BACKUP_DIR=/var/backups/ori-cruit-hub RETENTION_DAYS=14 ./scripts/backup-db.sh
 ```
 
-## Archivos (Documentos)
-Los documentos se almacenan en **Supabase Storage**.
-- Supabase ofrece backups automáticos en sus planes pagos.
-- Se recomienda habilitar el versionado de objetos en el bucket de documentos.
+## Daily Cron
 
-## Recuperación (Disaster Recovery)
-Para restaurar una base de datos:
+Create the backup directory first:
+
 ```bash
-psql -d <database_url> -f <backup_file.sql>
+mkdir -p /var/backups/ori-cruit-hub
 ```
-**Nota:** Asegúrate de que las variables de entorno coincidan antes de restaurar.
+
+Then add a cron entry:
+
+```bash
+crontab -e
+```
+
+```cron
+0 2 * * * cd /path/to/folga-intermediario-hub && BACKUP_DIR=/var/backups/ori-cruit-hub ./scripts/backup-db.sh >> /var/log/ori-cruit-hub-backup.log 2>&1
+```
+
+## Restore Drill
+
+Restore must be done during a planned recovery window:
+
+```bash
+chmod +x scripts/restore-db.sh
+./scripts/restore-db.sh /var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz
+```
+
+The restore script stops the web container, asks for explicit `RESTORE`
+confirmation, restores through the Docker Postgres container, and starts the web
+container again.
+
+## Supabase Storage
+
+Document files remain in Supabase Storage for v1. For production:
+
+- Confirm the `SUPABASE_STORAGE_BUCKET` bucket exists.
+- Enable Supabase project backups/versioning features available on the selected
+  Supabase plan.
+- Keep the service role key server-side only.
+
+## Production Rule
+
+Deployment is not distribution-ready until at least one backup and restore drill
+has been performed successfully on a non-production clone or isolated test
+database.

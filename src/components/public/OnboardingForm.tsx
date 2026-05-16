@@ -18,7 +18,7 @@ export default function OnboardingForm() {
       <div style={{ display: "grid", gap: "0.5rem" }}>
         <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>Crea tu organizacion</div>
         <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
-          Define el espacio de trabajo inicial para empezar a operar en Folga Hub.
+          Define el espacio de trabajo inicial para empezar a operar en ORI CRUIT HUB.
         </p>
       </div>
 

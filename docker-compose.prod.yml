@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-folga}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the production .env}
+      POSTGRES_DB: ${DB_NAME:-folga_hub}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-folga} -d ${DB_NAME:-folga_hub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "node scripts/check-production-env.mjs && node server.js"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-folga}:${DB_PASSWORD:?Set DB_PASSWORD in the production .env}@db:5432/${DB_NAME:-folga_hub}?schema=public
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the production .env}
+      AUTH_URL: ${AUTH_URL:?Set AUTH_URL in the production .env}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in the production .env}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-${AUTH_URL}}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET}}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in the production .env}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?Set NEXT_PUBLIC_SUPABASE_ANON_KEY in the production .env}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY in the production .env}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:?Set SUPABASE_STORAGE_BUCKET in the production .env}
+      AZURE_DI_ENDPOINT: ${AZURE_DI_ENDPOINT:?Set AZURE_DI_ENDPOINT in the production .env}
+      AZURE_DI_KEY: ${AZURE_DI_KEY:?Set AZURE_DI_KEY in the production .env}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ORI CRUIT HUB}
+      SMTP_ALLOW_INSECURE: ${SMTP_ALLOW_INSECURE:-false}
+      CRON_SECRET: ${CRON_SECRET:?Set CRON_SECRET in the production .env}
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

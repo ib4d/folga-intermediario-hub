@@ -33,7 +33,7 @@ export default async function LandingPage() {
         zIndex: 100
       }}>
         <div style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--amber-flame)', letterSpacing: '-0.05em' }}>
-          FOLGA <span style={{ color: 'var(--ghost-white)' }}>HUB</span>
+          ORI CRUIT <span style={{ color: 'var(--ghost-white)' }}>HUB</span>
         </div>
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
           <Link href="#features" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>Funcionalidades</Link>
@@ -123,7 +123,7 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '6rem' }}>
             <h2 style={{ fontSize: '3.5rem', marginBottom: '1.5rem', textTransform: 'uppercase' }}>Centraliza tu Crecimiento</h2>
             <p style={{ fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto' }}>
-              Folga Hub automatiza las tareas administrativas para que tu equipo se enfoque en el talento.
+              ORI CRUIT HUB automatiza las tareas administrativas para que tu equipo se enfoque en el talento.
             </p>
           </div>
 
@@ -181,7 +181,7 @@ export default async function LandingPage() {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> 25 Candidatos</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> 2 Usuarios</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> OCR Limitado</li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Branding Folga Hub</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Branding ORI CRUIT HUB</li>
               </ul>
               <Link href="/login" className="button" style={{ width: '100%' }}>Empezar Gratis</Link>
             </div>
@@ -243,7 +243,7 @@ export default async function LandingPage() {
       }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--amber-flame)', marginBottom: '2rem' }}>
-            FOLGA HUB
+            ORI CRUIT HUB
           </div>
           <p style={{ opacity: 0.6, marginBottom: '3rem' }}>
             Sustituyendo el caos de WhatsApp y Excel con tecnología diseñada para el reclutamiento internacional.
@@ -255,7 +255,7 @@ export default async function LandingPage() {
             <Link href="/docs" style={{ color: 'inherit', textDecoration: 'none' }}>Documentación</Link>
           </div>
           <div style={{ fontSize: '0.8rem', opacity: 0.4 }}>
-            © 2026 Folga Hub SaaS. Todos los derechos reservados.
+            © 2026 ORI CRUIT HUB SaaS. Todos los derechos reservados.
           </div>
         </div>
       </footer>

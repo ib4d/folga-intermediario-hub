@@ -10,6 +10,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-folga} -d ${DB_NAME:-folga_hub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   web:
     build:
@@ -20,17 +25,29 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-folga}:${DB_PASSWORD:-folga123}@db:5432/${DB_NAME:-folga_hub}?schema=public
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_SECRET: ${AUTH_SECRET}
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
-      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET}
-      AZURE_DI_ENDPOINT: ${AZURE_DI_ENDPOINT}
-      AZURE_DI_KEY: ${AZURE_DI_KEY}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-${AUTH_URL:-http://localhost:3000}}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET}}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-}
+      AZURE_DI_ENDPOINT: ${AZURE_DI_ENDPOINT:-}
+      AZURE_DI_KEY: ${AZURE_DI_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ORI CRUIT HUB}
+      SMTP_ALLOW_INSECURE: ${SMTP_ALLOW_INSECURE:-false}
+      CRON_SECRET: ${CRON_SECRET:-}
     ports:
       - "3000:3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

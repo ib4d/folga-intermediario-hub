@@ -155,11 +155,11 @@ export async function inviteUserAction(
   const loginUrl = process.env.AUTH_URL || "http://localhost:3000";
   const emailResult = await sendEmail({
     to: email,
-    subject: "Invitacion a Folga Hub",
+    subject: "Invitacion a ORI CRUIT HUB",
     body: [
       `Hola ${name},`,
       "",
-      `Has sido invitado a Folga Hub con el rol ${role}.`,
+      `Has sido invitado a ORI CRUIT HUB con el rol ${role}.`,
       `Accede en: ${loginUrl}/login`,
       `Correo: ${email}`,
       `Contrasena temporal: ${temporaryPassword}`,

@@ -41,7 +41,7 @@ export default function Sidebar() {
               boxShadow: "inset 0 0 0 4px var(--primary)",
             }}
           />
-          <span>FOLGA HUB</span>
+          <span>ORI CRUIT HUB</span>
         </div>
 
         <nav style={{ flex: 1, padding: "1rem 0" }}>

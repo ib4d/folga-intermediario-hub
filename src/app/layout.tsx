@@ -4,7 +4,7 @@ import PWALoader from "@/components/PWALoader";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Folga Hub - SaaS Reclutamiento",
+  title: "ORI CRUIT HUB - SaaS Reclutamiento",
   description: "Plataforma SaaS de gestión de candidatos extranjeros y logística.",
   manifest: "/manifest.json",
 };

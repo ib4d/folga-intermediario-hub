@@ -51,9 +51,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
       },
       statusHistory: {
         orderBy: { createdAt: "desc" },
+        take: 10,
       },
       logistics: {
         orderBy: { createdAt: "desc" },
+        take: 5,
       },
     },
   });
@@ -81,14 +83,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const arrivalReadiness = getArrivalReadiness(candidate);
 
   return (
-    <div className="candidate-detail-shell max-w-[1600px] mx-auto p-4 lg:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <Link href="/candidatos" className="flex items-center gap-2 text-[color:var(--muted)] hover:text-[color:var(--pitch-black)] transition-colors font-semibold">
+    <div className="candidate-detail-shell">
+      <div className="candidate-detail-toolbar">
+        <Link href="/candidatos" className="candidate-back-link">
           <ArrowLeft size={18} />
           Volver a Candidatos
         </Link>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="candidate-detail-actions">
           {candidate.registrationToken ? <CopyRegistrationLink token={candidate.registrationToken} /> : null}
           {role !== "LEGAL" ? (
             <Link href={`/candidatos/${candidate.id}/edit`} className="button button-secondary flex items-center gap-2">
@@ -98,7 +100,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="candidate-profile-hero card">
         <div
           style={{
             padding: "2rem 2rem 1.75rem",
@@ -107,9 +109,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             borderBottom: "1px solid var(--border-subtle)",
           }}
         >
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
+          <div className="candidate-hero-content">
+            <div className="candidate-hero-main">
+              <div className="candidate-status-row">
                 <span
                   className={`status-badge ${
                     candidate.status === "APROBADO"
@@ -130,18 +132,18 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 ) : null}
               </div>
 
-              <h1 className="text-4xl lg:text-5xl font-black tracking-tight" style={{ marginBottom: 0 }}>
+              <h1 className="candidate-title">
                 {candidate.firstName} {candidate.lastName}
               </h1>
 
-              <div className="flex flex-wrap gap-6 font-medium" style={{ color: "var(--muted-foreground)" }}>
-                <span className="flex items-center gap-2">
+              <div className="candidate-meta-row" style={{ color: "var(--muted-foreground)" }}>
+                <span>
                   <Info size={18} /> {candidate.country}
                 </span>
-                <span className="flex items-center gap-2">
+                <span>
                   <FileText size={18} /> {candidate.passportNumber || "Sin Pasaporte"}
                 </span>
-                <span className="flex items-center gap-2">
+                <span>
                   <ClipboardList size={18} /> {candidate.phone || "Sin Telefono"}
                 </span>
               </div>
@@ -156,9 +158,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 boxShadow: "var(--shadow-soft)",
               }}
             >
-              <div className="text-sm font-bold uppercase mb-4 tracking-widest" style={{ color: "var(--muted)" }}>Intermediario</div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 flex items-center justify-center font-black text-xl" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
+              <div className="candidate-owner-label" style={{ color: "var(--muted)" }}>Intermediario</div>
+              <div className="candidate-owner-row">
+                <div className="candidate-owner-avatar" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
                   {candidate.intermediary.name?.[0]}
                 </div>
                 <div>
@@ -170,59 +172,59 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x border-t border-gray-100">
-          <div className="p-6 flex items-center gap-4">
+        <div className="candidate-stat-strip">
+          <div className="candidate-stat-item">
             <div
-              className={`w-10 h-10 flex items-center justify-center ${
+              className={`candidate-stat-icon ${
                 candidate.paid400pln ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"
               }`}
             >
               <DollarSign size={20} />
             </div>
             <div>
-              <div className="text-xs font-bold text-gray-400 uppercase">Pago 400 PLN</div>
+              <div className="candidate-stat-label">Pago 400 PLN</div>
               <div className="font-bold">{candidate.paid400pln ? "Confirmado" : "Pendiente"}</div>
             </div>
           </div>
 
-          <div className="p-6 flex items-center gap-4">
+          <div className="candidate-stat-item">
             <div
-              className={`w-10 h-10 flex items-center justify-center ${
+              className={`candidate-stat-icon ${
                 checklist.isComplete ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
               }`}
             >
               <ShieldCheck size={20} />
             </div>
             <div>
-              <div className="text-xs font-bold text-gray-400 uppercase">Documentacion</div>
+              <div className="candidate-stat-label">Documentacion</div>
               <div className="font-bold">{checklist.isComplete ? "Completa" : `${checklist.missing.length} Faltantes`}</div>
             </div>
           </div>
 
-          <div className="p-6 flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-100 text-blue-600 flex items-center justify-center">
+          <div className="candidate-stat-item">
+            <div className="candidate-stat-icon bg-blue-100 text-blue-600">
               <Truck size={20} />
             </div>
             <div>
-              <div className="text-xs font-bold text-gray-400 uppercase">Logistica</div>
+              <div className="candidate-stat-label">Logistica</div>
               <div className="font-bold">{candidate.logistics.length > 0 ? "Programada" : "No asignada"}</div>
             </div>
           </div>
 
-          <div className="p-6 flex items-center gap-4">
-            <div className="w-10 h-10 bg-gray-100 text-gray-600 flex items-center justify-center">
+          <div className="candidate-stat-item">
+            <div className="candidate-stat-icon bg-gray-100 text-gray-600">
               <History size={20} />
             </div>
             <div>
-              <div className="text-xs font-bold text-gray-400 uppercase">Ultimo Cambio</div>
+              <div className="candidate-stat-label">Ultimo Cambio</div>
               <div className="font-bold">{new Date(candidate.updatedAt).toLocaleDateString()}</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="candidate-workspace-grid">
+        <div className="candidate-main-column">
           {candidate.status === "RECHAZADO" || candidate.status === "REVISION_ADICIONAL" ? (
             <div
               className={`p-6 rounded-2xl border-2 flex gap-4 ${
@@ -260,7 +262,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+          <div className="candidate-summary-grid candidate-summary-grid-primary">
             <SummaryTile
               label="Listo Legal"
               value={checklist.isReadyForLegal ? "Si" : "No"}
@@ -293,7 +295,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             />
           </div>
 
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="candidate-summary-grid candidate-summary-grid-secondary">
             <SummaryTile
               label="Listo Llegada"
               value={arrivalReadiness.isReadyForArrival ? "Si" : "No"}
@@ -320,12 +322,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             />
           </div>
 
-          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <div className="candidate-section-card">
+            <h2 className="candidate-section-title">
               <ClipboardList className="text-blue-600" />
               Informacion Detallada
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="candidate-info-grid">
               {[
                 { label: "Nacionalidad", val: candidate.nationality },
                 { label: "Fecha Nacimiento", val: candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : null },
@@ -359,9 +361,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+          <div className="candidate-section-card candidate-documents-card">
+            <div className="candidate-section-header">
+              <h2 className="candidate-section-title">
                 <FileText className="text-blue-600" />
                 Documentacion Subida
               </h2>
@@ -453,8 +455,8 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           </div>
         </div>
 
-        <div className="space-y-6 lg:sticky lg:top-24">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <div className="candidate-side-column">
+          <div className="candidate-section-card">
             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Estado de Documentacion</h3>
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
@@ -523,7 +525,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             ) : null}
           </div>
 
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+          <div className="candidate-section-card candidate-action-card">
             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Centro de Acciones</h3>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
@@ -576,7 +578,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="candidate-section-card">
             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Historial de Estados</h3>
             <div className="space-y-6">
               {candidate.statusHistory.length === 0 ? (
@@ -601,7 +603,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <div className="candidate-section-card">
             <AuditTimeline logs={auditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
           </div>
         </div>
@@ -621,29 +623,11 @@ function SummaryTile({
   hint: string;
   tone: "neutral" | "warning" | "danger" | "success";
 }) {
-  const backgroundClass =
-    tone === "danger"
-      ? "bg-red-50 border-red-100"
-      : tone === "warning"
-        ? "bg-amber-50 border-amber-100"
-        : tone === "success"
-          ? "bg-green-50 border-green-100"
-          : "bg-white border-gray-100";
-
-  const valueClass =
-    tone === "danger"
-      ? "text-red-700"
-      : tone === "warning"
-        ? "text-amber-700"
-        : tone === "success"
-          ? "text-green-700"
-          : "text-gray-900";
-
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${backgroundClass}`}>
-      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</div>
-      <div className={`mt-2 text-2xl font-black ${valueClass}`}>{value}</div>
-      <div className="mt-1 text-xs font-semibold text-gray-500">{hint}</div>
+    <div className={`candidate-summary-tile tone-${tone}`}>
+      <div className="candidate-summary-label">{label}</div>
+      <div className="candidate-summary-value">{value}</div>
+      <div className="candidate-summary-hint">{hint}</div>
     </div>
   );
 }
