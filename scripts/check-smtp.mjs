@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import { randomUUID } from "node:crypto";
 import net from "node:net";
 import tls from "node:tls";
