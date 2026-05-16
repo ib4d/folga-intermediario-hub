@@ -42,6 +42,9 @@ function normalizeDate(value: unknown): string | undefined {
   }
 }
 
+const AZURE_MAX_IMAGE_BYTES = 3_500_000;
+const AZURE_MAX_IMAGE_DIMENSION = 2200;
+
 function normalizeDocumentNumber(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const normalized = value
@@ -372,28 +375,35 @@ function mapAzureIdDocumentFields(
   };
 }
 
-async function pdfBufferToPngBuffer(pdfBuffer: Buffer): Promise<Buffer | null> {
+async function shrinkImageForAzure(fileBuffer: Buffer, mimeType: string): Promise<Buffer> {
+  if (!mimeType.startsWith("image/")) return fileBuffer;
+  if (fileBuffer.length <= AZURE_MAX_IMAGE_BYTES) return fileBuffer;
+
   try {
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    const data = new Uint8Array(pdfBuffer);
-    const loadingTask = pdfjsLib.getDocument({ data });
-    const pdfDoc = await loadingTask.promise;
-    const page = await pdfDoc.getPage(1);
-    const scale = 2.5;
-    const viewport = page.getViewport({ scale });
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createCanvas } = require("canvas");
-    const canvas = createCanvas(viewport.width, viewport.height);
+    const { createCanvas, loadImage } = require("canvas") as typeof import("canvas");
+    const image = await loadImage(fileBuffer);
+    const scale = Math.min(
+      1,
+      AZURE_MAX_IMAGE_DIMENSION / Math.max(image.width, image.height)
+    );
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext("2d");
-    const renderContext = { canvasContext: ctx, viewport, canvas } as unknown as Parameters<
-      typeof page.render
-    >[0];
-    await page.render(renderContext).promise;
-    return canvas.toBuffer("image/png");
+    ctx.drawImage(image, 0, 0, width, height);
+
+    for (const quality of [0.82, 0.72, 0.62, 0.52]) {
+      const compressed = canvas.toBuffer("image/jpeg", { quality });
+      if (compressed.length <= AZURE_MAX_IMAGE_BYTES || quality === 0.52) {
+        return compressed;
+      }
+    }
   } catch (err) {
-    console.error("[OCR] PDF->PNG failed:", err);
-    return null;
+    console.error("[OCR] Image shrink failed; sending original image:", err);
   }
+
+  return fileBuffer;
 }
 
 export async function analyzeDocument(
@@ -406,14 +416,7 @@ export async function analyzeDocument(
   }
 
   let processBuffer = fileBuffer;
-  // const processMime = mimeType; // Removed as it is currently unused in the refined OCR flow
-
-  if (mimeType === "application/pdf" || mimeType === "application/octet-stream") {
-    const pngBuffer = await pdfBufferToPngBuffer(fileBuffer);
-    if (pngBuffer) {
-      processBuffer = pngBuffer;
-    }
-  }
+  processBuffer = await shrinkImageForAzure(fileBuffer, mimeType);
 
   const restoreProxyEnv = disableBrokenLoopbackProxy();
 
