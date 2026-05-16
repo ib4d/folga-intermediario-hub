@@ -42,6 +42,68 @@ function normalizeDate(value: unknown): string | undefined {
   }
 }
 
+function normalizeDocumentNumber(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9]/gi, "")
+    .toUpperCase();
+
+  if (!/[0-9]/.test(normalized)) return undefined;
+
+  const rejected = new Set([
+    "REMARKS",
+    "UWAGI",
+    "ADDRESSOFREGISTRATION",
+    "ADRESZAMELDOWANIA",
+    "PASSPORT",
+    "PASAPORTE",
+    "KARTAPOBYTU",
+  ]);
+
+  if (rejected.has(normalized)) return undefined;
+  return /^[A-Z0-9]{6,14}$/.test(normalized) ? normalized : undefined;
+}
+
+function normalizeHumanDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const monthMap: Record<string, string> = {
+    JAN: "01",
+    FEB: "02",
+    MAR: "03",
+    APR: "04",
+    MAY: "05",
+    MAJ: "05",
+    JUN: "06",
+    JUL: "07",
+    AUG: "08",
+    AGO: "08",
+    SEP: "09",
+    OCT: "10",
+    PAZ: "10",
+    NOV: "11",
+    DEC: "12",
+    DIC: "12",
+  };
+
+  const compact = value.trim().toUpperCase().replace(/\s+/g, " ");
+  const numeric = compact.match(/\b(\d{1,2})[./\s-]+(\d{1,2})[./\s-]+(\d{4})\b/);
+  if (numeric) {
+    const [, day, month, year] = numeric;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  const named = compact.match(/\b(\d{1,2})\s+([A-ZÁÉÍÓÚÑ]{3,})[./A-Z]*\s+(\d{4})\b/);
+  if (named) {
+    const [, day, rawMonth, year] = named;
+    const month = monthMap[normalizeSearchText(rawMonth).slice(0, 3)];
+    if (month) return `${year}-${month}-${day.padStart(2, "0")}`;
+  }
+
+  return normalizeDate(value);
+}
+
 function extractFieldValue(field: unknown): string | undefined {
   if (!field) return undefined;
   const f = field as Record<string, unknown>;
@@ -185,26 +247,41 @@ function mapAzureIdDocumentFields(
       /\b([0-9]{11})\b/,
     ]);
 
-  let docNumber =
+  let docNumber = normalizeDocumentNumber(
     get("DocumentNumber") ??
-    extractRawFieldText(fields, ["IdNumber", "Number", "CardNumber"]) ??
-    extractRegexGroup(rawText, [
-      /\b([A-Z]{2}\d{7,9})\b/i,
-      /\b([A-Z0-9]{6,12})\b/,
-    ]);
+      extractRawFieldText(fields, ["IdNumber", "Number", "CardNumber"]) ??
+      extractRegexGroup(rawText, [
+        /(?:PASSPORT\s*NO\.?|PASAPORTE\s*N[°O.]*)[:\s-]*([A-Z0-9]{6,14})/i,
+        /(?:KARTA\s+POBYTU|RESIDENCE\s+PERMIT)[\s\S]{0,80}\b([A-Z]{1,3}\d{6,10})\b/i,
+        /\b([A-Z]{1,3}\d{6,10})\b/i,
+      ])
+  );
 
   if (!docNumber) {
     for (const key in fields) {
       const val = extractFieldValue(fields[key]);
-      if (val && /^[A-Z0-9]{6,12}$/i.test(val)) {
-        docNumber = val;
+      const normalizedVal = normalizeDocumentNumber(val);
+      if (normalizedVal) {
+        docNumber = normalizedVal;
         break;
       }
     }
   }
 
-  const issueDate = normalizeDate(get("DateOfIssue"));
-  const expiryDate = normalizeDate(get("DateOfExpiry") ?? get("DateOfExpiration"));
+  const issueDate =
+    normalizeDate(get("DateOfIssue")) ??
+    normalizeHumanDate(
+      extractRegexGroup(rawText, [
+        /(?:DATE OF ISSUE|FECHA DE EXPEDICI[OÓ]N|DATA WYDANIA[^0-9]*)[:\s-]*([0-9A-ZÁÉÍÓÚÑ./\s-]{8,24})/i,
+      ])
+    );
+  const expiryDate =
+    normalizeDate(get("DateOfExpiry") ?? get("DateOfExpiration")) ??
+    normalizeHumanDate(
+      extractRegexGroup(rawText, [
+        /(?:DATE OF EXPIRY|DATE OF EXPIRATION|FECHA DE VENCIMIENTO|DATA WA[ŻZ]NO[ŚS]CI)[:\s-]*([0-9A-ZÁÉÍÓÚÑ./\s-]{8,24})/i,
+      ])
+    );
   const passportAuthority =
     normalizeWhitespace(get("IssuingAuthority")) ??
     extractRegexGroup(rawText, [
@@ -235,6 +312,26 @@ function mapAzureIdDocumentFields(
       ])
     );
   const inferredDocumentType = inferDocumentType(fields, rawText);
+
+  if (inferredDocumentType === "PASSPORT") {
+    docNumber =
+      normalizeDocumentNumber(
+        extractRegexGroup(rawText, [
+          /(?:PASSPORT\s*NO\.?|PASAPORTE\s*N[°O.]*)[:\s-]*([A-Z0-9]{6,14})/i,
+          /\b([A-Z]{1,2}\d{6,9})\b/i,
+        ])
+      ) ?? docNumber;
+  }
+
+  if (inferredDocumentType === "KARTA_POBYTU") {
+    docNumber =
+      normalizeDocumentNumber(
+        extractRegexGroup(rawText, [
+          /\b(RS\d{6,10})\b/i,
+          /\b([A-Z]{1,3}\d{6,10})\b/i,
+        ])
+      ) ?? docNumber;
+  }
   const issuingCountry =
     get("CountryRegion") ??
     get("IssuingCountry") ??

@@ -38,6 +38,9 @@ export default function RequestLegalReview({
 
         if (response.ok) {
           setSent(true);
+          if (Array.isArray(data?.blockers) && data.blockers.length > 0) {
+            alert("Revision legal solicitada con advertencias activas. Legal podra revisar los bloqueos desde su cola.");
+          }
           return;
         }
 
@@ -90,14 +93,14 @@ export default function RequestLegalReview({
 
       <button
         onClick={handleRequest}
-        disabled={isPending || !isReadyForLegal}
+        disabled={isPending}
         className="button"
         style={{
           width: "100%",
           backgroundColor: "var(--pitch-black)",
           color: "var(--amber-flame)",
-          opacity: isPending || !isReadyForLegal ? 0.55 : 1,
-          cursor: isPending || !isReadyForLegal ? "not-allowed" : "pointer",
+          opacity: isPending ? 0.55 : 1,
+          cursor: isPending ? "not-allowed" : "pointer",
         }}
       >
         <Send size={16} />

@@ -35,28 +35,6 @@ export async function POST(
 
   const checklist = getCandidateDocumentChecklist(candidate);
 
-  if (!checklist.isComplete) {
-    return NextResponse.json(
-      {
-        error: `No se puede enviar a legal. Documentos faltantes: ${checklist.missing.join(", ")}`,
-        missing: checklist.missing,
-        blockers: checklist.blockers,
-      },
-      { status: 400 },
-    );
-  }
-
-  if (!checklist.isReadyForLegal) {
-    return NextResponse.json(
-      {
-        error: `No se puede enviar a legal. Bloqueos activos: ${checklist.blockers.join("; ")}`,
-        missing: checklist.missing,
-        blockers: checklist.blockers,
-      },
-      { status: 400 },
-    );
-  }
-
   await prisma.candidate.update({
     where: { id },
     data: { status: "EN_REVISION_LEGAL" as import("@prisma/client").CandidateStatus },
@@ -105,10 +83,16 @@ export async function POST(
       details: {
         requestedBy: session.user.id,
         blockersAtRequest: checklist.blockers,
+        missingAtRequest: checklist.missing,
         warningsAtRequest: checklist.warnings,
       } as never,
     },
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    missing: checklist.missing,
+    blockers: checklist.blockers,
+    warnings: checklist.warnings,
+  });
 }

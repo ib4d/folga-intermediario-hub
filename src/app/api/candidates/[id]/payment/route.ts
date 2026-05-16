@@ -66,21 +66,21 @@ export async function PATCH(
   }
 
   try {
-    const updated = await prisma.$transaction(async (tx) => {
-      const nextCandidate = await tx.candidate.update({
-        where: { id: candidate.id },
-        data: {
-          paid400pln: body.paid400pln,
-          paymentDate: body.paymentDate,
-        },
-        select: {
-          id: true,
-          paid400pln: true,
-          paymentDate: true,
-        },
-      });
+    const updated = await prisma.candidate.update({
+      where: { id: candidate.id },
+      data: {
+        paid400pln: body.paid400pln,
+        paymentDate: body.paymentDate,
+      },
+      select: {
+        id: true,
+        paid400pln: true,
+        paymentDate: true,
+      },
+    });
 
-      await tx.auditLog.create({
+    try {
+      await prisma.auditLog.create({
         data: {
           userId: tenant.userId,
           organizationId: tenant.organizationId,
@@ -93,9 +93,9 @@ export async function PATCH(
           } satisfies Prisma.InputJsonValue,
         },
       });
-
-      return nextCandidate;
-    });
+    } catch (auditError) {
+      console.error("[Payment] Candidate payment saved but audit log failed", auditError);
+    }
 
     return NextResponse.json({ success: true, candidate: updated });
   } catch (error) {

@@ -46,7 +46,21 @@ function normalizeFileName(name: string): string {
 function normalizeOptionalString(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const normalized = String(value).trim();
-  return normalized.length > 0 ? normalized : null;
+  if (normalized.length === 0) return null;
+
+  const placeholderValues = new Set([
+    "ADDRESS OF REGISTRATION",
+    "/ADDRESS OF REGISTRATION",
+    "ADRES ZAMELDOWANIA",
+    "REMARKS",
+    "UWAGI",
+    "NO DISPONIBLE",
+    "N/A",
+    "NULL",
+    "UNDEFINED",
+  ]);
+
+  return placeholderValues.has(normalized.toUpperCase()) ? null : normalized;
 }
 
 function normalizeMimeType(file: File): string {
@@ -500,7 +514,8 @@ async function resolveSmartUploadCandidate(
   file: File,
   ocrData: Awaited<ReturnType<typeof analyzeDocument>>,
   explicitCandidateId: string | null,
-  batchCandidates: Map<string, string>
+  batchCandidates: Map<string, string>,
+  batchAnchorCandidateId: string | null
 ) {
   if (explicitCandidateId) {
     const candidate = await prisma.candidate.findFirst({
@@ -570,6 +585,19 @@ async function resolveSmartUploadCandidate(
 
     if (byPersonalNumber) {
       return { candidate: byPersonalNumber, created: false };
+    }
+  }
+
+  if (batchAnchorCandidateId) {
+    const batchCandidate = await prisma.candidate.findFirst({
+      where: {
+        id: batchAnchorCandidateId,
+        organizationId: tenant.organizationId!,
+      },
+    });
+
+    if (batchCandidate) {
+      return { candidate: batchCandidate, created: false };
     }
   }
 
@@ -1271,6 +1299,7 @@ export async function smartBatchUpload(formData: FormData) {
 
   const results: Array<{ filename: string; success: boolean; message: string }> = [];
   const batchCandidates = new Map<string, string>();
+  let batchAnchorCandidateId: string | null = candidateId;
 
   for (const file of files) {
     try {
@@ -1283,8 +1312,13 @@ export async function smartBatchUpload(formData: FormData) {
         file,
         ocrData,
         candidateId,
-        batchCandidates
+        batchCandidates,
+        batchAnchorCandidateId
       );
+
+      if (!batchAnchorCandidateId) {
+        batchAnchorCandidateId = resolved.candidate.id;
+      }
 
       const single = new FormData();
       single.append("file", file);
