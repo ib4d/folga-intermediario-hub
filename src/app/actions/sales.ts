@@ -37,7 +37,16 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
 
   if (!lead || !lead.email) throw new Error("Lead no válido o sin email");
 
-  // Create outreach record
+  const emailResult = await sendEmail({
+    to: lead.email,
+    subject: `Propuesta para ${lead.company || lead.name}`,
+    body: message
+  });
+
+  if (!emailResult.success) {
+    throw new Error(`No se pudo enviar el correo: ${emailResult.error || "SMTP_SEND_FAILED"}`);
+  }
+
   const outreach = await prisma.outreach.create({
     data: {
       leadId,
@@ -46,13 +55,6 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
       message,
       sentAt: new Date()
     }
-  });
-
-  // Actually send email (placeholder integration)
-  await sendEmail({
-    to: lead.email,
-    subject: `Propuesta para ${lead.company || lead.name}`,
-    body: message
   });
 
   await prisma.lead.update({

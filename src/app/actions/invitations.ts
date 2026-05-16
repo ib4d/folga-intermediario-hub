@@ -20,15 +20,24 @@ function normalizeRole(value: FormDataEntryValue | null): Role | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toUpperCase();
 
-  if (normalized === "INTERMEDIARIO" || normalized === "LEGAL" || normalized === "ADMIN") {
+  if (
+    normalized === "INTERMEDIARIO" ||
+    normalized === "LEGAL" ||
+    normalized === "LOGISTICA" ||
+    normalized === "ADMIN"
+  ) {
     return normalized as Role;
   }
 
   return null;
 }
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function generateTemporaryPassword(): string {
-  return `Folga-${randomBytes(4).toString("hex")}`;
+  return `OriCruit-${randomBytes(9).toString("base64url")}`;
 }
 
 export async function inviteUserAction(
@@ -58,6 +67,15 @@ export async function inviteUserAction(
   if (!name || !email || !role) {
     return {
       error: "Completa nombre, correo y rol para continuar.",
+      success: "",
+      emailSent: false,
+      tempPassword: "",
+    };
+  }
+
+  if (!isValidEmail(email)) {
+    return {
+      error: "Introduce un correo electronico valido.",
       success: "",
       emailSent: false,
       tempPassword: "",

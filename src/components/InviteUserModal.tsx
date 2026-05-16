@@ -170,6 +170,7 @@ export default function InviteUserModal() {
                 >
                   <option value="INTERMEDIARIO">Intermediario</option>
                   <option value="LEGAL">Legal</option>
+                  <option value="LOGISTICA">Logistica</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
                 <p
