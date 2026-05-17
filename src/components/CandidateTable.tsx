@@ -32,12 +32,14 @@ export default function CandidateTable({
   totalPages,
   totalCandidates,
   currentLimit,
+  canManageCandidates,
 }: {
   candidates: CandidateRow[];
   pageNumber: number;
   totalPages: number;
   totalCandidates: number;
   currentLimit: string;
+  canManageCandidates: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -118,7 +120,7 @@ export default function CandidateTable({
             Vista operativa densa con {currentLimit === "ALL" ? "todos" : currentLimit} por pagina.
           </div>
         </div>
-        {selectedIds.length > 0 ? (
+        {canManageCandidates && selectedIds.length > 0 ? (
           <button
             type="button"
             className="button button-secondary"
@@ -136,11 +138,13 @@ export default function CandidateTable({
         <table className="candidate-table">
           <thead>
             <tr>
-              <th style={{ width: "52px" }}>
-                <button type="button" className="icon-button" onClick={toggleAll} aria-label="Seleccionar todos">
-                  {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                </button>
-              </th>
+              {canManageCandidates ? (
+                <th style={{ width: "52px" }}>
+                  <button type="button" className="icon-button" onClick={toggleAll} aria-label="Seleccionar todos">
+                    {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                  </button>
+                </th>
+              ) : null}
               <th>Candidato</th>
               <th>Pais</th>
               <th>Docs</th>
@@ -152,20 +156,22 @@ export default function CandidateTable({
           <tbody>
             {candidates.map((candidate) => (
               <tr key={candidate.id}>
-                <td>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    onClick={() => toggleSelected(candidate.id)}
-                    aria-label={`Seleccionar ${getCandidateName(candidate)}`}
-                  >
-                    {selectedIds.includes(candidate.id) ? (
-                      <CheckSquare size={16} color="var(--amber-flame)" />
-                    ) : (
-                      <Square size={16} />
-                    )}
-                  </button>
-                </td>
+                {canManageCandidates ? (
+                  <td>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => toggleSelected(candidate.id)}
+                      aria-label={`Seleccionar ${getCandidateName(candidate)}`}
+                    >
+                      {selectedIds.includes(candidate.id) ? (
+                        <CheckSquare size={16} color="var(--amber-flame)" />
+                      ) : (
+                        <Square size={16} />
+                      )}
+                    </button>
+                  </td>
+                ) : null}
                 <td>
                   <div className="candidate-name-cell">
                     <div className="candidate-name">{getCandidateName(candidate)}</div>
@@ -184,21 +190,23 @@ export default function CandidateTable({
                       <Eye size={15} />
                       Ver
                     </Link>
-                    {!candidate.selfRegistered ? (
+                    {canManageCandidates && !candidate.selfRegistered ? (
                       <CopyRegistrationLink
                         candidateId={candidate.registrationToken ? undefined : candidate.id}
                         token={candidate.registrationToken ?? undefined}
                       />
                     ) : null}
-                    <button
-                      type="button"
-                      className="button button-outline candidate-action-button danger"
-                      onClick={() => handleDeleteSingle(candidate)}
-                      disabled={isPending}
-                    >
-                      <Trash2 size={15} />
-                      Eliminar
-                    </button>
+                    {canManageCandidates ? (
+                      <button
+                        type="button"
+                        className="button button-outline candidate-action-button danger"
+                        onClick={() => handleDeleteSingle(candidate)}
+                        disabled={isPending}
+                      >
+                        <Trash2 size={15} />
+                        Eliminar
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>

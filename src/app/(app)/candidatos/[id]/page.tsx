@@ -19,6 +19,7 @@ import {
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { canUploadCandidateDocuments } from "@/lib/permissions";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -79,6 +80,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const role = tenant.role;
+  const canManageDocuments = canUploadCandidateDocuments(role);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
   const arrivalReadiness = getArrivalReadiness(candidate);
 
@@ -367,7 +369,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <FileText className="text-blue-600" />
                 Documentacion Subida
               </h2>
-              {role !== "LEGAL" ? <DocumentUploadButton candidateId={candidate.id} /> : null}
+              {canManageDocuments ? <DocumentUploadButton candidateId={candidate.id} /> : null}
             </div>
 
             <div className="overflow-x-auto">
@@ -442,7 +444,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                             >
                               Ver
                             </a>
-                            {role !== "LEGAL" ? <DeleteDocumentButton documentId={doc.id} /> : null}
+                            {canManageDocuments ? <DeleteDocumentButton documentId={doc.id} /> : null}
                           </div>
                         </td>
                       </tr>

@@ -6,7 +6,7 @@ import InviteUserModal from "@/components/InviteUserModal";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
-import { canManageMemberRole, canViewMemberRole, getInvitableRoles, roleLabel } from "@/lib/permissions";
+import { canAccessModule, canManageMemberRole, canViewMemberRole, getInvitableRoles, roleLabel } from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
@@ -117,6 +117,7 @@ export default async function AjustesPage() {
           padding: "1.5rem 0",
         }}
       >
+        {canAccessModule(tenant.role, "branding") ? (
         <Link
           href="/ajustes/branding"
           className="card"
@@ -128,6 +129,8 @@ export default async function AjustesPage() {
             <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Logo y colores</div>
           </div>
         </Link>
+        ) : null}
+        {canAccessModule(tenant.role, "apiKeys") ? (
         <Link
           href="/ajustes/api-keys"
           className="card"
@@ -139,6 +142,8 @@ export default async function AjustesPage() {
             <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Integraciones</div>
           </div>
         </Link>
+        ) : null}
+        {canAccessModule(tenant.role, "billing") ? (
         <Link
           href="/billing"
           className="card"
@@ -150,6 +155,7 @@ export default async function AjustesPage() {
             <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Plan y pagos</div>
           </div>
         </Link>
+        ) : null}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "2rem", alignItems: "start" }}>

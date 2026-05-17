@@ -3,6 +3,8 @@ import { PLAN_LIMITS } from "@/lib/billing/limits";
 import { getStripePaymentLink } from "@/lib/billing/stripe";
 import { CheckCircle2, ExternalLink } from "lucide-react";
 import { Plan } from "@prisma/client";
+import { canAccessModule } from "@/lib/permissions";
+import { redirect } from "next/navigation";
 
 const plans: Array<{ name: Plan; price: string; desc: string }> = [
   { name: Plan.FREE, price: "0 EUR", desc: "Para validar la operacion inicial." },
@@ -16,7 +18,8 @@ function formatLimit(value: number, label: string) {
 }
 
 export default async function PlansPage() {
-  await requireTenant();
+  const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
 
   return (
     <div className="content-shell">

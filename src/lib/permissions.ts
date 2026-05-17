@@ -3,6 +3,45 @@ import { Role } from "@prisma/client";
 const ADMIN_MANAGED_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA] as const;
 const SUPERADMIN_INVITABLE_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA, Role.ADMIN] as const;
 
+export type AppModule =
+  | "dashboard"
+  | "candidates"
+  | "documents"
+  | "logistics"
+  | "legal"
+  | "settings"
+  | "billing"
+  | "apiKeys"
+  | "branding";
+
+const MODULE_ACCESS: Record<Role, AppModule[]> = {
+  [Role.SUPERADMIN]: [
+    "dashboard",
+    "candidates",
+    "documents",
+    "logistics",
+    "legal",
+    "settings",
+    "billing",
+    "apiKeys",
+    "branding",
+  ],
+  [Role.ADMIN]: [
+    "dashboard",
+    "candidates",
+    "documents",
+    "logistics",
+    "legal",
+    "settings",
+    "billing",
+    "apiKeys",
+    "branding",
+  ],
+  [Role.INTERMEDIARIO]: ["dashboard", "candidates", "documents", "settings"],
+  [Role.LEGAL]: ["dashboard", "candidates", "documents", "legal", "settings"],
+  [Role.LOGISTICA]: ["dashboard", "candidates", "logistics", "settings"],
+};
+
 export function canViewMemberRole(viewerRole: Role, targetRole: Role, isSelf = false): boolean {
   if (isSelf) return true;
   if (viewerRole === Role.SUPERADMIN) return true;
@@ -26,6 +65,30 @@ export function getInvitableRoles(viewerRole: Role): Role[] {
 export function canAssignRole(viewerRole: Role, nextRole: Role): boolean {
   if (viewerRole === Role.SUPERADMIN && nextRole === Role.SUPERADMIN) return true;
   return getInvitableRoles(viewerRole).includes(nextRole);
+}
+
+export function canAccessModule(viewerRole: Role, module: AppModule): boolean {
+  return MODULE_ACCESS[viewerRole]?.includes(module) ?? false;
+}
+
+export function canCreateCandidates(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
+}
+
+export function canImportCandidates(viewerRole: Role): boolean {
+  return canCreateCandidates(viewerRole);
+}
+
+export function canUploadCandidateDocuments(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
+}
+
+export function canDeleteCandidates(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
+}
+
+export function canGenerateRegistrationLinks(viewerRole: Role): boolean {
+  return canCreateCandidates(viewerRole);
 }
 
 export function roleLabel(role: Role): string {

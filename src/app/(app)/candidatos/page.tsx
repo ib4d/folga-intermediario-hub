@@ -8,6 +8,7 @@ import { CandidateStatus, Prisma } from "@prisma/client";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import CandidateTable from "@/components/CandidateTable";
+import { canCreateCandidates, canDeleteCandidates, canImportCandidates } from "@/lib/permissions";
 
 export default async function CandidatosPage({
   searchParams,
@@ -67,15 +68,17 @@ export default async function CandidatosPage({
         description="Gestion completa de candidatos y sus estados legales."
         actions={
           <>
-            <BulkImportCandidates />
-            <Link
-              href="/candidatos/nuevo"
-              className="button"
-              style={{ backgroundColor: "var(--pitch-black)", color: "var(--amber-flame)" }}
-            >
-              <PlusCircle size={20} />
-              Anadir Candidato
-            </Link>
+            {canImportCandidates(tenant.role) ? <BulkImportCandidates /> : null}
+            {canCreateCandidates(tenant.role) ? (
+              <Link
+                href="/candidatos/nuevo"
+                className="button"
+                style={{ backgroundColor: "var(--pitch-black)", color: "var(--amber-flame)" }}
+              >
+                <PlusCircle size={20} />
+                Anadir Candidato
+              </Link>
+            ) : null}
           </>
         }
       />
@@ -106,6 +109,7 @@ export default async function CandidatosPage({
           totalPages={totalPages}
           totalCandidates={totalCandidates}
           currentLimit={limit}
+          canManageCandidates={canDeleteCandidates(tenant.role)}
         />
       )}
     </>

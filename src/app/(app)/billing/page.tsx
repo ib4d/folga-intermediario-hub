@@ -4,6 +4,8 @@ import { CreditCard, ExternalLink, Zap } from "lucide-react";
 import Link from "next/link";
 import { getPlanLimits } from "@/lib/billing/limits";
 import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
+import { canAccessModule } from "@/lib/permissions";
+import { redirect } from "next/navigation";
 
 function formatLimit(value: number) {
   return value === Infinity ? "Ilimitado" : value.toLocaleString("es-ES");
@@ -16,6 +18,7 @@ function usagePercent(used: number, limit: number) {
 
 export default async function BillingPage() {
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
   const stripeConfigured = isStripeConfigured();
   const portalUrl = getStripePortalUrl();
 

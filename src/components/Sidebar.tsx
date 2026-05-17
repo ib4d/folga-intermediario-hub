@@ -6,19 +6,23 @@ import { BarChart3, Briefcase, Car, FileText, Globe, Menu, Settings, Users, X } 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 
+type SidebarRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
 
+  const role = session?.user?.role as SidebarRole | undefined;
   const links = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-    { name: "Candidatos", href: "/candidatos", icon: Users },
-    { name: "Documentos", href: "/documentos", icon: FileText },
-    { name: "Logistica", href: "/logistica", icon: Car },
-    { name: "Legal", href: "/legal", icon: Briefcase },
-    { name: "Ajustes", href: "/ajustes", icon: Settings },
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: "Candidatos", href: "/candidatos", icon: Users, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: "Documentos", href: "/documentos", icon: FileText, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL"] },
+    { name: "Logistica", href: "/logistica", icon: Car, roles: ["SUPERADMIN", "ADMIN", "LOGISTICA"] },
+    { name: "Legal", href: "/legal", icon: Briefcase, roles: ["SUPERADMIN", "ADMIN", "LEGAL"] },
+    { name: "Ajustes", href: "/ajustes", icon: Settings, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
   ];
+  const visibleLinks = links.filter((link) => role && link.roles.includes(role));
 
   const isPlatformAdmin = session?.user?.isPlatformAdmin;
 
@@ -45,7 +49,7 @@ export default function Sidebar() {
         </div>
 
         <nav style={{ flex: 1, padding: "1rem 0" }}>
-          {links.map((link) => {
+          {visibleLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
             return (

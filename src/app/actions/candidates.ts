@@ -13,6 +13,7 @@ import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getStorageProvider } from "@/lib/providers/storage";
+import { canCreateCandidates, canDeleteCandidates, canGenerateRegistrationLinks, canImportCandidates } from "@/lib/permissions";
 
 function parseDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -539,6 +540,10 @@ function buildImportedCandidatePatch(
 export async function createCandidate(formData: FormData) {
   const tenant = await requireTenant();
 
+  if (!canCreateCandidates(tenant.role)) {
+    throw new Error("Tu rol no puede crear candidatos.");
+  }
+
   await assertWithinPlanLimit(tenant.organizationId!, "candidates");
 
   const raw = Object.fromEntries(formData.entries());
@@ -856,6 +861,10 @@ export async function importCandidatesFromExcel(formData: FormData) {
   const tenant = await requireTenant();
   const file = formData.get("file") as File | null;
 
+  if (!canImportCandidates(tenant.role)) {
+    return { success: false, error: "Tu rol no puede importar bases de candidatos." };
+  }
+
   if (!file) return { success: false, error: "No file provided" };
 
   try {
@@ -936,6 +945,10 @@ export async function importCandidatesFromExcel(formData: FormData) {
 export async function generateRegistrationLink(candidateId: string) {
   const tenant = await requireTenant();
 
+  if (!canGenerateRegistrationLinks(tenant.role)) {
+    throw new Error("Tu rol no puede generar links de registro.");
+  }
+
   const candidate = await prisma.candidate.findFirst({
     where: {
       id: candidateId,
@@ -963,6 +976,10 @@ export async function generateRegistrationLink(candidateId: string) {
 
 export async function deleteCandidate(candidateId: string) {
   const tenant = await requireTenant();
+
+  if (!canDeleteCandidates(tenant.role)) {
+    throw new Error("Tu rol no puede eliminar candidatos.");
+  }
 
   const candidate = await prisma.candidate.findFirst({
     where: candidateVisibilityWhere(tenant, { id: candidateId }),
@@ -1044,6 +1061,10 @@ export async function deleteCandidate(candidateId: string) {
 
 export async function deleteCandidatesBulk(candidateIds: string[]) {
   const tenant = await requireTenant();
+
+  if (!canDeleteCandidates(tenant.role)) {
+    throw new Error("Tu rol no puede eliminar candidatos.");
+  }
 
   if (!Array.isArray(candidateIds) || candidateIds.length === 0) {
     throw new Error("No se recibieron candidatos para eliminar.");

@@ -2,9 +2,13 @@ import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Key, Trash2, Plus } from "lucide-react";
+import { canAccessModule } from "@/lib/permissions";
+import { redirect } from "next/navigation";
 
 export default async function ApiKeysPage() {
   const tenant = await requireTenant();
+
+  if (!canAccessModule(tenant.role, "apiKeys")) redirect("/sin-permisos");
 
   if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {
     return <div className="card" style={{ padding: "2rem" }}>Sin acceso a esta sección.</div>;

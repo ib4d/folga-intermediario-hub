@@ -1,10 +1,13 @@
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { canAccessModule } from "@/lib/permissions";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function BrandingSettingsPage() {
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "branding")) redirect("/sin-permisos");
 
   const org = await prisma.organization.findUnique({
     where: { id: tenant.organizationId! },

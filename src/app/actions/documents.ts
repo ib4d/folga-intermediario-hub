@@ -9,6 +9,7 @@ import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
 import { emitEvent } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
+import { canUploadCandidateDocuments } from "@/lib/permissions";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -755,6 +756,13 @@ async function resolveSmartUploadCandidate(
 export async function uploadDocument(formData: FormData) {
   const tenant = await requireTenant();
 
+  if (!canUploadCandidateDocuments(tenant.role)) {
+    return {
+      success: false,
+      message: "Tu rol no puede subir documentos de candidatos.",
+    };
+  }
+
   await assertWithinPlanLimit(tenant.organizationId!, "documentsPerMonth");
 
   const file = formData.get("file") as File | null;
@@ -1243,6 +1251,10 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
 export async function deleteDocument(documentId: string) {
   const tenant = await requireTenant();
 
+  if (!canUploadCandidateDocuments(tenant.role)) {
+    throw new Error("Tu rol no puede eliminar documentos de candidatos.");
+  }
+
   const document = await prisma.document.findFirst({
     where: {
       id: documentId,
@@ -1282,6 +1294,19 @@ export async function deleteDocument(documentId: string) {
 
 export async function smartBatchUpload(formData: FormData) {
   const tenant = await requireTenant();
+
+  if (!canUploadCandidateDocuments(tenant.role)) {
+    return {
+      success: true,
+      results: [
+        {
+          filename: "bulk-upload",
+          success: false,
+          message: "Tu rol no puede subir documentos en lote.",
+        },
+      ],
+    };
+  }
   const candidateIdValue = formData.get("candidateId");
   const files = formData.getAll("files") as File[];
   const candidateId =
@@ -1362,7 +1387,16 @@ export async function smartBatchUpload(formData: FormData) {
         results.push({
           filename: file.name,
           success: false,
-          message: result.message,
+          message: result.message ?? "No se pudo completar la subida del documento.",
+        });
+        continue;
+      }
+
+      if (!result.documentId) {
+        results.push({
+          filename: file.name,
+          success: false,
+          message: "El documento se proceso sin identificador persistente.",
         });
         continue;
       }

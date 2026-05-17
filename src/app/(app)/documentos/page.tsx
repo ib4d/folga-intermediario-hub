@@ -5,6 +5,7 @@ import DocumentTable from "@/components/DocumentTable";
 import Link from "next/link";
 import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Prisma } from "@prisma/client";
+import { canUploadCandidateDocuments } from "@/lib/permissions";
 
 export default async function DocumentosPage({
   searchParams,
@@ -76,7 +77,13 @@ export default async function DocumentosPage({
       <div className="card" style={{ marginBottom: '2rem' }}>
         <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
           <h2>Carga de Documentos</h2>
-          <BatchUploadButton candidates={formattedCandidates} />
+          {canUploadCandidateDocuments(tenant.role) ? (
+            <BatchUploadButton candidates={formattedCandidates} />
+          ) : (
+            <span style={{ color: "var(--muted)", fontWeight: 800, fontSize: "0.85rem" }}>
+              Carga restringida para este rol
+            </span>
+          )}
         </div>
       </div>
 
