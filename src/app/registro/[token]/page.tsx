@@ -1,107 +1,197 @@
 import { getCandidateByToken } from "@/app/actions/public-registration";
 import CandidateRegistrationForm from "@/components/registration/CandidateRegistrationForm";
+import LanguageSwitcher from "@/components/public/LanguageSwitcher";
+import { AppLanguage, normalizeLanguage } from "@/lib/i18n";
 
-export default async function RegistroPage({ params }: { params: Promise<{ token: string }> }) {
+const copy = {
+  es: {
+    invalidTitle: "Enlace invalido",
+    invalidDescription:
+      "Este enlace de registro no es valido o ha expirado. Por favor, contacte a su reclutador.",
+    usedTitle: "Ya registrado",
+    usedDescription:
+      "Este enlace ya ha sido utilizado. Si necesita realizar cambios, contacte con su reclutador.",
+    badge: "Registro oficial",
+    description: "Complete su informacion para iniciar el proceso de legalizacion.",
+    recruiter: "Reclutador",
+    footer: "ORI CRUIT HUB. Todos los derechos reservados.",
+  },
+  en: {
+    invalidTitle: "Invalid link",
+    invalidDescription:
+      "This registration link is not valid or has expired. Please contact your recruiter.",
+    usedTitle: "Already registered",
+    usedDescription:
+      "This link has already been used. If you need changes, contact your recruiter.",
+    badge: "Official registration",
+    description: "Complete your information to start the legalization process.",
+    recruiter: "Recruiter",
+    footer: "ORI CRUIT HUB. All rights reserved.",
+  },
+  pl: {
+    invalidTitle: "Nieprawidlowy link",
+    invalidDescription:
+      "Ten link rejestracyjny jest nieprawidlowy albo wygasl. Skontaktuj sie z rekruterem.",
+    usedTitle: "Juz zarejestrowano",
+    usedDescription:
+      "Ten link zostal juz uzyty. Jesli potrzebujesz zmian, skontaktuj sie z rekruterem.",
+    badge: "Oficjalna rejestracja",
+    description: "Uzupelnij dane, aby rozpoczac proces legalizacji.",
+    recruiter: "Rekruter",
+    footer: "ORI CRUIT HUB. Wszelkie prawa zastrzezone.",
+  },
+} satisfies Record<AppLanguage, Record<string, string>>;
+
+function MessageCard({
+  language,
+  title,
+  description,
+  tone = "warning",
+}: {
+  language: AppLanguage;
+  title: string;
+  description: string;
+  tone?: "warning" | "danger";
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "2.5rem",
+          border: "4px solid var(--pitch-black)",
+          boxShadow: "8px 8px 0px var(--pitch-black)",
+          maxWidth: "460px",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+          <LanguageSwitcher currentLanguage={language} />
+        </div>
+        <h1
+          style={{
+            fontSize: "2rem",
+            fontWeight: 900,
+            color: tone === "danger" ? "#ef4444" : "var(--pitch-black)",
+            marginBottom: "1rem",
+            textTransform: "uppercase",
+          }}
+        >
+          {title}
+        </h1>
+        <p style={{ fontWeight: 900, fontSize: "1rem", lineHeight: 1.5 }}>{description}</p>
+      </div>
+    </div>
+  );
+}
+
+export default async function RegistroPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
   const { token } = await params;
+  const { lang } = await searchParams;
+  const language = normalizeLanguage(lang);
+  const text = copy[language];
   const candidate = await getCandidateByToken(token);
-  
+
   if (!candidate) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-white">
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '2.5rem', 
-          border: '4px solid var(--pitch-black)', 
-          boxShadow: '8px 8px 0px var(--pitch-black)',
-          maxWidth: '450px', 
-          textAlign: 'center' 
-        }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: '900', color: '#ef4444', marginBottom: '1.5rem', textTransform: 'uppercase' }}>ENLACE INVÁLIDO</h1>
-          <p style={{ fontWeight: 'bold', fontSize: '1rem' }}>Este enlace de registro no es válido o ha expirado. Por favor, contacte a su reclutador.</p>
-        </div>
-      </div>
+      <MessageCard
+        language={language}
+        title={text.invalidTitle}
+        description={text.invalidDescription}
+        tone="danger"
+      />
     );
   }
-  
+
   if (candidate.selfRegistered) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-white">
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '2.5rem', 
-          border: '4px solid var(--pitch-black)', 
-          boxShadow: '8px 8px 0px var(--pitch-black)',
-          maxWidth: '450px', 
-          textAlign: 'center' 
-        }}>
-          <div style={{ 
-            width: '80px', 
-            height: '80px', 
-            backgroundColor: 'var(--amber-flame)', 
-            border: '3px solid var(--pitch-black)',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            margin: '0 auto 1.5rem' 
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '900', marginBottom: '1rem', textTransform: 'uppercase' }}>YA REGISTRADO</h1>
-          <p style={{ fontWeight: 'bold' }}>Este enlace ya ha sido utilizado. Si necesita realizar cambios, contacte con su reclutador.</p>
-        </div>
-      </div>
+      <MessageCard
+        language={language}
+        title={text.usedTitle}
+        description={text.usedDescription}
+      />
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-white py-16 px-4">
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <div style={{ 
-            display: 'inline-block', 
-            padding: '0.5rem 1.5rem', 
-            marginBottom: '1.5rem', 
-            fontSize: '0.8rem', 
-            fontWeight: '900', 
-            textTransform: 'uppercase', 
-            backgroundColor: 'var(--pitch-black)', 
-            color: 'white',
-            letterSpacing: '2px'
-          }}>
-            REGISTRO OFICIAL
+      <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+          <div
+            style={{
+              display: "inline-block",
+              padding: "0.5rem 1.5rem",
+              marginBottom: "1rem",
+              fontSize: "0.8rem",
+              fontWeight: 900,
+              textTransform: "uppercase",
+              backgroundColor: "var(--pitch-black)",
+              color: "white",
+              letterSpacing: "2px",
+            }}
+          >
+            {text.badge}
           </div>
-          <h1 style={{ fontSize: '4rem', fontWeight: '900', marginBottom: '0.5rem', letterSpacing: '-2px' }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <LanguageSwitcher currentLanguage={language} />
+          </div>
+          <h1
+            style={{
+              fontSize: "clamp(2.8rem, 8vw, 4rem)",
+              fontWeight: 900,
+              marginBottom: "0.5rem",
+            }}
+          >
             ORI CRUIT HUB
           </h1>
-          <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--muted)' }}>
-            Complete su información para iniciar el proceso de legalización.
+          <p style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--muted)" }}>
+            {text.description}
           </p>
           {candidate.intermediary?.name && (
-            <p style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
-              RECLUTADOR: <span style={{ backgroundColor: 'var(--amber-flame)', padding: '0 0.5rem' }}>{candidate.intermediary.name.toUpperCase()}</span>
+            <p style={{ marginTop: "1rem", fontSize: "0.9rem", fontWeight: 900 }}>
+              {text.recruiter.toUpperCase()}:{" "}
+              <span style={{ backgroundColor: "var(--amber-flame)", padding: "0 0.5rem" }}>
+                {candidate.intermediary.name.toUpperCase()}
+              </span>
             </p>
           )}
         </div>
-        
-        <div style={{ 
-          backgroundColor: 'white', 
-          border: '4px solid var(--pitch-black)', 
-          boxShadow: '12px 12px 0px var(--pitch-black)',
-          padding: '2rem'
-        }}>
-          <CandidateRegistrationForm 
-            token={token} 
+
+        <div
+          style={{
+            backgroundColor: "white",
+            border: "4px solid var(--pitch-black)",
+            boxShadow: "12px 12px 0px var(--pitch-black)",
+            padding: "2rem",
+          }}
+        >
+          <CandidateRegistrationForm
+            token={token}
+            language={language}
             initialData={{
               firstName: candidate.firstName,
-              lastName: candidate.lastName
-            }} 
+              lastName: candidate.lastName,
+            }}
           />
         </div>
-        
-        <div style={{ marginTop: '4rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          &copy; {new Date().getFullYear()} FOLGA SP. Z O.O. TODOS LOS DERECHOS RESERVADOS.
+
+        <div
+          style={{
+            marginTop: "4rem",
+            textAlign: "center",
+            fontSize: "0.75rem",
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+          }}
+        >
+          &copy; {new Date().getFullYear()} {text.footer}
         </div>
       </div>
     </div>

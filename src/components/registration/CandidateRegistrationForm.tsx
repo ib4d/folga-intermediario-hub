@@ -1,24 +1,306 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitCandidateRegistration } from "@/app/actions/public-registration";
 import { CandidateRegistrationData } from "@/lib/validations/candidate-registration";
+import { AppLanguage, DEFAULT_LANGUAGE } from "@/lib/i18n";
+
+type FieldErrors = Record<string, string[]>;
+
+type RegistrationCopy = {
+  step: string;
+  of: string;
+  previous: string;
+  next: string;
+  submitting: string;
+  submit: string;
+  select: string;
+  error: string;
+  unexpected: string;
+  sections: string[];
+  labels: Record<string, string>;
+  hints: Record<string, string>;
+  options: Record<string, string>;
+};
 
 interface Props {
   token: string;
+  language?: AppLanguage;
   initialData?: {
     firstName?: string | null;
     lastName?: string | null;
   };
 }
 
-export default function CandidateRegistrationForm({ token, initialData }: Props) {
+const copy = {
+  es: {
+    step: "Paso",
+    of: "de",
+    previous: "Anterior",
+    next: "Siguiente",
+    submitting: "Enviando...",
+    submit: "Finalizar registro",
+    select: "Seleccione...",
+    error: "Hay errores en el formulario. Por favor revise los datos.",
+    unexpected: "Error al enviar el formulario. Intentalo de nuevo.",
+    sections: [
+      "Datos personales",
+      "Contacto",
+      "Nacionalidad y ubicacion",
+      "Documentos migratorios",
+      "Situacion en Polonia",
+      "Llegada y transporte",
+      "Pago de reserva",
+      "Confirmacion y consentimiento",
+    ],
+    labels: {
+      firstName: "Nombre",
+      lastName: "Apellido",
+      gender: "Genero",
+      dateOfBirth: "Fecha de nacimiento",
+      email: "Email",
+      phone: "Telefono con codigo de pais",
+      birthPlace: "Lugar de nacimiento",
+      birthCountry: "Pais de nacimiento",
+      citizenship: "Ciudadania",
+      nationality: "Nacionalidad",
+      country: "Pais de residencia actual",
+      passportNumber: "Numero de pasaporte",
+      passportIssueDate: "Fecha de expedicion del pasaporte",
+      passportExpiry: "Fecha de expiracion del pasaporte",
+      passportBiometric: "Es pasaporte biometrico",
+      kartaPobytuNumber: "Numero de Karta Pobytu",
+      kartaPobytuIssueDate: "Fecha de emision de Karta Pobytu",
+      kartaPobytuExpiry: "Expiracion de Karta Pobytu",
+      kartaPobytuType: "Tipo de permiso",
+      locationStatus: "Estado de ubicacion",
+      polishAddress: "Direccion en Polonia",
+      polishCity: "Ciudad en Polonia",
+      peselNumber: "Numero PESEL",
+      arrivalDate: "Fecha estimada de llegada",
+      accommodation: "Necesita alojamiento",
+      arrivalNotes: "Notas adicionales sobre su llegada",
+      paid400pln: "Ya realice el pago de 400 PLN",
+      paymentDate: "Fecha del pago",
+      gdprConsent: "Acepto el tratamiento de mis datos personales y los terminos y condiciones.",
+    },
+    hints: {
+      passport: "Ingrese los datos exactos de su pasaporte.",
+      payment: "La reserva de 400 PLN ayuda a confirmar cupo, coordinacion y tramites.",
+      consent:
+        "Confirmo que los datos proporcionados son verdaderos y autorizo a ORI CRUIT HUB a procesarlos para reclutamiento, legalizacion y coordinacion operativa en Polonia, conforme a GDPR.",
+      summary: "Resumen de datos",
+    },
+    options: {
+      male: "Masculino",
+      female: "Femenino",
+      other: "Otro",
+      origin: "En mi pais de origen",
+      transit: "En transito",
+      poland: "Ya estoy en Polonia",
+      needsHousing: "Si, necesito alojamiento",
+      hasHousing: "No, tengo alojamiento",
+    },
+  },
+  en: {
+    step: "Step",
+    of: "of",
+    previous: "Previous",
+    next: "Next",
+    submitting: "Submitting...",
+    submit: "Complete registration",
+    select: "Select...",
+    error: "There are errors in the form. Please review the details.",
+    unexpected: "Could not submit the form. Please try again.",
+    sections: [
+      "Personal details",
+      "Contact",
+      "Nationality and location",
+      "Migration documents",
+      "Situation in Poland",
+      "Arrival and transport",
+      "Reservation payment",
+      "Confirmation and consent",
+    ],
+    labels: {
+      firstName: "First name",
+      lastName: "Last name",
+      gender: "Gender",
+      dateOfBirth: "Date of birth",
+      email: "Email",
+      phone: "Phone with country code",
+      birthPlace: "Place of birth",
+      birthCountry: "Country of birth",
+      citizenship: "Citizenship",
+      nationality: "Nationality",
+      country: "Current country of residence",
+      passportNumber: "Passport number",
+      passportIssueDate: "Passport issue date",
+      passportExpiry: "Passport expiry date",
+      passportBiometric: "Biometric passport",
+      kartaPobytuNumber: "Karta Pobytu number",
+      kartaPobytuIssueDate: "Karta Pobytu issue date",
+      kartaPobytuExpiry: "Karta Pobytu expiry",
+      kartaPobytuType: "Permit type",
+      locationStatus: "Location status",
+      polishAddress: "Address in Poland",
+      polishCity: "City in Poland",
+      peselNumber: "PESEL number",
+      arrivalDate: "Estimated arrival date",
+      accommodation: "Accommodation needed",
+      arrivalNotes: "Additional arrival notes",
+      paid400pln: "I have already paid 400 PLN",
+      paymentDate: "Payment date",
+      gdprConsent: "I accept personal data processing and the terms and conditions.",
+    },
+    hints: {
+      passport: "Enter the exact details from your passport.",
+      payment: "The 400 PLN reservation helps confirm place, coordination and paperwork.",
+      consent:
+        "I confirm that the provided data is true and authorize ORI CRUIT HUB to process it for recruitment, legalization and operational coordination in Poland under GDPR.",
+      summary: "Data summary",
+    },
+    options: {
+      male: "Male",
+      female: "Female",
+      other: "Other",
+      origin: "In my country of origin",
+      transit: "In transit",
+      poland: "Already in Poland",
+      needsHousing: "Yes, I need accommodation",
+      hasHousing: "No, I have accommodation",
+    },
+  },
+  pl: {
+    step: "Krok",
+    of: "z",
+    previous: "Wstecz",
+    next: "Dalej",
+    submitting: "Wysylanie...",
+    submit: "Zakoncz rejestracje",
+    select: "Wybierz...",
+    error: "Formularz zawiera bledy. Sprawdz dane.",
+    unexpected: "Nie udalo sie wyslac formularza. Sprobuj ponownie.",
+    sections: [
+      "Dane osobowe",
+      "Kontakt",
+      "Obywatelstwo i lokalizacja",
+      "Dokumenty migracyjne",
+      "Sytuacja w Polsce",
+      "Przyjazd i transport",
+      "Oplata rezerwacyjna",
+      "Potwierdzenie i zgoda",
+    ],
+    labels: {
+      firstName: "Imie",
+      lastName: "Nazwisko",
+      gender: "Plec",
+      dateOfBirth: "Data urodzenia",
+      email: "Email",
+      phone: "Telefon z numerem kierunkowym",
+      birthPlace: "Miejsce urodzenia",
+      birthCountry: "Kraj urodzenia",
+      citizenship: "Obywatelstwo",
+      nationality: "Narodowosc",
+      country: "Aktualny kraj pobytu",
+      passportNumber: "Numer paszportu",
+      passportIssueDate: "Data wydania paszportu",
+      passportExpiry: "Data waznosci paszportu",
+      passportBiometric: "Paszport biometryczny",
+      kartaPobytuNumber: "Numer Karty Pobytu",
+      kartaPobytuIssueDate: "Data wydania Karty Pobytu",
+      kartaPobytuExpiry: "Data waznosci Karty Pobytu",
+      kartaPobytuType: "Rodzaj zezwolenia",
+      locationStatus: "Status lokalizacji",
+      polishAddress: "Adres w Polsce",
+      polishCity: "Miasto w Polsce",
+      peselNumber: "Numer PESEL",
+      arrivalDate: "Planowana data przyjazdu",
+      accommodation: "Zakwaterowanie",
+      arrivalNotes: "Dodatkowe informacje o przyjezdzie",
+      paid400pln: "Oplacilem/am 400 PLN",
+      paymentDate: "Data platnosci",
+      gdprConsent: "Akceptuje przetwarzanie danych osobowych oraz regulamin.",
+    },
+    hints: {
+      passport: "Wpisz dokladne dane z paszportu.",
+      payment: "Rezerwacja 400 PLN pomaga potwierdzic miejsce, koordynacje i formalnosci.",
+      consent:
+        "Potwierdzam prawdziwosc danych i upowazniam ORI CRUIT HUB do ich przetwarzania w celu rekrutacji, legalizacji i koordynacji operacyjnej w Polsce zgodnie z GDPR.",
+      summary: "Podsumowanie danych",
+    },
+    options: {
+      male: "Mezczyzna",
+      female: "Kobieta",
+      other: "Inne",
+      origin: "W kraju pochodzenia",
+      transit: "W tranzycie",
+      poland: "Jestem juz w Polsce",
+      needsHousing: "Tak, potrzebuje zakwaterowania",
+      hasHousing: "Nie, mam zakwaterowanie",
+    },
+  },
+} satisfies Record<AppLanguage, RegistrationCopy>;
+
+function fieldError(errors: FieldErrors, name: string) {
+  return errors[name]?.[0] ? (
+    <p style={{ color: "#b91c1c", fontSize: "0.75rem", fontWeight: 900, marginTop: "0.35rem" }}>
+      {errors[name][0]}
+    </p>
+  ) : null;
+}
+
+function FormField({
+  label,
+  name,
+  value,
+  onChange,
+  errors,
+  type = "text",
+  required = false,
+  placeholder,
+}: {
+  label: string;
+  name: keyof CandidateRegistrationData;
+  value: string | undefined | null;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  errors: FieldErrors;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div className="input-group">
+      <label className="label" htmlFor={name}>
+        {label}
+      </label>
+      <input
+        id={name}
+        type={type}
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        className="input"
+        required={required}
+        placeholder={placeholder}
+      />
+      {fieldError(errors, name)}
+    </div>
+  );
+}
+
+export default function CandidateRegistrationForm({
+  token,
+  language = DEFAULT_LANGUAGE,
+  initialData,
+}: Props) {
   const router = useRouter();
+  const text = copy[language];
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  
+  const [errors, setErrors] = useState<FieldErrors>({});
+
   const [formData, setFormData] = useState<Partial<CandidateRegistrationData>>({
     firstName: initialData?.firstName || "",
     lastName: initialData?.lastName || "",
@@ -33,22 +315,38 @@ export default function CandidateRegistrationForm({ token, initialData }: Props)
     country: "COL",
     locationStatus: "EN_ORIGEN",
     passportNumber: "",
+    passportIssueDate: "",
     passportExpiry: "",
     passportBiometric: false,
+    kartaPobytuNumber: "",
+    kartaPobytuIssueDate: "",
+    kartaPobytuExpiry: "",
+    kartaPobytuType: "",
+    peselNumber: "",
+    arrivalDate: "",
+    arrivalNotes: "",
+    accommodation: "",
+    paid400pln: false,
+    paymentDate: "",
     gdprConsent: false,
   });
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 8));
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+  const progress = (step / 8) * 100;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const val = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
-    setFormData((prev) => ({ ...prev, [name]: val }));
+  const nextStep = () => setStep((current) => Math.min(current + 1, 8));
+  const prevStep = () => setStep((current) => Math.max(current - 1, 1));
+
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = event.target;
+    const nextValue =
+      type === "checkbox" ? (event.target as HTMLInputElement).checked : value;
+    setFormData((current) => ({ ...current, [name]: nextValue }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (step < 8) {
       nextStep();
       return;
@@ -56,354 +354,226 @@ export default function CandidateRegistrationForm({ token, initialData }: Props)
 
     setIsSubmitting(true);
     setErrors({});
-    
+
     try {
       const result = await submitCandidateRegistration(token, formData);
       if (result.error) {
-        const nextErrors = result.error as Record<string, string[]>;
+        const nextErrors = result.error as FieldErrors;
         setErrors(nextErrors);
-        alert(nextErrors._global?.[0] ?? "Hay errores en el formulario. Por favor revise los datos.");
-      } else {
-        router.push(`/registro/${token}/success`);
+        alert(nextErrors._global?.[0] ?? text.error);
+        return;
       }
+
+      router.push(`/registro/${token}/success?lang=${language}`);
     } catch (error) {
       console.error("[registration-form] Submit failed", error);
-      alert("Error al enviar el formulario. Intentalo de nuevo.");
+      alert(text.unexpected);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const progress = (step / 8) * 100;
+  const labels = text.labels;
 
   return (
-    <div className="card" style={{ maxWidth: '700px', margin: '0 auto', padding: '2.5rem' }}>
-      <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: '900', textTransform: 'uppercase' }}>PASO {step} DE 8</span>
-          <span style={{ fontSize: '0.875rem', fontWeight: '900' }}>{Math.round(progress)}%</span>
+    <div className="card" style={{ maxWidth: "760px", margin: "0 auto", padding: "2.5rem" }}>
+      <div style={{ marginBottom: "2.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "0.75rem",
+          }}
+        >
+          <span style={{ fontSize: "0.875rem", fontWeight: 900, textTransform: "uppercase" }}>
+            {text.step} {step} {text.of} 8
+          </span>
+          <span style={{ fontSize: "0.875rem", fontWeight: 900 }}>
+            {Math.round(progress)}%
+          </span>
         </div>
-        <div style={{ width: '100%', backgroundColor: 'var(--white-smoke)', border: '2px solid var(--pitch-black)', height: '14px' }}>
-          <div 
-            style={{ 
-              width: `${progress}%`, 
-              backgroundColor: 'var(--amber-flame)', 
-              height: '100%', 
-              transition: 'width 0.3s ease-in-out',
-              borderRight: progress > 0 ? '2px solid var(--pitch-black)' : 'none'
-            }} 
-          ></div>
+        <div
+          style={{
+            width: "100%",
+            backgroundColor: "var(--white-smoke)",
+            border: "2px solid var(--pitch-black)",
+            height: "14px",
+          }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              backgroundColor: "var(--amber-flame)",
+              height: "100%",
+              transition: "width 0.2s ease-in-out",
+              borderRight: progress > 0 ? "2px solid var(--pitch-black)" : "none",
+            }}
+          />
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* STEP 1: Datos personales */}
+        <h2
+          style={{
+            fontSize: "1.75rem",
+            fontWeight: 900,
+            textTransform: "uppercase",
+            marginBottom: "1.5rem",
+          }}
+        >
+          {step}. {text.sections[step - 1]}
+        </h2>
+
         {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>1. DATOS PERSONALES</h2>
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <FormField label={labels.firstName} name="firstName" value={formData.firstName} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.lastName} name="lastName" value={formData.lastName} onChange={handleChange} errors={errors} required />
             <div className="input-group">
-              <label className="label">Nombre</label>
-              <input 
-                type="text" name="firstName" value={formData.firstName} 
-                onChange={handleChange} className="input" required 
-              />
-              {errors.firstName && <p style={{ color: '#e63946', fontSize: '0.75rem', fontWeight: 'bold' }}>{errors.firstName[0]}</p>}
-            </div>
-            <div className="input-group">
-              <label className="label">Apellido</label>
-              <input 
-                type="text" name="lastName" value={formData.lastName} 
-                onChange={handleChange} className="input" required 
-              />
-              {errors.lastName && <p style={{ color: '#e63946', fontSize: '0.75rem', fontWeight: 'bold' }}>{errors.lastName[0]}</p>}
-            </div>
-            <div className="input-group">
-              <label className="label">Género</label>
-              <select name="gender" value={formData.gender} onChange={handleChange} className="select" required>
-                <option value="">SELECCIONE...</option>
-                <option value="M">MASCULINO</option>
-                <option value="F">FEMENINO</option>
-                <option value="OTHER">OTRO</option>
+              <label className="label" htmlFor="gender">{labels.gender}</label>
+              <select id="gender" name="gender" value={formData.gender ?? ""} onChange={handleChange} className="select" required>
+                <option value="">{text.select}</option>
+                <option value="M">{text.options.male}</option>
+                <option value="F">{text.options.female}</option>
+                <option value="OTHER">{text.options.other}</option>
               </select>
+              {fieldError(errors, "gender")}
             </div>
-            <div className="input-group">
-              <label className="label">Fecha de Nacimiento</label>
-              <input 
-                type="date" name="dateOfBirth" value={formData.dateOfBirth} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
+            <FormField label={labels.dateOfBirth} name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleChange} errors={errors} required />
           </div>
         )}
 
-        {/* STEP 2: Contacto */}
         {step === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>2. CONTACTO</h2>
-            <div className="input-group">
-              <label className="label">Email</label>
-              <input 
-                type="email" name="email" value={formData.email || ""} 
-                onChange={handleChange} className="input" 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">Teléfono (con código de país)</label>
-              <input 
-                type="tel" name="phone" value={formData.phone || ""} 
-                onChange={handleChange} className="input" placeholder="+57..." required 
-              />
-            </div>
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <FormField label={labels.email} name="email" type="email" value={formData.email} onChange={handleChange} errors={errors} />
+            <FormField label={labels.phone} name="phone" type="tel" value={formData.phone} onChange={handleChange} errors={errors} required placeholder="+57..." />
           </div>
         )}
 
-        {/* STEP 3: Nacionalidad y ubicación */}
         {step === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>3. NACIONALIDAD Y UBICACIÓN</h2>
-            <div className="input-group">
-              <label className="label">Lugar de Nacimiento</label>
-              <input 
-                type="text" name="birthPlace" value={formData.birthPlace} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">País de Nacimiento</label>
-              <input 
-                type="text" name="birthCountry" value={formData.birthCountry} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">Ciudadanía</label>
-              <input 
-                type="text" name="citizenship" value={formData.citizenship} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">Nacionalidad</label>
-              <input 
-                type="text" name="nationality" value={formData.nationality} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">País de Residencia Actual</label>
-              <input 
-                type="text" name="country" value={formData.country} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <FormField label={labels.birthPlace} name="birthPlace" value={formData.birthPlace} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.birthCountry} name="birthCountry" value={formData.birthCountry} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.citizenship} name="citizenship" value={formData.citizenship} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.nationality} name="nationality" value={formData.nationality} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.country} name="country" value={formData.country} onChange={handleChange} errors={errors} required />
           </div>
         )}
 
-        {/* STEP 4: Documentos migratorios */}
         {step === 4 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>4. DOCUMENTOS MIGRATORIOS</h2>
-            <div style={{ padding: '1rem', backgroundColor: 'var(--ghost-white)', border: '2px dashed var(--pitch-black)', marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
-              POR FAVOR, INGRESE LOS DATOS EXACTOS DE SU PASAPORTE.
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <div style={{ padding: "1rem", backgroundColor: "var(--ghost-white)", border: "2px dashed var(--pitch-black)", fontSize: "0.85rem", fontWeight: 900 }}>
+              {text.hints.passport}
             </div>
-            <div className="input-group">
-              <label className="label">Número de Pasaporte</label>
-              <input 
-                type="text" name="passportNumber" value={formData.passportNumber} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">Fecha de Expiración del Pasaporte</label>
-              <input 
-                type="date" name="passportExpiry" value={formData.passportExpiry} 
-                onChange={handleChange} className="input" required 
-              />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
-              <input 
-                type="checkbox" name="passportBiometric" checked={formData.passportBiometric} 
-                onChange={handleChange} id="passportBiometric" 
-                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-              />
-              <label htmlFor="passportBiometric" style={{ fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer' }}>¿ES PASAPORTE BIOMÉTRICO?</label>
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '2px solid var(--pitch-black)', margin: '1rem 0' }} />
-            
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', textTransform: 'uppercase' }}>KARTA POBYTU (SI TIENE)</h3>
-            <div className="input-group">
-              <label className="label">Número de Karta</label>
-              <input 
-                type="text" name="kartaPobytuNumber" value={formData.kartaPobytuNumber || ""} 
-                onChange={handleChange} className="input" 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">Expiración Karta</label>
-              <input 
-                type="date" name="kartaPobytuExpiry" value={formData.kartaPobytuExpiry || ""} 
-                onChange={handleChange} className="input" 
-              />
-            </div>
+            <FormField label={labels.passportNumber} name="passportNumber" value={formData.passportNumber} onChange={handleChange} errors={errors} required />
+            <FormField label={labels.passportIssueDate} name="passportIssueDate" type="date" value={formData.passportIssueDate} onChange={handleChange} errors={errors} />
+            <FormField label={labels.passportExpiry} name="passportExpiry" type="date" value={formData.passportExpiry} onChange={handleChange} errors={errors} required />
+            <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", fontWeight: 900 }}>
+              <input type="checkbox" name="passportBiometric" checked={Boolean(formData.passportBiometric)} onChange={handleChange} style={{ width: "20px", height: "20px" }} />
+              {labels.passportBiometric}
+            </label>
+            <hr style={{ border: 0, borderTop: "2px solid var(--pitch-black)", margin: "0.5rem 0" }} />
+            <FormField label={labels.kartaPobytuNumber} name="kartaPobytuNumber" value={formData.kartaPobytuNumber} onChange={handleChange} errors={errors} />
+            <FormField label={labels.kartaPobytuIssueDate} name="kartaPobytuIssueDate" type="date" value={formData.kartaPobytuIssueDate} onChange={handleChange} errors={errors} />
+            <FormField label={labels.kartaPobytuExpiry} name="kartaPobytuExpiry" type="date" value={formData.kartaPobytuExpiry} onChange={handleChange} errors={errors} />
+            <FormField label={labels.kartaPobytuType} name="kartaPobytuType" value={formData.kartaPobytuType} onChange={handleChange} errors={errors} />
           </div>
         )}
 
-        {/* STEP 5: Situación en Polonia */}
         {step === 5 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>5. SITUACIÓN EN POLONIA</h2>
+          <div style={{ display: "grid", gap: "1.25rem" }}>
             <div className="input-group">
-              <label className="label">Estado de Ubicación</label>
-              <select 
-                name="locationStatus" value={formData.locationStatus} 
-                onChange={handleChange} className="select" required
-              >
-                <option value="EN_ORIGEN">EN MI PAÍS DE ORIGEN</option>
-                <option value="EN_TRANSITO">EN TRÁNSITO</option>
-                <option value="EN_POLONIA">YA ESTOY EN POLONIA</option>
+              <label className="label" htmlFor="locationStatus">{labels.locationStatus}</label>
+              <select id="locationStatus" name="locationStatus" value={formData.locationStatus ?? "EN_ORIGEN"} onChange={handleChange} className="select" required>
+                <option value="EN_ORIGEN">{text.options.origin}</option>
+                <option value="EN_TRANSITO">{text.options.transit}</option>
+                <option value="EN_POLONIA">{text.options.poland}</option>
               </select>
             </div>
-            {formData.locationStatus === "EN_POLONIA" && (
-              <>
-                <div className="input-group">
-                  <label className="label">Dirección en Polonia</label>
-                  <input 
-                    type="text" name="polishAddress" value={formData.polishAddress || ""} 
-                    onChange={handleChange} className="input" 
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Ciudad en Polonia</label>
-                  <input 
-                    type="text" name="polishCity" value={formData.polishCity || ""} 
-                    onChange={handleChange} className="input" 
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Número PESEL (Si tiene)</label>
-                  <input 
-                    type="text" name="peselNumber" value={formData.peselNumber || ""} 
-                    onChange={handleChange} className="input" 
-                  />
-                </div>
-              </>
-            )}
+            <FormField label={labels.polishAddress} name="polishAddress" value={formData.polishAddress} onChange={handleChange} errors={errors} />
+            <FormField label={labels.polishCity} name="polishCity" value={formData.polishCity} onChange={handleChange} errors={errors} />
+            <FormField label={labels.peselNumber} name="peselNumber" value={formData.peselNumber} onChange={handleChange} errors={errors} />
           </div>
         )}
 
-        {/* STEP 6: Llegada / Transporte */}
         {step === 6 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>6. LLEGADA Y TRANSPORTE</h2>
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <FormField label={labels.arrivalDate} name="arrivalDate" type="date" value={formData.arrivalDate} onChange={handleChange} errors={errors} />
             <div className="input-group">
-              <label className="label">Fecha Estimada de Llegada</label>
-              <input 
-                type="date" name="arrivalDate" value={formData.arrivalDate || ""} 
-                onChange={handleChange} className="input" 
-              />
-            </div>
-            <div className="input-group">
-              <label className="label">¿Necesita Alojamiento?</label>
-              <select name="accommodation" value={formData.accommodation || ""} onChange={handleChange} className="select">
-                <option value="">SELECCIONE...</option>
-                <option value="YES">SÍ, NECESITO ALOJAMIENTO</option>
-                <option value="NO">NO, TENGO MI PROPIO ALOJAMIENTO</option>
+              <label className="label" htmlFor="accommodation">{labels.accommodation}</label>
+              <select id="accommodation" name="accommodation" value={formData.accommodation ?? ""} onChange={handleChange} className="select">
+                <option value="">{text.select}</option>
+                <option value="YES">{text.options.needsHousing}</option>
+                <option value="NO">{text.options.hasHousing}</option>
               </select>
             </div>
             <div className="input-group">
-              <label className="label">Notas adicionales sobre su llegada</label>
-              <textarea 
-                name="arrivalNotes" value={formData.arrivalNotes || ""} 
-                onChange={handleChange} className="input" rows={3}
-                style={{ resize: 'none' }}
-              ></textarea>
+              <label className="label" htmlFor="arrivalNotes">{labels.arrivalNotes}</label>
+              <textarea id="arrivalNotes" name="arrivalNotes" value={formData.arrivalNotes ?? ""} onChange={handleChange} className="input" rows={4} />
             </div>
           </div>
         )}
 
-        {/* STEP 7: Pago */}
         {step === 7 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>7. PAGO DE RESERVA (400 PLN)</h2>
-            <div style={{ padding: '1rem', backgroundColor: 'var(--primary)', color: 'var(--pitch-black)', fontWeight: 'bold', fontSize: '0.875rem', border: '2px solid var(--pitch-black)', boxShadow: '4px 4px 0px var(--pitch-black)', marginBottom: '1rem' }}>
-              LA RESERVA DE 400 PLN ES OBLIGATORIA PARA GARANTIZAR SU CUPO Y TRÁMITES LEGALES.
+          <div style={{ display: "grid", gap: "1.25rem" }}>
+            <div style={{ padding: "1rem", backgroundColor: "var(--primary)", border: "2px solid var(--pitch-black)", fontWeight: 900 }}>
+              {text.hints.payment}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', border: '2px solid var(--pitch-black)', backgroundColor: 'var(--ghost-white)' }}>
-              <input 
-                type="checkbox" name="paid400pln" checked={formData.paid400pln} 
-                onChange={handleChange} id="paid400pln" 
-                style={{ width: '24px', height: '24px', cursor: 'pointer' }}
-              />
-              <label htmlFor="paid400pln" style={{ fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>YA REALICÉ EL PAGO DE 400 PLN</label>
-            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", fontWeight: 900, textTransform: "uppercase" }}>
+              <input type="checkbox" name="paid400pln" checked={Boolean(formData.paid400pln)} onChange={handleChange} style={{ width: "22px", height: "22px" }} />
+              {labels.paid400pln}
+            </label>
             {formData.paid400pln && (
-              <div className="input-group">
-                <label className="label">Fecha del Pago</label>
-                <input 
-                  type="date" name="paymentDate" value={formData.paymentDate || ""} 
-                  onChange={handleChange} className="input" 
-                />
-              </div>
+              <FormField label={labels.paymentDate} name="paymentDate" type="date" value={formData.paymentDate} onChange={handleChange} errors={errors} />
             )}
           </div>
         )}
 
-        {/* STEP 8: Consentimiento / Confirmación */}
         {step === 8 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', textTransform: 'uppercase', marginBottom: '0.5rem' }}>8. CONFIRMACIÓN Y CONSENTIMIENTO</h2>
-            <div style={{ padding: '1.5rem', backgroundColor: 'var(--white-smoke)', border: '2px solid var(--pitch-black)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                AL HACER CLIC EN ENVIAR, CONFIRMO QUE TODOS LOS DATOS PROPORCIONADOS SON VERÍDICOS Y AUTORIZO A 
-                <strong> FOLGA SP. Z O.O.</strong> A PROCESAR MIS DATOS PERSONALES PARA FINES DE RECLUTAMIENTO 
-                Y TRÁMITES DE LEGALIZACIÓN EN POLONIA, DE ACUERDO CON EL REGLAMENTO GENERAL DE PROTECCIÓN DE DATOS (GDPR).
-              </p>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                <input 
-                  type="checkbox" name="gdprConsent" checked={formData.gdprConsent} 
-                  onChange={handleChange} id="gdprConsent" 
-                  style={{ width: '20px', height: '20px', marginTop: '3px', cursor: 'pointer' }} required
-                />
-                <label htmlFor="gdprConsent" style={{ fontWeight: 'bold', textTransform: 'uppercase', cursor: 'pointer' }}>
-                  ACEPTO EL TRATAMIENTO DE MIS DATOS PERSONALES Y LOS TÉRMINOS Y CONDICIONES.
-                </label>
-              </div>
-              {errors.gdprConsent && <p style={{ color: '#e63946', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem' }}>{errors.gdprConsent[0]}</p>}
+          <div style={{ display: "grid", gap: "1.5rem" }}>
+            <div style={{ padding: "1.5rem", backgroundColor: "var(--white-smoke)", border: "2px solid var(--pitch-black)", lineHeight: 1.6 }}>
+              <p style={{ marginBottom: "1.25rem" }}>{text.hints.consent}</p>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", fontWeight: 900, textTransform: "uppercase" }}>
+                <input type="checkbox" name="gdprConsent" checked={Boolean(formData.gdprConsent)} onChange={handleChange} required style={{ width: "20px", height: "20px", marginTop: "3px" }} />
+                {labels.gdprConsent}
+              </label>
+              {fieldError(errors, "gdprConsent")}
             </div>
-
-            <div style={{ borderTop: '2px solid var(--pitch-black)', paddingTop: '1.5rem' }}>
-              <p style={{ fontWeight: '900', textTransform: 'uppercase', marginBottom: '1rem' }}>RESUMEN DE DATOS:</p>
-              <ul style={{ listStyle: 'none', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <li>• {formData.firstName?.toUpperCase()} {formData.lastName?.toUpperCase()}</li>
-                <li>• PASAPORTE: {formData.passportNumber?.toUpperCase()}</li>
-                <li>• TEL: {formData.phone}</li>
-                <li>• EMAIL: {formData.email?.toUpperCase()}</li>
+            <div style={{ borderTop: "2px solid var(--pitch-black)", paddingTop: "1.25rem" }}>
+              <p style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.75rem" }}>{text.hints.summary}</p>
+              <ul style={{ margin: 0, paddingLeft: "1.2rem", fontWeight: 900, lineHeight: 1.8 }}>
+                <li>{formData.firstName} {formData.lastName}</li>
+                <li>{labels.passportNumber}: {formData.passportNumber}</li>
+                <li>{labels.phone}: {formData.phone}</li>
+                <li>{labels.email}: {formData.email || "-"}</li>
               </ul>
             </div>
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
+        {errors._global?.[0] && (
+          <div style={{ marginTop: "1.5rem", padding: "1rem", border: "2px solid #b91c1c", backgroundColor: "#fee2e2", color: "#7f1d1d", fontWeight: 900 }}>
+            {errors._global[0]}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginTop: "3rem" }}>
           {step > 1 && (
-            <button 
-              type="button" onClick={prevStep} 
-              className="button button-secondary"
-            >
-              ANTERIOR
+            <button type="button" onClick={prevStep} className="button button-secondary">
+              {text.previous}
             </button>
           )}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting}
             className="button"
-            style={{ 
-              marginLeft: 'auto',
-              backgroundColor: step === 8 ? '#4ade80' : 'var(--primary)',
-              opacity: isSubmitting ? 0.6 : 1
+            style={{
+              marginLeft: "auto",
+              backgroundColor: step === 8 ? "#4ade80" : "var(--primary)",
+              opacity: isSubmitting ? 0.6 : 1,
             }}
           >
-            {isSubmitting ? "ENVIANDO..." : step === 8 ? "FINALIZAR REGISTRO" : "SIGUIENTE"}
+            {isSubmitting ? text.submitting : step === 8 ? text.submit : text.next}
           </button>
         </div>
       </form>
