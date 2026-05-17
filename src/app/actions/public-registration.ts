@@ -5,6 +5,10 @@ import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { candidateRegistrationSchema } from "@/lib/validations/candidate-registration";
 
+type PublicRegistrationCandidate = NonNullable<
+  Awaited<ReturnType<typeof prisma.candidate.findUnique>>
+>;
+
 function parseDateSafe(value: string | undefined | null): Date | null {
   if (!value) return null;
   const date = new Date(value);
@@ -30,6 +34,85 @@ function parseRecruitmentSource(value: unknown): RecruitmentSource | null {
   }
 
   return null;
+}
+
+async function writeRegistrationSideEffects(
+  candidate: PublicRegistrationCandidate,
+  registration: {
+    firstName: string;
+    lastName: string;
+    email?: string | null;
+  }
+) {
+  const tasks: Promise<unknown>[] = [
+    prisma.statusHistory.create({
+      data: {
+        candidateId: candidate.id,
+        organizationId: candidate.organizationId,
+        fromStatus: candidate.status,
+        toStatus: CandidateStatus.EN_REVISION_LEGAL,
+        changedById: "SELF_REGISTRATION",
+        reason: "Candidato completo el formulario de autoregistro",
+      },
+    }),
+    writeAuditLog({
+      organizationId: candidate.organizationId,
+      action: "SELF_REGISTRATION_COMPLETED",
+      entityType: "Candidate",
+      entityId: candidate.id,
+      details: {
+        firstName: registration.firstName,
+        lastName: registration.lastName,
+        email: registration.email || null,
+      },
+    }),
+  ];
+
+  if (candidate.intermediaryId) {
+    tasks.push(
+      prisma.notification.create({
+        data: {
+          userId: candidate.intermediaryId,
+          organizationId: candidate.organizationId,
+          candidateId: candidate.id,
+          type: "REGISTRATION_COMPLETE",
+          title: "Registro Completado",
+          message: `Registro completado por candidato: ${registration.firstName} ${registration.lastName}`,
+        },
+      })
+    );
+  }
+
+  const legalUsers = await prisma.membership.findMany({
+    where: {
+      organizationId: candidate.organizationId,
+      role: { in: [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] },
+      isActive: true,
+    },
+    select: { userId: true },
+  });
+
+  if (legalUsers.length > 0) {
+    tasks.push(
+      prisma.notification.createMany({
+        data: legalUsers.map((user) => ({
+          userId: user.userId,
+          organizationId: candidate.organizationId,
+          candidateId: candidate.id,
+          type: "LEGAL_REVIEW_PENDING",
+          title: "Revision Legal Pendiente",
+          message: `Nuevo candidato para revision legal: ${registration.firstName} ${registration.lastName}`,
+        })),
+      })
+    );
+  }
+
+  const results = await Promise.allSettled(tasks);
+  results.forEach((result) => {
+    if (result.status === "rejected") {
+      console.error("[public-registration] Secondary write failed", result.reason);
+    }
+  });
 }
 
 export async function submitCandidateRegistration(token: string, data: unknown) {
@@ -65,7 +148,7 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
     const registration = parsed.data;
     const paymentDate = parseDateSafe(registration.paymentDate);
 
-    await prisma.candidate.update({
+    const updatedCandidate = await prisma.candidate.update({
       where: { id: candidate.id },
       data: {
         firstName: registration.firstName,
@@ -109,67 +192,7 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
       },
     });
 
-    const legalUsers = await prisma.membership.findMany({
-      where: {
-        organizationId: candidate.organizationId,
-        role: { in: [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] },
-        isActive: true,
-      },
-      select: { userId: true },
-    });
-
-    const sideEffects = [
-      prisma.statusHistory.create({
-        data: {
-          candidateId: candidate.id,
-          organizationId: candidate.organizationId,
-          fromStatus: candidate.status,
-          toStatus: CandidateStatus.EN_REVISION_LEGAL,
-          changedById: "SELF_REGISTRATION",
-          reason: "Candidato completo el formulario de autoregistro",
-        },
-      }),
-      writeAuditLog({
-        organizationId: candidate.organizationId,
-        action: "SELF_REGISTRATION_COMPLETED",
-        entityType: "Candidate",
-        entityId: candidate.id,
-        details: {
-          firstName: registration.firstName,
-          lastName: registration.lastName,
-          email: registration.email || null,
-        },
-      }),
-      prisma.notification.create({
-        data: {
-          userId: candidate.intermediaryId,
-          organizationId: candidate.organizationId,
-          candidateId: candidate.id,
-          type: "REGISTRATION_COMPLETE",
-          title: "Registro Completado",
-          message: `Registro completado por candidato: ${registration.firstName} ${registration.lastName}`,
-        },
-      }),
-      legalUsers.length > 0
-        ? prisma.notification.createMany({
-            data: legalUsers.map((user: { userId: string }) => ({
-              userId: user.userId,
-              organizationId: candidate.organizationId,
-              candidateId: candidate.id,
-              type: "LEGAL_REVIEW_PENDING",
-              title: "Revision Legal Pendiente",
-              message: `Nuevo candidato para revision legal: ${registration.firstName} ${registration.lastName}`,
-            })),
-          })
-        : Promise.resolve(),
-    ];
-
-    const results = await Promise.allSettled(sideEffects);
-    results.forEach((result) => {
-      if (result.status === "rejected") {
-        console.error("[public-registration] Secondary write failed", result.reason);
-      }
-    });
+    await writeRegistrationSideEffects(updatedCandidate, registration);
 
     return { success: true };
   } catch (error) {

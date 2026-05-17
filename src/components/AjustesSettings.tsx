@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Bell, Shield, Save, CheckCircle, Loader2 } from "lucide-react";
+import { AppLanguage, LANGUAGE_LABELS, SUPPORTED_LANGUAGES, t } from "@/lib/i18n";
 
 type Settings = {
   notifyNewCandidates: boolean;
   notifyLegalAlerts: boolean;
   notifyExpiringDocs: boolean;
   twoFactorEnabled: boolean;
-  interfaceLanguage: "es" | "pl" | "en";
+  interfaceLanguage: AppLanguage;
   avatarUrl?: string;
 };
 
@@ -24,6 +25,7 @@ export default function AjustesSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saved, setSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const labels = t.bind(null, settings.interfaceLanguage);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -61,7 +63,7 @@ export default function AjustesSettings() {
       {/* Seguridad */}
       <div className="card" style={{ backgroundColor: "var(--white-smoke)" }}>
         <h3 style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Shield size={20} /> Perfil y Seguridad
+          <Shield size={20} /> {labels("settings.profileSecurity")}
         </h3>
 
         <div className="input-group" style={{ marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: "1px solid #ccc" }}>
@@ -133,10 +135,10 @@ export default function AjustesSettings() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: "1rem" }}>Idioma de Interfaz</h3>
+        <h3 style={{ marginBottom: "1rem" }}>{labels("settings.interfaceLanguage")}</h3>
         <div className="input-group">
           <label className="label" htmlFor="interface-language">
-            Idioma preferido
+            {labels("settings.preferredLanguage")}
           </label>
           <select
             id="interface-language"
@@ -149,12 +151,14 @@ export default function AjustesSettings() {
               })
             }
           >
-            <option value="es">Espanol</option>
-            <option value="pl">Polski</option>
-            <option value="en">English</option>
+            {SUPPORTED_LANGUAGES.map((language) => (
+              <option key={language} value={language}>
+                {LANGUAGE_LABELS[language]}
+              </option>
+            ))}
           </select>
           <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.5rem" }}>
-            Base preparada para ES, PL y EN. Las pantallas se iran conectando a traducciones por modulo.
+            {labels("settings.languageHelp")}
           </p>
         </div>
         <button
@@ -163,14 +167,14 @@ export default function AjustesSettings() {
           onClick={handleSave}
           disabled={isPending}
         >
-          {isPending ? "Guardando..." : saved ? "Guardado" : "Guardar idioma"}
+          {isPending ? labels("common.saving") : saved ? labels("common.saved") : labels("common.save")}
         </button>
       </div>
 
       {/* Notificaciones */}
       <div className="card">
         <h3 style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Bell size={20} /> Notificaciones por Email
+          <Bell size={20} /> {labels("settings.emailNotifications")}
         </h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -207,7 +211,7 @@ export default function AjustesSettings() {
           ) : saved ? (
             <><CheckCircle size={18} /> ¡Guardado!</>
           ) : (
-            <><Save size={18} /> Guardar Preferencias</>
+            <><Save size={18} /> {labels("common.savePreferences")}</>
           )}
         </button>
       </div>
