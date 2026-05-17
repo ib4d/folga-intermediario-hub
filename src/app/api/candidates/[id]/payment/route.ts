@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { Prisma, Role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
@@ -79,23 +80,17 @@ export async function PATCH(
       },
     });
 
-    try {
-      await prisma.auditLog.create({
-        data: {
-          userId: tenant.userId,
-          organizationId: tenant.organizationId,
-          action: "PAYMENT_UPDATED",
-          entityType: "Candidate",
-          entityId: id,
-          details: {
-            paid400pln: body.paid400pln,
-            paymentDate: body.paymentDate?.toISOString() ?? null,
-          } satisfies Prisma.InputJsonValue,
-        },
-      });
-    } catch (auditError) {
-      console.error("[Payment] Candidate payment saved but audit log failed", auditError);
-    }
+    await writeAuditLog({
+      userId: tenant.userId,
+      organizationId: tenant.organizationId,
+      action: "PAYMENT_UPDATED",
+      entityType: "Candidate",
+      entityId: id,
+      details: {
+        paid400pln: body.paid400pln,
+        paymentDate: body.paymentDate?.toISOString() ?? null,
+      } satisfies Prisma.InputJsonValue,
+    });
 
     return NextResponse.json({ success: true, candidate: updated });
   } catch (error) {

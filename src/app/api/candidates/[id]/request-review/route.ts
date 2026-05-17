@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -73,19 +74,17 @@ export async function POST(
     });
   }
 
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      organizationId,
-      action: "LEGAL_REVIEW_REQUESTED",
-      entityType: "Candidate",
-      entityId: id,
-      details: {
-        requestedBy: session.user.id,
-        blockersAtRequest: checklist.blockers,
-        missingAtRequest: checklist.missing,
-        warningsAtRequest: checklist.warnings,
-      } as never,
+  await writeAuditLog({
+    userId: session.user.id,
+    organizationId,
+    action: "LEGAL_REVIEW_REQUESTED",
+    entityType: "Candidate",
+    entityId: id,
+    details: {
+      requestedBy: session.user.id,
+      blockersAtRequest: checklist.blockers,
+      missingAtRequest: checklist.missing,
+      warningsAtRequest: checklist.warnings,
     },
   });
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTenant, type TenantContext } from "@/lib/tenant";
@@ -92,18 +93,16 @@ export async function createLogisticsEvent(formData: FormData) {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "LOGISTICS_EVENT_CREATED",
-      entityType: "LogisticsEvent",
-      entityId: event.id,
-      details: {
-        transportType,
-        arrivalDate: arrivalDate?.toISOString() ?? null,
-      } as Prisma.InputJsonValue,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "LOGISTICS_EVENT_CREATED",
+    entityType: "LogisticsEvent",
+    entityId: event.id,
+    details: {
+      transportType,
+      arrivalDate: arrivalDate?.toISOString() ?? null,
+    } as Prisma.InputJsonValue,
   });
 
   await prisma.notification.create({
@@ -136,15 +135,13 @@ export async function updateLogisticsEvent(
     include: { candidate: true },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "LOGISTICS_EVENT_UPDATED",
-      entityType: "LogisticsEvent",
-      entityId: eventId,
-      details: data as Prisma.InputJsonValue,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "LOGISTICS_EVENT_UPDATED",
+    entityType: "LogisticsEvent",
+    entityId: eventId,
+    details: data as Prisma.InputJsonValue,
   });
 
   revalidatePath("/logistica");
@@ -162,14 +159,12 @@ export async function confirmLogisticsEvent(eventId: string) {
     data: { confirmed: true },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "LOGISTICS_EVENT_CONFIRMED",
-      entityType: "LogisticsEvent",
-      entityId: eventId,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "LOGISTICS_EVENT_CONFIRMED",
+    entityType: "LogisticsEvent",
+    entityId: eventId,
   });
 
   await prisma.candidate.update({
@@ -191,14 +186,12 @@ export async function deleteLogisticsEvent(eventId: string) {
     where: { id: eventId, organizationId: tenant.organizationId },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "LOGISTICS_EVENT_DELETED",
-      entityType: "LogisticsEvent",
-      entityId: eventId,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "LOGISTICS_EVENT_DELETED",
+    entityType: "LogisticsEvent",
+    entityId: eventId,
   });
 
   revalidatePath("/logistica");
@@ -261,20 +254,18 @@ export async function updateArrivalReadinessDetails(formData: FormData) {
     });
   }
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "LOGISTICS_EVENT_UPDATED",
-      entityType: "Candidate",
-      entityId: candidate.id,
-      details: {
-        accommodation,
-        arrivalNotes,
-        pickedUpBy,
-        latestEventId: latestEvent?.id ?? null,
-      } as Prisma.InputJsonValue,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "LOGISTICS_EVENT_UPDATED",
+    entityType: "Candidate",
+    entityId: candidate.id,
+    details: {
+      accommodation,
+      arrivalNotes,
+      pickedUpBy,
+      latestEventId: latestEvent?.id ?? null,
+    } as Prisma.InputJsonValue,
   });
 
   revalidatePath("/logistica");

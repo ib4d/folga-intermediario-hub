@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { analyzeDocument } from "@/lib/ocr";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
+import { writeAuditLog } from "@/lib/audit";
 import { emitEvent } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
 
@@ -494,18 +495,16 @@ async function applyCandidateFieldsFromOcr(
     data: candidateUpdateData,
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "CANDIDATE_OCR_FIELDS_APPLIED",
-      entityType: "Candidate",
-      entityId: candidateId,
-      details: toInputJsonValue({
-        docType,
-        appliedFields: Object.keys(candidateUpdateData),
-      }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "CANDIDATE_OCR_FIELDS_APPLIED",
+    entityType: "Candidate",
+    entityId: candidateId,
+    details: toInputJsonValue({
+      docType,
+      appliedFields: Object.keys(candidateUpdateData),
+    }),
   });
 }
 
@@ -734,19 +733,17 @@ async function resolveSmartUploadCandidate(
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "CANDIDATE_CREATED_FROM_SMART_UPLOAD",
-      entityType: "Candidate",
-      entityId: createdCandidate.id,
-      details: toInputJsonValue({
-        filename: file.name,
-        inferredFirstName: firstName,
-        inferredLastName: lastName,
-      }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "CANDIDATE_CREATED_FROM_SMART_UPLOAD",
+    entityType: "Candidate",
+    entityId: createdCandidate.id,
+    details: toInputJsonValue({
+      filename: file.name,
+      inferredFirstName: firstName,
+      inferredLastName: lastName,
+    }),
   });
 
   await emitEvent(
@@ -882,19 +879,17 @@ export async function uploadDocument(formData: FormData) {
           },
         });
 
-        await prisma.auditLog.create({
-          data: {
-            userId: tenant.userId,
-            organizationId: tenant.organizationId!,
-            action: "OCR_EXTRACTED_PENDING_REVIEW",
-            entityType: "Document",
-            entityId: newDoc.id,
-            details: toInputJsonValue({
-              docType,
-              documentNumber: ocrData.documentNumber ?? null,
-              ocrSource: "AZURE",
-            }),
-          },
+        await writeAuditLog({
+          userId: tenant.userId,
+          organizationId: tenant.organizationId!,
+          action: "OCR_EXTRACTED_PENDING_REVIEW",
+          entityType: "Document",
+          entityId: newDoc.id,
+          details: toInputJsonValue({
+            docType,
+            documentNumber: ocrData.documentNumber ?? null,
+            ocrSource: "AZURE",
+          }),
         });
 
         await emitEvent(
@@ -914,18 +909,16 @@ export async function uploadDocument(formData: FormData) {
           data: { ocrStatus: "FAILED" },
         });
 
-        await prisma.auditLog.create({
-          data: {
-            userId: tenant.userId,
-            organizationId: tenant.organizationId!,
-            action: "OCR_FAILED",
-            entityType: "Document",
-            entityId: newDoc.id,
-            details: toInputJsonValue({
-              docType,
-              reason: "OCR engine returned no data",
-            }),
-          },
+        await writeAuditLog({
+          userId: tenant.userId,
+          organizationId: tenant.organizationId!,
+          action: "OCR_FAILED",
+          entityType: "Document",
+          entityId: newDoc.id,
+          details: toInputJsonValue({
+            docType,
+            reason: "OCR engine returned no data",
+          }),
         });
       }
     } catch (error) {
@@ -938,15 +931,13 @@ export async function uploadDocument(formData: FormData) {
     }
   }
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "DOCUMENT_UPLOADED",
-      entityType: "Document",
-      entityId: newDoc.id,
-      details: toInputJsonValue({ url: publicUrl, type: docType }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "DOCUMENT_UPLOADED",
+    entityType: "Document",
+    entityId: newDoc.id,
+    details: toInputJsonValue({ url: publicUrl, type: docType }),
   });
 
   await prisma.notification.create({
@@ -1009,15 +1000,13 @@ export async function verifyDocument(documentId: string) {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "DOCUMENT_VERIFIED",
-      entityType: "Document",
-      entityId: documentId,
-      details: toInputJsonValue({ verifiedBy: tenant.userId }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "DOCUMENT_VERIFIED",
+    entityType: "Document",
+    entityId: documentId,
+    details: toInputJsonValue({ verifiedBy: tenant.userId }),
   });
 
   revalidatePath(`/candidatos/${updated.candidateId}`);
@@ -1182,23 +1171,21 @@ export async function reviewDocumentOcr(input: {
     data: candidateUpdateData,
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "DOCUMENT_OCR_REVIEWED",
-      entityType: "Document",
-      entityId: document.id,
-      details: toInputJsonValue({
-        type: normalizedType,
-        markVerified: Boolean(input.markVerified),
-        number:
-          normalizedType === DocumentType.PESEL
-            ? normalizedPersonalNumber ?? normalizedDocumentNumber
-            : normalizedDocumentNumber,
-        disposition: normalizedDisposition,
-      }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "DOCUMENT_OCR_REVIEWED",
+    entityType: "Document",
+    entityId: document.id,
+    details: toInputJsonValue({
+      type: normalizedType,
+      markVerified: Boolean(input.markVerified),
+      number:
+        normalizedType === DocumentType.PESEL
+          ? normalizedPersonalNumber ?? normalizedDocumentNumber
+          : normalizedDocumentNumber,
+      disposition: normalizedDisposition,
+    }),
   });
 
   revalidatePath("/documentos");
@@ -1271,15 +1258,13 @@ export async function deleteDocument(documentId: string) {
     where: { id: documentId },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "DOCUMENT_DELETED",
-      entityType: "Document",
-      entityId: documentId,
-      details: toInputJsonValue({ url: document.url, type: document.type }),
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "DOCUMENT_DELETED",
+    entityType: "Document",
+    entityId: documentId,
+    details: toInputJsonValue({ url: document.url, type: document.type }),
   });
 
   revalidatePath(`/candidatos/${document.candidateId}`);

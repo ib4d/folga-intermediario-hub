@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/sender";
 import { requireTenant } from "@/lib/tenant";
+import { writeAuditLog } from "@/lib/audit";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -119,7 +120,7 @@ export async function inviteUserAction(
   const temporaryPassword = generateTemporaryPassword();
   const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
-  await prisma.$transaction(async (tx) => {
+  const invitedUser = await prisma.$transaction(async (tx) => {
     const user =
       existingUser ??
       (await tx.user.create({
@@ -155,19 +156,19 @@ export async function inviteUserAction(
       },
     });
 
-    await tx.auditLog.create({
-      data: {
-        userId: tenant.userId,
-        organizationId: tenant.organizationId,
-        action: "USER_INVITED",
-        entityType: "User",
-        entityId: user.id,
-        details: {
-          email,
-          role,
-        },
-      },
-    });
+    return user;
+  });
+
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "USER_INVITED",
+    entityType: "User",
+    entityId: invitedUser.id,
+    details: {
+      email,
+      role,
+    },
   });
 
   const loginUrl = process.env.AUTH_URL || "http://localhost:3000";

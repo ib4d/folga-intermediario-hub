@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import { revalidatePath } from "next/cache";
@@ -29,15 +30,13 @@ export async function createApiKey(name: string) {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "API_KEY_CREATED",
-      entityType: "ApiKey",
-      entityId: name,
-      details: { name } as Prisma.InputJsonValue,
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "API_KEY_CREATED",
+    entityType: "ApiKey",
+    entityId: name,
+    details: { name } as Prisma.InputJsonValue,
   });
 
   revalidatePath("/ajustes");

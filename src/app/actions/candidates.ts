@@ -6,6 +6,7 @@ import { CandidateStatus, Prisma, Role } from "@prisma/client";
 import * as XLSX from "xlsx";
 
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { candidateSchema } from "@/lib/validations/candidate";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
@@ -540,17 +541,15 @@ export async function createCandidate(formData: FormData) {
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "CANDIDATE_CREATED",
-      entityType: "Candidate",
-      entityId: candidate.id,
-      details: {
-        firstName: candidate.firstName,
-        lastName: candidate.lastName,
-      },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "CANDIDATE_CREATED",
+    entityType: "Candidate",
+    entityId: candidate.id,
+    details: {
+      firstName: candidate.firstName,
+      lastName: candidate.lastName,
     },
   });
 
@@ -648,15 +647,13 @@ export async function updateCandidate(candidateId: string, formData: FormData) {
     data: updateData,
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "CANDIDATE_UPDATED",
-      entityType: "Candidate",
-      entityId: candidateId,
-      details: { fields: Object.keys(raw) },
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "CANDIDATE_UPDATED",
+    entityType: "Candidate",
+    entityId: candidateId,
+    details: { fields: Object.keys(raw) },
   });
 
   revalidatePath(`/candidatos/${candidateId}`);
@@ -730,21 +727,19 @@ export async function updateCandidateStatus(
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "STATUS_CHANGED",
-      entityType: "Candidate",
-      entityId: candidateId,
-      details: {
-        from: candidate.status,
-        to: parsedStatus,
-        rejectionReason: rejectionReason ?? null,
-        reviewNotes: reviewNotes ?? null,
-        outcomeCategory: outcomeMeta?.category ?? null,
-        followUpActions: outcomeMeta?.followUpActions ?? [],
-      },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "STATUS_CHANGED",
+    entityType: "Candidate",
+    entityId: candidateId,
+    details: {
+      from: candidate.status,
+      to: parsedStatus,
+      rejectionReason: rejectionReason ?? null,
+      reviewNotes: reviewNotes ?? null,
+      outcomeCategory: outcomeMeta?.category ?? null,
+      followUpActions: outcomeMeta?.followUpActions ?? [],
     },
   });
 
@@ -827,15 +822,13 @@ export async function updateCandidateNotes(candidateId: string, notes: string) {
     data: { notes },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      action: "CANDIDATE_NOTES_UPDATED",
-      entityType: "Candidate",
-      entityId: candidateId,
-      details: { notes },
-    },
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "CANDIDATE_NOTES_UPDATED",
+    entityType: "Candidate",
+    entityId: candidateId,
+    details: { notes },
   });
 
   revalidatePath(`/candidatos/${candidateId}`);
@@ -969,24 +962,21 @@ export async function deleteCandidate(candidateId: string) {
     throw new Error("Candidato no encontrado o sin permisos.");
   }
 
-  await prisma.$transaction([
-    prisma.auditLog.create({
-      data: {
-        userId: tenant.userId,
-        organizationId: tenant.organizationId,
-        action: "CANDIDATE_DELETED",
-        entityType: "Candidate",
-        entityId: candidate.id,
-        details: {
-          firstName: candidate.firstName,
-          lastName: candidate.lastName,
-        },
-      },
-    }),
-    prisma.candidate.delete({
-      where: { id: candidate.id },
-    }),
-  ]);
+  await prisma.candidate.delete({
+    where: { id: candidate.id },
+  });
+
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId,
+    action: "CANDIDATE_DELETED",
+    entityType: "Candidate",
+    entityId: candidate.id,
+    details: {
+      firstName: candidate.firstName,
+      lastName: candidate.lastName,
+    },
+  });
 
   revalidatePath("/candidatos");
   revalidatePath("/dashboard");
@@ -1018,30 +1008,29 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
     throw new Error("No se encontraron candidatos eliminables en esta seleccion.");
   }
 
-  await prisma.$transaction([
-    ...candidates.map((candidate) =>
-      prisma.auditLog.create({
-        data: {
-          userId: tenant.userId,
-          organizationId: tenant.organizationId,
-          action: "CANDIDATE_DELETED",
-          entityType: "Candidate",
-          entityId: candidate.id,
-          details: {
-            firstName: candidate.firstName,
-            lastName: candidate.lastName,
-            bulk: true,
-          },
+  await prisma.candidate.deleteMany({
+    where: {
+      organizationId: tenant.organizationId,
+      id: { in: candidates.map((candidate) => candidate.id) },
+    },
+  });
+
+  await Promise.all(
+    candidates.map((candidate) =>
+      writeAuditLog({
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "CANDIDATE_DELETED",
+        entityType: "Candidate",
+        entityId: candidate.id,
+        details: {
+          firstName: candidate.firstName,
+          lastName: candidate.lastName,
+          bulk: true,
         },
       })
-    ),
-    prisma.candidate.deleteMany({
-      where: {
-        organizationId: tenant.organizationId,
-        id: { in: candidates.map((candidate) => candidate.id) },
-      },
-    }),
-  ]);
+    )
+  );
 
   revalidatePath("/candidatos");
   revalidatePath("/dashboard");

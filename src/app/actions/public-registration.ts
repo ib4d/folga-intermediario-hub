@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { writeAuditLog } from "@/lib/audit";
 import { candidateRegistrationSchema } from "@/lib/validations/candidate-registration";
 import { CandidateStatus, LocationStatus, RecruitmentSource, Role } from "@prisma/client";
 
@@ -125,17 +126,15 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      organizationId: candidate.organizationId,
-      action: "SELF_REGISTRATION_COMPLETED",
-      entityType: "Candidate",
-      entityId: candidate.id,
-      details: {
-        firstName: registration.firstName,
-        lastName: registration.lastName,
-        email: registration.email || null,
-      },
+  await writeAuditLog({
+    organizationId: candidate.organizationId,
+    action: "SELF_REGISTRATION_COMPLETED",
+    entityType: "Candidate",
+    entityId: candidate.id,
+    details: {
+      firstName: registration.firstName,
+      lastName: registration.lastName,
+      email: registration.email || null,
     },
   });
 

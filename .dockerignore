@@ -1,6 +1,8 @@
 .git
 .next
 .next-*
+.next-prod
+.next-verify
 node_modules
 npm-debug.log
 Dockerfile
@@ -10,6 +12,8 @@ docker-compose*.yml
 !.env.example
 tmp-*
 *.tmp
+*.tgz
+*.tar.gz
 backup_before_migration.sql
 lint-results.json
 tsconfig.tsbuildinfo
