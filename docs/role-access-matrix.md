@@ -43,6 +43,7 @@ This document is the operational source of truth for v1 role visibility.
 ## Current Enforcement Points
 
 - `src/lib/permissions.ts` is the canonical place for role/module/action guards.
+- `npm run check:permissions` verifies the v1 role matrix and critical action guards.
 - Sidebar hides inaccessible modules by role.
 - Legal and logistics pages use centralized role guards before loading data.
 - Billing, branding and API settings are server-gated and backed by server actions.
