@@ -3,6 +3,7 @@ import { registry } from "@/core/registry";
 import { ocrAgent } from "@/agents/ocr-agent";
 import { scoringAgent } from "@/agents/scoring-agent";
 import { loadEnabledPlugins } from "@/plugins";
+import { getJobProvider } from "@/lib/providers/jobs";
 
 export type SystemEventType =
   | TriggerType
@@ -136,5 +137,5 @@ export async function emitEvent<TPayload extends Record<string, unknown>>(
     timestamp: new Date(),
   };
 
-  await eventBus.emit(event);
+  await getJobProvider().dispatch(event, (systemEvent) => eventBus.emit(systemEvent));
 }

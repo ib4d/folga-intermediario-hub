@@ -9,7 +9,10 @@ export async function GET() {
     return NextResponse.json({
       status: "ok",
       db: "connected",
-      storage: "ok", // In a real scenario, check Supabase connectivity
+      storage: process.env.STORAGE_PROVIDER || "supabase",
+      ocr: process.env.OCR_PROVIDER || "azure",
+      email: process.env.EMAIL_PROVIDER || "smtp",
+      jobs: process.env.JOB_PROVIDER || "inline",
       timestamp: new Date().toISOString(),
       version: "1.0.0-p3"
     });

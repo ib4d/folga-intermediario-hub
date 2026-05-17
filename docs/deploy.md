@@ -22,15 +22,18 @@ AUTH_SECRET=use-a-long-random-secret
 NEXTAUTH_URL=https://your-domain.example
 NEXTAUTH_SECRET=use-the-same-value-as-auth-secret
 
+STORAGE_PROVIDER=supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_STORAGE_BUCKET=documentos-candidatos
 
+OCR_PROVIDER=azure
 AZURE_DI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
 AZURE_DI_KEY=your-azure-key
 
+EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp.your-provider.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -51,6 +54,7 @@ STRIPE_PAYMENT_LINK_BUSINESS=
 STRIPE_PAYMENT_LINK_ENTERPRISE=
 
 CRON_SECRET=use-a-long-random-secret
+JOB_PROVIDER=inline
 NODE_ENV=production
 
 # Only set this for an intentional first production bootstrap.

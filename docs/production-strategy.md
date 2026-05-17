@@ -9,6 +9,7 @@ The deployment source of truth is:
 - `Dockerfile`
 - `docker-compose.prod.yml`
 - `scripts/check-production-env.mjs`
+- `docs/provider-migration.md`
 
 ## Current Product Direction
 
@@ -38,6 +39,16 @@ Current technical stack:
 - Azure Document Intelligence plus local OCR helpers.
 - Direct SMTP delivery for invitations and transactional email.
 - Docker Compose for app + database.
+
+Provider policy:
+
+- `StorageProvider`: Supabase Storage now, Cloudflare R2 later.
+- `EmailProvider`: SMTP Hostinger now, Resend/Brevo later.
+- `OCRProvider`: Azure Document Intelligence now, Google Document AI or hybrid
+  fallback later.
+- `JobProvider`: inline execution now, PostgreSQL outbox or Redis/BullMQ later.
+- Provider changes must happen behind interfaces first; production provider
+  swaps happen only after backup, smoke tests, and rollback steps are prepared.
 
 ## Phase 1 - Production v1 on Hostinger
 
@@ -123,6 +134,10 @@ Storage and OCR:
 
 Only after Phase 1 is stable:
 
+- Public marketing root at `ori-craftlabs.com` with problem, solution, demo,
+  screenshots, pricing, security/GDPR, and clear B2B conversion copy.
+- Demo/sandbox tenant with safe fictitious data and a guided OCR -> legal ->
+  logistics flow.
 - Stripe subscriptions and customer billing portal.
 - Multi-language UI: Spanish first, then Polish and English, later Ukrainian.
 - Tenant onboarding without developer assistance.
@@ -137,6 +152,10 @@ Only after Phase 1 is stable:
 
 After production and distribution basics are stable, expand into:
 
+- Cloudflare R2 only after `StorageProvider` tests cover upload, URL generation,
+  deletion, and rollback.
+- Resend for transactional email only after `EmailProvider` tests cover
+  invitations, errors, and manual credential fallback.
 - n8n for recruitment workflow automation.
 - Grafana/Prometheus or lighter Hostinger-compatible monitoring.
 - OpenClaw or assistant tooling for operator support.

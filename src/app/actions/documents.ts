@@ -1,21 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { analyzeDocument } from "@/lib/ocr";
+import { analyzeIdentityDocument } from "@/lib/providers/ocr";
+import { getStorageProvider } from "@/lib/providers/storage";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
 import { emitEvent } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "documentos-candidatos";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -124,7 +117,7 @@ function hasStrongCandidateNameMatch(
     lastName: string | null;
     dateOfBirth: Date | null;
   },
-  ocrData: Awaited<ReturnType<typeof analyzeDocument>>
+  ocrData: Awaited<ReturnType<typeof analyzeIdentityDocument>>
 ): boolean {
   const ocrSignature = candidateNameSignature(ocrData?.firstName, ocrData?.lastName);
   const candidateSignature = candidateNameSignature(candidate.firstName, candidate.lastName);
@@ -255,7 +248,7 @@ function buildReviewedOcrData(
 async function persistExtractedData(
   documentId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeDocument>>>
+  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
 ) {
   await prisma.document.update({
     where: { id: documentId },
@@ -273,7 +266,7 @@ async function persistExtractedData(
 async function mergeOcrIntoExistingDocument(
   documentId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeDocument>>>
+  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
 ) {
   const existingDocument = await prisma.document.findFirst({
     where: { id: documentId },
@@ -309,7 +302,7 @@ async function mergeOcrIntoExistingDocument(
 
 function inferDocumentTypeFromSmartSignals(
   fileName: string,
-  ocrData: Awaited<ReturnType<typeof analyzeDocument>>
+  ocrData: Awaited<ReturnType<typeof analyzeIdentityDocument>>
 ): DocumentType {
   const normalizedFileName = fileName.toUpperCase();
   const normalizedType = ocrData?.documentType?.toUpperCase();
@@ -409,7 +402,7 @@ async function applyCandidateFieldsFromOcr(
   tenant: Awaited<ReturnType<typeof requireTenant>>,
   candidateId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeDocument>>>
+  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
 ) {
   const candidate = await prisma.candidate.findFirst({
     where: {
@@ -511,7 +504,7 @@ async function applyCandidateFieldsFromOcr(
 async function resolveSmartUploadCandidate(
   tenant: Awaited<ReturnType<typeof requireTenant>>,
   file: File,
-  ocrData: Awaited<ReturnType<typeof analyzeDocument>>,
+  ocrData: Awaited<ReturnType<typeof analyzeIdentityDocument>>,
   explicitCandidateId: string | null,
   batchCandidates: Map<string, string>,
   batchAnchorCandidateId: string | null
@@ -788,6 +781,8 @@ export async function uploadDocument(formData: FormData) {
   }
 
   const docType = parseDocumentType(rawType);
+  const documentNumber =
+    typeof docNumber === "string" && docNumber.trim().length > 0 ? docNumber.trim() : null;
 
   const candidate = await prisma.candidate.findFirst({
     where: {
@@ -804,21 +799,6 @@ export async function uploadDocument(formData: FormData) {
 
   const safeFileName = normalizeFileName(file.name);
   const filePath = `${candidateId}/${docType}_${Date.now()}_${safeFileName}`.replace(/\.\./g, "");
-
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(filePath, fileBuffer, { contentType: normalizedMimeType, upsert: false });
-
-  if (uploadError) throw new Error(`Error de subida: ${uploadError.message}`);
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-
-  const documentNumber =
-    typeof docNumber === "string" && docNumber.trim().length > 0 ? docNumber.trim() : null;
 
   if (documentNumber) {
     const existing = await prisma.document.findFirst({
@@ -840,6 +820,16 @@ export async function uploadDocument(formData: FormData) {
     }
   }
 
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const storage = getStorageProvider();
+
+  const { publicUrl } = await storage.uploadObject({
+    path: filePath,
+    body: fileBuffer,
+    contentType: normalizedMimeType,
+    upsert: false,
+  });
+
   const newDoc = await prisma.document.create({
     data: {
       type: docType,
@@ -860,7 +850,7 @@ export async function uploadDocument(formData: FormData) {
     try {
       await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
 
-      const ocrData = await analyzeDocument(fileBuffer, normalizedMimeType);
+      const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
 
       if (ocrData) {
         await prisma.document.update({
@@ -928,6 +918,18 @@ export async function uploadDocument(formData: FormData) {
         where: { id: newDoc.id },
         data: { ocrStatus: "FAILED" },
       });
+
+      await writeAuditLog({
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "OCR_FAILED",
+        entityType: "Document",
+        entityId: newDoc.id,
+        details: toInputJsonValue({
+          docType,
+          reason: error instanceof Error ? error.message : "OCR error",
+        }),
+      });
     }
   }
 
@@ -940,27 +942,35 @@ export async function uploadDocument(formData: FormData) {
     details: toInputJsonValue({ url: publicUrl, type: docType }),
   });
 
-  await prisma.notification.create({
-    data: {
-      userId: candidate.intermediaryId,
-      organizationId: tenant.organizationId!,
-      candidateId,
-      type: "DOCUMENT_UPLOADED",
-      title: "Documento Subido",
-      message: `Nuevo documento subido (${docType}) para ${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim(),
-    },
-  });
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: candidate.intermediaryId,
+        organizationId: tenant.organizationId!,
+        candidateId,
+        type: "DOCUMENT_UPLOADED",
+        title: "Documento Subido",
+        message: `Nuevo documento subido (${docType}) para ${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim(),
+      },
+    });
+  } catch (error) {
+    console.error("[uploadDocument] notification failed", error);
+  }
 
-  await emitEvent(
-    "DOCUMENT_UPLOADED",
-    tenant.organizationId!,
-    {
-      documentId: newDoc.id,
-      candidateId,
-      type: docType,
-    },
-    tenant.userId
-  );
+  try {
+    await emitEvent(
+      "DOCUMENT_UPLOADED",
+      tenant.organizationId!,
+      {
+        documentId: newDoc.id,
+        candidateId,
+        type: docType,
+      },
+      tenant.userId
+    );
+  } catch (error) {
+    console.error("[uploadDocument] event dispatch failed", error);
+  }
 
   revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/candidatos");
@@ -1247,12 +1257,9 @@ export async function deleteDocument(documentId: string) {
     throw new Error("Sin permisos");
   }
 
-  const urlParts = document.url.split(`${BUCKET}/`);
-
-  if (urlParts.length > 1) {
-    const filePath = urlParts[1];
-    await supabase.storage.from(BUCKET).remove([filePath]);
-  }
+  const storage = getStorageProvider();
+  const filePath = storage.getObjectPathFromPublicUrl(document.url);
+  if (filePath) await storage.removeObjects([filePath]);
 
   await prisma.document.delete({
     where: { id: documentId },
@@ -1290,7 +1297,7 @@ export async function smartBatchUpload(formData: FormData) {
     try {
       const fileBuffer = Buffer.from(await file.arrayBuffer());
       const normalizedMimeType = normalizeMimeType(file);
-      const ocrData = await analyzeDocument(fileBuffer, normalizedMimeType);
+      const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
       const docType = inferDocumentTypeFromSmartSignals(file.name, ocrData);
       const resolved = await resolveSmartUploadCandidate(
         tenant,

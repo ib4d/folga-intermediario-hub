@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { revalidatePath } from "next/cache";
-import { sendEmail } from "@/lib/email/sender";
+import { sendTransactionalEmail } from "@/lib/providers/email";
 
 export async function createLead(formData: FormData) {
   const tenant = await requireTenant();
@@ -37,7 +37,7 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
 
   if (!lead || !lead.email) throw new Error("Lead no válido o sin email");
 
-  const emailResult = await sendEmail({
+  const emailResult = await sendTransactionalEmail({
     to: lead.email,
     subject: `Propuesta para ${lead.company || lead.name}`,
     body: message

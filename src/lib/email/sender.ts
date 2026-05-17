@@ -15,7 +15,7 @@ export interface EmailPayload {
   templateData?: Record<string, unknown>;
 }
 
-interface EmailResult {
+export interface EmailResult {
   success: boolean;
   messageId?: string;
   error?: string;

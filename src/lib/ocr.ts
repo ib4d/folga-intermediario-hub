@@ -151,6 +151,18 @@ function extractRegexGroup(
 function normalizeWhitespace(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const normalized = value.replace(/\s+/g, " ").trim();
+  const compact = normalizeSearchText(normalized).replace(/[^A-Z0-9]+/g, "");
+  const labelOnlyValues = new Set([
+    "REMARKS",
+    "UWAGI",
+    "UWAGIREMARKS",
+    "ADDRESSOFREGISTRATION",
+    "ADRESZAMELDOWANIA",
+    "ADRESZAMELDOWANIAADDRESSOFREGISTRATION",
+    "DATEOFISSUEANDISSUINGAUTHORITY",
+    "DATAWYDANIAIORGANWYDAJACY",
+  ]);
+  if (labelOnlyValues.has(compact)) return undefined;
   return normalized.length > 0 ? normalized : undefined;
 }
 

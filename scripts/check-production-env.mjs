@@ -1,3 +1,37 @@
+import { existsSync, readFileSync } from "node:fs";
+
+function unquote(value) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function loadEnvFile(path) {
+  if (!existsSync(path)) return;
+
+  const content = readFileSync(path, "utf8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const normalized = line.startsWith("export ") ? line.slice(7).trim() : line;
+    const separator = normalized.indexOf("=");
+    if (separator <= 0) continue;
+
+    const key = normalized.slice(0, separator).trim();
+    const value = unquote(normalized.slice(separator + 1));
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
+
+loadEnvFile(".env.production");
+loadEnvFile(".env");
+
 const required = [
   "DB_PASSWORD",
   "AUTH_URL",
@@ -108,6 +142,20 @@ const stripeKeys = [
 
 if (stripeKeys.length > 0 && stripeKeys.length < 3) {
   warnings.push("Stripe is partially configured. Set publishable key, secret key, and webhook secret before enabling billing.");
+}
+
+const providerAllowlist = {
+  STORAGE_PROVIDER: ["supabase"],
+  OCR_PROVIDER: ["azure"],
+  EMAIL_PROVIDER: ["smtp"],
+  JOB_PROVIDER: ["inline"],
+};
+
+for (const [key, allowed] of Object.entries(providerAllowlist)) {
+  const value = process.env[key]?.trim();
+  if (value && !allowed.includes(value)) {
+    errors.push(`${key}=${value} is not supported in this release. Allowed: ${allowed.join(", ")}.`);
+  }
 }
 
 if (warnings.length > 0) {

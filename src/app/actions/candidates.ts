@@ -12,6 +12,7 @@ import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { getStorageProvider } from "@/lib/providers/storage";
 
 function parseDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -303,6 +304,21 @@ function hasMeaningfulValue(value: unknown): boolean {
   if (value === null || value === undefined) return false;
   if (typeof value === "string") return value.trim().length > 0;
   return true;
+}
+
+async function removeCandidateStoredFiles(documents: Array<{ url: string }>) {
+  const storage = getStorageProvider();
+  const paths = documents
+    .map((document) => storage.getObjectPathFromPublicUrl(document.url))
+    .filter((path): path is string => Boolean(path));
+
+  if (paths.length === 0) return;
+
+  try {
+    await storage.removeObjects(paths);
+  } catch (error) {
+    console.error("[deleteCandidate] storage cleanup failed", error);
+  }
 }
 
 async function parseSpreadsheetRows(file: File): Promise<SpreadsheetRow[]> {
@@ -955,6 +971,11 @@ export async function deleteCandidate(candidateId: string) {
       firstName: true,
       lastName: true,
       organizationId: true,
+      documents: {
+        select: {
+          url: true,
+        },
+      },
     },
   });
 
@@ -962,8 +983,43 @@ export async function deleteCandidate(candidateId: string) {
     throw new Error("Candidato no encontrado o sin permisos.");
   }
 
-  await prisma.candidate.delete({
-    where: { id: candidate.id },
+  await removeCandidateStoredFiles(candidate.documents);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.notification.updateMany({
+      where: {
+        candidateId: candidate.id,
+        organizationId: tenant.organizationId,
+      },
+      data: {
+        candidateId: null,
+      },
+    });
+
+    await tx.document.deleteMany({
+      where: {
+        candidateId: candidate.id,
+        organizationId: tenant.organizationId,
+      },
+    });
+
+    await tx.logisticsEvent.deleteMany({
+      where: {
+        candidateId: candidate.id,
+        organizationId: tenant.organizationId,
+      },
+    });
+
+    await tx.statusHistory.deleteMany({
+      where: {
+        candidateId: candidate.id,
+        organizationId: tenant.organizationId,
+      },
+    });
+
+    await tx.candidate.delete({
+      where: { id: candidate.id },
+    });
   });
 
   await writeAuditLog({
@@ -1001,6 +1057,11 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
       id: true,
       firstName: true,
       lastName: true,
+      documents: {
+        select: {
+          url: true,
+        },
+      },
     },
   });
 
@@ -1008,11 +1069,48 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
     throw new Error("No se encontraron candidatos eliminables en esta seleccion.");
   }
 
-  await prisma.candidate.deleteMany({
-    where: {
-      organizationId: tenant.organizationId,
-      id: { in: candidates.map((candidate) => candidate.id) },
-    },
+  await removeCandidateStoredFiles(candidates.flatMap((candidate) => candidate.documents));
+
+  const candidateIdsToDelete = candidates.map((candidate) => candidate.id);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.notification.updateMany({
+      where: {
+        organizationId: tenant.organizationId,
+        candidateId: { in: candidateIdsToDelete },
+      },
+      data: {
+        candidateId: null,
+      },
+    });
+
+    await tx.document.deleteMany({
+      where: {
+        organizationId: tenant.organizationId,
+        candidateId: { in: candidateIdsToDelete },
+      },
+    });
+
+    await tx.logisticsEvent.deleteMany({
+      where: {
+        organizationId: tenant.organizationId,
+        candidateId: { in: candidateIdsToDelete },
+      },
+    });
+
+    await tx.statusHistory.deleteMany({
+      where: {
+        organizationId: tenant.organizationId,
+        candidateId: { in: candidateIdsToDelete },
+      },
+    });
+
+    await tx.candidate.deleteMany({
+      where: {
+        organizationId: tenant.organizationId,
+        id: { in: candidateIdsToDelete },
+      },
+    });
   });
 
   await Promise.all(

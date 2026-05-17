@@ -219,6 +219,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             backgroundColor: "var(--ghost-white)",
             overflowY: "auto",
             minHeight: 0,
+            flex: "1 1 auto",
           }}
         >
           <div

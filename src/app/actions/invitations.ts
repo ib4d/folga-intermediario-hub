@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email/sender";
+import { sendTransactionalEmail } from "@/lib/providers/email";
 import { requireTenant } from "@/lib/tenant";
 import { writeAuditLog } from "@/lib/audit";
 import { canAssignRole } from "@/lib/permissions";
@@ -100,7 +100,11 @@ export async function inviteUserAction(
     },
   });
 
-  if (existingUser?.memberships.some((membership) => membership.organizationId === tenant.organizationId)) {
+  const existingMembership = existingUser?.memberships.find(
+    (membership) => membership.organizationId === tenant.organizationId
+  );
+
+  if (existingMembership?.isActive) {
     return {
       error: "Ese correo ya pertenece a esta organizacion.",
       success: "",
@@ -148,10 +152,20 @@ export async function inviteUserAction(
       });
     }
 
-    await tx.membership.create({
-      data: {
+    await tx.membership.upsert({
+      where: {
+        userId_organizationId: {
+          userId: user.id,
+          organizationId: tenant.organizationId,
+        },
+      },
+      create: {
         userId: user.id,
         organizationId: tenant.organizationId,
+        role,
+        isActive: true,
+      },
+      update: {
         role,
         isActive: true,
       },
@@ -173,7 +187,7 @@ export async function inviteUserAction(
   });
 
   const loginUrl = process.env.AUTH_URL || "http://localhost:3000";
-  const emailResult = await sendEmail({
+  const emailResult = await sendTransactionalEmail({
     to: email,
     subject: "Invitacion a ORI CRUIT HUB",
     body: [

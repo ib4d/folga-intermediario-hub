@@ -43,7 +43,8 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
         }
       } catch (err) {
         console.error(err);
-        alert("Error critico al subir documento");
+        const message = err instanceof Error ? err.message : "Error desconocido";
+        alert(`No se pudo completar la subida: ${message}`);
       }
     });
   };
