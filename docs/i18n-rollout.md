@@ -11,14 +11,15 @@ The app now has a small typed i18n foundation for the commercial languages:
 - Shared language types and labels live in `src/lib/i18n.ts`.
 - `/api/settings` validates `interfaceLanguage` before persisting user preferences.
 - The settings language panel uses the shared dictionary, so this preference is no longer a loose string.
+- The public landing page and login page expose an ES/EN/PL selector and preserve the selected language through login links.
 
 ## Rollout Rules
 
 1. Keep Spanish as the default fallback.
 2. Move strings module by module, not by global search-replace.
 3. Start with public and commercial surfaces:
-   - login
-   - marketing
+   - login: started
+   - marketing: started
    - candidate registration
    - pricing/billing
 4. Then translate operational modules:

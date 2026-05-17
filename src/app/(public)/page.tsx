@@ -12,10 +12,20 @@ import {
   BarChart3,
   CalendarDays
 } from "lucide-react";
+import LanguageSwitcher from "@/components/public/LanguageSwitcher";
+import { localizedHref, normalizeLanguage, t } from "@/lib/i18n";
 
-export default async function LandingPage() {
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lang?: string }>;
+}) {
   const session = await auth();
   if (session) redirect("/dashboard");
+  const { lang } = await searchParams;
+  const language = normalizeLanguage(lang);
+  const labels = t.bind(null, language);
+  const loginHref = localizedHref("/login", language);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)', overflowX: 'hidden' }}>
@@ -36,9 +46,10 @@ export default async function LandingPage() {
           ORI CRUIT <span style={{ color: 'var(--ghost-white)' }}>HUB</span>
         </div>
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
-          <Link href="#features" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>Funcionalidades</Link>
-          <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>Precios</Link>
-          <Link href="/login" className="button" style={{ fontSize: '0.8rem', padding: '0.5rem 1.25rem' }}>Iniciar Sesión</Link>
+          <Link href="#features" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>{labels("public.nav.features")}</Link>
+          <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>{labels("public.nav.pricing")}</Link>
+          <LanguageSwitcher currentLanguage={language} />
+          <Link href={loginHref} className="button" style={{ fontSize: '0.8rem', padding: '0.5rem 1.25rem' }}>{labels("public.nav.login")}</Link>
         </div>
       </nav>
 
@@ -69,8 +80,8 @@ export default async function LandingPage() {
           textTransform: 'uppercase',
           letterSpacing: '-0.04em'
         }}>
-          De WhatsApp y Excel al <br/>
-          <span style={{ color: 'var(--amber-flame)', textShadow: '4px 4px 0px var(--pitch-black)' }}>Control Total</span>
+          {labels("public.hero.titleA")} <br/>
+          <span style={{ color: 'var(--amber-flame)', textShadow: '4px 4px 0px var(--pitch-black)' }}>{labels("public.hero.titleB")}</span>
         </h1>
         <p style={{ 
           fontSize: '1.5rem', 
@@ -80,15 +91,14 @@ export default async function LandingPage() {
           opacity: 0.9,
           fontWeight: '500'
         }}>
-          La plataforma ATS especializada en reclutamiento internacional. 
-          OCR automático, flujos legales y logística en un solo lugar.
+          {labels("public.hero.description")}
         </p>
         <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/login" className="button" style={{ padding: '1.25rem 2.5rem', fontSize: '1.25rem' }}>
-            Empieza Gratis Ahora <ArrowRight size={24} style={{ marginLeft: '0.5rem' }} />
+          <Link href={loginHref} className="button" style={{ padding: '1.25rem 2.5rem', fontSize: '1.25rem' }}>
+            {labels("public.hero.primaryCta")} <ArrowRight size={24} style={{ marginLeft: '0.5rem' }} />
           </Link>
           <Link href="#demo" className="button button-secondary" style={{ padding: '1.25rem 2.5rem', fontSize: '1.25rem', backgroundColor: 'transparent', border: '2px solid var(--ghost-white)', color: 'var(--ghost-white)' }}>
-            Solicitar Demo
+            {labels("public.hero.secondaryCta")}
           </Link>
         </div>
       </header>
@@ -96,7 +106,7 @@ export default async function LandingPage() {
       {/* Problem Section */}
       <section style={{ padding: '6rem 2rem', backgroundColor: '#0f0f0f', borderTop: '4px solid var(--amber-flame)', borderBottom: '4px solid var(--amber-flame)' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '3rem', marginBottom: '4rem', textTransform: 'uppercase' }}>El Caos del Reclutamiento Internacional</h2>
+          <h2 style={{ fontSize: '3rem', marginBottom: '4rem', textTransform: 'uppercase' }}>{labels("public.problem.title")}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '3rem' }}>
             <div style={{ padding: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ color: '#ff4d4d', marginBottom: '1.5rem' }}><Zap size={40} /></div>
@@ -121,9 +131,9 @@ export default async function LandingPage() {
       <section id="features" style={{ padding: '8rem 2rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '6rem' }}>
-            <h2 style={{ fontSize: '3.5rem', marginBottom: '1.5rem', textTransform: 'uppercase' }}>Centraliza tu Crecimiento</h2>
+            <h2 style={{ fontSize: '3.5rem', marginBottom: '1.5rem', textTransform: 'uppercase' }}>{labels("public.features.title")}</h2>
             <p style={{ fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto' }}>
-              ORI CRUIT HUB automatiza las tareas administrativas para que tu equipo se enfoque en el talento.
+              {labels("public.features.description")}
             </p>
           </div>
 
@@ -166,8 +176,8 @@ export default async function LandingPage() {
       <section id="pricing" style={{ padding: '8rem 2rem', backgroundColor: 'var(--ghost-white)', color: 'var(--pitch-black)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '6rem' }}>
-            <h2 style={{ fontSize: '3.5rem', marginBottom: '1rem', textTransform: 'uppercase' }}>Planes Hechos para Crecer</h2>
-            <p style={{ fontSize: '1.25rem' }}>Elige el plan que mejor se adapte al volumen de tu agencia.</p>
+            <h2 style={{ fontSize: '3.5rem', marginBottom: '1rem', textTransform: 'uppercase' }}>{labels("public.pricing.title")}</h2>
+            <p style={{ fontSize: '1.25rem' }}>{labels("public.pricing.description")}</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
@@ -183,7 +193,7 @@ export default async function LandingPage() {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> OCR Limitado</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Branding ORI CRUIT HUB</li>
               </ul>
-              <Link href="/login" className="button" style={{ width: '100%' }}>Empezar Gratis</Link>
+              <Link href={loginHref} className="button" style={{ width: '100%' }}>{labels("public.hero.primaryCta")}</Link>
             </div>
 
             {/* STARTER */}
@@ -198,7 +208,7 @@ export default async function LandingPage() {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> OCR Estándar</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Exportación XLSX</li>
               </ul>
-              <Link href="/login" className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
+              <Link href={loginHref} className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
             </div>
 
             {/* PRO */}
@@ -213,7 +223,7 @@ export default async function LandingPage() {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> OCR Completo</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Paneles Legal/Logística</li>
               </ul>
-              <Link href="/login" className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
+              <Link href={loginHref} className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
             </div>
 
             {/* BUSINESS */}
@@ -228,7 +238,7 @@ export default async function LandingPage() {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> API de Integración</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Branding Propio</li>
               </ul>
-              <Link href="/login" className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
+              <Link href={loginHref} className="button" style={{ width: '100%' }}>Seleccionar Plan</Link>
             </div>
           </div>
         </div>
@@ -246,12 +256,12 @@ export default async function LandingPage() {
             ORI CRUIT HUB
           </div>
           <p style={{ opacity: 0.6, marginBottom: '3rem' }}>
-            Sustituyendo el caos de WhatsApp y Excel con tecnología diseñada para el reclutamiento internacional.
+            {labels("public.footer.description")}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginBottom: '4rem', flexWrap: 'wrap' }}>
-            <Link href="#features" style={{ color: 'inherit', textDecoration: 'none' }}>Funcionalidades</Link>
-            <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>Precios</Link>
-            <Link href="/login" style={{ color: 'inherit', textDecoration: 'none' }}>Login</Link>
+            <Link href="#features" style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.features")}</Link>
+            <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.pricing")}</Link>
+            <Link href={loginHref} style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.login")}</Link>
             <Link href="/docs" style={{ color: 'inherit', textDecoration: 'none' }}>Documentación</Link>
           </div>
           <div style={{ fontSize: '0.8rem', opacity: 0.4 }}>

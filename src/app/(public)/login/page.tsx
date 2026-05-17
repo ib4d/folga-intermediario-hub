@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import AuthShell from "@/components/public/AuthShell";
 import { clearSessionAction } from "@/app/actions/auth";
+import LanguageSwitcher from "@/components/public/LanguageSwitcher";
+import { normalizeLanguage, t } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const language = normalizeLanguage(searchParams.get("lang"));
+  const labels = t.bind(null, language);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,13 +32,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Correo o contrasena incorrectos.");
+        setError(labels("login.invalidCredentials"));
       } else {
         router.push(result?.url || "/dashboard");
         router.refresh();
       }
     } catch {
-      setError("Error al iniciar sesion.");
+      setError(labels("login.genericError"));
     } finally {
       setLoading(false);
     }
@@ -41,21 +46,23 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      badge="Acceso seguro"
-      title="Entra a tu mesa de control"
-      description="Accede al flujo operativo de ORI CRUIT HUB para revisar candidatos, documentos y tareas pendientes."
+      badge={labels("login.badge")}
+      title={labels("login.shellTitle")}
+      description={labels("login.shellDescription")}
       footer={
         <span>
-          Si tu cuenta aun no tiene organizacion asignada, el sistema te llevara al
-          onboarding despues de entrar.
+          {labels("login.footer")}
         </span>
       }
     >
       <div style={{ display: "grid", gap: "1.25rem" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <LanguageSwitcher currentLanguage={language} />
+        </div>
         <div style={{ display: "grid", gap: "0.5rem" }}>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>Iniciar sesion</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>{labels("login.title")}</div>
           <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
-            Usa tus credenciales para continuar con el trabajo diario del equipo.
+            {labels("login.description")}
           </p>
         </div>
 
@@ -77,7 +84,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="label" htmlFor="email">
-              Correo electronico
+              {labels("login.email")}
             </label>
             <input
               id="email"
@@ -94,7 +101,7 @@ export default function LoginPage() {
 
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="label" htmlFor="password">
-              Contrasena
+              {labels("login.password")}
             </label>
             <input
               id="password"
@@ -105,7 +112,7 @@ export default function LoginPage() {
               required
               disabled={loading}
               autoComplete="current-password"
-              placeholder="Introduce tu contrasena"
+              placeholder={labels("login.passwordPlaceholder")}
             />
           </div>
 
@@ -115,7 +122,7 @@ export default function LoginPage() {
             style={{ width: "100%", marginTop: "0.5rem" }}
             disabled={loading}
           >
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? labels("login.submitting") : labels("login.submit")}
           </button>
         </form>
 
@@ -126,7 +133,7 @@ export default function LoginPage() {
             style={{ width: "100%" }}
             disabled={loading}
           >
-            Limpiar sesion antigua
+            {labels("login.clearSession")}
           </button>
         </form>
       </div>
