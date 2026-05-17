@@ -5,10 +5,12 @@ import LegalReviewQueue from "@/components/legal/LegalReviewQueue";
 import { Scale, Users, CheckCircle, XCircle } from "lucide-react";
 import { requireTenant } from "@/lib/tenant";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { canMakeLegalDecision } from "@/lib/permissions";
+import { Role } from "@prisma/client";
 
 export default async function LegalPage() {
   const session = await auth();
-  if (!session || !["LEGAL", "ADMIN", "SUPERADMIN"].includes(session.user.role)) {
+  if (!session || !canMakeLegalDecision(session.user.role as Role)) {
     redirect("/dashboard");
   }
   const tenant = await requireTenant();

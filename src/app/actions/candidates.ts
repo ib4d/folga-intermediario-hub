@@ -13,7 +13,13 @@ import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getStorageProvider } from "@/lib/providers/storage";
-import { canCreateCandidates, canDeleteCandidates, canGenerateRegistrationLinks, canImportCandidates } from "@/lib/permissions";
+import {
+  canCreateCandidates,
+  canDeleteCandidates,
+  canGenerateRegistrationLinks,
+  canImportCandidates,
+  canMakeLegalDecision,
+} from "@/lib/permissions";
 
 function parseDateSafe(value: unknown): Date | null {
   if (!value) return null;
@@ -257,9 +263,7 @@ function mapNationalityToCountryCode(value: string | null): string | null {
 }
 
 function canChangeStatus(role: Role): boolean {
-  const allowedRoles: Role[] = [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN];
-
-  return allowedRoles.includes(role);
+  return canMakeLegalDecision(role);
 }
 
 function canAccessCandidate(

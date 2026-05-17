@@ -19,7 +19,12 @@ import {
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { canUploadCandidateDocuments } from "@/lib/permissions";
+import {
+  canMakeLegalDecision,
+  canRequestLegalReview,
+  canReviewCandidateDocuments,
+  canUploadCandidateDocuments,
+} from "@/lib/permissions";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -81,6 +86,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const role = tenant.role;
   const canManageDocuments = canUploadCandidateDocuments(role);
+  const canReviewDocuments = canReviewCandidateDocuments(role);
+  const canRequestReview = canRequestLegalReview(role);
+  const canMakeLegalDecisions = canMakeLegalDecision(role);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
   const arrivalReadiness = getArrivalReadiness(candidate);
 
@@ -419,7 +427,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
-                            {["LEGAL", "ADMIN", "SUPERADMIN"].includes(role) ? (
+                            {canReviewDocuments ? (
                               <DocumentReviewModal
                                 doc={{
                                   id: doc.id,
@@ -560,7 +568,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               ) : null}
             </div>
 
-            {["LEGAL", "ADMIN", "SUPERADMIN"].includes(role) ? (
+            {canRequestReview ? (
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
                 <h4 className="text-xs font-bold text-blue-700 uppercase">Revision Legal</h4>
                 <RequestLegalReview
@@ -570,6 +578,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   blockers={checklist.blockers}
                   missing={checklist.missing}
                 />
+              </div>
+            ) : null}
+
+            {canMakeLegalDecisions ? (
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-500 uppercase">Decision legal</h4>
+                <p className="mt-2 text-xs text-gray-500">
+                  Las decisiones finales se gestionan desde el panel Legal para mantener trazabilidad y auditoria.
+                </p>
               </div>
             ) : null}
 

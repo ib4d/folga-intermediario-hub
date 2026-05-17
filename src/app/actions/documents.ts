@@ -9,7 +9,7 @@ import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
 import { emitEvent } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
-import { canUploadCandidateDocuments } from "@/lib/permissions";
+import { canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -997,7 +997,7 @@ export async function uploadDocument(formData: FormData) {
 export async function verifyDocument(documentId: string) {
   const tenant = await requireTenant();
 
-  if (!([Role.LEGAL, Role.ADMIN, Role.SUPERADMIN] as Role[]).includes(tenant.role)) {
+  if (!canReviewCandidateDocuments(tenant.role)) {
     throw new Error("Sin permisos para verificar documentos");
   }
 
@@ -1057,6 +1057,10 @@ export async function reviewDocumentOcr(input: {
   markVerified?: boolean;
 }) {
   const tenant = await requireTenant();
+
+  if (!canReviewCandidateDocuments(tenant.role)) {
+    throw new Error("Tu rol no puede revisar OCR de documentos.");
+  }
 
   const document = await prisma.document.findFirst({
     where: {

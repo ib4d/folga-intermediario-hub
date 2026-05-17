@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
+import { canAccessModule } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 
@@ -16,7 +17,7 @@ function generateApiKey(): { raw: string; hash: string } {
 export async function createApiKey(name: string) {
   const tenant = await requireTenant();
 
-  if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {
+  if (!canAccessModule(tenant.role, "apiKeys")) {
     throw new Error("Sin permisos para crear API keys");
   }
 
@@ -48,7 +49,7 @@ export async function createApiKey(name: string) {
 export async function revokeApiKey(keyId: string) {
   const tenant = await requireTenant();
 
-  if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {
+  if (!canAccessModule(tenant.role, "apiKeys")) {
     throw new Error("Sin permisos para revocar API keys");
   }
 
@@ -71,7 +72,7 @@ export async function updateOrganizationBranding(data: {
 }) {
   const tenant = await requireTenant();
 
-  if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {
+  if (!canAccessModule(tenant.role, "branding")) {
     throw new Error("Sin permisos para actualizar branding");
   }
 

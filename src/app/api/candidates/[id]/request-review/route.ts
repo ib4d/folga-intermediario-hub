@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 import { CandidateStatus, Role } from "@prisma/client";
+import { canRequestLegalReview } from "@/lib/permissions";
 
 export async function POST(
   _req: NextRequest,
@@ -17,6 +18,11 @@ export async function POST(
 
     const { id } = await params;
     const organizationId = session.user.organizationId;
+    const role = session.user.role as Role;
+
+    if (!canRequestLegalReview(role)) {
+      return NextResponse.json({ error: "Tu rol no puede solicitar revision legal" }, { status: 403 });
+    }
 
     const candidate = await prisma.candidate.findFirst({
       where: {
@@ -32,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: "Candidato no encontrado en esta organizacion" }, { status: 404 });
     }
 
-    if (session.user.role === Role.INTERMEDIARIO && candidate.intermediaryId !== session.user.id) {
+    if (role === Role.INTERMEDIARIO && candidate.intermediaryId !== session.user.id) {
       return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403 });
     }
 

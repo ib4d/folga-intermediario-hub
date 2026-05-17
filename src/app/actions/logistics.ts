@@ -5,9 +5,10 @@ import { writeAuditLog } from "@/lib/audit";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTenant, type TenantContext } from "@/lib/tenant";
+import { canManageLogistics } from "@/lib/permissions";
 
 function assertLogisticsAccess(tenant: TenantContext) {
-  if (!["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(tenant.role)) {
+  if (!canManageLogistics(tenant.role)) {
     throw new Error("No autorizado");
   }
 }

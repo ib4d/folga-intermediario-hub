@@ -83,6 +83,26 @@ export function canUploadCandidateDocuments(viewerRole: Role): boolean {
   return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
 }
 
+export function canReviewCandidateDocuments(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.LEGAL] as Role[]).includes(viewerRole);
+}
+
+export function canRequestLegalReview(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
+}
+
+export function canMakeLegalDecision(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.LEGAL] as Role[]).includes(viewerRole);
+}
+
+export function canManageLogistics(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.LOGISTICA] as Role[]).includes(viewerRole);
+}
+
+export function canInviteUsers(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN] as Role[]).includes(viewerRole);
+}
+
 export function canDeleteCandidates(viewerRole: Role): boolean {
   return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
 }

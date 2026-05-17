@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
+import { canManageLogistics } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
+import { Role } from "@prisma/client";
 
 export default async function LogisticaPage() {
   const session = await auth();
-  if (!session || !["ADMIN", "SUPERADMIN", "LOGISTICA"].includes(session.user.role)) {
+  if (!session || !canManageLogistics(session.user.role as Role)) {
     redirect("/dashboard");
   }
 

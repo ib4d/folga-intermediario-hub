@@ -42,10 +42,15 @@ This document is the operational source of truth for v1 role visibility.
 
 ## Current Enforcement Points
 
+- `src/lib/permissions.ts` is the canonical place for role/module/action guards.
 - Sidebar hides inaccessible modules by role.
-- Billing, branding and API settings are server-gated.
+- Legal and logistics pages use centralized role guards before loading data.
+- Billing, branding and API settings are server-gated and backed by server actions.
 - Candidate list hides create/import/delete controls where not allowed.
 - Candidate/document actions also enforce permissions server-side.
+- OCR review and document verification are limited to `SUPERADMIN`, `ADMIN` and `LEGAL`.
+- Legal review requests are limited to authorized operational roles and remain tenant/ownership scoped.
+- Logistics mutations are limited to `SUPERADMIN`, `ADMIN` and `LOGISTICA`.
 - Member visibility is filtered server-side in settings.
 - Tenant scope remains applied to candidate/document lists and detail pages.
 

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendTransactionalEmail } from "@/lib/providers/email";
 import { requireTenant } from "@/lib/tenant";
 import { writeAuditLog } from "@/lib/audit";
-import { canAssignRole } from "@/lib/permissions";
+import { canAssignRole, canInviteUsers } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -53,7 +53,7 @@ export async function inviteUserAction(
 ) {
   const tenant = await requireTenant();
 
-  if (!["SUPERADMIN", "ADMIN"].includes(tenant.role)) {
+  if (!canInviteUsers(tenant.role)) {
     return {
       error: "No tienes permisos para invitar usuarios.",
       success: "",
