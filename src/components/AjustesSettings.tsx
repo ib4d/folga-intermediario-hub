@@ -8,6 +8,7 @@ type Settings = {
   notifyLegalAlerts: boolean;
   notifyExpiringDocs: boolean;
   twoFactorEnabled: boolean;
+  interfaceLanguage: "es" | "pl" | "en";
   avatarUrl?: string;
 };
 
@@ -16,6 +17,7 @@ const defaultSettings: Settings = {
   notifyLegalAlerts: true,
   notifyExpiringDocs: true,
   twoFactorEnabled: false,
+  interfaceLanguage: "es",
 };
 
 export default function AjustesSettings() {
@@ -128,6 +130,41 @@ export default function AjustesSettings() {
             Actualizar Contraseña
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginBottom: "1rem" }}>Idioma de Interfaz</h3>
+        <div className="input-group">
+          <label className="label" htmlFor="interface-language">
+            Idioma preferido
+          </label>
+          <select
+            id="interface-language"
+            className="select"
+            value={settings.interfaceLanguage}
+            onChange={(event) =>
+              setSettings({
+                ...settings,
+                interfaceLanguage: event.target.value as Settings["interfaceLanguage"],
+              })
+            }
+          >
+            <option value="es">Espanol</option>
+            <option value="pl">Polski</option>
+            <option value="en">English</option>
+          </select>
+          <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.5rem" }}>
+            Base preparada para ES, PL y EN. Las pantallas se iran conectando a traducciones por modulo.
+          </p>
+        </div>
+        <button
+          className="button"
+          style={{ width: "100%", marginTop: "0.75rem" }}
+          onClick={handleSave}
+          disabled={isPending}
+        >
+          {isPending ? "Guardando..." : saved ? "Guardado" : "Guardar idioma"}
+        </button>
       </div>
 
       {/* Notificaciones */}

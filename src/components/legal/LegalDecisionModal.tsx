@@ -166,10 +166,11 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
         inset: 0,
         zIndex: 50,
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
         padding: "1rem",
         backgroundColor: "rgba(11, 5, 0, 0.75)",
+        overflowY: "auto",
       }}
     >
       <div
@@ -180,6 +181,10 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
           padding: 0,
           overflow: "hidden",
           boxShadow: "8px 8px 0px var(--pitch-black)",
+          maxHeight: "calc(100vh - 2rem)",
+          display: "flex",
+          flexDirection: "column",
+          margin: "1rem 0",
         }}
       >
         <div
@@ -190,6 +195,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flex: "0 0 auto",
           }}
         >
           <h2 style={{ color: "var(--primary)", fontWeight: "900", textTransform: "uppercase", margin: 0 }}>
@@ -211,6 +217,8 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             flexDirection: "column",
             gap: "1.25rem",
             backgroundColor: "var(--ghost-white)",
+            overflowY: "auto",
+            minHeight: 0,
           }}
         >
           <div
@@ -369,6 +377,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             borderTop: "2px solid var(--pitch-black)",
             display: "flex",
             gap: "1rem",
+            flex: "0 0 auto",
           }}
         >
           <button onClick={onClose} className="button button-secondary" style={{ flex: 1 }}>

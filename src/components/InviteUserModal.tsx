@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { X, UserPlus, Loader2 } from "lucide-react";
 import { inviteUserAction } from "@/app/actions/invitations";
 
+type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
+
 const initialInviteState = {
   error: "",
   success: "",
@@ -11,9 +13,21 @@ const initialInviteState = {
   tempPassword: "",
 };
 
-export default function InviteUserModal() {
+type InviteUserModalProps = {
+  allowedRoles?: InviteRole[];
+};
+
+const ROLE_LABELS: Record<InviteRole, string> = {
+  ADMIN: "Administrador",
+  INTERMEDIARIO: "Intermediario",
+  LEGAL: "Legal",
+  LOGISTICA: "Logistica",
+};
+
+export default function InviteUserModal({ allowedRoles = ["INTERMEDIARIO"] }: InviteUserModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(inviteUserAction, initialInviteState);
+  const defaultRole = allowedRoles[0] ?? "INTERMEDIARIO";
   const deliveryNoticeStyle: CSSProperties = state.emailSent
     ? {
         padding: "0.85rem 1rem",
@@ -165,13 +179,14 @@ export default function InviteUserModal() {
                   name="role"
                   className="select"
                   required
-                  defaultValue="INTERMEDIARIO"
+                  defaultValue={defaultRole}
                   disabled={isPending}
                 >
-                  <option value="INTERMEDIARIO">Intermediario</option>
-                  <option value="LEGAL">Legal</option>
-                  <option value="LOGISTICA">Logistica</option>
-                  <option value="ADMIN">Administrador</option>
+                  {allowedRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
                 </select>
                 <p
                   style={{
@@ -181,7 +196,7 @@ export default function InviteUserModal() {
                     marginBottom: 0,
                   }}
                 >
-                  Solo los superadmins pueden crear otros administradores.
+                  Solo veras roles que tu nivel puede conceder.
                 </p>
               </div>
 

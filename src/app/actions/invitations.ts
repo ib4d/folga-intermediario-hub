@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email/sender";
 import { requireTenant } from "@/lib/tenant";
 import { writeAuditLog } from "@/lib/audit";
+import { canAssignRole } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -83,9 +84,9 @@ export async function inviteUserAction(
     };
   }
 
-  if (role === "ADMIN" && tenant.role !== "SUPERADMIN") {
+  if (!canAssignRole(tenant.role, role)) {
     return {
-      error: "Solo un superadmin puede invitar a otro administrador.",
+      error: "No puedes asignar ese rol desde tu nivel de acceso.",
       success: "",
       emailSent: false,
       tempPassword: "",
