@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "check:prod-env": "node scripts/check-production-env.mjs",
     "check:permissions": "tsx scripts/check-permissions.ts",
+    "check:smoke": "node scripts/check-production-smoke.mjs",
     "check:smtp": "node scripts/check-smtp.mjs"
   },
   "prisma": {

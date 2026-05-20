@@ -77,6 +77,7 @@ Comprueba estado:
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs --tail=100 web
 curl http://127.0.0.1:3000/api/health
+docker compose -f docker-compose.prod.yml exec web npm run check:smoke
 ```
 
 ## 7. Configura Nginx
@@ -128,6 +129,7 @@ certbot --nginx -d app.ori-craftlabs.com
 
 ```bash
 curl https://app.ori-craftlabs.com/api/health
+docker compose -f docker-compose.prod.yml exec web npm run check:smoke
 ```
 
 Luego revisa en navegador:
