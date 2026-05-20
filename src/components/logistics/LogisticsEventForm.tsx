@@ -27,10 +27,11 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     try {
       await createLogisticsEvent(formData);
-      e.currentTarget.reset();
+      form.reset();
       setSelectedCandidateId("");
       setCandidateQuery("");
       setTransportType("AVION");
