@@ -251,6 +251,14 @@ function fieldError(errors: FieldErrors, name: string) {
   ) : null;
 }
 
+function flattenFieldErrors(errors: FieldErrors) {
+  return Object.entries(errors)
+    .flatMap(([field, messages]) =>
+      field === "_global" ? [] : messages.map((message) => `${field}: ${message}`)
+    )
+    .slice(0, 5);
+}
+
 function FormField({
   label,
   name,
@@ -360,7 +368,8 @@ export default function CandidateRegistrationForm({
       if (result.error) {
         const nextErrors = result.error as FieldErrors;
         setErrors(nextErrors);
-        alert(nextErrors._global?.[0] ?? text.error);
+        const details = flattenFieldErrors(nextErrors);
+        alert([nextErrors._global?.[0] ?? text.error, ...details].join("\n"));
         return;
       }
 

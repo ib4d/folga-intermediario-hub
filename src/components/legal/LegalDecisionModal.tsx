@@ -166,11 +166,12 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
         inset: 0,
         zIndex: 50,
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "center",
-        padding: "1rem",
+        height: "100dvh",
+        padding: "0.5rem",
         backgroundColor: "rgba(11, 5, 0, 0.75)",
-        overflowY: "auto",
+        overflow: "hidden",
       }}
     >
       <div
@@ -181,10 +182,10 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
           padding: 0,
           overflow: "hidden",
           boxShadow: "8px 8px 0px var(--pitch-black)",
-          maxHeight: "calc(100vh - 2rem)",
+          maxHeight: "calc(100dvh - 1rem)",
           display: "flex",
           flexDirection: "column",
-          margin: "1rem 0",
+          margin: 0,
         }}
       >
         <div
@@ -218,6 +219,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             gap: "1.25rem",
             backgroundColor: "var(--ghost-white)",
             overflowY: "auto",
+            overscrollBehavior: "contain",
             minHeight: 0,
             flex: "1 1 auto",
           }}
@@ -281,7 +283,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             </div>
           ) : null}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
             <button
               onClick={() => handleDecisionChange("APROBADO")}
               disabled={!checklist.isReadyForLegal}
@@ -325,7 +327,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
           {decision ? (
             <div className="input-group" style={{ marginBottom: 0 }}>
               <label className="label">Acciones de seguimiento</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.75rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
                 {FOLLOW_UP_ACTIONS.map((action) => (
                   <label
                     key={action}
