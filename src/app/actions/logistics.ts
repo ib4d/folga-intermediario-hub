@@ -2,10 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
-import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
+import { LocationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTenant, type TenantContext } from "@/lib/tenant";
 import { canManageLogistics } from "@/lib/permissions";
+import { isLogisticsSchedulableStatus } from "@/lib/logistics-policy";
 
 function assertLogisticsAccess(tenant: TenantContext) {
   if (!canManageLogistics(tenant.role)) {
@@ -76,8 +77,8 @@ export async function createLogisticsEvent(formData: FormData) {
     throw new Error("Candidato no encontrado en esta organizacion");
   }
 
-  if (candidate.status !== CandidateStatus.APROBADO) {
-    throw new Error("Solo se puede programar logistica para candidatos aprobados");
+  if (!isLogisticsSchedulableStatus(candidate.status)) {
+    throw new Error("No se puede programar logistica para candidatos rechazados o retirados");
   }
 
   const event = await prisma.logisticsEvent.create({

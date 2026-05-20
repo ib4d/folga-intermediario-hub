@@ -15,6 +15,8 @@ interface Props {
 export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [isCandidatePickerOpen, setIsCandidatePickerOpen] = useState(false);
   const [transportType, setTransportType] = useState("AVION");
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
   const selectedChecklist = selectedCandidate ? getCandidateDocumentChecklist(selectedCandidate) : null;
@@ -30,6 +32,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       await createLogisticsEvent(formData);
       e.currentTarget.reset();
       setSelectedCandidateId("");
+      setCandidateQuery("");
       setTransportType("AVION");
       onSuccess?.();
     } catch {
@@ -38,6 +41,29 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       setIsSubmitting(false);
     }
   };
+
+  const candidateLabel = (candidate: Props["candidates"][number]) =>
+    `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim() || "Candidato sin nombre";
+
+  const candidateSearchText = (candidate: Props["candidates"][number]) =>
+    [
+      candidateLabel(candidate),
+      candidate.country,
+      candidate.status,
+      candidate.passportNumber,
+      candidate.peselNumber,
+      candidate.phone,
+      candidate.email,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+  const filteredCandidates = candidates
+    .filter((candidate) =>
+      candidateSearchText(candidate).includes(candidateQuery.trim().toLowerCase())
+    )
+    .slice(0, 12);
 
   return (
     <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem" }}>
@@ -62,25 +88,85 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       >
         <div className="input-group" style={{ marginBottom: 0 }}>
           <label className="label">Candidato</label>
-          <select
-            name="candidateId"
-            className="select"
-            required
-            value={selectedCandidateId}
-            onChange={(event) => setSelectedCandidateId(event.target.value)}
-            disabled={candidates.length === 0}
-          >
-            <option value="">Seleccione...</option>
-            {candidates.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.firstName?.toUpperCase()} {candidate.lastName?.toUpperCase()} (
-                {candidate.country?.toUpperCase()})
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="candidateId" value={selectedCandidateId} />
+          <div style={{ position: "relative" }}>
+            <input
+              type="search"
+              className="input"
+              required
+              value={candidateQuery}
+              onChange={(event) => {
+                setCandidateQuery(event.target.value);
+                setSelectedCandidateId("");
+                setIsCandidatePickerOpen(true);
+              }}
+              onFocus={() => setIsCandidatePickerOpen(true)}
+              placeholder="Buscar por nombre, pasaporte, PESEL, pais..."
+              disabled={candidates.length === 0}
+              autoComplete="off"
+            />
+            {isCandidatePickerOpen && candidates.length > 0 ? (
+              <div
+                style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "calc(100% + 4px)",
+                  left: 0,
+                  right: 0,
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--background)",
+                  boxShadow: "8px 8px 0 var(--shadow)",
+                }}
+              >
+                {filteredCandidates.length > 0 ? (
+                  filteredCandidates.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        setSelectedCandidateId(candidate.id);
+                        setCandidateQuery(candidateLabel(candidate));
+                        setIsCandidatePickerOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        border: 0,
+                        borderBottom: "1px solid var(--border-subtle)",
+                        background: selectedCandidateId === candidate.id ? "var(--primary)" : "var(--background)",
+                        color: "var(--foreground)",
+                        padding: "0.8rem",
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <strong style={{ display: "block", textTransform: "uppercase" }}>
+                        {candidateLabel(candidate)}
+                      </strong>
+                      <span style={{ display: "block", fontSize: "0.78rem", color: "var(--muted-foreground)" }}>
+                        {candidate.country?.toUpperCase() ?? "SIN PAIS"} - {candidate.status.replaceAll("_", " ")}
+                        {candidate.passportNumber ? ` - PAS ${candidate.passportNumber}` : ""}
+                        {candidate.peselNumber ? ` - PESEL ${candidate.peselNumber}` : ""}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div style={{ padding: "0.9rem", fontSize: "0.82rem", color: "var(--muted-foreground)" }}>
+                    Sin coincidencias. Prueba con nombre, pasaporte, PESEL o pais.
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
           {candidates.length === 0 ? (
             <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
-              No hay candidatos aprobados disponibles para programar.
+              No hay candidatos activos disponibles para programar.
+            </p>
+          ) : !selectedCandidateId ? (
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
+              Escribe para filtrar y selecciona un candidato de la lista.
             </p>
           ) : null}
         </div>

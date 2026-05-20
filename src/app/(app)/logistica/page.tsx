@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
+import { LOGISTICS_BLOCKED_STATUSES } from "@/lib/logistics-policy";
 import { canManageLogistics } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
@@ -18,7 +19,7 @@ export default async function LogisticaPage() {
 
   const pendingCandidates = await prisma.candidate.findMany({
     where: candidateVisibilityWhere(tenant, {
-      status: "APROBADO",
+      status: { notIn: [...LOGISTICS_BLOCKED_STATUSES] },
       isArchived: false,
     }),
     include: {
@@ -93,7 +94,7 @@ export default async function LogisticaPage() {
         </div>
         <h1 style={{ marginBottom: "0.5rem" }}>Gestion de Llegadas</h1>
         <p style={{ color: "var(--pitch-black)", fontSize: "1.1rem", margin: 0 }}>
-          Monitoreo y coordinacion de transporte para candidatos aprobados.
+          Monitoreo y coordinacion de transporte para candidatos activos.
         </p>
       </div>
 
