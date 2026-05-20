@@ -35,8 +35,9 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       setCandidateQuery("");
       setTransportType("AVION");
       onSuccess?.();
-    } catch {
-      alert("Error al crear evento");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error al crear evento";
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }

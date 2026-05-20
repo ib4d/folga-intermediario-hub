@@ -107,16 +107,24 @@ export async function createLogisticsEvent(formData: FormData) {
     } as Prisma.InputJsonValue,
   });
 
-  await prisma.notification.create({
-    data: {
-      userId: candidate.intermediaryId,
-      organizationId: tenant.organizationId,
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: candidate.intermediaryId,
+        organizationId: tenant.organizationId,
+        candidateId: candidate.id,
+        type: "LOGISTICS_UPDATE",
+        title: "Actualizacion de logistica",
+        message: `Se ha programado el transporte (${transportType ?? "sin definir"}) para ${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim(),
+      },
+    });
+  } catch (error) {
+    console.error("[logistics] Event created but notification failed", {
+      eventId: event.id,
       candidateId: candidate.id,
-      type: "LOGISTICS_UPDATE",
-      title: "Actualizacion de logistica",
-      message: `Se ha programado el transporte (${transportType ?? "sin definir"}) para ${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim(),
-    },
-  });
+      error,
+    });
+  }
 
   revalidatePath("/logistica");
   revalidatePath("/dashboard");
