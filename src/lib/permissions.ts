@@ -165,6 +165,30 @@ export function canGenerateRegistrationLinks(viewerRole: Role): boolean {
   return canCreateCandidates(viewerRole);
 }
 
+export function canAccessCandidateByOwnership(
+  viewerRole: Role,
+  candidateIntermediaryId: string,
+  viewerUserId: string
+): boolean {
+  if (([Role.SUPERADMIN, Role.ADMIN, Role.LEGAL, Role.LOGISTICA] as Role[]).includes(viewerRole)) {
+    return true;
+  }
+
+  return candidateIntermediaryId === viewerUserId;
+}
+
+export function canExportCandidates(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN] as Role[]).includes(viewerRole);
+}
+
+export function canExportLegalReview(viewerRole: Role): boolean {
+  return canMakeLegalDecision(viewerRole);
+}
+
+export function canExportLogistics(viewerRole: Role): boolean {
+  return canManageLogistics(viewerRole);
+}
+
 export function roleLabel(role: Role): string {
   const labels: Record<Role, string> = {
     SUPERADMIN: "Superadmin",

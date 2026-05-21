@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
 import { CandidateStatus, Role } from "@prisma/client";
-import { canRequestLegalReview } from "@/lib/permissions";
+import { canAccessCandidateByOwnership, canRequestLegalReview } from "@/lib/permissions";
 
 export async function POST(
   _req: NextRequest,
@@ -38,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: "Candidato no encontrado en esta organizacion" }, { status: 404 });
     }
 
-    if (role === Role.INTERMEDIARIO && candidate.intermediaryId !== session.user.id) {
+    if (!canAccessCandidateByOwnership(role, candidate.intermediaryId, session.user.id)) {
       return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403 });
     }
 

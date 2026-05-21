@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
-import { Prisma, Role } from "@prisma/client";
+import { canAccessCandidateByOwnership } from "@/lib/permissions";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 function parsePaymentPayload(value: unknown) {
@@ -59,7 +60,7 @@ export async function PATCH(
     );
   }
 
-  if (tenant.role === Role.INTERMEDIARIO && candidate.intermediaryId !== tenant.userId) {
+  if (!canAccessCandidateByOwnership(tenant.role, candidate.intermediaryId, tenant.userId)) {
     return NextResponse.json(
       { error: "Sin permisos sobre este candidato" },
       { status: 403 }

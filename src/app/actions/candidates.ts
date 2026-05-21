@@ -19,6 +19,7 @@ import {
   canGenerateRegistrationLinks,
   canImportCandidates,
   canMakeLegalDecision,
+  canAccessCandidateByOwnership,
 } from "@/lib/permissions";
 
 function parseDateSafe(value: unknown): Date | null {
@@ -271,12 +272,7 @@ function canAccessCandidate(
   candidateIntermediaryId: string,
   userId: string
 ): boolean {
-  const privilegedRoles: Role[] = [Role.ADMIN, Role.SUPERADMIN, Role.LEGAL, Role.LOGISTICA];
-  if (privilegedRoles.includes(role)) {
-    return true;
-  }
-
-  return candidateIntermediaryId === userId;
+  return canAccessCandidateByOwnership(role, candidateIntermediaryId, userId);
 }
 
 function parseCandidateStatus(value: string): CandidateStatus {

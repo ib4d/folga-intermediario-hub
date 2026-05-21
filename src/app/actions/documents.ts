@@ -9,7 +9,11 @@ import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
 import { emitEvent } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
-import { canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
+import {
+  canAccessCandidateByOwnership,
+  canReviewCandidateDocuments,
+  canUploadCandidateDocuments,
+} from "@/lib/permissions";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -145,11 +149,7 @@ function parseDocumentType(value: string): DocumentType {
 }
 
 function canAccessCandidate(role: Role, candidateIntermediaryId: string, userId: string): boolean {
-  if (([Role.ADMIN, Role.SUPERADMIN, Role.LEGAL, Role.LOGISTICA] as Role[]).includes(role)) {
-    return true;
-  }
-
-  return candidateIntermediaryId === userId;
+  return canAccessCandidateByOwnership(role, candidateIntermediaryId, userId);
 }
 
 function isOcrSupported(type: DocumentType): boolean {

@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   canAccessModule,
+  canAccessCandidateByOwnership,
   canAssignRole,
   canCreateCandidates,
   canDeleteCandidates,
+  canExportCandidates,
+  canExportLegalReview,
+  canExportLogistics,
   canImportCandidates,
   canInviteUsers,
   canMakeLegalDecision,
@@ -114,5 +118,18 @@ assert.equal(canInviteUsers(Role.ADMIN), true);
 assert.equal(canInviteUsers(Role.LEGAL), false);
 assert.equal(canDeleteCandidates(Role.INTERMEDIARIO), true);
 assert.equal(canDeleteCandidates(Role.LOGISTICA), false);
+assert.equal(canAccessCandidateByOwnership(Role.SUPERADMIN, "owner-a", "user-b"), true);
+assert.equal(canAccessCandidateByOwnership(Role.ADMIN, "owner-a", "user-b"), true);
+assert.equal(canAccessCandidateByOwnership(Role.LEGAL, "owner-a", "user-b"), true);
+assert.equal(canAccessCandidateByOwnership(Role.LOGISTICA, "owner-a", "user-b"), true);
+assert.equal(canAccessCandidateByOwnership(Role.INTERMEDIARIO, "owner-a", "owner-a"), true);
+assert.equal(canAccessCandidateByOwnership(Role.INTERMEDIARIO, "owner-a", "user-b"), false);
+assert.equal(canExportCandidates(Role.SUPERADMIN), true);
+assert.equal(canExportCandidates(Role.ADMIN), true);
+assert.equal(canExportCandidates(Role.LEGAL), false);
+assert.equal(canExportLegalReview(Role.LEGAL), true);
+assert.equal(canExportLegalReview(Role.LOGISTICA), false);
+assert.equal(canExportLogistics(Role.LOGISTICA), true);
+assert.equal(canExportLogistics(Role.INTERMEDIARIO), false);
 
 console.log("Permission matrix check passed.");

@@ -1,10 +1,11 @@
 "use server";
 
 import ExcelJS from "exceljs";
-import { CandidateStatus, Prisma, Role } from "@prisma/client";
+import { CandidateStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
+import { canExportCandidates, canExportLegalReview, canExportLogistics } from "@/lib/permissions";
 
 type ExportResponse = {
   base64: string;
@@ -99,8 +100,7 @@ export async function exportCandidatesXLSX(
 ): Promise<ExportResponse> {
   const tenant = await requireTenant();
 
-  const allowedRoles: Role[] = [Role.ADMIN, Role.SUPERADMIN];
-  if (!allowedRoles.includes(tenant.role)) {
+  if (!canExportCandidates(tenant.role)) {
     throw new Error("No autorizado");
   }
 
@@ -179,8 +179,7 @@ export const exportCandidatesToXLSX = exportCandidatesXLSX;
 export async function exportLegalReviewXLSX(): Promise<ExportResponse> {
   const tenant = await requireTenant();
 
-  const allowedRoles: Role[] = [Role.LEGAL, Role.ADMIN, Role.SUPERADMIN];
-  if (!allowedRoles.includes(tenant.role)) {
+  if (!canExportLegalReview(tenant.role)) {
     throw new Error("No autorizado");
   }
 
@@ -238,8 +237,7 @@ export async function exportLegalReviewXLSX(): Promise<ExportResponse> {
 export async function exportLogisticsArrivalsXLSX(): Promise<ExportResponse> {
   const tenant = await requireTenant();
 
-  const allowedRoles: Role[] = [Role.ADMIN, Role.SUPERADMIN, Role.LOGISTICA];
-  if (!allowedRoles.includes(tenant.role)) {
+  if (!canExportLogistics(tenant.role)) {
     throw new Error("No autorizado");
   }
 
