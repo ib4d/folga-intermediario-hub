@@ -48,6 +48,9 @@ const modules: AppModule[] = [
   "billing",
   "apiKeys",
   "branding",
+  "leads",
+  "revenue",
+  "marketplace",
 ];
 
 const expectedModuleAccess: Record<Role, AppModule[]> = {

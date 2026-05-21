@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { canExportCandidates, canExportLegalReview } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import * as XLSX from "xlsx";
 
@@ -9,6 +10,9 @@ import * as XLSX from "xlsx";
  */
 export async function generatePerformanceReport() {
   const tenant = await requireTenant();
+  if (!canExportCandidates(tenant.role)) {
+    throw new Error("Tu rol no puede exportar reportes de rendimiento");
+  }
 
   const [candidates, org] = await Promise.all([
     prisma.candidate.findMany({
@@ -61,6 +65,9 @@ export async function generatePerformanceReport() {
  */
 export async function generateLegalComplianceReport() {
   const tenant = await requireTenant();
+  if (!canExportLegalReview(tenant.role)) {
+    throw new Error("Tu rol no puede exportar reportes legales");
+  }
 
   const candidates = await prisma.candidate.findMany({
     where: { 

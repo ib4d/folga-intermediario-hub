@@ -20,7 +20,10 @@ export type AppModule =
   | "settings"
   | "billing"
   | "apiKeys"
-  | "branding";
+  | "branding"
+  | "leads"
+  | "revenue"
+  | "marketplace";
 
 const MODULE_ACCESS: Record<Role, AppModule[]> = {
   [Role.SUPERADMIN]: [
@@ -33,6 +36,9 @@ const MODULE_ACCESS: Record<Role, AppModule[]> = {
     "billing",
     "apiKeys",
     "branding",
+    "leads",
+    "revenue",
+    "marketplace",
   ],
   [Role.ADMIN]: [
     "dashboard",
@@ -44,6 +50,9 @@ const MODULE_ACCESS: Record<Role, AppModule[]> = {
     "billing",
     "apiKeys",
     "branding",
+    "leads",
+    "revenue",
+    "marketplace",
   ],
   [Role.INTERMEDIARIO]: ["dashboard", "candidates", "documents", "settings"],
   [Role.LEGAL]: ["dashboard", "candidates", "documents", "legal", "settings"],

@@ -1,8 +1,14 @@
 import { createCandidate } from "@/app/actions/candidates";
+import { canCreateCandidates } from "@/lib/permissions";
+import { requireTenant } from "@/lib/tenant";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 
-export default function NuevoCandidatoPage() {
+export default async function NuevoCandidatoPage() {
+  const tenant = await requireTenant();
+  if (!canCreateCandidates(tenant.role)) redirect("/sin-permisos");
+
   return (
     <>
       <div style={{ marginBottom: '2rem' }}>

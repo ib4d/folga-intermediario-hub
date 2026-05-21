@@ -1,12 +1,16 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { revalidatePath } from "next/cache";
 import { sendTransactionalEmail } from "@/lib/providers/email";
 
 export async function createLead(formData: FormData) {
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "leads")) {
+    throw new Error("Tu rol no puede gestionar leads");
+  }
   
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -30,6 +34,9 @@ export async function createLead(formData: FormData) {
 
 export async function sendLeadOutreach(leadId: string, message: string, step: number) {
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "leads")) {
+    throw new Error("Tu rol no puede gestionar leads");
+  }
 
   const lead = await prisma.lead.findFirst({
     where: { id: leadId, organizationId: tenant.organizationId! }
@@ -69,6 +76,9 @@ export async function sendLeadOutreach(leadId: string, message: string, step: nu
 
 export async function updateLeadStatus(leadId: string, status: string) {
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "leads")) {
+    throw new Error("Tu rol no puede gestionar leads");
+  }
   
   await prisma.lead.update({
     where: { id: leadId, organizationId: tenant.organizationId! },

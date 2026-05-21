@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { canAccessModule } from "@/lib/permissions";
+import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
 import { marketplacePlugins } from "@/plugins";
 import { Puzzle, ShieldCheck, Zap } from "lucide-react";
@@ -6,6 +8,8 @@ import { Puzzle, ShieldCheck, Zap } from "lucide-react";
 export default async function MarketplacePage() {
   const session = await auth();
   if (!session) redirect("/login");
+  const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "marketplace")) redirect("/sin-permisos");
 
   return (
     <div className="main-content">

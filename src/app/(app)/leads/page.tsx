@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
 import { Plus, Mail, MessageSquare, TrendingUp } from "lucide-react";
@@ -16,6 +17,7 @@ export default async function LeadsPage() {
   if (!session) redirect("/login");
 
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "leads")) redirect("/sin-permisos");
 
   const leads: LeadWithOutreachCount[] = await prisma.lead.findMany({
     where: { organizationId: tenant.organizationId! },

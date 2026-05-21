@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
 import { TrendingUp, Target, Banknote, Calendar } from "lucide-react";
@@ -11,6 +12,7 @@ export default async function RevenueDashboardPage() {
   if (!session) redirect("/login");
 
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "revenue")) redirect("/sin-permisos");
 
   // 1. Revenue Metrics (MRR Estimation)
   const org = await prisma.organization.findUnique({

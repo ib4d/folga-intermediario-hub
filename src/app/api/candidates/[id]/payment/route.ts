@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
-import { canAccessCandidateByOwnership } from "@/lib/permissions";
+import { canAccessCandidateByOwnership, canViewCandidatePayment } from "@/lib/permissions";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -63,6 +63,13 @@ export async function PATCH(
   if (!canAccessCandidateByOwnership(tenant.role, candidate.intermediaryId, tenant.userId)) {
     return NextResponse.json(
       { error: "Sin permisos sobre este candidato" },
+      { status: 403 }
+    );
+  }
+
+  if (!canViewCandidatePayment(tenant.role)) {
+    return NextResponse.json(
+      { error: "Tu rol no puede modificar pagos de candidatos" },
       { status: 403 }
     );
   }
