@@ -1,6 +1,6 @@
 "use client";
 
-import { Candidate, Document, User } from "@prisma/client";
+import { Candidate, Document, Role, User } from "@prisma/client";
 import { AlertTriangle, LayoutGrid, List, Search, ShieldAlert, TimerReset } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -13,12 +13,13 @@ interface Props {
     documents: Document[];
     intermediary: User;
   })[];
+  viewerRole: Role;
 }
 
 type QueueFilter = "all" | "ready" | "blocked" | "expiring" | "duplicates";
 type QueueSort = "priority" | "updated" | "name";
 
-export default function LegalReviewQueue({ initialCandidates }: Props) {
+export default function LegalReviewQueue({ initialCandidates, viewerRole }: Props) {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [activeFilter, setActiveFilter] = useState<QueueFilter>("all");
@@ -227,7 +228,7 @@ export default function LegalReviewQueue({ initialCandidates }: Props) {
               gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr",
               gap: "1.5rem",
             }}
-            renderItem={(row) => <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} />}
+            renderItem={(row) => <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} viewerRole={viewerRole} />}
           />
         </>
       )}

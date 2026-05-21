@@ -31,12 +31,22 @@ type Document = {
   };
 };
 
-export default function DocumentTable({ initialDocuments }: { initialDocuments: Document[] }) {
+export default function DocumentTable({
+  initialDocuments,
+  canReviewDocuments,
+  canDeleteDocuments,
+}: {
+  initialDocuments: Document[];
+  canReviewDocuments: boolean;
+  canDeleteDocuments: boolean;
+}) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   const toggleSelectAll = () => {
+    if (!canDeleteDocuments) return;
+
     if (selectedIds.length === initialDocuments.length) {
       setSelectedIds([]);
       return;
@@ -46,6 +56,7 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
   };
 
   const toggleSelect = (id: string) => {
+    if (!canDeleteDocuments) return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
@@ -111,7 +122,7 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
         }}
       >
         <h2>Documentos Procesados</h2>
-        {selectedIds.length > 0 ? (
+        {canDeleteDocuments && selectedIds.length > 0 ? (
           <button
             className="button button-secondary"
             style={{ backgroundColor: "#fee2e2", color: "#dc2626", borderColor: "#dc2626" }}
@@ -128,15 +139,17 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
         <table>
           <thead>
             <tr>
-              <th style={{ width: "40px" }}>
-                <button onClick={toggleSelectAll} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                  {selectedIds.length === initialDocuments.length && initialDocuments.length > 0 ? (
-                    <CheckSquare size={18} />
-                  ) : (
-                    <Square size={18} />
-                  )}
-                </button>
-              </th>
+              {canDeleteDocuments ? (
+                <th style={{ width: "40px" }}>
+                  <button onClick={toggleSelectAll} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                    {selectedIds.length === initialDocuments.length && initialDocuments.length > 0 ? (
+                      <CheckSquare size={18} />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </button>
+                </th>
+              ) : null}
               <th>Archivo</th>
               <th>Candidato</th>
               <th>Tipo</th>
@@ -149,7 +162,7 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
           <tbody>
             {initialDocuments.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+                <td colSpan={canDeleteDocuments ? 8 : 7} style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
                   No hay documentos procesados
                 </td>
               </tr>
@@ -161,18 +174,20 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
 
                 return (
                   <tr key={doc.id}>
-                    <td>
-                      <button
-                        onClick={() => toggleSelect(doc.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer" }}
-                      >
-                        {selectedIds.includes(doc.id) ? (
-                          <CheckSquare size={18} color="var(--amber-flame)" />
-                        ) : (
-                          <Square size={18} />
-                        )}
-                      </button>
-                    </td>
+                    {canDeleteDocuments ? (
+                      <td>
+                        <button
+                          onClick={() => toggleSelect(doc.id)}
+                          style={{ background: "none", border: "none", cursor: "pointer" }}
+                        >
+                          {selectedIds.includes(doc.id) ? (
+                            <CheckSquare size={18} color="var(--amber-flame)" />
+                          ) : (
+                            <Square size={18} />
+                          )}
+                        </button>
+                      </td>
+                    ) : null}
                     <td>
                       <div style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <FileText size={16} />
@@ -199,7 +214,7 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                        <DocumentReviewModal doc={doc} />
+                        {canReviewDocuments ? <DocumentReviewModal doc={doc} /> : null}
                         <Link
                           href={`/candidatos/${doc.candidateId}`}
                           className="button button-secondary"
@@ -207,19 +222,21 @@ export default function DocumentTable({ initialDocuments }: { initialDocuments: 
                         >
                           {doc.ocrStatus === "FAILED" ? "Corregir" : "Verificar"}
                         </Link>
-                        <button
-                          onClick={() => handleDeleteSingle(doc.id)}
-                          disabled={isDeleting}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#dc2626",
-                            cursor: "pointer",
-                            opacity: isDeleting ? 0.5 : 1,
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {canDeleteDocuments ? (
+                          <button
+                            onClick={() => handleDeleteSingle(doc.id)}
+                            disabled={isDeleting}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#dc2626",
+                              cursor: "pointer",
+                              opacity: isDeleting ? 0.5 : 1,
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

@@ -2,7 +2,8 @@
 
 import { updateCandidateStatus } from "@/app/actions/candidates";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
-import { Candidate, Document } from "@prisma/client";
+import { canViewCandidatePayment } from "@/lib/permissions";
+import { Candidate, Document, Role } from "@prisma/client";
 import { AlertTriangle, CheckCircle, ShieldAlert, X, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -10,6 +11,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   candidate: Candidate & { documents: Document[] };
+  viewerRole: Role;
 }
 
 const BASE_REJECTION_REASONS = [
@@ -61,8 +63,13 @@ function buildOutcomeSummary({
   return lines.join("\n");
 }
 
-export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props) {
+export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerRole }: Props) {
   const checklist = useMemo(() => getCandidateDocumentChecklist(candidate), [candidate]);
+  const canViewPayment = canViewCandidatePayment(viewerRole);
+  const visibleWarnings = useMemo(
+    () => (canViewPayment ? checklist.warnings : checklist.warnings.filter((warning) => !warning.toLowerCase().includes("400 pln"))),
+    [canViewPayment, checklist.warnings],
+  );
   const [decision, setDecision] = useState<"APROBADO" | "RECHAZADO" | "REVISION_ADICIONAL" | null>(null);
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
@@ -79,17 +86,17 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
     if (checklist.blockers.some((blocker) => blocker.toLowerCase().includes("verific"))) {
       reasons.add("Proceso migratorio incompleto");
     }
-    if (checklist.warnings.some((warning) => warning.toLowerCase().includes("400 pln"))) {
+    if (canViewPayment && checklist.warnings.some((warning) => warning.toLowerCase().includes("400 pln"))) {
       reasons.add("Falta pago 400 PLN");
     }
 
     return Array.from(reasons);
-  }, [checklist]);
+  }, [canViewPayment, checklist]);
 
   if (!isOpen) return null;
 
   const defaultReviewNotes =
-    checklist.blockers.length > 0 ? checklist.blockers.join("; ") : checklist.warnings.slice(0, 3).join("; ");
+    checklist.blockers.length > 0 ? checklist.blockers.join("; ") : visibleWarnings.slice(0, 3).join("; ");
 
   const currentCategoryOptions =
     decision === "RECHAZADO"
@@ -270,13 +277,13 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate }: Props
             </div>
           ) : null}
 
-          {checklist.warnings.length > 0 ? (
+          {visibleWarnings.length > 0 ? (
             <div style={{ padding: "1rem", backgroundColor: "#fef3c7", border: "2px solid #92400e" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
                 <AlertTriangle size={16} /> Alertas operativas
               </div>
               <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
-                {checklist.warnings.slice(0, 4).map((warning, index) => (
+                {visibleWarnings.slice(0, 4).map((warning, index) => (
                   <li key={`${warning}-${index}`}>{warning}</li>
                 ))}
               </ul>

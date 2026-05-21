@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
 import { LOGISTICS_BLOCKED_STATUSES } from "@/lib/logistics-policy";
-import { canManageLogistics } from "@/lib/permissions";
+import { canManageLogistics, canViewCandidateAudit } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Role } from "@prisma/client";
@@ -102,6 +102,7 @@ export default async function LogisticaPage() {
         pendingCandidates={pendingCandidates}
         weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>["weeklyEvents"]}
         recentActivity={recentActivity as React.ComponentProps<typeof LogisticsDashboard>["recentActivity"]}
+        canViewActivityActors={canViewCandidateAudit(tenant.role)}
       />
     </>
   );

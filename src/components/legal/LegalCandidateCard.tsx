@@ -1,8 +1,9 @@
 "use client";
 
-import { Candidate, Document, User } from "@prisma/client";
+import { Candidate, Document, Role, User } from "@prisma/client";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import { canViewCandidatePayment } from "@/lib/permissions";
 import { AlertCircle, FileText, MapPin, ShieldAlert, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import ExpandableText from "@/components/ui/ExpandableText";
@@ -14,12 +15,17 @@ interface Props {
     documents: Document[];
     intermediary: User;
   };
+  viewerRole: Role;
 }
 
-export default function LegalCandidateCard({ candidate }: Props) {
+export default function LegalCandidateCard({ candidate, viewerRole }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const checklist = getCandidateDocumentChecklist(candidate);
   const legalOutcome = getCandidateLegalOutcome(candidate);
+  const canViewPayment = canViewCandidatePayment(viewerRole);
+  const visibleWarnings = canViewPayment
+    ? checklist.warnings
+    : checklist.warnings.filter((warning) => !warning.toLowerCase().includes("400 pln"));
 
   const formatDate = (date: Date | null) => {
     if (!date) return "N/A";
@@ -55,16 +61,18 @@ export default function LegalCandidateCard({ candidate }: Props) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
-            <span
-              className="status-badge"
-              style={{
-                backgroundColor: candidate.paid400pln ? "#4ade80" : "var(--primary)",
-                fontSize: "0.65rem",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {candidate.paid400pln ? "400 PLN OK" : "PENDIENTE PAGO"}
-            </span>
+            {canViewPayment ? (
+              <span
+                className="status-badge"
+                style={{
+                  backgroundColor: candidate.paid400pln ? "#4ade80" : "var(--primary)",
+                  fontSize: "0.65rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {candidate.paid400pln ? "400 PLN OK" : "PENDIENTE PAGO"}
+              </span>
+            ) : null}
             <span
               className="status-badge"
               style={{
@@ -155,14 +163,14 @@ export default function LegalCandidateCard({ candidate }: Props) {
         </div>
       ) : null}
 
-      {checklist.warnings.length > 0 ? (
+      {visibleWarnings.length > 0 ? (
         <div style={{ padding: "0.75rem 1.5rem", backgroundColor: "#ffccd5", borderBottom: "2px solid var(--pitch-black)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", marginBottom: "0.35rem" }}>
             <AlertCircle size={14} strokeWidth={3} />
             ALERTAS
           </div>
           <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
-            {checklist.warnings.map((warning) => `- ${warning}`).join(" | ")}
+            {visibleWarnings.map((warning) => `- ${warning}`).join(" | ")}
           </ExpandableText>
         </div>
       ) : null}
@@ -232,7 +240,7 @@ export default function LegalCandidateCard({ candidate }: Props) {
         </div>
       </div>
 
-      <LegalDecisionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} candidate={candidate} />
+      <LegalDecisionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} candidate={candidate} viewerRole={viewerRole} />
     </div>
   );
 }

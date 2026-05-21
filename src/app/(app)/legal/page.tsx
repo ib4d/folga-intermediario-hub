@@ -147,7 +147,10 @@ export default async function LegalPage() {
           <h2 style={{ whiteSpace: 'nowrap', fontWeight: '900', textTransform: 'uppercase' }}>CANDIDATOS PENDIENTES</h2>
           <div style={{ flex: 1, height: '2px', backgroundColor: 'var(--pitch-black)' }}></div>
         </div>
-        <LegalReviewQueue initialCandidates={candidates as React.ComponentProps<typeof LegalReviewQueue>['initialCandidates']} />
+        <LegalReviewQueue
+          initialCandidates={candidates as React.ComponentProps<typeof LegalReviewQueue>['initialCandidates']}
+          viewerRole={tenant.role}
+        />
       </section>
     </>
   );

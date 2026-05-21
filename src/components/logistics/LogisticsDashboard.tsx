@@ -39,9 +39,15 @@ interface Props {
       role: string;
     } | null;
   }>;
+  canViewActivityActors: boolean;
 }
 
-export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, recentActivity }: Props) {
+export default function LogisticsDashboard({
+  pendingCandidates,
+  weeklyEvents,
+  recentActivity,
+  canViewActivityActors,
+}: Props) {
   const [candidatePage, setCandidatePage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
 
@@ -247,9 +253,11 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
                     <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)" }}>
                       {getActivitySummary(entry)}
                     </div>
-                    <div style={{ marginTop: "0.2rem", fontSize: "0.74rem", color: "var(--muted)" }}>
-                      Por {entry.User?.name || "Sistema"} ({entry.User?.role || "SYSTEM"})
-                    </div>
+                    {canViewActivityActors ? (
+                      <div style={{ marginTop: "0.2rem", fontSize: "0.74rem", color: "var(--muted)" }}>
+                        Por {entry.User?.name || "Sistema"} ({entry.User?.role || "SYSTEM"})
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

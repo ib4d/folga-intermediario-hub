@@ -5,7 +5,7 @@ import DocumentTable from "@/components/DocumentTable";
 import Link from "next/link";
 import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Prisma } from "@prisma/client";
-import { canUploadCandidateDocuments } from "@/lib/permissions";
+import { canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 
 export default async function DocumentosPage({
   searchParams,
@@ -87,7 +87,11 @@ export default async function DocumentosPage({
         </div>
       </div>
 
-      <DocumentTable initialDocuments={documents as never} />
+      <DocumentTable
+        initialDocuments={documents as never}
+        canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
+        canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
+      />
     </>
   );
 }
