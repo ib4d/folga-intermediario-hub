@@ -3,6 +3,14 @@ import { Role } from "@prisma/client";
 const ADMIN_MANAGED_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA] as const;
 const SUPERADMIN_INVITABLE_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA, Role.ADMIN] as const;
 
+export type RolePermissionSummary = {
+  role: Role;
+  scope: string;
+  access: string;
+  management: string;
+  visibleUsers: string;
+};
+
 export type AppModule =
   | "dashboard"
   | "candidates"
@@ -42,6 +50,44 @@ const MODULE_ACCESS: Record<Role, AppModule[]> = {
   [Role.LOGISTICA]: ["dashboard", "candidates", "logistics", "settings"],
 };
 
+export const ROLE_PERMISSION_SUMMARIES: Record<Role, RolePermissionSummary> = {
+  [Role.SUPERADMIN]: {
+    role: Role.SUPERADMIN,
+    scope: "Todo el sistema",
+    access: "Ve todos los modulos, usuarios, candidatos, documentos, legal, logistica, billing, API y auditoria.",
+    management: "Puede conceder, cambiar o retirar acceso a cualquier usuario sin perder el ultimo superadmin activo.",
+    visibleUsers: "Todos los usuarios de la organizacion.",
+  },
+  [Role.ADMIN]: {
+    role: Role.ADMIN,
+    scope: "Operacion de la organizacion",
+    access: "Ve candidatos y modulos operativos de su organizacion; no ve ni gestiona superadmins.",
+    management: "Puede invitar y gestionar Intermediario, Legal y Logistica.",
+    visibleUsers: "Intermediarios, Legal y Logistica. No ve Superadmins ni otros Admin.",
+  },
+  [Role.INTERMEDIARIO]: {
+    role: Role.INTERMEDIARIO,
+    scope: "Captacion propia",
+    access: "Ve sus candidatos, documentos relacionados y links de registro asociados a su cartera.",
+    management: "No puede invitar usuarios ni cambiar roles.",
+    visibleUsers: "Solo usuarios Intermediario de su organizacion.",
+  },
+  [Role.LEGAL]: {
+    role: Role.LEGAL,
+    scope: "Revision legal",
+    access: "Ve la cola legal, candidatos en revision y documentos necesarios para decision legal.",
+    management: "No puede invitar usuarios ni cambiar roles.",
+    visibleUsers: "Solo usuarios Legal de su organizacion.",
+  },
+  [Role.LOGISTICA]: {
+    role: Role.LOGISTICA,
+    scope: "Llegadas y coordinacion",
+    access: "Ve logistica, candidatos aprobados o listos para llegada y campos operativos de transporte/alojamiento.",
+    management: "No puede invitar usuarios ni cambiar roles.",
+    visibleUsers: "Solo usuarios Logistica de su organizacion.",
+  },
+};
+
 export function canViewMemberRole(viewerRole: Role, targetRole: Role, isSelf = false): boolean {
   if (isSelf) return true;
   if (viewerRole === Role.SUPERADMIN) return true;
@@ -69,6 +115,14 @@ export function canAssignRole(viewerRole: Role, nextRole: Role): boolean {
 
 export function canAccessModule(viewerRole: Role, module: AppModule): boolean {
   return MODULE_ACCESS[viewerRole]?.includes(module) ?? false;
+}
+
+export function getAccessibleModules(viewerRole: Role): AppModule[] {
+  return [...(MODULE_ACCESS[viewerRole] ?? [])];
+}
+
+export function getRolePermissionSummary(role: Role): RolePermissionSummary {
+  return ROLE_PERMISSION_SUMMARIES[role];
 }
 
 export function canCreateCandidates(viewerRole: Role): boolean {

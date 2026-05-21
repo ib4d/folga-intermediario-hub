@@ -1159,6 +1159,33 @@ tr:hover td {
   text-transform: uppercase;
 }
 
+.member-management-cell {
+  min-width: 280px;
+}
+
+.member-management-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+}
+
+.member-role-form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(132px, auto);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.member-role-select,
+.member-action-button {
+  min-height: 44px;
+}
+
+.member-action-button {
+  justify-content: center;
+  min-width: 132px;
+}
+
 .hero-section {
   background-color: var(--surface);
   color: var(--foreground);
@@ -1251,6 +1278,14 @@ tr:hover td {
 
   .candidate-actions {
     grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .member-role-form {
+    grid-template-columns: 1fr;
+  }
+
+  .member-management-cell {
     min-width: 0;
   }
 }

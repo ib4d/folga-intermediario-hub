@@ -6,7 +6,14 @@ import InviteUserModal from "@/components/InviteUserModal";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
-import { canAccessModule, canManageMemberRole, canViewMemberRole, getInvitableRoles, roleLabel } from "@/lib/permissions";
+import {
+  ROLE_PERMISSION_SUMMARIES,
+  canAccessModule,
+  canManageMemberRole,
+  canViewMemberRole,
+  getInvitableRoles,
+  roleLabel,
+} from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
@@ -28,36 +35,11 @@ export default async function AjustesPage() {
   const assignableRoles = tenant.role === Role.SUPERADMIN ? [Role.SUPERADMIN, ...invitableRoles] : invitableRoles;
 
   const permissionReport = [
-    {
-      role: Role.SUPERADMIN,
-      scope: "Todo el sistema",
-      access: "Ve todos los modulos, usuarios, candidatos, documentos, legal, logistica, billing, API y auditoria.",
-      management: "Puede conceder o retirar acceso a cualquier usuario y cambiar roles.",
-    },
-    {
-      role: Role.ADMIN,
-      scope: "Operacion de la organizacion",
-      access: "Ve candidatos y modulos operativos de su organizacion; no ve ni gestiona superadmins.",
-      management: "Puede invitar y gestionar Intermediario, Legal y Logistica.",
-    },
-    {
-      role: Role.LEGAL,
-      scope: "Revision legal",
-      access: "Ve la cola legal, candidatos en revision y documentos necesarios para decision legal.",
-      management: "Solo ve usuarios Legal de su organizacion.",
-    },
-    {
-      role: Role.LOGISTICA,
-      scope: "Llegadas y coordinacion",
-      access: "Ve logistica, candidatos aprobados o listos para llegada y campos operativos de transporte/alojamiento.",
-      management: "Solo ve usuarios Logistica de su organizacion.",
-    },
-    {
-      role: Role.INTERMEDIARIO,
-      scope: "Captacion propia",
-      access: "Ve sus candidatos, documentos relacionados y links de registro asociados a su cartera.",
-      management: "Solo ve usuarios Intermediario de su organizacion.",
-    },
+    ROLE_PERMISSION_SUMMARIES[Role.SUPERADMIN],
+    ROLE_PERMISSION_SUMMARIES[Role.ADMIN],
+    ROLE_PERMISSION_SUMMARIES[Role.LEGAL],
+    ROLE_PERMISSION_SUMMARIES[Role.LOGISTICA],
+    ROLE_PERMISSION_SUMMARIES[Role.INTERMEDIARIO],
   ];
 
   const organization = await prisma.organization.findUnique({
@@ -224,26 +206,26 @@ export default async function AjustesPage() {
                             {isActive ? "Activo" : "Inactivo"}
                           </span>
                         </td>
-                        <td>
+                        <td className="member-management-cell">
                           {canManage ? (
-                            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                              <form action={updateMemberRoleAction} style={{ display: "flex", gap: "0.5rem" }}>
+                            <div className="member-management-actions">
+                              <form action={updateMemberRoleAction} className="member-role-form">
                                 <input type="hidden" name="membershipId" value={membership.id} />
-                                <select name="role" className="select" defaultValue={membership.role} style={{ minWidth: "150px" }}>
+                                <select name="role" className="select member-role-select" defaultValue={membership.role}>
                                   {assignableRoles.map((role) => (
                                     <option key={role} value={role}>
                                       {roleLabel(role)}
                                     </option>
                                   ))}
                                 </select>
-                                <button className="button button-secondary" type="submit">
+                                <button className="button button-secondary member-action-button" type="submit">
                                   Guardar rol
                                 </button>
                               </form>
                               <form action={updateMemberAccessAction}>
                                 <input type="hidden" name="membershipId" value={membership.id} />
                                 <input type="hidden" name="isActive" value={isActive ? "false" : "true"} />
-                                <button className="button button-secondary" type="submit">
+                                <button className="button button-secondary member-action-button" type="submit">
                                   {isActive ? "Quitar acceso" : "Activar acceso"}
                                 </button>
                               </form>
@@ -304,6 +286,9 @@ export default async function AjustesPage() {
                   <h3 style={{ marginTop: 0 }}>{roleLabel(item.role)}</h3>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{item.access}</p>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5, fontWeight: 800 }}>{item.management}</p>
+                  <p style={{ fontSize: "0.78rem", lineHeight: 1.45, fontWeight: 700, opacity: 0.82 }}>
+                    Usuarios visibles: {item.visibleUsers}
+                  </p>
                 </div>
               ))}
             </div>

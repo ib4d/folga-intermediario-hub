@@ -15,6 +15,8 @@ import {
   canReviewCandidateDocuments,
   canUploadCandidateDocuments,
   canViewMemberRole,
+  getAccessibleModules,
+  getRolePermissionSummary,
   getInvitableRoles,
   type AppModule,
 } from "../src/lib/permissions";
@@ -48,6 +50,9 @@ const expectedModuleAccess: Record<Role, AppModule[]> = {
 };
 
 for (const role of allRoles) {
+  assert.deepEqual(getAccessibleModules(role), expectedModuleAccess[role], `${role} accessible module list mismatch`);
+  assert.equal(getRolePermissionSummary(role).role, role, `${role} permission summary mismatch`);
+
   for (const appModule of modules) {
     assert.equal(
       canAccessModule(role, appModule),
