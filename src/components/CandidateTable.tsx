@@ -33,6 +33,7 @@ export default function CandidateTable({
   totalCandidates,
   currentLimit,
   canManageCandidates,
+  canViewContact,
 }: {
   candidates: CandidateRow[];
   pageNumber: number;
@@ -40,6 +41,7 @@ export default function CandidateTable({
   totalCandidates: number;
   currentLimit: string;
   canManageCandidates: boolean;
+  canViewContact: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -175,7 +177,7 @@ export default function CandidateTable({
                 <td>
                   <div className="candidate-name-cell">
                     <div className="candidate-name">{getCandidateName(candidate)}</div>
-                    <div className="candidate-meta">{candidate.phone || "Sin telefono"}</div>
+                    {canViewContact ? <div className="candidate-meta">{candidate.phone || "Sin telefono"}</div> : null}
                   </div>
                 </td>
                 <td>{candidate.country}</td>

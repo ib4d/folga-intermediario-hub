@@ -8,7 +8,12 @@ import { CandidateStatus, Prisma } from "@prisma/client";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import CandidateTable from "@/components/CandidateTable";
-import { canCreateCandidates, canDeleteCandidates, canImportCandidates } from "@/lib/permissions";
+import {
+  canCreateCandidates,
+  canDeleteCandidates,
+  canImportCandidates,
+  canViewCandidateContact,
+} from "@/lib/permissions";
 
 export default async function CandidatosPage({
   searchParams,
@@ -110,6 +115,7 @@ export default async function CandidatosPage({
           totalCandidates={totalCandidates}
           currentLimit={limit}
           canManageCandidates={canDeleteCandidates(tenant.role)}
+          canViewContact={canViewCandidateContact(tenant.role)}
         />
       )}
     </>

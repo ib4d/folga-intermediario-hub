@@ -21,9 +21,14 @@ import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import {
   canMakeLegalDecision,
+  canEditCandidateNotes,
   canRequestLegalReview,
   canReviewCandidateDocuments,
   canUploadCandidateDocuments,
+  canViewCandidateAudit,
+  canViewCandidateContact,
+  canViewCandidateLogistics,
+  canViewCandidatePayment,
 } from "@/lib/permissions";
 import {
   AlertTriangle,
@@ -68,27 +73,34 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   if (!candidate) notFound();
 
-  const auditLogs = await prisma.auditLog.findMany({
-    where: {
-      organizationId: tenant.organizationId,
-      entityType: "Candidate",
-      entityId: candidate.id,
-    },
-    include: {
-      User: {
-        select: { name: true, role: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
-
-  const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const role = tenant.role;
   const canManageDocuments = canUploadCandidateDocuments(role);
   const canReviewDocuments = canReviewCandidateDocuments(role);
   const canRequestReview = canRequestLegalReview(role);
   const canMakeLegalDecisions = canMakeLegalDecision(role);
+  const canViewContact = canViewCandidateContact(role);
+  const canViewPayment = canViewCandidatePayment(role);
+  const canViewLogistics = canViewCandidateLogistics(role);
+  const canViewAudit = canViewCandidateAudit(role);
+  const canEditNotes = canEditCandidateNotes(role);
+  const auditLogs = canViewAudit
+    ? await prisma.auditLog.findMany({
+        where: {
+          organizationId: tenant.organizationId,
+          entityType: "Candidate",
+          entityId: candidate.id,
+        },
+        include: {
+          User: {
+            select: { name: true, role: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      })
+    : [];
+
+  const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
   const arrivalReadiness = getArrivalReadiness(candidate);
 
@@ -153,9 +165,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <span>
                   <FileText size={18} /> {candidate.passportNumber || "Sin Pasaporte"}
                 </span>
-                <span>
-                  <ClipboardList size={18} /> {candidate.phone || "Sin Telefono"}
-                </span>
+                {canViewContact ? (
+                  <span>
+                    <ClipboardList size={18} /> {candidate.phone || "Sin Telefono"}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -183,19 +197,21 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         </div>
 
         <div className="candidate-stat-strip">
-          <div className="candidate-stat-item">
-            <div
-              className={`candidate-stat-icon ${
-                candidate.paid400pln ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"
-              }`}
-            >
-              <DollarSign size={20} />
+          {canViewPayment ? (
+            <div className="candidate-stat-item">
+              <div
+                className={`candidate-stat-icon ${
+                  candidate.paid400pln ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"
+                }`}
+              >
+                <DollarSign size={20} />
+              </div>
+              <div>
+                <div className="candidate-stat-label">Pago 400 PLN</div>
+                <div className="font-bold">{candidate.paid400pln ? "Confirmado" : "Pendiente"}</div>
+              </div>
             </div>
-            <div>
-              <div className="candidate-stat-label">Pago 400 PLN</div>
-              <div className="font-bold">{candidate.paid400pln ? "Confirmado" : "Pendiente"}</div>
-            </div>
-          </div>
+          ) : null}
 
           <div className="candidate-stat-item">
             <div
@@ -211,15 +227,17 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="candidate-stat-item">
-            <div className="candidate-stat-icon bg-blue-100 text-blue-600">
-              <Truck size={20} />
+          {canViewLogistics ? (
+            <div className="candidate-stat-item">
+              <div className="candidate-stat-icon bg-blue-100 text-blue-600">
+                <Truck size={20} />
+              </div>
+              <div>
+                <div className="candidate-stat-label">Logistica</div>
+                <div className="font-bold">{candidate.logistics.length > 0 ? "Programada" : "No asignada"}</div>
+              </div>
             </div>
-            <div>
-              <div className="candidate-stat-label">Logistica</div>
-              <div className="font-bold">{candidate.logistics.length > 0 ? "Programada" : "No asignada"}</div>
-            </div>
-          </div>
+          ) : null}
 
           <div className="candidate-stat-item">
             <div className="candidate-stat-icon bg-gray-100 text-gray-600">
@@ -305,32 +323,34 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             />
           </div>
 
-          <div className="candidate-summary-grid candidate-summary-grid-secondary">
-            <SummaryTile
-              label="Listo Llegada"
-              value={arrivalReadiness.isReadyForArrival ? "Si" : "No"}
-              tone={arrivalReadiness.isReadyForArrival ? "success" : "warning"}
-              hint={arrivalReadiness.statusLabel}
-            />
-            <SummaryTile
-              label="Transporte"
-              value={arrivalReadiness.transportScheduled ? "OK" : "Falta"}
-              tone={arrivalReadiness.transportScheduled ? "success" : "danger"}
-              hint={candidate.logistics.length > 0 ? `${candidate.logistics.length} evento(s)` : "Sin evento creado"}
-            />
-            <SummaryTile
-              label="Recogida"
-              value={arrivalReadiness.pickupAssigned ? "OK" : "Falta"}
-              tone={arrivalReadiness.pickupAssigned ? "success" : "danger"}
-              hint={candidate.logistics[0]?.pickedUpBy || "Sin responsable"}
-            />
-            <SummaryTile
-              label="Alojamiento"
-              value={arrivalReadiness.accommodationAssigned ? "OK" : "Falta"}
-              tone={arrivalReadiness.accommodationAssigned ? "success" : "danger"}
-              hint={candidate.accommodation || "No asignado"}
-            />
-          </div>
+          {canViewLogistics ? (
+            <div className="candidate-summary-grid candidate-summary-grid-secondary">
+              <SummaryTile
+                label="Listo Llegada"
+                value={arrivalReadiness.isReadyForArrival ? "Si" : "No"}
+                tone={arrivalReadiness.isReadyForArrival ? "success" : "warning"}
+                hint={arrivalReadiness.statusLabel}
+              />
+              <SummaryTile
+                label="Transporte"
+                value={arrivalReadiness.transportScheduled ? "OK" : "Falta"}
+                tone={arrivalReadiness.transportScheduled ? "success" : "danger"}
+                hint={candidate.logistics.length > 0 ? `${candidate.logistics.length} evento(s)` : "Sin evento creado"}
+              />
+              <SummaryTile
+                label="Recogida"
+                value={arrivalReadiness.pickupAssigned ? "OK" : "Falta"}
+                tone={arrivalReadiness.pickupAssigned ? "success" : "danger"}
+                hint={candidate.logistics[0]?.pickedUpBy || "Sin responsable"}
+              />
+              <SummaryTile
+                label="Alojamiento"
+                value={arrivalReadiness.accommodationAssigned ? "OK" : "Falta"}
+                tone={arrivalReadiness.accommodationAssigned ? "success" : "danger"}
+                hint={candidate.accommodation || "No asignado"}
+              />
+            </div>
+          ) : null}
 
           <div className="candidate-section-card">
             <h2 className="candidate-section-title">
@@ -360,8 +380,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 { label: "Estatura", val: candidate.heightCm ? `${candidate.heightCm} cm` : null },
                 { label: "Direccion PL", val: candidate.polishAddress },
                 { label: "Ciudad PL", val: candidate.polishCity },
-                { label: "Llegada", val: candidate.arrivalDate ? new Date(candidate.arrivalDate).toLocaleDateString() : null },
-                { label: "Alojamiento", val: candidate.accommodation },
+                ...(canViewLogistics
+                  ? [
+                      { label: "Llegada", val: candidate.arrivalDate ? new Date(candidate.arrivalDate).toLocaleDateString() : null },
+                      { label: "Alojamiento", val: candidate.accommodation },
+                    ]
+                  : []),
               ].map((item) => (
                 <div key={item.label} className="space-y-1">
                   <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</div>
@@ -538,35 +562,37 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           <div className="candidate-section-card candidate-action-card">
             <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Centro de Acciones</h3>
 
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
-              <div className="text-xs font-black uppercase tracking-widest text-gray-500">Readiness de llegada</div>
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className="status-badge"
-                  style={{
-                    backgroundColor: arrivalReadiness.isReadyForArrival ? "#dcfce7" : "#fef3c7",
-                    color: arrivalReadiness.isReadyForArrival ? "#166534" : "#92400e",
-                  }}
-                >
-                  {arrivalReadiness.statusLabel.toUpperCase()}
-                </span>
-                {arrivalReadiness.legalFollowUpOpen ? (
-                  <span className="status-badge" style={{ backgroundColor: "#eef2ff", color: "#4338ca" }}>
-                    SEGUIMIENTO LEGAL
+            {canViewLogistics ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                <div className="text-xs font-black uppercase tracking-widest text-gray-500">Readiness de llegada</div>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className="status-badge"
+                    style={{
+                      backgroundColor: arrivalReadiness.isReadyForArrival ? "#dcfce7" : "#fef3c7",
+                      color: arrivalReadiness.isReadyForArrival ? "#166534" : "#92400e",
+                    }}
+                  >
+                    {arrivalReadiness.statusLabel.toUpperCase()}
                   </span>
+                  {arrivalReadiness.legalFollowUpOpen ? (
+                    <span className="status-badge" style={{ backgroundColor: "#eef2ff", color: "#4338ca" }}>
+                      SEGUIMIENTO LEGAL
+                    </span>
+                  ) : null}
+                </div>
+                {arrivalReadiness.blockers.length > 0 ? (
+                  <div className="text-xs font-semibold text-red-700">
+                    Bloqueos: {arrivalReadiness.blockers.join(" | ")}
+                  </div>
+                ) : null}
+                {arrivalReadiness.warnings.length > 0 ? (
+                  <div className="text-xs font-semibold text-amber-700">
+                    Alertas: {arrivalReadiness.warnings.join(" | ")}
+                  </div>
                 ) : null}
               </div>
-              {arrivalReadiness.blockers.length > 0 ? (
-                <div className="text-xs font-semibold text-red-700">
-                  Bloqueos: {arrivalReadiness.blockers.join(" | ")}
-                </div>
-              ) : null}
-              {arrivalReadiness.warnings.length > 0 ? (
-                <div className="text-xs font-semibold text-amber-700">
-                  Alertas: {arrivalReadiness.warnings.join(" | ")}
-                </div>
-              ) : null}
-            </div>
+            ) : null}
 
             {canRequestReview ? (
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
@@ -590,11 +616,13 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               </div>
             ) : null}
 
-            <div className="space-y-4">
-              <UpdatePaymentStatus candidateId={candidate.id} initialValue={candidate.paid400pln} />
-              <div className="h-px bg-gray-100 my-4" />
-              <UpdateNotes candidateId={candidate.id} initialNotes={candidate.notes || ""} />
-            </div>
+            {canViewPayment || canEditNotes ? (
+              <div className="space-y-4">
+                {canViewPayment ? <UpdatePaymentStatus candidateId={candidate.id} initialValue={candidate.paid400pln} /> : null}
+                {canViewPayment && canEditNotes ? <div className="h-px bg-gray-100 my-4" /> : null}
+                {canEditNotes ? <UpdateNotes candidateId={candidate.id} initialNotes={candidate.notes || ""} /> : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="candidate-section-card">
@@ -622,9 +650,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="candidate-section-card">
-            <AuditTimeline logs={auditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
-          </div>
+          {canViewAudit ? (
+            <div className="candidate-section-card">
+              <AuditTimeline logs={auditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

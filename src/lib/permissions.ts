@@ -189,6 +189,26 @@ export function canExportLogistics(viewerRole: Role): boolean {
   return canManageLogistics(viewerRole);
 }
 
+export function canViewCandidateContact(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
+}
+
+export function canViewCandidatePayment(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
+}
+
+export function canViewCandidateLogistics(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
+}
+
+export function canViewCandidateAudit(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN] as Role[]).includes(viewerRole);
+}
+
+export function canEditCandidateNotes(viewerRole: Role): boolean {
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
+}
+
 export function roleLabel(role: Role): string {
   const labels: Record<Role, string> = {
     SUPERADMIN: "Superadmin",

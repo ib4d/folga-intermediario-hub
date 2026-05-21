@@ -10,12 +10,17 @@ import {
   canExportCandidates,
   canExportLegalReview,
   canExportLogistics,
+  canEditCandidateNotes,
   canImportCandidates,
   canInviteUsers,
   canMakeLegalDecision,
   canManageLogistics,
   canManageMemberRole,
   canRequestLegalReview,
+  canViewCandidateAudit,
+  canViewCandidateContact,
+  canViewCandidateLogistics,
+  canViewCandidatePayment,
   canReviewCandidateDocuments,
   canUploadCandidateDocuments,
   canViewMemberRole,
@@ -131,5 +136,15 @@ assert.equal(canExportLegalReview(Role.LEGAL), true);
 assert.equal(canExportLegalReview(Role.LOGISTICA), false);
 assert.equal(canExportLogistics(Role.LOGISTICA), true);
 assert.equal(canExportLogistics(Role.INTERMEDIARIO), false);
+assert.equal(canViewCandidateContact(Role.LEGAL), false);
+assert.equal(canViewCandidateContact(Role.LOGISTICA), true);
+assert.equal(canViewCandidatePayment(Role.LEGAL), false);
+assert.equal(canViewCandidatePayment(Role.INTERMEDIARIO), true);
+assert.equal(canViewCandidateLogistics(Role.LEGAL), false);
+assert.equal(canViewCandidateLogistics(Role.LOGISTICA), true);
+assert.equal(canViewCandidateAudit(Role.ADMIN), true);
+assert.equal(canViewCandidateAudit(Role.LOGISTICA), false);
+assert.equal(canEditCandidateNotes(Role.LEGAL), false);
+assert.equal(canEditCandidateNotes(Role.LOGISTICA), true);
 
 console.log("Permission matrix check passed.");
