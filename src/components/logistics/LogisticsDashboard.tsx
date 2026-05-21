@@ -5,14 +5,19 @@ import { AlertTriangle, CheckCircle, Truck, UserCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
+import { useState } from "react";
 
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import ExpandableText from "@/components/ui/ExpandableText";
 
 import ArrivalReadinessEditor from "./ArrivalReadinessEditor";
 import LogisticsEventForm from "./LogisticsEventForm";
 import WeeklyArrivals from "./WeeklyArrivals";
+
+const CANDIDATE_PAGE_SIZE = 8;
+const ACTIVITY_PAGE_SIZE = 5;
 
 type LogisticsCandidate = Candidate & {
   documents: Document[];
@@ -37,6 +42,9 @@ interface Props {
 }
 
 export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, recentActivity }: Props) {
+  const [candidatePage, setCandidatePage] = useState(1);
+  const [activityPage, setActivityPage] = useState(1);
+
   const candidateSummaries = pendingCandidates.map((candidate) => ({
     candidate,
     checklist: getCandidateDocumentChecklist(candidate),
@@ -54,6 +62,18 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
   const pendingConfirm = weeklyEvents.filter(
     (event) => !event.confirmed && event.arrivalDate && new Date(event.arrivalDate) < new Date(),
   ).length;
+  const candidateTotalPages = Math.max(1, Math.ceil(candidateSummaries.length / CANDIDATE_PAGE_SIZE));
+  const safeCandidatePage = Math.min(candidatePage, candidateTotalPages);
+  const visibleCandidateSummaries = candidateSummaries.slice(
+    (safeCandidatePage - 1) * CANDIDATE_PAGE_SIZE,
+    safeCandidatePage * CANDIDATE_PAGE_SIZE,
+  );
+  const activityTotalPages = Math.max(1, Math.ceil(recentActivity.length / ACTIVITY_PAGE_SIZE));
+  const safeActivityPage = Math.min(activityPage, activityTotalPages);
+  const visibleActivity = recentActivity.slice(
+    (safeActivityPage - 1) * ACTIVITY_PAGE_SIZE,
+    safeActivityPage * ACTIVITY_PAGE_SIZE,
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
@@ -140,7 +160,7 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
                       </td>
                     </tr>
                   ) : (
-                    candidateSummaries.map(({ candidate, legalOutcome, arrivalReadiness }) => (
+                    visibleCandidateSummaries.map(({ candidate, legalOutcome, arrivalReadiness }) => (
                       <tr key={candidate.id}>
                         <td style={{ fontWeight: "900" }}>{candidate.firstName} {candidate.lastName}</td>
                         <td style={{ fontWeight: "bold" }}>{candidate.country}</td>
@@ -158,9 +178,9 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
                               {arrivalReadiness.statusLabel.toUpperCase()}
                             </span>
                             {arrivalReadiness.blockers.length > 0 ? (
-                              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#991b1b" }}>
-                                {arrivalReadiness.blockers[0]}
-                              </span>
+                              <ExpandableText maxLength={80} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#991b1b" }}>
+                                {arrivalReadiness.blockers.join(" | ")}
+                              </ExpandableText>
                             ) : null}
                             {legalOutcome?.category ? (
                               <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#4338ca" }}>
@@ -192,6 +212,13 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
                 </tbody>
               </table>
             </div>
+            <PaginationControls
+              label="Candidatos logistica"
+              page={safeCandidatePage}
+              totalPages={candidateTotalPages}
+              totalItems={candidateSummaries.length}
+              onPageChange={setCandidatePage}
+            />
           </section>
         </div>
 
@@ -207,7 +234,7 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-                {recentActivity.map((entry) => (
+                {visibleActivity.map((entry) => (
                   <div key={entry.id} style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "0.9rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.25rem" }}>
                       <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
@@ -227,8 +254,56 @@ export default function LogisticsDashboard({ pendingCandidates, weeklyEvents, re
                 ))}
               </div>
             )}
+            <PaginationControls
+              label="Actividad"
+              page={safeActivityPage}
+              totalPages={activityTotalPages}
+              totalItems={recentActivity.length}
+              onPageChange={setActivityPage}
+              compact
+            />
           </div>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+function PaginationControls({
+  label,
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+  compact = false,
+}: {
+  label: string;
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  compact?: boolean;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="pagination-bar" style={{ marginTop: compact ? "1rem" : "0.75rem", padding: compact ? "0.7rem" : undefined }}>
+      <div className="pagination-controls">
+        <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(1)} disabled={page <= 1}>
+          Primera
+        </button>
+        <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
+          Anterior
+        </button>
+        <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+          Siguiente
+        </button>
+        <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(totalPages)} disabled={page >= totalPages}>
+          Ultima
+        </button>
+      </div>
+      <div className="pagination-meta">
+        {label}: pagina {page} de {totalPages} - {totalItems} total
       </div>
     </div>
   );

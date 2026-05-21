@@ -7,6 +7,8 @@ import { useState } from "react";
 import { confirmLogisticsEvent, updateLogisticsEvent } from "@/app/actions/logistics";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import ExpandableText from "@/components/ui/ExpandableText";
+import PaginatedList from "@/components/ui/PaginatedList";
 
 interface Props {
   events: (LogisticsEvent & { candidate: Candidate & { documents: Document[]; logistics?: LogisticsEvent[] } })[];
@@ -44,11 +46,14 @@ export default function WeeklyArrivals({ events }: Props) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
-      {events.map((event) => {
-        return <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />;
-      })}
-    </div>
+    <PaginatedList
+      items={events}
+      pageSize={6}
+      label="Llegadas"
+      className="equal-card-grid"
+      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}
+      renderItem={(event) => <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />}
+    />
   );
 }
 
@@ -89,7 +94,7 @@ function WeeklyArrivalCard({
 
   return (
     <div
-      className="card"
+      className="card equal-card"
       style={{
         backgroundColor: event.confirmed ? "#f0fdf4" : "var(--background)",
         borderColor: event.confirmed ? "#4ade80" : "var(--pitch-black)",
@@ -156,7 +161,9 @@ function WeeklyArrivalCard({
           <div style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.25rem" }}>
             Seguimiento operativo
           </div>
-          <div>{outcome.followUpActions.slice(0, 2).join(" · ")}</div>
+          <ExpandableText maxLength={96}>
+            {outcome.followUpActions.join(" | ")}
+          </ExpandableText>
         </div>
       ) : null}
 
@@ -174,8 +181,10 @@ function WeeklyArrivalCard({
           Estado de llegada
         </div>
         <div>{arrivalReadiness.statusLabel}</div>
-        {arrivalReadiness.blockers[0] ? (
-          <div style={{ marginTop: "0.2rem", color: "#991b1b" }}>{arrivalReadiness.blockers[0]}</div>
+        {arrivalReadiness.blockers.length > 0 ? (
+          <ExpandableText maxLength={92} style={{ display: "block", marginTop: "0.2rem", color: "#991b1b" }}>
+            {arrivalReadiness.blockers.join(" | ")}
+          </ExpandableText>
         ) : null}
       </div>
 

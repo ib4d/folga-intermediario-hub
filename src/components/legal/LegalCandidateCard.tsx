@@ -5,6 +5,7 @@ import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { AlertCircle, FileText, MapPin, ShieldAlert, User as UserIcon } from "lucide-react";
 import { useState } from "react";
+import ExpandableText from "@/components/ui/ExpandableText";
 import LegalDecisionModal from "./LegalDecisionModal";
 import Link from "next/link";
 
@@ -34,7 +35,7 @@ export default function LegalCandidateCard({ candidate }: Props) {
   };
 
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+    <div className="card equal-card" style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ padding: "1.25rem 1.5rem", borderBottom: "2px solid var(--pitch-black)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
           <div>
@@ -148,12 +149,9 @@ export default function LegalCandidateCard({ candidate }: Props) {
             <ShieldAlert size={14} strokeWidth={3} />
             BLOQUEOS LEGALES
           </div>
-          <ul style={{ fontSize: "0.7rem", fontWeight: "bold", paddingLeft: "0.5rem" }}>
-            {checklist.blockers.slice(0, 2).map((blocker, index) => (
-              <li key={index}>- {blocker}</li>
-            ))}
-            {checklist.blockers.length > 2 ? <li>- y {checklist.blockers.length - 2} mas...</li> : null}
-          </ul>
+          <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
+            {checklist.blockers.map((blocker) => `- ${blocker}`).join(" | ")}
+          </ExpandableText>
         </div>
       ) : null}
 
@@ -163,12 +161,9 @@ export default function LegalCandidateCard({ candidate }: Props) {
             <AlertCircle size={14} strokeWidth={3} />
             ALERTAS
           </div>
-          <ul style={{ fontSize: "0.7rem", fontWeight: "bold", paddingLeft: "0.5rem" }}>
-            {checklist.warnings.slice(0, 2).map((warning, index) => (
-              <li key={index}>- {warning}</li>
-            ))}
-            {checklist.warnings.length > 2 ? <li>- y {checklist.warnings.length - 2} mas...</li> : null}
-          </ul>
+          <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
+            {checklist.warnings.map((warning) => `- ${warning}`).join(" | ")}
+          </ExpandableText>
         </div>
       ) : null}
 
@@ -190,7 +185,6 @@ export default function LegalCandidateCard({ candidate }: Props) {
               <span
                 style={{
                   padding: "0.15rem 0.45rem",
-                  borderRadius: "999px",
                   backgroundColor: "#c7d2fe",
                   color: "#312e81",
                   fontSize: "0.65rem",
@@ -203,35 +197,20 @@ export default function LegalCandidateCard({ candidate }: Props) {
           </div>
 
           {legalOutcome.summary ? (
-            <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#3730a3", whiteSpace: "pre-line", margin: 0 }}>
+            <ExpandableText maxLength={110} style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#3730a3", whiteSpace: "pre-line", margin: 0 }}>
               {legalOutcome.summary}
-            </p>
+            </ExpandableText>
           ) : null}
 
           {legalOutcome.followUpActions.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.6rem" }}>
-              {legalOutcome.followUpActions.map((action) => (
-                <span
-                  key={action}
-                  style={{
-                    padding: "0.18rem 0.45rem",
-                    borderRadius: "999px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #c7d2fe",
-                    color: "#3730a3",
-                    fontSize: "0.65rem",
-                    fontWeight: "800",
-                  }}
-                >
-                  {action}
-                </span>
-              ))}
-            </div>
+            <ExpandableText maxLength={110} style={{ display: "block", marginTop: "0.6rem", color: "#3730a3", fontSize: "0.65rem", fontWeight: 800 }}>
+              {legalOutcome.followUpActions.join(" | ")}
+            </ExpandableText>
           ) : null}
         </div>
       ) : null}
 
-      <div style={{ padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "var(--white-smoke)" }}>
+      <div style={{ padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "var(--white-smoke)", marginTop: "auto" }}>
         <div style={{ fontSize: "0.7rem", fontWeight: "bold", color: "var(--muted)" }}>
           {new Date(candidate.updatedAt).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}
         </div>

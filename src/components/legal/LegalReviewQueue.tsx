@@ -5,6 +5,7 @@ import { AlertTriangle, LayoutGrid, List, Search, ShieldAlert, TimerReset } from
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import PaginatedList from "@/components/ui/PaginatedList";
 import LegalCandidateCard from "./LegalCandidateCard";
 
 interface Props {
@@ -216,17 +217,18 @@ export default function LegalReviewQueue({ initialCandidates }: Props) {
             <QueueSummary icon={<AlertTriangle size={16} />} label="Duplicados" value={String(filterCounts.duplicates)} tone="neutral" />
           </div>
 
-          <div
+          <PaginatedList
+            items={filteredCandidates}
+            pageSize={view === "grid" ? 6 : 8}
+            label="Revision legal"
+            className={view === "grid" ? "equal-card-grid" : undefined}
             style={{
               display: "grid",
               gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr",
               gap: "1.5rem",
             }}
-          >
-            {filteredCandidates.map((row) => (
-              <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} />
-            ))}
-          </div>
+            renderItem={(row) => <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} />}
+          />
         </>
       )}
     </div>
