@@ -11,6 +11,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState("PASSPORT");
   const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -26,6 +27,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
     if (!file) return;
 
     startTransition(async () => {
+      setMessage(null);
       try {
         const formData = new FormData();
         formData.append("file", file);
@@ -37,14 +39,14 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
           setIsOpen(false);
           setFile(null);
           router.refresh();
-          alert("Documento subido correctamente");
+          setMessage({ tone: "success", text: "Documento subido correctamente." });
         } else {
-          alert(res.message || "Error al subir documento");
+          setMessage({ tone: "error", text: res.message || "Error al subir documento." });
         }
       } catch (err) {
         console.error(err);
         const message = err instanceof Error ? err.message : "Error desconocido";
-        alert(`No se pudo completar la subida: ${message}`);
+        setMessage({ tone: "error", text: `No se pudo completar la subida: ${message}` });
       }
     });
   };
@@ -59,6 +61,12 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
       >
         <Upload size={16} /> Subir Documento
       </button>
+
+      {message ? (
+        <p className={message.tone === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+          {message.text}
+        </p>
+      ) : null}
 
       {isOpen ? (
         <div className="modal-overlay" onClick={() => setIsOpen(false)}>
@@ -126,6 +134,8 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
                   "Empezar Proceso OCR"
                 )}
               </button>
+
+              {message?.tone === "error" ? <p className="form-message-error">{message.text}</p> : null}
             </form>
           </div>
         </div>

@@ -70,6 +70,7 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
   const [isPending, startTransition] = useTransition();
   const initialState = useMemo(() => deriveInitialState(doc), [doc]);
   const [form, setForm] = useState(initialState);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,6 +87,7 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
 
   const handleSubmit = () => {
     startTransition(async () => {
+      setErrorMessage("");
       try {
         await reviewDocumentOcr({
           documentId: doc.id,
@@ -121,8 +123,8 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
         setIsOpen(false);
         router.refresh();
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Error al guardar la revisión";
-        alert(message);
+        const message = error instanceof Error ? error.message : "Error al guardar la revision";
+        setErrorMessage(message);
       }
     });
   };
@@ -135,6 +137,7 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
         style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
         onClick={() => {
           setForm(initialState);
+          setErrorMessage("");
           setIsOpen(true);
         }}
       >
@@ -157,9 +160,9 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
               <X size={20} />
             </button>
 
-            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>Revisión OCR</h2>
+            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>Revision OCR</h2>
             <p style={{ color: "var(--muted)", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
-              Corrige los campos detectados y guarda la versión confiable del documento.
+              Corrige los campos detectados y guarda la version confiable del documento.
             </p>
 
             <div className="compact-stack">
@@ -190,26 +193,26 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
-                <Field label="Número de documento" value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
-                <Field label="Número personal / PESEL" value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
-                <Field label="Fecha de expedición" type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
+                <Field label="Numero de documento" value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
+                <Field label="Numero personal / PESEL" value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
+                <Field label="Fecha de expedicion" type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
                 <Field label="Fecha de vencimiento" type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
                 <Field label="Nombres" value={form.firstName} onChange={(value) => setField("firstName", value)} />
                 <Field label="Apellidos" value={form.lastName} onChange={(value) => setField("lastName", value)} />
                 <Field label="Nacionalidad" value={form.nationality} onChange={(value) => setField("nationality", value)} />
-                <Field label="Código país / emisor" value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
+                <Field label="Codigo pais / emisor" value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
                 <Field label="Fecha de nacimiento" type="date" value={form.dateOfBirth} onChange={(value) => setField("dateOfBirth", value)} />
                 <Field label="Sexo" value={form.sex} onChange={(value) => setField("sex", value)} />
                 <Field label="Lugar de nacimiento" value={form.placeOfBirth} onChange={(value) => setField("placeOfBirth", value)} />
                 <Field label="Autoridad emisora" value={form.issuingAuthority} onChange={(value) => setField("issuingAuthority", value)} />
                 <Field label="Tipo de permiso" value={form.kartaPobytuType} onChange={(value) => setField("kartaPobytuType", value)} />
                 <Field label="Estatura (cm)" type="number" value={form.heightCm} onChange={(value) => setField("heightCm", value)} />
-                <Field label="Oficina / Urząd Gminy" value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
+                <Field label="Oficina / Urzad Gminy" value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
                 <Field label="Observaciones" value={form.remarks} onChange={(value) => setField("remarks", value)} />
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="label">Dirección de registro</label>
+                <label className="label">Direccion de registro</label>
                 <input
                   className="input"
                   value={form.addressOfRegistration}
@@ -223,7 +226,7 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
                   checked={form.passportBiometric}
                   onChange={(e) => setField("passportBiometric", e.target.checked)}
                 />
-                Pasaporte biométrico
+                Pasaporte biometrico
               </label>
 
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 700 }}>
@@ -235,13 +238,15 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
                 Marcar documento como verificado
               </label>
 
+              {errorMessage ? <p className="form-message-error">{errorMessage}</p> : null}
+
               <button type="button" className="button" onClick={handleSubmit} disabled={isPending}>
                 {isPending ? (
                   <>
-                    <Loader2 className="animate-spin" size={16} /> Guardando revisión...
+                    <Loader2 className="animate-spin" size={16} /> Guardando revision...
                   </>
                 ) : (
-                  "Guardar revisión"
+                  "Guardar revision"
                 )}
               </button>
             </div>

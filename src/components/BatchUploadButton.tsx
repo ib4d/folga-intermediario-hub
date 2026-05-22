@@ -30,6 +30,7 @@ export default function BatchUploadButton({
     { filename: string; success: boolean; message?: string }[] | null
   >(null);
   const [isSmartMode, setIsSmartMode] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,6 +46,7 @@ export default function BatchUploadButton({
     if (!files || (!isSmartMode && !selectedCandidateId)) return;
 
     startTransition(async () => {
+      setErrorMessage("");
       try {
         const formData = new FormData();
         Array.from(files).forEach((file) => formData.append("files", file));
@@ -58,13 +60,13 @@ export default function BatchUploadButton({
           setResults(res.results || []);
           router.refresh();
         } else {
-          alert("Error en la subida por lotes");
+          setErrorMessage("Error en la subida por lotes. Revisa los archivos e intenta de nuevo.");
         }
       } catch (error) {
         console.error(error);
         const message =
           error instanceof Error ? error.message : "Error inesperado durante la carga";
-        alert(`No se pudo completar la subida.\n\n${message}`);
+        setErrorMessage(`No se pudo completar la subida: ${message}`);
       }
     });
   };
@@ -76,6 +78,7 @@ export default function BatchUploadButton({
     setDocType("PASSPORT");
     setSelectedCandidateId("");
     setIsSmartMode(false);
+    setErrorMessage("");
   };
 
   return (
@@ -85,6 +88,7 @@ export default function BatchUploadButton({
         onClick={() => {
           setIsOpen(true);
           setResults(null);
+          setErrorMessage("");
         }}
         className="button"
       >
@@ -227,6 +231,8 @@ export default function BatchUploadButton({
                     "Subir y Procesar"
                   )}
                 </button>
+
+                {errorMessage ? <p className="form-message-error">{errorMessage}</p> : null}
               </form>
             ) : (
               <div>
