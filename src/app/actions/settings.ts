@@ -41,9 +41,40 @@ export async function createApiKey(name: string) {
   });
 
   revalidatePath("/ajustes");
+  revalidatePath("/ajustes/api-keys");
 
   // Return raw key ONCE — never stored
   return { key: raw };
+}
+
+export async function createApiKeyFormAction(
+  _prevState: { error: string; key: string; name: string },
+  formData: FormData
+) {
+  const name = String(formData.get("name") ?? "").trim();
+
+  if (!name) {
+    return {
+      error: "Escribe un nombre descriptivo para la API key.",
+      key: "",
+      name: "",
+    };
+  }
+
+  try {
+    const result = await createApiKey(name);
+    return {
+      error: "",
+      key: result.key,
+      name,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "No se pudo crear la API key.",
+      key: "",
+      name: "",
+    };
+  }
 }
 
 export async function revokeApiKey(keyId: string) {
@@ -61,7 +92,17 @@ export async function revokeApiKey(keyId: string) {
     data: { revokedAt: new Date() },
   });
 
+  await writeAuditLog({
+    userId: tenant.userId,
+    organizationId: tenant.organizationId!,
+    action: "API_KEY_REVOKED",
+    entityType: "ApiKey",
+    entityId: keyId,
+    details: { keyId } as Prisma.InputJsonValue,
+  });
+
   revalidatePath("/ajustes");
+  revalidatePath("/ajustes/api-keys");
   return { success: true };
 }
 
