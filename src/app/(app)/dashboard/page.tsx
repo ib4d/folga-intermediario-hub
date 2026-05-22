@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import DashboardCharts from "@/components/DashboardCharts";
 import ExportButton from "@/components/ExportButton";
 import DashboardOverview from "@/components/DashboardOverview";
+import ExpandableText from "@/components/ui/ExpandableText";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
@@ -384,14 +385,14 @@ export default async function DashboardPage() {
           ) : null}
 
           {recentFollowUps.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}>
+            <div className="dashboard-pulse-grid">
               {recentFollowUps.map(({ candidate, outcome, checklist }) => (
                 <Link
                   key={candidate.id}
                   href={`/candidatos/${candidate.id}`}
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
-                  <div className="card" style={{ padding: "1rem", boxShadow: "4px 4px 0px var(--pitch-black)" }}>
+                  <div className="card dashboard-pulse-card">
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.6rem" }}>
                       <div style={{ fontWeight: 900 }}>
                         {candidate.firstName} {candidate.lastName}
@@ -405,27 +406,19 @@ export default async function DashboardPage() {
                         {outcome.category}
                       </div>
                     ) : null}
-                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)", marginBottom: "0.7rem" }}>
-                      {outcome?.summary}
-                    </div>
+                    {outcome?.summary ? (
+                      <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)", marginBottom: "0.7rem" }}>
+                        {outcome.summary}
+                      </ExpandableText>
+                    ) : null}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.7rem" }}>
-                      {outcome?.followUpActions.slice(0, 3).map((action) => (
-                        <span
-                          key={action}
-                          style={{
-                            padding: "0.15rem 0.45rem",
-                            borderRadius: "999px",
-                            border: "1px solid #cbd5e1",
-                            backgroundColor: "#f8fafc",
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {action}
-                        </span>
-                      ))}
+                      {outcome?.followUpActions.length ? (
+                        <ExpandableText maxLength={96} style={{ fontSize: "0.72rem", fontWeight: 800, color: "#4338ca" }}>
+                          {outcome.followUpActions.join(" | ")}
+                        </ExpandableText>
+                      ) : null}
                     </div>
-                    <div style={{ fontSize: "0.72rem", fontWeight: 700, color: checklist.isReadyForLegal ? "#15803d" : "#b91c1c" }}>
+                    <div style={{ marginTop: "auto", fontSize: "0.72rem", fontWeight: 700, color: checklist.isReadyForLegal ? "#15803d" : "#b91c1c" }}>
                       {checklist.isReadyForLegal ? "Listo para volver a legal" : `${checklist.blockers.length} bloqueos activos`}
                     </div>
                   </div>
@@ -453,14 +446,14 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}>
+          <div className="dashboard-pulse-grid">
             {logisticsAttention.map(({ candidate, arrivalReadiness }) => (
               <Link
                 key={candidate.id}
                 href={`/candidatos/${candidate.id}`}
                 style={{ textDecoration: "none", color: "inherit" }}
               >
-                <div className="card" style={{ padding: "1rem", boxShadow: "4px 4px 0px var(--pitch-black)" }}>
+                <div className="card dashboard-pulse-card">
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.6rem" }}>
                     <div style={{ fontWeight: 900 }}>
                       {candidate.firstName} {candidate.lastName}
@@ -470,14 +463,14 @@ export default async function DashboardPage() {
                     </span>
                   </div>
                   {arrivalReadiness.blockers.length > 0 ? (
-                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#991b1b", marginBottom: "0.55rem" }}>
-                      {arrivalReadiness.blockers[0]}
-                    </div>
+                    <ExpandableText maxLength={110} style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#991b1b", marginBottom: "0.55rem" }}>
+                      {arrivalReadiness.blockers.join(" | ")}
+                    </ExpandableText>
                   ) : null}
                   {arrivalReadiness.warnings.length > 0 ? (
-                    <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#92400e" }}>
+                    <ExpandableText maxLength={96} style={{ display: "block", marginTop: "auto", fontSize: "0.78rem", fontWeight: 700, color: "#92400e" }}>
                       {arrivalReadiness.warnings.join(" | ")}
-                    </div>
+                    </ExpandableText>
                   ) : null}
                 </div>
               </Link>
@@ -495,13 +488,13 @@ export default async function DashboardPage() {
               <AlertTriangle size={28} strokeWidth={3} /> CANDIDATOS ESTANCADOS (INACTIVOS {'>'} 7 DIAS)
             </h3>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+          <div className="dashboard-pulse-grid">
             {stuckCandidates.map((c) => (
               <Link key={c.id} href={`/candidatos/${c.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="card" style={{ padding: '1rem', backgroundColor: 'white', boxShadow: '4px 4px 0px var(--pitch-black)' }}>
+                <div className="card dashboard-pulse-card" style={{ backgroundColor: 'white' }}>
                   <div style={{ fontWeight: '900', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{c.firstName} {c.lastName}</div>
                   <div className="status-badge" style={{ marginBottom: '0.5rem', fontSize: '0.65rem' }}>{c.status.replace(/_/g, ' ')}</div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#b91c1c' }}>SIN CAMBIOS DESDE {new Date(c.updatedAt).toLocaleDateString()}</div>
+                  <div style={{ marginTop: "auto", fontSize: '0.75rem', fontWeight: 'bold', color: '#b91c1c' }}>SIN CAMBIOS DESDE {new Date(c.updatedAt).toLocaleDateString()}</div>
                 </div>
               </Link>
             ))}
