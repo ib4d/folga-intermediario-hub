@@ -152,7 +152,7 @@ export default function CandidateTable({
               <th>Docs</th>
               <th>Intermediario</th>
               <th>Estado</th>
-              <th style={{ width: "300px" }}>Acciones</th>
+              <th style={{ width: "270px" }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -192,12 +192,6 @@ export default function CandidateTable({
                       <Eye size={15} />
                       Ver
                     </Link>
-                    {canManageCandidates && !candidate.selfRegistered ? (
-                      <CopyRegistrationLink
-                        candidateId={candidate.registrationToken ? undefined : candidate.id}
-                        token={candidate.registrationToken ?? undefined}
-                      />
-                    ) : null}
                     {canManageCandidates ? (
                       <button
                         type="button"
@@ -208,6 +202,13 @@ export default function CandidateTable({
                         <Trash2 size={15} />
                         Eliminar
                       </button>
+                    ) : null}
+                    {canManageCandidates && !candidate.selfRegistered ? (
+                      <CopyRegistrationLink
+                        candidateId={candidate.registrationToken ? undefined : candidate.id}
+                        token={candidate.registrationToken ?? undefined}
+                        className="candidate-action-button candidate-action-wide"
+                      />
                     ) : null}
                   </div>
                 </td>
