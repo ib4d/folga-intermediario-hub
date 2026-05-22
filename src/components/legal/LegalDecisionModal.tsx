@@ -75,6 +75,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
   const [notes, setNotes] = useState("");
   const [followUpActions, setFollowUpActions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const suggestedReasons = useMemo(() => {
     const reasons = new Set(BASE_REJECTION_REASONS);
@@ -109,6 +110,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
     setDecision(nextDecision);
     setCategory("");
     setFollowUpActions([]);
+    setFormError("");
     if (!notes.trim() && defaultReviewNotes) {
       setNotes(defaultReviewNotes);
     }
@@ -124,17 +126,17 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
     if (!decision) return;
 
     if (decision === "APROBADO" && !checklist.isReadyForLegal) {
-      alert(`No se puede aprobar mientras existan bloqueos: ${checklist.blockers.join("; ")}`);
+      setFormError(`No se puede aprobar mientras existan bloqueos: ${checklist.blockers.join("; ")}`);
       return;
     }
 
     if ((decision === "RECHAZADO" || decision === "REVISION_ADICIONAL") && !category) {
-      alert("Debe seleccionar una categoria");
+      setFormError("Debe seleccionar una categoria antes de confirmar.");
       return;
     }
 
     if (decision === "REVISION_ADICIONAL" && !notes.trim()) {
-      alert("Debe agregar notas para la revision adicional");
+      setFormError("Debe agregar notas para la revision adicional.");
       return;
     }
 
@@ -146,6 +148,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
     });
 
     setIsSubmitting(true);
+    setFormError("");
     try {
       await updateCandidateStatus(
         candidate.id,
@@ -160,7 +163,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
       onClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error al procesar la decision";
-      alert(message);
+      setFormError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -376,6 +379,22 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
                 className="input"
                 style={{ height: "112px", resize: "none" }}
               />
+            </div>
+          ) : null}
+
+          {formError ? (
+            <div
+              role="alert"
+              style={{
+                padding: "0.85rem 1rem",
+                backgroundColor: "#fee2e2",
+                border: "2px solid #991b1b",
+                color: "#7f1d1d",
+                fontSize: "0.85rem",
+                fontWeight: 800,
+              }}
+            >
+              {formError}
             </div>
           ) : null}
         </div>
