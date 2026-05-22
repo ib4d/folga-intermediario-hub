@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { 
   CheckCircle2, 
   Zap, 
@@ -21,11 +20,13 @@ export default async function LandingPage({
   searchParams: Promise<{ lang?: string }>;
 }) {
   const session = await auth();
-  if (session) redirect("/dashboard");
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang);
   const labels = t.bind(null, language);
-  const loginHref = localizedHref("/login", language);
+  const isLoggedIn = Boolean(session);
+  const loginHref = isLoggedIn ? "/dashboard" : localizedHref("/login", language);
+  const loginLabel = isLoggedIn ? "Dashboard" : labels("public.nav.login");
+  const primaryCtaLabel = isLoggedIn ? "Ir al dashboard" : labels("public.hero.primaryCta");
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)', overflowX: 'hidden' }}>
@@ -49,7 +50,7 @@ export default async function LandingPage({
           <Link href="#features" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>{labels("public.nav.features")}</Link>
           <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>{labels("public.nav.pricing")}</Link>
           <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button" style={{ fontSize: '0.8rem', padding: '0.5rem 1.25rem' }}>{labels("public.nav.login")}</Link>
+          <Link href={loginHref} className="button" style={{ fontSize: '0.8rem', padding: '0.5rem 1.25rem' }}>{loginLabel}</Link>
         </div>
       </nav>
 
@@ -95,7 +96,7 @@ export default async function LandingPage({
         </p>
         <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href={loginHref} className="button" style={{ padding: '1.25rem 2.5rem', fontSize: '1.25rem' }}>
-            {labels("public.hero.primaryCta")} <ArrowRight size={24} style={{ marginLeft: '0.5rem' }} />
+            {primaryCtaLabel} <ArrowRight size={24} style={{ marginLeft: '0.5rem' }} />
           </Link>
           <Link href="#demo" className="button button-secondary" style={{ padding: '1.25rem 2.5rem', fontSize: '1.25rem', backgroundColor: 'transparent', border: '2px solid var(--ghost-white)', color: 'var(--ghost-white)' }}>
             {labels("public.hero.secondaryCta")}
@@ -193,7 +194,7 @@ export default async function LandingPage({
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> OCR Limitado</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} color="green" /> Branding ORI CRUIT HUB</li>
               </ul>
-              <Link href={loginHref} className="button" style={{ width: '100%' }}>{labels("public.hero.primaryCta")}</Link>
+              <Link href={loginHref} className="button" style={{ width: '100%' }}>{primaryCtaLabel}</Link>
             </div>
 
             {/* STARTER */}
@@ -261,7 +262,7 @@ export default async function LandingPage({
           <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginBottom: '4rem', flexWrap: 'wrap' }}>
             <Link href="#features" style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.features")}</Link>
             <Link href="#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.pricing")}</Link>
-            <Link href={loginHref} style={{ color: 'inherit', textDecoration: 'none' }}>{labels("public.nav.login")}</Link>
+            <Link href={loginHref} style={{ color: 'inherit', textDecoration: 'none' }}>{loginLabel}</Link>
             <Link href="/docs" style={{ color: 'inherit', textDecoration: 'none' }}>Documentación</Link>
           </div>
           <div style={{ fontSize: '0.8rem', opacity: 0.4 }}>

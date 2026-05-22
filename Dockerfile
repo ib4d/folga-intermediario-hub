@@ -61,6 +61,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-env.mjs ./scripts/check-production-env.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-smtp.mjs ./scripts/check-smtp.mjs
 
 # Set the correct permission for production prerender/cache output.
