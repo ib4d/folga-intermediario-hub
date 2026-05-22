@@ -30,11 +30,21 @@ export default async function BillingPage() {
   if (!organization) return null;
 
   const limits = getPlanLimits(organization.plan);
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
 
-  const [candidateUsage, userUsage, documentUsage] = await Promise.all([
+  const [candidateUsage, userUsage, documentUsage, ocrUsage] = await Promise.all([
     prisma.candidate.count({ where: { organizationId: tenant.organizationId } }),
     prisma.membership.count({ where: { organizationId: tenant.organizationId, isActive: true } }),
-    prisma.document.count({ where: { organizationId: tenant.organizationId } }),
+    prisma.document.count({ where: { organizationId: tenant.organizationId, createdAt: { gte: startOfMonth } } }),
+    prisma.auditLog.count({
+      where: {
+        organizationId: tenant.organizationId,
+        action: { in: ["OCR_EXTRACTED_PENDING_REVIEW", "OCR_FAILED"] },
+        createdAt: { gte: startOfMonth },
+      },
+    }),
   ]);
 
   return (
@@ -91,6 +101,7 @@ export default async function BillingPage() {
           <UsageBar label="Candidatos" used={candidateUsage} limit={limits.candidates} />
           <UsageBar label="Usuarios" used={userUsage} limit={limits.users} />
           <UsageBar label="Documentos este ciclo" used={documentUsage} limit={limits.documentsPerMonth} />
+          <UsageBar label="OCR este ciclo" used={ocrUsage} limit={limits.ocrPerMonth} />
         </div>
       </div>
     </div>

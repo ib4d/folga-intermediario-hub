@@ -7,6 +7,7 @@ import { sendTransactionalEmail } from "@/lib/providers/email";
 import { requireTenant } from "@/lib/tenant";
 import { writeAuditLog } from "@/lib/audit";
 import { canAssignRole, canInviteUsers } from "@/lib/permissions";
+import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -116,6 +117,17 @@ export async function inviteUserAction(
   if (existingUser && existingUser.organizationId && existingUser.organizationId !== tenant.organizationId) {
     return {
       error: "Ese correo ya esta vinculado a otra organizacion. La multi-organizacion de usuarios aun no esta lista.",
+      success: "",
+      emailSent: false,
+      tempPassword: "",
+    };
+  }
+
+  try {
+    await assertWithinPlanLimit(tenant.organizationId, "users");
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Limite de usuarios alcanzado para este plan.",
       success: "",
       emailSent: false,
       tempPassword: "",
