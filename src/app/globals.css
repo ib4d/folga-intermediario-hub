@@ -1226,6 +1226,61 @@ tr:hover td {
   text-align: center;
 }
 
+.settings-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem 0;
+}
+
+.settings-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  gap: 2rem;
+  align-items: start;
+}
+
+.settings-main-stack,
+.settings-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.permission-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.permission-matrix-card {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  color: var(--foreground);
+  padding: 1rem;
+}
+
+.permission-matrix-card-primary {
+  background-color: var(--pitch-black);
+  color: var(--ghost-white);
+}
+
+.permission-matrix-scope {
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.permission-matrix-card-primary .permission-matrix-scope {
+  color: var(--primary);
+}
+
 .hero-section {
   background-color: var(--surface);
   color: var(--foreground);
@@ -1327,5 +1382,9 @@ tr:hover td {
 
   .member-management-cell {
     min-width: 0;
+  }
+
+  .settings-layout-grid {
+    grid-template-columns: 1fr;
   }
 }

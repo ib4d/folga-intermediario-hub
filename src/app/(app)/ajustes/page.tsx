@@ -91,14 +91,7 @@ export default async function AjustesPage() {
       </div>
 
       {/* Quick Links */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem",
-          padding: "1.5rem 0",
-        }}
-      >
+      <div className="settings-quick-links">
         {canAccessModule(tenant.role, "branding") ? (
         <Link
           href="/ajustes/branding"
@@ -140,8 +133,8 @@ export default async function AjustesPage() {
         ) : null}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "2rem", alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <div className="settings-layout-grid">
+        <div className="settings-main-stack">
           <div className="card">
             <div
               className="card-header"
@@ -260,26 +253,14 @@ export default async function AjustesPage() {
                 </p>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+            <div className="permission-matrix-grid">
               {permissionReport.map((item) => (
                 <div
                   key={item.role}
-                  style={{
-                    border: "1px solid var(--border)",
-                    backgroundColor: item.role === Role.SUPERADMIN ? "var(--pitch-black)" : "var(--background)",
-                    color: item.role === Role.SUPERADMIN ? "var(--ghost-white)" : "var(--foreground)",
-                    padding: "1rem",
-                    minHeight: "220px",
-                  }}
+                  className={`permission-matrix-card${item.role === Role.SUPERADMIN ? " permission-matrix-card-primary" : ""}`}
                 >
                   <div
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      color: item.role === Role.SUPERADMIN ? "var(--primary)" : "var(--muted)",
-                      marginBottom: "0.5rem",
-                    }}
+                    className="permission-matrix-scope"
                   >
                     {item.scope}
                   </div>
@@ -311,7 +292,7 @@ export default async function AjustesPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        <div className="settings-side-stack">
           <AjustesSettings />
         </div>
       </div>
