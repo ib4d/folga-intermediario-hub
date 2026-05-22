@@ -1,5 +1,6 @@
 import "next-auth";
 import { Role } from "@prisma/client";
+import { AppLanguage } from "@/lib/i18n";
 
 declare module "next-auth" {
   interface Session {
@@ -10,6 +11,7 @@ declare module "next-auth" {
       role: Role | string;
       organizationId?: string | null;
       isPlatformAdmin: boolean;
+      interfaceLanguage?: AppLanguage;
     };
   }
 
@@ -20,6 +22,7 @@ declare module "next-auth" {
     role: Role | string;
     organizationId?: string | null;
     isPlatformAdmin: boolean;
+    interfaceLanguage?: AppLanguage;
   }
 }
 
@@ -29,5 +32,6 @@ declare module "next-auth/jwt" {
     role: string;
     organizationId?: string | null;
     isPlatformAdmin: boolean;
+    interfaceLanguage?: AppLanguage;
   }
 }

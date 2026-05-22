@@ -3,8 +3,17 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { checkBruteForce, registerFailedAttempt, resetAttempts } from "@/lib/security/brute-force";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { authConfig } from "./auth.config";
+import { normalizeLanguage } from "@/lib/i18n";
+
+function getInterfaceLanguage(settings: Prisma.JsonValue | null | undefined) {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return undefined;
+  }
+
+  return normalizeLanguage((settings as Prisma.JsonObject).interfaceLanguage);
+}
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
@@ -66,7 +75,8 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           name: user.name || "", 
           role: currentRole as Role,
           organizationId: currentOrgId,
-          isPlatformAdmin: user.isPlatformAdmin
+          isPlatformAdmin: user.isPlatformAdmin,
+          interfaceLanguage: getInterfaceLanguage(user.settings),
         };
       },
     }),

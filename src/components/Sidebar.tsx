@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, Briefcase, Car, FileText, Globe, Menu, Settings, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { normalizeLanguage, t } from "@/lib/i18n";
 
 type SidebarRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
@@ -12,15 +13,17 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const role = session?.user?.role as SidebarRole | undefined;
   const links = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
-    { name: "Candidatos", href: "/candidatos", icon: Users, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
-    { name: "Documentos", href: "/documentos", icon: FileText, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL"] },
-    { name: "Logistica", href: "/logistica", icon: Car, roles: ["SUPERADMIN", "ADMIN", "LOGISTICA"] },
-    { name: "Legal", href: "/legal", icon: Briefcase, roles: ["SUPERADMIN", "ADMIN", "LEGAL"] },
-    { name: "Ajustes", href: "/ajustes", icon: Settings, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.dashboard"), href: "/dashboard", icon: BarChart3, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.candidates"), href: "/candidatos", icon: Users, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.documents"), href: "/documentos", icon: FileText, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL"] },
+    { name: labels("nav.logistics"), href: "/logistica", icon: Car, roles: ["SUPERADMIN", "ADMIN", "LOGISTICA"] },
+    { name: labels("nav.legal"), href: "/legal", icon: Briefcase, roles: ["SUPERADMIN", "ADMIN", "LEGAL"] },
+    { name: labels("nav.settings"), href: "/ajustes", icon: Settings, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
   ];
   const visibleLinks = links.filter((link) => role && link.roles.includes(role));
 
@@ -73,7 +76,7 @@ export default function Sidebar() {
               onClick={() => setIsOpen(false)}
             >
               <Globe size={18} />
-              Platform Admin
+              {labels("nav.platformAdmin")}
             </Link>
           ) : null}
         </nav>

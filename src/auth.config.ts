@@ -31,6 +31,7 @@ export const authConfig = {
         token.role = user.role;
         token.organizationId = user.organizationId;
         token.isPlatformAdmin = user.isPlatformAdmin;
+        token.interfaceLanguage = user.interfaceLanguage;
       }
       return token;
     },
@@ -40,6 +41,7 @@ export const authConfig = {
         session.user.role = token.role as import("@prisma/client").Role;
         session.user.organizationId = token.organizationId as string;
         session.user.isPlatformAdmin = !!token.isPlatformAdmin;
+        session.user.interfaceLanguage = token.interfaceLanguage as import("@/lib/i18n").AppLanguage | undefined;
       }
       return session;
     },

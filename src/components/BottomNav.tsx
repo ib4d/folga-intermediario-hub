@@ -3,21 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Home, Plane, ShieldAlert, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { normalizeLanguage, t } from "@/lib/i18n";
+
+type BottomNavRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role as BottomNavRole | undefined;
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const navItems = [
-    { name: "Inicio", href: "/dashboard", icon: Home },
-    { name: "Candidatos", href: "/candidatos", icon: Users },
-    { name: "Docs", href: "/documentos", icon: FileText },
-    { name: "Logistica", href: "/logistica", icon: Plane },
-    { name: "Legal", href: "/legal", icon: ShieldAlert },
+    { name: labels("nav.dashboard"), href: "/dashboard", icon: Home, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.candidates"), href: "/candidatos", icon: Users, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.documents"), href: "/documentos", icon: FileText, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL"] },
+    { name: labels("nav.logistics"), href: "/logistica", icon: Plane, roles: ["SUPERADMIN", "ADMIN", "LOGISTICA"] },
+    { name: labels("nav.legal"), href: "/legal", icon: ShieldAlert, roles: ["SUPERADMIN", "ADMIN", "LEGAL"] },
   ];
+  const visibleItems = navItems.filter((item) => role && item.roles.includes(role));
 
   return (
     <nav className="bottom-nav">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         return (
