@@ -42,6 +42,7 @@ export default function DocumentTable({
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
 
   const toggleSelectAll = () => {
@@ -78,16 +79,17 @@ export default function DocumentTable({
     if (!confirm(`Seguro que deseas eliminar ${selectedIds.length} documentos?`)) return;
 
     setIsDeleting(true);
+    setTableMessage(null);
     try {
       for (const id of selectedIds) {
         await deleteDocument(id);
       }
       setSelectedIds([]);
       router.refresh();
-      alert("Documentos eliminados con exito");
+      setTableMessage({ tone: "success", text: "Documentos eliminados con exito." });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
-      alert(`Error al eliminar algunos documentos: ${message}`);
+      setTableMessage({ tone: "error", text: `Error al eliminar algunos documentos: ${message}` });
     } finally {
       setIsDeleting(false);
     }
@@ -97,12 +99,14 @@ export default function DocumentTable({
     if (!confirm("Seguro que deseas eliminar este documento?")) return;
 
     setIsDeleting(true);
+    setTableMessage(null);
     try {
       await deleteDocument(id);
       router.refresh();
+      setTableMessage({ tone: "success", text: "Documento eliminado correctamente." });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
-      alert(`Error al eliminar documento: ${message}`);
+      setTableMessage({ tone: "error", text: `Error al eliminar documento: ${message}` });
     } finally {
       setIsDeleting(false);
     }
@@ -134,6 +138,12 @@ export default function DocumentTable({
           </button>
         ) : null}
       </div>
+
+      {tableMessage ? (
+        <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error"} style={{ marginBottom: "1rem" }}>
+          {tableMessage.text}
+        </p>
+      ) : null}
 
       <div className="table-container">
         <table>

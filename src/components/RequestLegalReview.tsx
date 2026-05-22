@@ -19,6 +19,7 @@ export default function RequestLegalReview({
   const [isPending, startTransition] = useTransition();
   const [sent, setSent] = useState(currentStatus === "EN_REVISION_LEGAL");
   const [lastError, setLastError] = useState<string | null>(null);
+  const [lastSuccess, setLastSuccess] = useState<string | null>(null);
 
   const guidance = useMemo(() => {
     if (blockers.length > 0) return blockers;
@@ -29,6 +30,7 @@ export default function RequestLegalReview({
   const handleRequest = () => {
     startTransition(async () => {
       setLastError(null);
+      setLastSuccess(null);
       try {
         const response = await fetch(`/api/candidates/${candidateId}/request-review`, {
           method: "POST",
@@ -39,7 +41,7 @@ export default function RequestLegalReview({
         if (response.ok) {
           setSent(true);
           if (Array.isArray(data?.blockers) && data.blockers.length > 0) {
-            alert("Revision legal solicitada con advertencias activas. Legal podra revisar los bloqueos desde su cola.");
+            setLastSuccess("Revision legal solicitada con advertencias activas. Legal podra revisar los bloqueos desde su cola.");
           }
           return;
         }
@@ -47,11 +49,9 @@ export default function RequestLegalReview({
         const nextError =
           typeof data?.error === "string" ? data.error : "Error al solicitar revision";
         setLastError(nextError);
-        alert(nextError);
       } catch {
         const nextError = "Error de conexion";
         setLastError(nextError);
-        alert(nextError);
       }
     });
   };
@@ -88,7 +88,11 @@ export default function RequestLegalReview({
       ) : null}
 
       {lastError ? (
-        <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#991b1b" }}>{lastError}</div>
+        <p className="form-message-error">{lastError}</p>
+      ) : null}
+
+      {lastSuccess ? (
+        <p className="form-message-success">{lastSuccess}</p>
       ) : null}
 
       <button

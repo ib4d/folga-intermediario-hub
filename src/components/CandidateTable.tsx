@@ -44,6 +44,7 @@ export default function CandidateTable({
   canViewContact: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
@@ -82,13 +83,15 @@ export default function CandidateTable({
     }
 
     startTransition(async () => {
+      setTableMessage(null);
       try {
         await deleteCandidate(candidate.id);
         setSelectedIds((current) => current.filter((id) => id !== candidate.id));
         router.refresh();
+        setTableMessage({ tone: "success", text: "Candidato eliminado correctamente." });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        alert(`No se pudo eliminar el candidato: ${message}`);
+        setTableMessage({ tone: "error", text: `No se pudo eliminar el candidato: ${message}` });
       }
     });
   }
@@ -100,13 +103,15 @@ export default function CandidateTable({
     }
 
     startTransition(async () => {
+      setTableMessage(null);
       try {
         await deleteCandidatesBulk(selectedIds);
         setSelectedIds([]);
         router.refresh();
+        setTableMessage({ tone: "success", text: "Candidatos seleccionados eliminados correctamente." });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        alert(`No se pudo completar la eliminacion: ${message}`);
+        setTableMessage({ tone: "error", text: `No se pudo completar la eliminacion: ${message}` });
       }
     });
   }
@@ -135,6 +140,12 @@ export default function CandidateTable({
           </button>
         ) : null}
       </div>
+
+      {tableMessage ? (
+        <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error"}>
+          {tableMessage.text}
+        </p>
+      ) : null}
 
       <div className="table-container">
         <table className="candidate-table">

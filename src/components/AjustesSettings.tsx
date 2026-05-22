@@ -29,6 +29,7 @@ const defaultSettings: Settings = {
 export default function AjustesSettings() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saved, setSaved] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<PasswordMessage | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<PasswordMessage | null>(null);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -52,6 +53,7 @@ export default function AjustesSettings() {
 
   const handleSave = () => {
     startTransition(async () => {
+      setSettingsMessage(null);
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -60,9 +62,10 @@ export default function AjustesSettings() {
 
       if (response.ok) {
         setSaved(true);
+        setSettingsMessage({ type: "success", text: "Preferencias guardadas correctamente." });
         setTimeout(() => setSaved(false), 3000);
       } else {
-        alert("Error al guardar preferencias");
+        setSettingsMessage({ type: "error", text: "Error al guardar preferencias." });
       }
     });
   };
@@ -252,6 +255,11 @@ export default function AjustesSettings() {
         >
           {isPending ? labels("common.saving") : saved ? labels("common.saved") : labels("common.save")}
         </button>
+        {settingsMessage ? (
+          <p className={settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+            {settingsMessage.text}
+          </p>
+        ) : null}
       </div>
 
       <div className="card">
@@ -296,6 +304,11 @@ export default function AjustesSettings() {
             <><Save size={18} /> {labels("common.savePreferences")}</>
           )}
         </button>
+        {settingsMessage ? (
+          <p className={settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+            {settingsMessage.text}
+          </p>
+        ) : null}
       </div>
     </div>
   );
