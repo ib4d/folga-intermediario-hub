@@ -1281,6 +1281,27 @@ tr:hover td {
   color: var(--primary);
 }
 
+.form-message-success,
+.form-message-error {
+  margin: 0;
+  border: 1px solid;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form-message-success {
+  border-color: #86efac;
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.form-message-error {
+  border-color: #fca5a5;
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
 .hero-section {
   background-color: var(--surface);
   color: var(--foreground);
