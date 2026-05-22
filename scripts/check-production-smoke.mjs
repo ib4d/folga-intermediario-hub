@@ -4,12 +4,14 @@ const checks = [
   { path: "/api/health", label: "Health API", allow: [200], mustContain: '"status":"ok"' },
   { path: "/", label: "Marketing/onboarding entry", allow: [200, 302, 307, 308] },
   { path: "/login", label: "Login", allow: [200] },
-  { path: "/dashboard", label: "Dashboard auth gate", allow: [200, 302, 303, 307, 308] },
-  { path: "/candidatos", label: "Candidates auth gate", allow: [200, 302, 303, 307, 308] },
-  { path: "/documentos", label: "Documents auth gate", allow: [200, 302, 303, 307, 308] },
-  { path: "/legal", label: "Legal auth gate", allow: [200, 302, 303, 307, 308] },
-  { path: "/logistica", label: "Logistics auth gate", allow: [200, 302, 303, 307, 308] },
-  { path: "/ajustes", label: "Settings auth gate", allow: [200, 302, 303, 307, 308] },
+  { path: "/dashboard", label: "Dashboard auth gate", allow: [302, 303, 307, 308] },
+  { path: "/candidatos", label: "Candidates auth gate", allow: [302, 303, 307, 308] },
+  { path: "/documentos", label: "Documents auth gate", allow: [302, 303, 307, 308] },
+  { path: "/legal", label: "Legal auth gate", allow: [302, 303, 307, 308] },
+  { path: "/logistica", label: "Logistics auth gate", allow: [302, 303, 307, 308] },
+  { path: "/ajustes", label: "Settings auth gate", allow: [302, 303, 307, 308] },
+  { path: "/billing", label: "Billing auth gate", allow: [302, 303, 307, 308] },
+  { path: "/billing/plans", label: "Billing plans auth gate", allow: [302, 303, 307, 308] },
 ];
 
 const failures = [];

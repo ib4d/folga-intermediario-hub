@@ -5,7 +5,8 @@ import DocumentTable from "@/components/DocumentTable";
 import Link from "next/link";
 import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Prisma } from "@prisma/client";
-import { canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
+import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
+import { redirect } from "next/navigation";
 
 export default async function DocumentosPage({
   searchParams,
@@ -14,6 +15,8 @@ export default async function DocumentosPage({
 }) {
   const { status } = await searchParams;
   const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "documents")) redirect("/sin-permisos");
+
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
     ...(status ? { ocrStatus: status } : {}),
