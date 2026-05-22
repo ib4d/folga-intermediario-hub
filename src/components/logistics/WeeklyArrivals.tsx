@@ -29,11 +29,16 @@ const TransportIcon = ({ type }: { type: string | null }) => {
 };
 
 export default function WeeklyArrivals({ events }: Props) {
+  const [listMessage, setListMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+
   const handleConfirm = async (id: string) => {
+    setListMessage(null);
     try {
       await confirmLogisticsEvent(id);
-    } catch {
-      alert("Error al confirmar");
+      setListMessage({ tone: "success", text: "Llegada confirmada correctamente." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error al confirmar la llegada.";
+      setListMessage({ tone: "error", text: message });
     }
   };
 
@@ -46,14 +51,21 @@ export default function WeeklyArrivals({ events }: Props) {
   }
 
   return (
-    <PaginatedList
-      items={events}
-      pageSize={6}
-      label="Llegadas"
-      className="equal-card-grid"
-      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}
-      renderItem={(event) => <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />}
-    />
+    <div className="compact-stack">
+      {listMessage ? (
+        <p className={listMessage.tone === "success" ? "form-message-success" : "form-message-error"}>
+          {listMessage.text}
+        </p>
+      ) : null}
+      <PaginatedList
+        items={events}
+        pageSize={6}
+        label="Llegadas"
+        className="equal-card-grid"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}
+        renderItem={(event) => <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />}
+      />
+    </div>
   );
 }
 
@@ -71,9 +83,11 @@ function WeeklyArrivalCard({
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const handleSave = async (formData: FormData) => {
     setIsSubmitting(true);
+    setEditError("");
     try {
       await updateLogisticsEvent(event.id, {
         transportType: formData.get("transportType"),
@@ -86,7 +100,7 @@ function WeeklyArrivalCard({
       setIsEditing(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo actualizar la llegada";
-      alert(message);
+      setEditError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -278,6 +292,8 @@ function WeeklyArrivalCard({
               Cancelar
             </button>
           </div>
+
+          {editError ? <p className="form-message-error">{editError}</p> : null}
         </form>
       ) : null}
     </div>

@@ -15,11 +15,13 @@ interface Props {
 export default function ArrivalReadinessEditor({ candidate }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const latestEvent = candidate.logistics[0] ?? null;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setErrorMessage("");
 
     const formData = new FormData(event.currentTarget);
     try {
@@ -27,7 +29,7 @@ export default function ArrivalReadinessEditor({ candidate }: Props) {
       setIsOpen(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo actualizar el handoff";
-      alert(message);
+      setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -39,7 +41,10 @@ export default function ArrivalReadinessEditor({ candidate }: Props) {
         type="button"
         className="button"
         style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem" }}
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setErrorMessage("");
+          setIsOpen(true);
+        }}
       >
         Actualizar handoff
       </button>
@@ -127,6 +132,8 @@ export default function ArrivalReadinessEditor({ candidate }: Props) {
                   placeholder="Puntos de contacto, instrucciones, observaciones de llegada..."
                 />
               </div>
+
+              {errorMessage ? <p className="form-message-error">{errorMessage}</p> : null}
 
               <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
                 <button

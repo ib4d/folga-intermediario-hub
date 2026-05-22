@@ -18,6 +18,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
   const [candidateQuery, setCandidateQuery] = useState("");
   const [isCandidatePickerOpen, setIsCandidatePickerOpen] = useState(false);
   const [transportType, setTransportType] = useState("AVION");
+  const [formMessage, setFormMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId) ?? null;
   const selectedChecklist = selectedCandidate ? getCandidateDocumentChecklist(selectedCandidate) : null;
   const selectedOutcome = selectedCandidate ? getCandidateLegalOutcome(selectedCandidate) : null;
@@ -26,6 +27,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFormMessage(null);
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -35,10 +37,11 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       setSelectedCandidateId("");
       setCandidateQuery("");
       setTransportType("AVION");
+      setFormMessage({ tone: "success", text: "Llegada programada correctamente." });
       onSuccess?.();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error al crear evento";
-      alert(message);
+      setFormMessage({ tone: "error", text: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -309,6 +312,12 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       >
         {isSubmitting ? "Programando..." : "Programar Llegada"}
       </button>
+
+      {formMessage ? (
+        <p className={formMessage.tone === "success" ? "form-message-success" : "form-message-error"}>
+          {formMessage.text}
+        </p>
+      ) : null}
     </form>
   );
 }
