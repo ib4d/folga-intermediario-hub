@@ -259,6 +259,27 @@ function flattenFieldErrors(errors: FieldErrors) {
     .slice(0, 5);
 }
 
+function stepForField(field: string): number | null {
+  if (["firstName", "lastName", "gender", "dateOfBirth"].includes(field)) return 1;
+  if (["email", "phone"].includes(field)) return 2;
+  if (["birthPlace", "birthCountry", "citizenship", "nationality", "country"].includes(field)) return 3;
+  if (["passportNumber", "passportIssueDate", "passportExpiry", "passportBiometric", "kartaPobytuNumber", "kartaPobytuIssueDate", "kartaPobytuExpiry", "kartaPobytuType"].includes(field)) return 4;
+  if (["locationStatus", "polishAddress", "polishCity", "peselNumber"].includes(field)) return 5;
+  if (["arrivalDate", "arrivalNotes", "accommodation", "accommodationNotes"].includes(field)) return 6;
+  if (["paid400pln", "paymentDate"].includes(field)) return 7;
+  if (["gdprConsent"].includes(field)) return 8;
+  return null;
+}
+
+function firstErrorStep(errors: FieldErrors): number | null {
+  for (const field of Object.keys(errors)) {
+    const step = stepForField(field);
+    if (step) return step;
+  }
+
+  return null;
+}
+
 function FormField({
   label,
   name,
@@ -308,6 +329,7 @@ export default function CandidateRegistrationForm({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitMessage, setSubmitMessage] = useState("");
 
   const [formData, setFormData] = useState<Partial<CandidateRegistrationData>>({
     firstName: initialData?.firstName || "",
@@ -362,21 +384,28 @@ export default function CandidateRegistrationForm({
 
     setIsSubmitting(true);
     setErrors({});
+    setSubmitMessage("");
 
     try {
       const result = await submitCandidateRegistration(token, formData);
       if (result.error) {
         const nextErrors = result.error as FieldErrors;
         setErrors(nextErrors);
+        setSubmitMessage(nextErrors._global?.[0] ?? text.error);
         const details = flattenFieldErrors(nextErrors);
-        alert([nextErrors._global?.[0] ?? text.error, ...details].join("\n"));
+        const targetStep = firstErrorStep(nextErrors);
+        if (targetStep) setStep(targetStep);
+        if (details.length > 0) {
+          setSubmitMessage(`${nextErrors._global?.[0] ?? text.error} ${details.join(" ")}`);
+        }
         return;
       }
 
       router.push(`/registro/${token}/success?lang=${language}`);
     } catch (error) {
       console.error("[registration-form] Submit failed", error);
-      alert(text.unexpected);
+      setSubmitMessage(text.unexpected);
+      setErrors({ _global: [text.unexpected] });
     } finally {
       setIsSubmitting(false);
     }
@@ -423,6 +452,22 @@ export default function CandidateRegistrationForm({
       </div>
 
       <form onSubmit={handleSubmit}>
+        {submitMessage ? (
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              padding: "1rem",
+              border: "2px solid #b91c1c",
+              backgroundColor: "#fee2e2",
+              color: "#7f1d1d",
+              fontWeight: 900,
+              lineHeight: 1.5,
+            }}
+          >
+            {submitMessage}
+          </div>
+        ) : null}
+
         <h2
           style={{
             fontSize: "1.75rem",
