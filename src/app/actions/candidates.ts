@@ -1000,8 +1000,6 @@ export async function deleteCandidate(candidateId: string) {
     throw new Error("Candidato no encontrado o sin permisos.");
   }
 
-  await removeCandidateStoredFiles(candidate.documents);
-
   await prisma.$transaction(async (tx) => {
     await tx.notification.updateMany({
       where: {
@@ -1038,6 +1036,8 @@ export async function deleteCandidate(candidateId: string) {
       where: { id: candidate.id },
     });
   });
+
+  await removeCandidateStoredFiles(candidate.documents);
 
   await writeAuditLog({
     userId: tenant.userId,
@@ -1090,8 +1090,6 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
     throw new Error("No se encontraron candidatos eliminables en esta seleccion.");
   }
 
-  await removeCandidateStoredFiles(candidates.flatMap((candidate) => candidate.documents));
-
   const candidateIdsToDelete = candidates.map((candidate) => candidate.id);
 
   await prisma.$transaction(async (tx) => {
@@ -1133,6 +1131,8 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
       },
     });
   });
+
+  await removeCandidateStoredFiles(candidates.flatMap((candidate) => candidate.documents));
 
   await Promise.all(
     candidates.map((candidate) =>

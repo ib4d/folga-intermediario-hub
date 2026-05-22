@@ -1273,13 +1273,19 @@ export async function deleteDocument(documentId: string) {
     throw new Error("Sin permisos");
   }
 
-  const storage = getStorageProvider();
-  const filePath = storage.getObjectPathFromPublicUrl(document.url);
-  if (filePath) await storage.removeObjects([filePath]);
-
   await prisma.document.delete({
     where: { id: documentId },
   });
+
+  const storage = getStorageProvider();
+  const filePath = storage.getObjectPathFromPublicUrl(document.url);
+  if (filePath) {
+    try {
+      await storage.removeObjects([filePath]);
+    } catch (error) {
+      console.error("[deleteDocument] storage cleanup failed", error);
+    }
+  }
 
   await writeAuditLog({
     userId: tenant.userId,
