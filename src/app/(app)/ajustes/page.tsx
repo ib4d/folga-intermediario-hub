@@ -64,12 +64,12 @@ export default async function AjustesPage() {
         <div>
           <h1 style={{ color: "var(--ghost-white)" }}>Ajustes del Sistema</h1>
           <p style={{ color: "var(--grey-olive)" }}>
-            Configuración de usuarios, notificaciones y exportación de datos.
+            Configuracion de usuarios, notificaciones y exportacion de datos.
           </p>
         </div>
         {organization && (
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6, marginBottom: "0.25rem" }}>Organización</div>
+            <div style={{ fontSize: "0.75rem", opacity: 0.6, marginBottom: "0.25rem" }}>Organizacion</div>
             <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>{organization.name}</div>
             <span
               style={{
@@ -126,7 +126,7 @@ export default async function AjustesPage() {
         >
           <CreditCard size={24} color="var(--amber-flame)" />
           <div>
-            <div style={{ fontWeight: "bold" }}>Facturación</div>
+            <div style={{ fontWeight: "bold" }}>Facturacion</div>
             <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Plan y pagos</div>
           </div>
         </Link>
@@ -142,12 +142,12 @@ export default async function AjustesPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Users size={24} />
-                <h2 style={{ margin: 0 }}>Miembros de la Organización</h2>
+                <h2 style={{ margin: 0 }}>Miembros de la Organizacion</h2>
               </div>
               {invitableRoles.length > 0 ? (
                 <InviteUserModal allowedRoles={invitableRoles} />
               ) : (
-                <button className="button" disabled title="Solo ADMIN">
+                <button className="button" disabled title="Solo Superadmin o Administrador">
                   Invitar Usuario
                 </button>
               )}
@@ -282,10 +282,10 @@ export default async function AjustesPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Database size={24} />
-                <h2 style={{ margin: 0 }}>Exportación de Datos</h2>
+                <h2 style={{ margin: 0 }}>Exportacion de Datos</h2>
               </div>
             </div>
-            <p>Genera reportes para RRHH, marketing o dirección basados en la base de datos actual.</p>
+            <p>Genera reportes para RRHH, marketing o direccion basados en la base de datos actual.</p>
             <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
               <ExportButton />
             </div>
@@ -299,3 +299,4 @@ export default async function AjustesPage() {
     </>
   );
 }
+
