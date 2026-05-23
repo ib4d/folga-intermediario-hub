@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteDocument } from "@/app/actions/documents";
 import DocumentReviewModal from "@/components/DocumentReviewModal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   formatDocumentDisplayDate,
   getDocumentDisplayExpiry,
@@ -43,6 +44,7 @@ export default function DocumentTable({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{ type: "single"; id: string } | { type: "bulk"; ids: string[] } | null>(null);
   const router = useRouter();
 
   const toggleSelectAll = () => {
@@ -76,12 +78,15 @@ export default function DocumentTable({
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Seguro que deseas eliminar ${selectedIds.length} documentos?`)) return;
+    setConfirmTarget({ type: "bulk", ids: selectedIds });
+  };
 
+  const confirmDeleteSelected = async (ids: string[]) => {
+    setConfirmTarget(null);
     setIsDeleting(true);
     setTableMessage(null);
     try {
-      for (const id of selectedIds) {
+      for (const id of ids) {
         await deleteDocument(id);
       }
       setSelectedIds([]);
@@ -96,8 +101,11 @@ export default function DocumentTable({
   };
 
   const handleDeleteSingle = async (id: string) => {
-    if (!confirm("Seguro que deseas eliminar este documento?")) return;
+    setConfirmTarget({ type: "single", id });
+  };
 
+  const confirmDeleteSingle = async (id: string) => {
+    setConfirmTarget(null);
     setIsDeleting(true);
     setTableMessage(null);
     try {
@@ -256,6 +264,29 @@ export default function DocumentTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        title={confirmTarget?.type === "bulk" ? "Eliminar documentos" : "Eliminar documento"}
+        description={
+          confirmTarget?.type === "bulk"
+            ? `Se eliminaran ${confirmTarget.ids.length} documentos seleccionados. Esta accion no se puede deshacer.`
+            : "Se eliminara este documento del expediente. Esta accion no se puede deshacer."
+        }
+        confirmLabel="Eliminar"
+        tone="danger"
+        isBusy={isDeleting}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() => {
+          if (confirmTarget?.type === "bulk") {
+            void confirmDeleteSelected(confirmTarget.ids);
+            return;
+          }
+          if (confirmTarget?.type === "single") {
+            void confirmDeleteSingle(confirmTarget.id);
+          }
+        }}
+      />
     </div>
   );
 }

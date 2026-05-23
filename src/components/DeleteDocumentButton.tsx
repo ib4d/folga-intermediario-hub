@@ -4,15 +4,16 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocument } from "@/app/actions/documents";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function DeleteDocumentButton({ documentId }: { documentId: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
   const handleDelete = async () => {
-    if (!confirm("Seguro que deseas eliminar este documento?")) return;
-
+    setIsConfirmOpen(false);
     setIsDeleting(true);
     setErrorMessage("");
     try {
@@ -29,7 +30,7 @@ export default function DeleteDocumentButton({ documentId }: { documentId: strin
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: "0.35rem" }}>
       <button
-        onClick={handleDelete}
+        onClick={() => setIsConfirmOpen(true)}
         disabled={isDeleting}
         style={{
           background: "none",
@@ -48,6 +49,18 @@ export default function DeleteDocumentButton({ documentId }: { documentId: strin
           {errorMessage}
         </span>
       ) : null}
+      <ConfirmDialog
+        open={isConfirmOpen}
+        title="Eliminar documento"
+        description="Se eliminara este documento del expediente. Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
+        tone="danger"
+        isBusy={isDeleting}
+        onCancel={() => setIsConfirmOpen(false)}
+        onConfirm={() => {
+          void handleDelete();
+        }}
+      />
     </span>
   );
 }

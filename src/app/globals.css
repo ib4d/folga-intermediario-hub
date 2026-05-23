@@ -376,6 +376,16 @@ body::before {
   background-color: var(--white-smoke);
 }
 
+.button-danger {
+  background-color: #991b1b;
+  color: #fff7ed;
+  border-color: #7f1d1d;
+}
+
+.button-danger:hover {
+  background-color: #7f1d1d;
+}
+
 .icon-button {
   padding: 0.5rem;
   display: flex;
@@ -1367,6 +1377,39 @@ tr:hover td {
 .modal-panel .card:hover,
 .modal-panel .button:hover {
   transform: none;
+}
+
+.confirm-dialog {
+  width: min(100%, 460px);
+  padding: 1.5rem;
+}
+
+.confirm-dialog-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  margin-bottom: 1rem;
+}
+
+.confirm-dialog h2 {
+  margin-bottom: 0.75rem;
+}
+
+.confirm-dialog p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirm-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .compact-stack {

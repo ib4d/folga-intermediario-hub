@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { deleteCandidate, deleteCandidatesBulk } from "@/app/actions/candidates";
 import CopyRegistrationLink from "@/components/CopyRegistrationLink";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import StatusBadge from "@/components/ui/StatusBadge";
 
 type CandidateRow = {
@@ -45,6 +46,11 @@ export default function CandidateTable({
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<
+    | { type: "single"; candidate: CandidateRow }
+    | { type: "bulk"; ids: string[] }
+    | null
+  >(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
@@ -78,9 +84,11 @@ export default function CandidateTable({
   }
 
   async function handleDeleteSingle(candidate: CandidateRow) {
-    if (!confirm(`Eliminar a ${getCandidateName(candidate)} y todo su historial operativo?`)) {
-      return;
-    }
+    setConfirmTarget({ type: "single", candidate });
+  }
+
+  async function confirmDeleteSingle(candidate: CandidateRow) {
+    setConfirmTarget(null);
 
     startTransition(async () => {
       setTableMessage(null);
@@ -98,14 +106,16 @@ export default function CandidateTable({
 
   async function handleDeleteBulk() {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Eliminar ${selectedIds.length} candidatos seleccionados y sus datos relacionados?`)) {
-      return;
-    }
+    setConfirmTarget({ type: "bulk", ids: selectedIds });
+  }
+
+  async function confirmDeleteBulk(ids: string[]) {
+    setConfirmTarget(null);
 
     startTransition(async () => {
       setTableMessage(null);
       try {
-        await deleteCandidatesBulk(selectedIds);
+        await deleteCandidatesBulk(ids);
         setSelectedIds([]);
         router.refresh();
         setTableMessage({ tone: "success", text: "Candidatos seleccionados eliminados correctamente." });
@@ -250,7 +260,7 @@ export default function CandidateTable({
             </button>
           </div>
 
-          <div className="candidate-pagination-meta">
+        <div className="candidate-pagination-meta">
             <span className="candidate-list-subtle">
               Pagina {pageNumber} de {totalPages}
             </span>
@@ -269,6 +279,31 @@ export default function CandidateTable({
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        title={confirmTarget?.type === "bulk" ? "Eliminar candidatos" : "Eliminar candidato"}
+        description={
+          confirmTarget?.type === "bulk"
+            ? `Se eliminaran ${confirmTarget.ids.length} candidatos seleccionados y sus datos relacionados. Esta accion no se puede deshacer.`
+            : confirmTarget
+              ? `Se eliminara a ${getCandidateName(confirmTarget.candidate)} junto con su historial operativo. Esta accion no se puede deshacer.`
+              : ""
+        }
+        confirmLabel="Eliminar"
+        tone="danger"
+        isBusy={isPending}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() => {
+          if (confirmTarget?.type === "bulk") {
+            void confirmDeleteBulk(confirmTarget.ids);
+            return;
+          }
+          if (confirmTarget?.type === "single") {
+            void confirmDeleteSingle(confirmTarget.candidate);
+          }
+        }}
+      />
     </div>
   );
 }
