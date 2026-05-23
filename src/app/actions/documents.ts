@@ -7,7 +7,7 @@ import { getStorageProvider } from "@/lib/providers/storage";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
-import { emitEvent } from "@/core/events";
+import { emitEvent, type SystemEventType } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
 import {
   canAccessCandidateByOwnership,
@@ -164,6 +164,22 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+type OcrData = Awaited<ReturnType<typeof analyzeIdentityDocument>>;
+type PresentOcrData = NonNullable<OcrData>;
+
+async function safeEmitEvent<TPayload extends Record<string, unknown>>(
+  type: SystemEventType,
+  organizationId: string,
+  payload: TPayload,
+  userId?: string
+) {
+  try {
+    await emitEvent(type, organizationId, payload, userId);
+  } catch (error) {
+    console.error(`[documents] event dispatch failed for ${type}`, error);
+  }
+}
+
 function mergeOcrPayload(
   existing: Record<string, unknown> | null,
   incoming: Record<string, unknown>
@@ -192,6 +208,40 @@ function mergeOcrPayload(
   }
 
   return base;
+}
+
+function getExtractedDataRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+async function markDocumentOcrFailed(
+  documentId: string,
+  docType: DocumentType,
+  reason: string
+) {
+  const existingDocument = await prisma.document.findFirst({
+    where: { id: documentId },
+    select: { extractedData: true },
+  });
+
+  const existingExtractedData = getExtractedDataRecord(existingDocument?.extractedData);
+  const failedPayload = mergeOcrPayload(existingExtractedData, {
+    documentType: docType,
+    ocrStatus: "FAILED",
+    ocrSource: "AZURE",
+    ocrError: reason,
+    ocrFailedAt: new Date().toISOString(),
+  });
+
+  await prisma.document.update({
+    where: { id: documentId },
+    data: {
+      ocrStatus: "FAILED",
+      extractedData: toInputJsonValue(failedPayload),
+    },
+  });
 }
 
 function buildReviewedOcrData(
@@ -249,14 +299,19 @@ function buildReviewedOcrData(
 async function persistExtractedData(
   documentId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
+  ocrData: PresentOcrData
 ) {
+  const documentNumber =
+    normalizeOptionalString(ocrData.documentNumber) ??
+    normalizeOptionalString(ocrData.personalNumber) ??
+    undefined;
+
   await prisma.document.update({
     where: { id: documentId },
     data: {
       extractedData: toInputJsonValue(ocrData),
-      number: ocrData.documentNumber ?? ocrData.personalNumber ?? undefined,
-      issuerCountry: ocrData.issuingCountry ?? undefined,
+      number: documentNumber,
+      issuerCountry: normalizeOptionalString(ocrData.issuingCountry) ?? undefined,
       issueDate: parseDateSafe(ocrData.dateOfIssue),
       expiryDate: parseDateSafe(ocrData.dateOfExpiry),
       ocrStatus: isOcrSupported(docType) ? "REVIEW_REQUIRED" : "OCR_CAPTURED",
@@ -267,7 +322,7 @@ async function persistExtractedData(
 async function mergeOcrIntoExistingDocument(
   documentId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
+  ocrData: PresentOcrData
 ) {
   const existingDocument = await prisma.document.findFirst({
     where: { id: documentId },
@@ -275,12 +330,7 @@ async function mergeOcrIntoExistingDocument(
 
   if (!existingDocument) return;
 
-  const existingExtractedData =
-    existingDocument.extractedData &&
-    typeof existingDocument.extractedData === "object" &&
-    !Array.isArray(existingDocument.extractedData)
-      ? (existingDocument.extractedData as Record<string, unknown>)
-      : null;
+  const existingExtractedData = getExtractedDataRecord(existingDocument.extractedData);
 
   const mergedOcrData = mergeOcrPayload(existingExtractedData, ocrData as Record<string, unknown>);
 
@@ -293,7 +343,8 @@ async function mergeOcrIntoExistingDocument(
         normalizeOptionalString(ocrData.documentNumber) ??
         normalizeOptionalString(ocrData.personalNumber) ??
         undefined,
-      issuerCountry: existingDocument.issuerCountry ?? normalizeOptionalString(ocrData.issuingCountry) ?? undefined,
+      issuerCountry:
+        existingDocument.issuerCountry ?? normalizeOptionalString(ocrData.issuingCountry) ?? undefined,
       issueDate: existingDocument.issueDate ?? parseDateSafe(ocrData.dateOfIssue),
       expiryDate: existingDocument.expiryDate ?? parseDateSafe(ocrData.dateOfExpiry),
       ocrStatus: isOcrSupported(docType) ? "REVIEW_REQUIRED" : "OCR_CAPTURED",
@@ -385,6 +436,108 @@ function extractNameHintsFromFileName(fileName: string) {
   };
 }
 
+type SmartUploadPreparation = {
+  file: File;
+  fileBuffer: Buffer | null;
+  normalizedMimeType: string;
+  ocrData: OcrData;
+  docType: DocumentType;
+  preparationError: string | null;
+  score: number;
+};
+
+function scoreSmartOcrForCandidateResolution(
+  fileName: string,
+  docType: DocumentType,
+  ocrData: OcrData
+): number {
+  let score = 0;
+
+  if (normalizeOptionalString(ocrData?.documentNumber)) score += 3;
+  if (normalizeOptionalString(ocrData?.personalNumber)) score += 3;
+  if (normalizeOptionalString(ocrData?.firstName) && normalizeOptionalString(ocrData?.lastName)) {
+    score += 5;
+  }
+  if (normalizeOptionalString(ocrData?.dateOfBirth)) score += 1;
+  if (docType === DocumentType.PASSPORT || docType === DocumentType.KARTA_POBYTU) score += 1;
+
+  const hints = extractNameHintsFromFileName(fileName);
+  if (hints.firstName && hints.lastName) score += 1;
+
+  return score;
+}
+
+async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparation> {
+  const normalizedMimeType = normalizeMimeType(file);
+
+  if (!ALLOWED_MIME_TYPES.includes(normalizedMimeType)) {
+    return {
+      file,
+      fileBuffer: null,
+      normalizedMimeType,
+      ocrData: null,
+      docType: DocumentType.OTHER,
+      preparationError: `Tipo de archivo no permitido: ${file.type || file.name}.`,
+      score: 0,
+    };
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      file,
+      fileBuffer: null,
+      normalizedMimeType,
+      ocrData: null,
+      docType: DocumentType.OTHER,
+      preparationError: "El archivo excede el limite de 10MB.",
+      score: 0,
+    };
+  }
+
+  try {
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
+    const docType = inferDocumentTypeFromSmartSignals(file.name, ocrData);
+
+    return {
+      file,
+      fileBuffer,
+      normalizedMimeType,
+      ocrData,
+      docType,
+      preparationError: null,
+      score: scoreSmartOcrForCandidateResolution(file.name, docType, ocrData),
+    };
+  } catch (error) {
+    return {
+      file,
+      fileBuffer: null,
+      normalizedMimeType,
+      ocrData: null,
+      docType: DocumentType.OTHER,
+      preparationError: error instanceof Error ? error.message : "No se pudo leer el archivo.",
+      score: 0,
+    };
+  }
+}
+
+function rememberBatchCandidate(
+  batchCandidates: Map<string, string>,
+  candidate: { id: string; firstName: string | null; lastName: string | null },
+  ocrData: OcrData
+) {
+  for (const key of [
+    normalizeOptionalString(ocrData?.documentNumber),
+    normalizeOptionalString(ocrData?.personalNumber),
+    candidateNameSignature(ocrData?.firstName, ocrData?.lastName),
+    candidateNameSignature(candidate.firstName, candidate.lastName),
+  ]) {
+    if (key) {
+      batchCandidates.set(key, candidate.id);
+    }
+  }
+}
+
 async function findIntermediaryForCandidate(organizationId: string, fallbackUserId: string) {
   const membership = await prisma.membership.findFirst({
     where: {
@@ -403,7 +556,7 @@ async function applyCandidateFieldsFromOcr(
   tenant: Awaited<ReturnType<typeof requireTenant>>,
   candidateId: string,
   docType: DocumentType,
-  ocrData: NonNullable<Awaited<ReturnType<typeof analyzeIdentityDocument>>>
+  ocrData: PresentOcrData
 ) {
   const candidate = await prisma.candidate.findFirst({
     where: {
@@ -423,6 +576,8 @@ async function applyCandidateFieldsFromOcr(
   const birthPlace = normalizeOptionalString(ocrData.placeOfBirth);
   const gender = normalizeOptionalString(ocrData.sex)?.toUpperCase();
   const personalNumber = normalizeOptionalString(ocrData.personalNumber);
+  const documentNumber = normalizeOptionalString(ocrData.documentNumber);
+  const addressOfRegistration = normalizeOptionalString(ocrData.addressOfRegistration);
 
   if (firstName && !candidate.firstName) candidateUpdateData.firstName = firstName;
   if (lastName && !candidate.lastName) candidateUpdateData.lastName = lastName;
@@ -431,16 +586,16 @@ async function applyCandidateFieldsFromOcr(
   if (birthPlace && !candidate.birthPlace) candidateUpdateData.birthPlace = birthPlace;
   if ((gender === "M" || gender === "F") && !candidate.gender) candidateUpdateData.gender = gender;
   if (ocrData.heightCm && !candidate.heightCm) candidateUpdateData.heightCm = ocrData.heightCm;
-  if (ocrData.addressOfRegistration && !candidate.polishAddress) {
-    candidateUpdateData.polishAddress = ocrData.addressOfRegistration;
+  if (addressOfRegistration && !candidate.polishAddress) {
+    candidateUpdateData.polishAddress = addressOfRegistration;
   }
   if (ocrData.dateOfBirth && !candidate.dateOfBirth) {
     candidateUpdateData.dateOfBirth = parseDateSafe(ocrData.dateOfBirth);
   }
 
   if (docType === DocumentType.PASSPORT) {
-    if (ocrData.documentNumber && !candidate.passportNumber) {
-      candidateUpdateData.passportNumber = ocrData.documentNumber;
+    if (documentNumber && !candidate.passportNumber) {
+      candidateUpdateData.passportNumber = documentNumber;
     }
     if (ocrData.dateOfExpiry && !candidate.passportExpiry) {
       candidateUpdateData.passportExpiry = parseDateSafe(ocrData.dateOfExpiry);
@@ -454,8 +609,8 @@ async function applyCandidateFieldsFromOcr(
   }
 
   if (docType === DocumentType.KARTA_POBYTU) {
-    if (ocrData.documentNumber && !candidate.kartaPobytuNumber) {
-      candidateUpdateData.kartaPobytuNumber = ocrData.documentNumber;
+    if (documentNumber && !candidate.kartaPobytuNumber) {
+      candidateUpdateData.kartaPobytuNumber = documentNumber;
     }
     if (ocrData.dateOfExpiry && !candidate.kartaPobytuExpiry) {
       candidateUpdateData.kartaPobytuExpiry = parseDateSafe(ocrData.dateOfExpiry);
@@ -581,19 +736,6 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  if (batchAnchorCandidateId) {
-    const batchCandidate = await prisma.candidate.findFirst({
-      where: {
-        id: batchAnchorCandidateId,
-        organizationId: tenant.organizationId!,
-      },
-    });
-
-    if (batchCandidate) {
-      return { candidate: batchCandidate, created: false };
-    }
-  }
-
   const ocrFirstName = normalizePersonName(ocrData?.firstName);
   const ocrLastName = normalizePersonName(ocrData?.lastName);
   const fileNameHints = extractNameHintsFromFileName(file.name);
@@ -635,6 +777,20 @@ async function resolveSmartUploadCandidate(
 
     if (strongMatch) {
       return { candidate: strongMatch, created: false };
+    }
+  }
+
+  const hasStandaloneIdentity = Boolean(docNumber || personalNumber || (firstName && lastName));
+  if (batchAnchorCandidateId && !hasStandaloneIdentity) {
+    const batchCandidate = await prisma.candidate.findFirst({
+      where: {
+        id: batchAnchorCandidateId,
+        organizationId: tenant.organizationId!,
+      },
+    });
+
+    if (batchCandidate) {
+      return { candidate: batchCandidate, created: false };
     }
   }
 
@@ -740,7 +896,7 @@ async function resolveSmartUploadCandidate(
     }),
   });
 
-  await emitEvent(
+  await safeEmitEvent(
     "CANDIDATE_CREATED",
     tenant.organizationId!,
     {
@@ -771,6 +927,7 @@ export async function uploadDocument(formData: FormData) {
   const docNumber = formData.get("number");
   const issuerCountry = formData.get("issuerCountry");
   const expiryDate = formData.get("expiryDate");
+  const skipOcr = formData.get("skipOcr") === "true";
 
   if (!(file instanceof File) || typeof candidateId !== "string" || typeof rawType !== "string") {
     throw new Error("Faltan campos requeridos: file, candidateId, type");
@@ -854,20 +1011,30 @@ export async function uploadDocument(formData: FormData) {
     },
   });
 
-  if (isOcrSupported(docType)) {
+  let ocrOutcome: "not_supported" | "skipped" | "captured" | "failed" =
+    isOcrSupported(docType) ? "skipped" : "not_supported";
+
+  if (isOcrSupported(docType) && !skipOcr) {
     try {
       await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
 
       const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
 
       if (ocrData) {
+        ocrOutcome = "captured";
+        const extractedDocumentNumber =
+          normalizeOptionalString(ocrData.documentNumber) ??
+          normalizeOptionalString(ocrData.personalNumber) ??
+          documentNumber ??
+          undefined;
+
         await prisma.document.update({
           where: { id: newDoc.id },
           data: {
             extractedData: toInputJsonValue(ocrData),
-            number: ocrData.documentNumber || ocrData.personalNumber || documentNumber,
+            number: extractedDocumentNumber,
             issuerCountry:
-              ocrData.issuingCountry ||
+              normalizeOptionalString(ocrData.issuingCountry) ||
               (typeof issuerCountry === "string" && issuerCountry.trim().length > 0
                 ? issuerCountry.trim()
                 : null),
@@ -890,7 +1057,7 @@ export async function uploadDocument(formData: FormData) {
           }),
         });
 
-        await emitEvent(
+        await safeEmitEvent(
           "OCR_COMPLETED",
           tenant.organizationId!,
           {
@@ -902,10 +1069,8 @@ export async function uploadDocument(formData: FormData) {
           tenant.userId
         );
       } else {
-        await prisma.document.update({
-          where: { id: newDoc.id },
-          data: { ocrStatus: "FAILED" },
-        });
+        ocrOutcome = "failed";
+        await markDocumentOcrFailed(newDoc.id, docType, "OCR engine returned no data");
 
         await writeAuditLog({
           userId: tenant.userId,
@@ -921,11 +1086,13 @@ export async function uploadDocument(formData: FormData) {
       }
     } catch (error) {
       console.error("[uploadDocument] OCR error:", error);
+      ocrOutcome = "failed";
 
-      await prisma.document.update({
-        where: { id: newDoc.id },
-        data: { ocrStatus: "FAILED" },
-      });
+      await markDocumentOcrFailed(
+        newDoc.id,
+        docType,
+        error instanceof Error ? error.message : "OCR error"
+      );
 
       await writeAuditLog({
         userId: tenant.userId,
@@ -966,7 +1133,7 @@ export async function uploadDocument(formData: FormData) {
   }
 
   try {
-    await emitEvent(
+    await safeEmitEvent(
       "DOCUMENT_UPLOADED",
       tenant.organizationId!,
       {
@@ -988,9 +1155,13 @@ export async function uploadDocument(formData: FormData) {
     success: true,
     documentId: newDoc.id,
     publicUrl,
-    message: isOcrSupported(docType)
-      ? "Documento subido y enviado a revision OCR"
-      : "Documento subido correctamente",
+    ocrStatus: ocrOutcome,
+    message:
+      ocrOutcome === "captured"
+        ? "Documento subido y enviado a revision OCR"
+        : ocrOutcome === "failed"
+          ? "Documento guardado. OCR no pudo extraer datos y queda para correccion manual."
+          : "Documento subido correctamente",
   };
 }
 
@@ -1328,12 +1499,48 @@ export async function smartBatchUpload(formData: FormData) {
   const batchCandidates = new Map<string, string>();
   let batchAnchorCandidateId: string | null = candidateId;
 
-  for (const file of files) {
+  const preparedFiles = await Promise.all(files.map((file) => prepareSmartUploadFile(file)));
+  const candidatesForAnchor = [...preparedFiles]
+    .filter((item) => !item.preparationError)
+    .sort((a, b) => b.score - a.score);
+
+  if (!batchAnchorCandidateId) {
+    for (const prepared of candidatesForAnchor) {
+      try {
+        const resolved = await resolveSmartUploadCandidate(
+          tenant,
+          prepared.file,
+          prepared.ocrData,
+          null,
+          batchCandidates,
+          null
+        );
+
+        batchAnchorCandidateId = resolved.candidate.id;
+        rememberBatchCandidate(batchCandidates, resolved.candidate, prepared.ocrData);
+        break;
+      } catch (error) {
+        console.warn("[smartBatchUpload] anchor resolution skipped", {
+          filename: prepared.file.name,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+  }
+
+  for (const prepared of preparedFiles) {
+    const { file, ocrData, docType, preparationError } = prepared;
+
+    if (preparationError) {
+      results.push({
+        filename: file.name,
+        success: false,
+        message: preparationError,
+      });
+      continue;
+    }
+
     try {
-      const fileBuffer = Buffer.from(await file.arrayBuffer());
-      const normalizedMimeType = normalizeMimeType(file);
-      const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
-      const docType = inferDocumentTypeFromSmartSignals(file.name, ocrData);
       const resolved = await resolveSmartUploadCandidate(
         tenant,
         file,
@@ -1351,14 +1558,16 @@ export async function smartBatchUpload(formData: FormData) {
       single.append("file", file);
       single.append("candidateId", resolved.candidate.id);
       single.append("type", docType);
+      single.append("skipOcr", "true");
       const derivedNumber =
         normalizeOptionalString(ocrData?.documentNumber) ??
         normalizeOptionalString(ocrData?.personalNumber);
       if (derivedNumber) {
         single.append("number", derivedNumber);
       }
-      if (ocrData?.issuingCountry) {
-        single.append("issuerCountry", ocrData.issuingCountry);
+      const issuingCountry = normalizeOptionalString(ocrData?.issuingCountry);
+      if (issuingCountry) {
+        single.append("issuerCountry", issuingCountry);
       }
       if (ocrData?.dateOfExpiry) {
         single.append("expiryDate", ocrData.dateOfExpiry);
@@ -1367,24 +1576,10 @@ export async function smartBatchUpload(formData: FormData) {
       const result = await uploadDocument(single);
 
       if (!result.success) {
-        if (
-          result.status === "DUPLICATE_DOCUMENT" &&
-          result.documentId &&
-          ocrData
-        ) {
+        if (result.status === "DUPLICATE_DOCUMENT" && result.documentId && ocrData) {
           await mergeOcrIntoExistingDocument(result.documentId, docType, ocrData);
           await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-
-          for (const key of [
-            normalizeOptionalString(ocrData.documentNumber),
-            normalizeOptionalString(ocrData.personalNumber),
-            candidateNameSignature(ocrData.firstName, ocrData.lastName),
-            candidateNameSignature(resolved.candidate.firstName, resolved.candidate.lastName),
-          ]) {
-            if (key) {
-              batchCandidates.set(key, resolved.candidate.id);
-            }
-          }
+          rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
 
           results.push({
             filename: file.name,
@@ -1414,24 +1609,23 @@ export async function smartBatchUpload(formData: FormData) {
       if (ocrData) {
         await persistExtractedData(result.documentId, docType, ocrData);
         await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-        for (const key of [
-          normalizeOptionalString(ocrData.documentNumber),
-          normalizeOptionalString(ocrData.personalNumber),
-          candidateNameSignature(ocrData.firstName, ocrData.lastName),
-          candidateNameSignature(resolved.candidate.firstName, resolved.candidate.lastName),
-        ]) {
-          if (key) {
-            batchCandidates.set(key, resolved.candidate.id);
-          }
-        }
+        rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
+      } else if (isOcrSupported(docType)) {
+        await markDocumentOcrFailed(
+          result.documentId,
+          docType,
+          "OCR no devolvio datos utilizables. El archivo queda guardado para revision manual."
+        );
       }
 
       results.push({
         filename: file.name,
-        success: result.success,
+        success: true,
         message: resolved.created
-          ? `Documento procesado y candidato creado: ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim()
-          : `Documento procesado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim(),
+          ? `Documento guardado y candidato creado: ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim()
+          : ocrData
+            ? `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; OCR pendiente de revision`.trim()
+            : `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; requiere OCR manual`.trim(),
       });
     } catch (error) {
       results.push({

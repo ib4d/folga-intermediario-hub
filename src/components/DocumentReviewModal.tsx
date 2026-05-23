@@ -60,6 +60,7 @@ function deriveInitialState(doc: ReviewableDocument) {
     municipalityOffice: asString(extracted.municipalityOffice),
     addressOfRegistration: asString(extracted.addressOfRegistration),
     heightCm: asNumber(extracted.heightCm),
+    ocrError: asString(extracted.ocrError),
     markVerified: false,
   };
 }
@@ -164,6 +165,11 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
             <p style={{ color: "var(--muted)", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
               Corrige los campos detectados y guarda la version confiable del documento.
             </p>
+            {form.ocrError ? (
+              <p className="form-message-error" style={{ marginBottom: "1rem" }}>
+                OCR no pudo completar este documento: {form.ocrError}
+              </p>
+            ) : null}
 
             <div className="compact-stack">
               <div className="input-group" style={{ marginBottom: 0 }}>
