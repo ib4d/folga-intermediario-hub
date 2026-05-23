@@ -164,6 +164,40 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
+function getOperationalErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "Error desconocido");
+  const structured = error as {
+    code?: string;
+    details?: { error?: { innererror?: { code?: string; message?: string }; message?: string } };
+  };
+
+  const innerCode = structured.details?.error?.innererror?.code;
+  const innerMessage = structured.details?.error?.innererror?.message;
+  const apiMessage = structured.details?.error?.message;
+
+  if (
+    innerCode === "InvalidContentLength" ||
+    message.toLowerCase().includes("input image is too large") ||
+    innerMessage?.toLowerCase().includes("too large")
+  ) {
+    return "El archivo fue guardado, pero Azure OCR no lo pudo procesar porque supera el limite del proveedor. Reduce peso/resolucion o sube una version comprimida.";
+  }
+
+  if (
+    message.includes("DOMMatrix is not defined") ||
+    message.includes("PDF->PNG failed") ||
+    message.includes("@napi-rs/canvas")
+  ) {
+    return "El archivo fue guardado, pero el PDF no pudo convertirse para OCR en este servidor. Sube una imagen JPG/PNG del documento o revisalo manualmente.";
+  }
+
+  if (structured.code === "InvalidRequest" || message === "Invalid request." || apiMessage === "Invalid request.") {
+    return "El archivo fue guardado, pero el proveedor OCR rechazo el contenido. Revisa si el archivo esta corrupto, protegido o en un formato no legible.";
+  }
+
+  return message;
+}
+
 type OcrData = Awaited<ReturnType<typeof analyzeIdentityDocument>>;
 type PresentOcrData = NonNullable<OcrData>;
 
@@ -515,7 +549,7 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
       normalizedMimeType,
       ocrData: null,
       docType: DocumentType.OTHER,
-      preparationError: error instanceof Error ? error.message : "No se pudo leer el archivo.",
+      preparationError: getOperationalErrorMessage(error),
       score: 0,
     };
   }
@@ -1091,7 +1125,7 @@ export async function uploadDocument(formData: FormData) {
       await markDocumentOcrFailed(
         newDoc.id,
         docType,
-        error instanceof Error ? error.message : "OCR error"
+        getOperationalErrorMessage(error)
       );
 
       await writeAuditLog({
@@ -1102,7 +1136,7 @@ export async function uploadDocument(formData: FormData) {
         entityId: newDoc.id,
         details: toInputJsonValue({
           docType,
-          reason: error instanceof Error ? error.message : "OCR error",
+          reason: getOperationalErrorMessage(error),
         }),
       });
     }

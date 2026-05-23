@@ -57,10 +57,19 @@ export default function BatchUploadButton({
           : await batchUploadDocuments(selectedCandidateId, formDataWithDocType(formData, docType));
 
         if (res.success) {
-          setResults(res.results || []);
+          const nextResults = res.results || [];
+          setResults(nextResults);
+          const failedCount = nextResults.filter((result) => !result.success).length;
+          if (failedCount > 0) {
+            setErrorMessage(
+              `${failedCount} archivo(s) requieren revision. Los documentos procesados correctamente ya quedaron guardados.`
+            );
+          }
           router.refresh();
         } else {
-          setErrorMessage("Error en la subida por lotes. Revisa los archivos e intenta de nuevo.");
+          setErrorMessage(
+            "No se pudo iniciar la subida por lotes. Revisa permisos, archivos seleccionados e intenta de nuevo."
+          );
         }
       } catch (error) {
         console.error(error);
@@ -237,6 +246,8 @@ export default function BatchUploadButton({
             ) : (
               <div>
                 <h3 style={{ marginBottom: "1rem" }}>Resultados del Procesamiento</h3>
+                <BatchResultSummary results={results} />
+                {errorMessage ? <p className="form-message-error">{errorMessage}</p> : null}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {results.map((result, index) => (
                     <div
@@ -284,6 +295,63 @@ export default function BatchUploadButton({
         </div>
       ) : null}
     </>
+  );
+}
+
+function BatchResultSummary({
+  results,
+}: {
+  results: { success: boolean }[];
+}) {
+  const successCount = results.filter((result) => result.success).length;
+  const failedCount = results.length - successCount;
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: "0.5rem",
+        marginBottom: "1rem",
+      }}
+    >
+      <ResultMetric label="Archivos" value={results.length} tone="neutral" />
+      <ResultMetric label="Guardados" value={successCount} tone="success" />
+      <ResultMetric label="Revisar" value={failedCount} tone={failedCount > 0 ? "warning" : "neutral"} />
+    </div>
+  );
+}
+
+function ResultMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "neutral" | "success" | "warning";
+}) {
+  const colors = {
+    neutral: { background: "var(--white-smoke)", border: "var(--border-subtle)", color: "var(--pitch-black)" },
+    success: { background: "#dcfce7", border: "#86efac", color: "#166534" },
+    warning: { background: "#fef3c7", border: "#f59e0b", color: "#92400e" },
+  }[tone];
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${colors.border}`,
+        backgroundColor: colors.background,
+        color: colors.color,
+        padding: "0.75rem",
+        borderRadius: "8px",
+      }}
+    >
+      <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 900, textTransform: "uppercase" }}>
+        {label}
+      </p>
+      <p style={{ margin: "0.25rem 0 0", fontSize: "1.35rem", fontWeight: 900 }}>{value}</p>
+    </div>
   );
 }
 

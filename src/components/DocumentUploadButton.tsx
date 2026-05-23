@@ -11,7 +11,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState("PASSPORT");
   const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,7 +39,10 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
           setIsOpen(false);
           setFile(null);
           router.refresh();
-          setMessage({ tone: "success", text: "Documento subido correctamente." });
+          setMessage({
+            tone: res.ocrStatus === "failed" ? "warning" : "success",
+            text: res.message || "Documento subido correctamente.",
+          });
         } else {
           setMessage({ tone: "error", text: res.message || "Error al subir documento." });
         }
@@ -63,7 +66,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
       </button>
 
       {message ? (
-        <p className={message.tone === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+        <p className={messageClassName(message.tone)} style={{ marginTop: "0.75rem" }}>
           {message.text}
         </p>
       ) : null}
@@ -142,4 +145,10 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
       ) : null}
     </>
   );
+}
+
+function messageClassName(tone: "success" | "warning" | "error") {
+  if (tone === "success") return "form-message-success";
+  if (tone === "warning") return "form-message-warning";
+  return "form-message-error";
 }

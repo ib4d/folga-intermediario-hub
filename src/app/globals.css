@@ -1337,6 +1337,7 @@ tr:hover td {
 }
 
 .form-message-success,
+.form-message-warning,
 .form-message-error {
   margin: 0;
   border: 1px solid;
@@ -1349,6 +1350,12 @@ tr:hover td {
   border-color: #86efac;
   background-color: #dcfce7;
   color: #166534;
+}
+
+.form-message-warning {
+  border-color: #f59e0b;
+  background-color: #fef3c7;
+  color: #92400e;
 }
 
 .form-message-error {
