@@ -827,8 +827,8 @@ async function resolveSmartUploadCandidate(
       firstName,
       lastName,
       country:
-        normalizeOptionalString(ocrData?.issuingCountry) ??
         normalizeOptionalString(ocrData?.nationality) ??
+        normalizeOptionalString(ocrData?.issuingCountry) ??
         "COL",
       citizenship: normalizeOptionalString(ocrData?.issuingCountry),
       nationality: normalizeOptionalString(ocrData?.nationality),

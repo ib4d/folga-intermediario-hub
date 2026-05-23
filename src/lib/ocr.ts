@@ -31,41 +31,30 @@ export interface OcrExtractedData {
   rawFields?: Record<string, unknown>;
 }
 
+const AZURE_MAX_IMAGE_BYTES = 3_500_000;
+const AZURE_MAX_IMAGE_DIMENSION = 2200;
+
 function normalizeDate(value: unknown): string | undefined {
   if (!value) return undefined;
+
   try {
-    const d = new Date(value as string);
-    if (isNaN(d.getTime())) return undefined;
-    return d.toISOString().split("T")[0];
+    const date = new Date(value as string);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toISOString().split("T")[0];
   } catch {
     return undefined;
   }
 }
 
-const AZURE_MAX_IMAGE_BYTES = 3_500_000;
-const AZURE_MAX_IMAGE_DIMENSION = 2200;
-
-function normalizeDocumentNumber(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const normalized = value
-    .replace(/\s+/g, "")
-    .replace(/[^A-Z0-9]/gi, "")
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
+}
 
-  if (!/[0-9]/.test(normalized)) return undefined;
-
-  const rejected = new Set([
-    "REMARKS",
-    "UWAGI",
-    "ADDRESSOFREGISTRATION",
-    "ADRESZAMELDOWANIA",
-    "PASSPORT",
-    "PASAPORTE",
-    "KARTAPOBYTU",
-  ]);
-
-  if (rejected.has(normalized)) return undefined;
-  return /^[A-Z0-9]{6,14}$/.test(normalized) ? normalized : undefined;
+function compactSearchText(value: string): string {
+  return normalizeSearchText(value).replace(/[^A-Z0-9]+/g, "");
 }
 
 function normalizeHumanDate(value: string | undefined): string | undefined {
@@ -90,14 +79,14 @@ function normalizeHumanDate(value: string | undefined): string | undefined {
     DIC: "12",
   };
 
-  const compact = value.trim().toUpperCase().replace(/\s+/g, " ");
+  const compact = normalizeSearchText(value).replace(/\s+/g, " ");
   const numeric = compact.match(/\b(\d{1,2})[./\s-]+(\d{1,2})[./\s-]+(\d{4})\b/);
   if (numeric) {
     const [, day, month, year] = numeric;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
 
-  const named = compact.match(/\b(\d{1,2})\s+([A-ZÁÉÍÓÚÑ]{3,})[./A-Z]*\s+(\d{4})\b/);
+  const named = compact.match(/\b(\d{1,2})\s+([A-Z]{3,})(?:[./][A-Z]{3,})?\s+(\d{4})\b/);
   if (named) {
     const [, day, rawMonth, year] = named;
     const month = monthMap[normalizeSearchText(rawMonth).slice(0, 3)];
@@ -115,19 +104,118 @@ function extractFieldValue(field: unknown): string | undefined {
   return undefined;
 }
 
-function normalizeSearchText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+function normalizeDocumentNumber(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9]/gi, "")
     .toUpperCase();
+
+  if (!/[0-9]/.test(normalized)) return undefined;
+
+  const rejected = new Set([
+    "REMARKS",
+    "UWAGI",
+    "ADDRESSOFREGISTRATION",
+    "ADRESZAMELDOWANIA",
+    "PASSPORT",
+    "PASAPORTE",
+    "KARTAPOBYTU",
+    "RESIDENCEPERMIT",
+    "TYPEOFPERMIT",
+  ]);
+
+  if (rejected.has(normalized)) return undefined;
+  return /^[A-Z0-9]{6,14}$/.test(normalized) ? normalized : undefined;
 }
 
-function extractRawFieldText(fields: Record<string, unknown>, keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = extractFieldValue(fields[key]);
-    if (value) return value;
+function normalizeDocumentNumberForType(
+  value: string | undefined,
+  documentType: string
+): string | undefined {
+  const normalized = normalizeDocumentNumber(value);
+  if (!normalized) return undefined;
+
+  if (
+    (documentType === "PASSPORT" || documentType === "KARTA_POBYTU") &&
+    /^\d{11}$/.test(normalized)
+  ) {
+    return undefined;
   }
 
+  if (documentType === "KARTA_POBYTU" && !/^[A-Z]{1,3}\d{6,10}$/.test(normalized)) {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+function normalizeWhitespace(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const compact = compactSearchText(normalized);
+  const labelOnlyValues = new Set([
+    "REMARKS",
+    "UWAGI",
+    "UWAGIREMARKS",
+    "ADDRESSOFREGISTRATION",
+    "ADRESZAMELDOWANIA",
+    "ADRESZAMELDOWANIAADDRESSOFREGISTRATION",
+    "DATEOFISSUEANDISSUINGAUTHORITY",
+    "DATAWYDANIAIORGANWYDAJACY",
+    "DATEOFEXPIRY",
+    "DATAWAZNOSCI",
+    "TYPEOFPERMIT",
+    "RODZAJZEZWOLENIA",
+    "PLACEANDCOUNTRYOFBIRTH",
+    "MIEJSCEIKRAJURODZENIA",
+    "PASSPORTNO",
+    "PASAPORTEN",
+  ]);
+
+  if (labelOnlyValues.has(compact)) return undefined;
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function normalizeCountryCode(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const compact = compactSearchText(value);
+  if (!compact || compact === "SI" || compact === "YES" || compact === "NO") {
+    return undefined;
+  }
+
+  const aliases: Array<[string, string]> = [
+    ["COLOMBIANA", "COL"],
+    ["COLOMBIAN", "COL"],
+    ["COLOMBIA", "COL"],
+    ["KOLUMBIA", "COL"],
+    ["COL", "COL"],
+    ["POLSKA", "POL"],
+    ["POLAND", "POL"],
+    ["POL", "POL"],
+    ["UKRAINA", "UKR"],
+    ["UKRAINE", "UKR"],
+    ["UKR", "UKR"],
+    ["BIALORUS", "BLR"],
+    ["BELARUS", "BLR"],
+    ["BLR", "BLR"],
+  ];
+
+  for (const [alias, code] of aliases) {
+    if (compact === alias || compact.includes(alias)) return code;
+  }
+
+  return /^[A-Z]{3}$/.test(compact) ? compact : undefined;
+}
+
+function normalizeSex(value: string | undefined): string | undefined {
+  const normalized = normalizeWhitespace(value)?.toUpperCase();
+  if (!normalized) return undefined;
+  if (normalized === "M" || normalized.startsWith("MASC")) return "M";
+  if (normalized === "F" || normalized.startsWith("FEM")) return "F";
   return undefined;
 }
 
@@ -148,30 +236,171 @@ function extractRegexGroup(
   return undefined;
 }
 
-function normalizeWhitespace(value: string | undefined): string | undefined {
+function cleanLabeledValue(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const normalized = value.replace(/\s+/g, " ").trim();
-  const compact = normalizeSearchText(normalized).replace(/[^A-Z0-9]+/g, "");
-  const labelOnlyValues = new Set([
-    "REMARKS",
-    "UWAGI",
-    "UWAGIREMARKS",
-    "ADDRESSOFREGISTRATION",
-    "ADRESZAMELDOWANIA",
-    "ADRESZAMELDOWANIAADDRESSOFREGISTRATION",
-    "DATEOFISSUEANDISSUINGAUTHORITY",
-    "DATAWYDANIAIORGANWYDAJACY",
-  ]);
-  if (labelOnlyValues.has(compact)) return undefined;
-  return normalized.length > 0 ? normalized : undefined;
+
+  const cleaned = normalizeSearchText(value)
+    .replace(/\/?\b(TYPE OF PERMIT|RODZAJ ZEZWOLENIA)\b/g, " ")
+    .replace(/\/?\b(PLACE AND COUNTRY OF BIRTH|PLACE OF BIRTH|MIEJSCE I KRAJ URODZENIA)\b/g, " ")
+    .replace(/\/?\b(ADDRESS OF REGISTRATION|ADRES ZAMELDOWANIA)\b/g, " ")
+    .replace(/\/?\b(DATE OF ISSUE AND ISSUING AUTHORITY|DATA WYDANIA I ORGAN WYDAJACY)\b/g, " ")
+    .replace(/\/?\b(UWAGI|REMARKS)\b/g, " ")
+    .replace(/^[:/\s-]+/, " ");
+
+  return normalizeWhitespace(cleaned);
+}
+
+function extractLineValueNearLabels(
+  rawText: string | undefined,
+  labels: string[],
+  maxFollowingLines = 2
+): string | undefined {
+  if (!rawText) return undefined;
+
+  const lines = rawText.split(/\r?\n/);
+  const normalizedLabels = labels.map(normalizeSearchText);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const normalizedLine = normalizeSearchText(lines[index]);
+    const label = normalizedLabels.find((item) => normalizedLine.includes(item));
+    if (!label) continue;
+
+    const sameLineRemainder = normalizedLine.slice(normalizedLine.indexOf(label) + label.length);
+    const sameLineValue = cleanLabeledValue(sameLineRemainder);
+    if (sameLineValue) return sameLineValue;
+
+    for (let offset = 1; offset <= maxFollowingLines; offset += 1) {
+      const nextLine = lines[index + offset];
+      if (!nextLine) continue;
+
+      const value = cleanLabeledValue(nextLine);
+      if (value) return value;
+    }
+  }
+
+  return undefined;
+}
+
+function extractDateNearLabels(rawText: string | undefined, labels: string[]): string | undefined {
+  if (!rawText) return undefined;
+
+  const lines = rawText.split(/\r?\n/);
+  const normalizedLabels = labels.map(normalizeSearchText);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const normalizedLine = normalizeSearchText(lines[index]);
+    if (!normalizedLabels.some((label) => normalizedLine.includes(label))) continue;
+
+    for (let offset = 0; offset <= 2; offset += 1) {
+      const date = normalizeHumanDate(lines[index + offset]);
+      if (date) return date;
+    }
+  }
+
+  return undefined;
 }
 
 function parseHeightCm(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const match = value.match(/(\d{2,3})/);
   if (!match) return undefined;
+
   const parsed = Number.parseInt(match[1], 10);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseMrzDate(value: string | undefined, kind: "birth" | "expiry"): string | undefined {
+  const match = value?.match(/^(\d{2})(\d{2})(\d{2})$/);
+  if (!match) return undefined;
+
+  const [, yy, mm, dd] = match;
+  const yearNumber = Number.parseInt(yy, 10);
+  const currentYear = new Date().getUTCFullYear() % 100;
+  const fullYear =
+    kind === "birth" && yearNumber > currentYear
+      ? 1900 + yearNumber
+      : 2000 + yearNumber;
+
+  return normalizeHumanDate(`${dd} ${mm} ${fullYear}`);
+}
+
+function normalizeMrzPersonName(value: string | undefined): string | undefined {
+  const normalized = normalizeWhitespace(value?.replace(/</g, " "));
+  return normalized ? normalized.toUpperCase() : undefined;
+}
+
+function parseMrzName(value: string | undefined): Pick<OcrExtractedData, "firstName" | "lastName"> {
+  if (!value) return {};
+
+  const [lastNamePart, firstNamePart] = value.split("<<");
+  return {
+    firstName: normalizeMrzPersonName(firstNamePart),
+    lastName: normalizeMrzPersonName(lastNamePart),
+  };
+}
+
+function getMrzLines(rawText: string | undefined): string[] {
+  if (!rawText) return [];
+
+  return rawText
+    .split(/\r?\n/)
+    .map((line) => normalizeSearchText(line).replace(/\s+/g, ""))
+    .filter((line) => /^[A-Z0-9<]{20,}$/.test(line));
+}
+
+function parseMrz(rawText: string | undefined): OcrExtractedData {
+  const lines = getMrzLines(rawText);
+
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const firstLine = lines[index];
+    const secondLine = lines[index + 1];
+
+    if (!firstLine.startsWith("P<") || secondLine.length < 27) continue;
+
+    const nameData = parseMrzName(firstLine.slice(5));
+    return {
+      ...nameData,
+      documentNumber: normalizeDocumentNumberForType(secondLine.slice(0, 9), "PASSPORT"),
+      dateOfBirth: parseMrzDate(secondLine.slice(13, 19), "birth"),
+      dateOfExpiry: parseMrzDate(secondLine.slice(21, 27), "expiry"),
+      sex: normalizeSex(secondLine[20]),
+      nationality: normalizeCountryCode(secondLine.slice(10, 13)),
+      issuingCountry: normalizeCountryCode(firstLine.slice(2, 5)),
+      documentType: "PASSPORT",
+      documentTypeCode: "P",
+    };
+  }
+
+  for (let index = 0; index < lines.length - 2; index += 1) {
+    const firstLine = lines[index];
+    const secondLine = lines[index + 1];
+    const thirdLine = lines[index + 2];
+
+    if (!/^I[A-Z<]?POL/.test(firstLine)) continue;
+
+    const documentNumber =
+      normalizeDocumentNumberForType(
+        firstLine.match(/^I[A-Z<]?POL([A-Z]{1,3}\d{6,8})\d?/)?.[1],
+        "KARTA_POBYTU"
+      ) ??
+      normalizeDocumentNumberForType(firstLine.match(/([A-Z]{1,3}\d{6,10})/)?.[1], "KARTA_POBYTU");
+
+    const dateMatch = secondLine.match(/^(\d{6})\d?([MF<])(\d{6})\d?([A-Z]{3})/);
+    const nameData = parseMrzName(thirdLine);
+
+    return {
+      ...nameData,
+      documentNumber,
+      dateOfBirth: parseMrzDate(dateMatch?.[1], "birth"),
+      sex: normalizeSex(dateMatch?.[2]),
+      dateOfExpiry: parseMrzDate(dateMatch?.[3], "expiry"),
+      nationality: normalizeCountryCode(dateMatch?.[4]),
+      issuingCountry: "POL",
+      documentType: "KARTA_POBYTU",
+    };
+  }
+
+  return {};
 }
 
 function detectPassportBiometric(
@@ -191,27 +420,30 @@ function detectPassportBiometric(
   return undefined;
 }
 
-function inferDocumentType(fields: Record<string, unknown>, rawText: string | undefined): string {
+function inferDocumentType(
+  fields: Record<string, unknown>,
+  rawText: string | undefined,
+  mrzData: OcrExtractedData
+): string {
+  if (mrzData.documentType) return mrzData.documentType;
+
   const documentTypeCode = extractFieldValue(fields.DocumentType);
   const category = normalizeSearchText(extractFieldValue(fields.Category) ?? "");
   const normalizedRawText = normalizeSearchText(rawText ?? "");
 
-  if (documentTypeCode === "P" || normalizedRawText.includes("PASSPORT")) {
+  if (documentTypeCode === "P" || normalizedRawText.includes("PASSPORT") || normalizedRawText.includes("PASAPORTE")) {
     return "PASSPORT";
   }
 
   if (
     category.includes("ZEZWOLENIE NA POBYT") ||
-    normalizedRawText.includes("KARTA POBYTU")
+    normalizedRawText.includes("KARTA POBYTU") ||
+    normalizedRawText.includes("RESIDENCE PERMIT")
   ) {
     return "KARTA_POBYTU";
   }
 
-  if (
-    normalizedRawText.includes("NUMER PESEL") ||
-    normalizedRawText.includes("URZAD GMINY") ||
-    normalizedRawText.includes("URZAD GMINY")
-  ) {
+  if (normalizedRawText.includes("NUMER PESEL") || normalizedRawText.includes("URZAD GMINY")) {
     return "PESEL";
   }
 
@@ -228,21 +460,21 @@ function disableBrokenLoopbackProxy() {
     "all_proxy",
   ] as const;
 
-  const previousEntries = proxyKeys.map((key) => [key, process.env[key]] as const);
+  const previousEntries = proxyKeys.map((proxyKey) => [proxyKey, process.env[proxyKey]] as const);
   const loopbackProxyPattern = /^http:\/\/127\.0\.0\.1:9\/?$/i;
 
-  for (const [key, value] of previousEntries) {
+  for (const [proxyKey, value] of previousEntries) {
     if (value && loopbackProxyPattern.test(value)) {
-      delete process.env[key];
+      delete process.env[proxyKey];
     }
   }
 
   return () => {
-    for (const [key, value] of previousEntries) {
+    for (const [proxyKey, value] of previousEntries) {
       if (value === undefined) {
-        delete process.env[key];
+        delete process.env[proxyKey];
       } else {
-        process.env[key] = value;
+        process.env[proxyKey] = value;
       }
     }
   };
@@ -252,132 +484,181 @@ function mapAzureIdDocumentFields(
   fields: Record<string, unknown>,
   rawText: string | undefined
 ): OcrExtractedData {
-  const get = (key: string) => extractFieldValue(fields[key]);
-
+  const get = (fieldName: string) => extractFieldValue(fields[fieldName]);
   const normalizedRawText = rawText ? normalizeSearchText(rawText) : "";
+  const mrzData = parseMrz(rawText);
+  const inferredDocumentType = inferDocumentType(fields, rawText, mrzData);
+
   const personalNumber =
     get("PersonalNumber") ??
-    extractRegexGroup(rawText, [
-      /(?:NUMER PESEL|PERSONAL NUMBER\s*\(PESEL\))[:\s-]*([0-9]{11})/i,
+    extractRegexGroup(normalizedRawText, [
+      /(?:NUMER PESEL|PERSONAL NUMBER\s*\(?PESEL\)?)[^0-9]{0,40}([0-9]{11})/i,
       /\b([0-9]{11})\b/,
-    ]);
+    ]) ??
+    mrzData.personalNumber;
 
-  let docNumber = normalizeDocumentNumber(
-    get("DocumentNumber") ??
-      extractRawFieldText(fields, ["IdNumber", "Number", "CardNumber"]) ??
-      extractRegexGroup(rawText, [
-        /(?:PASSPORT\s*NO\.?|PASAPORTE\s*N[°O.]*)[:\s-]*([A-Z0-9]{6,14})/i,
-        /(?:KARTA\s+POBYTU|RESIDENCE\s+PERMIT)[\s\S]{0,80}\b([A-Z]{1,3}\d{6,10})\b/i,
-        /\b([A-Z]{1,3}\d{6,10})\b/i,
-      ])
-  );
+  let documentNumber =
+    inferredDocumentType === "PESEL"
+      ? undefined
+      : normalizeDocumentNumberForType(mrzData.documentNumber, inferredDocumentType);
 
-  if (!docNumber) {
-    for (const key in fields) {
-      const val = extractFieldValue(fields[key]);
-      const normalizedVal = normalizeDocumentNumber(val);
-      if (normalizedVal) {
-        docNumber = normalizedVal;
+  if (!documentNumber && inferredDocumentType === "PASSPORT") {
+    documentNumber = normalizeDocumentNumberForType(
+      get("DocumentNumber") ??
+        extractRegexGroup(normalizedRawText, [
+          /(?:PASSPORT\s*NO\.?|PASAPORTE\s*N\.?)[^A-Z0-9]{0,30}([A-Z0-9]{6,14})/i,
+          /\b([A-Z]{1,2}\d{6,9})\b/i,
+        ]),
+      inferredDocumentType
+    );
+  }
+
+  if (!documentNumber && inferredDocumentType === "KARTA_POBYTU") {
+    documentNumber = normalizeDocumentNumberForType(
+      extractRegexGroup(normalizedRawText, [
+        /\b(RS\d{7,8})\d?\b/i,
+        /(?:KARTA\s+POBYTU|RESIDENCE\s+PERMIT)[\s\S]{0,120}\b([A-Z]{1,3}\d{6,10})\b/i,
+      ]) ??
+        get("DocumentNumber") ??
+        get("IdNumber") ??
+        get("CardNumber"),
+      inferredDocumentType
+    );
+  }
+
+  if (!documentNumber && inferredDocumentType !== "PESEL") {
+    documentNumber = normalizeDocumentNumberForType(
+      get("DocumentNumber") ??
+        get("IdNumber") ??
+        get("Number") ??
+        get("CardNumber") ??
+        extractRegexGroup(normalizedRawText, [/\b([A-Z]{1,3}\d{6,10})\b/i]),
+      inferredDocumentType
+    );
+  }
+
+  if (!documentNumber && inferredDocumentType !== "PESEL") {
+    for (const fieldName in fields) {
+      const fieldValue = extractFieldValue(fields[fieldName]);
+      const normalizedDocumentNumber = normalizeDocumentNumberForType(
+        fieldValue,
+        inferredDocumentType
+      );
+      if (normalizedDocumentNumber) {
+        documentNumber = normalizedDocumentNumber;
         break;
       }
     }
   }
 
-  const issueDate =
+  const dateOfIssue =
     normalizeDate(get("DateOfIssue")) ??
-    normalizeHumanDate(
-      extractRegexGroup(rawText, [
-        /(?:DATE OF ISSUE|FECHA DE EXPEDICI[OÓ]N|DATA WYDANIA[^0-9]*)[:\s-]*([0-9A-ZÁÉÍÓÚÑ./\s-]{8,24})/i,
-      ])
-    );
-  const expiryDate =
-    normalizeDate(get("DateOfExpiry") ?? get("DateOfExpiration")) ??
-    normalizeHumanDate(
-      extractRegexGroup(rawText, [
-        /(?:DATE OF EXPIRY|DATE OF EXPIRATION|FECHA DE VENCIMIENTO|DATA WA[ŻZ]NO[ŚS]CI)[:\s-]*([0-9A-ZÁÉÍÓÚÑ./\s-]{8,24})/i,
-      ])
-    );
-  const passportAuthority =
-    normalizeWhitespace(get("IssuingAuthority")) ??
-    extractRegexGroup(rawText, [
-      /(?:AUTORIDAD|AUTHORITY)[:\s-]*([^\n]+)/i,
-    ], normalizeWhitespace);
-  const kartaType =
-    normalizeWhitespace(get("Category")) ??
-    extractRegexGroup(rawText, [
-      /(?:RODZAJ ZEZWOLENIA|TYPE OF PERMIT)[:\s-]*([^\n]+)/i,
-    ], normalizeWhitespace);
-  const remarks =
-    extractRegexGroup(rawText, [
-      /(?:UWAGI\/REMARKS)[:\s-]*([^\n]+)/i,
-    ], normalizeWhitespace);
-  const addressOfRegistration =
-    extractRegexGroup(rawText, [
-      /(?:ADRES ZAMELDOWANIA|ADDRESS OF REGISTRATION)[:\s-]*([^\n]+)/i,
-    ], normalizeWhitespace);
-  const municipalityOffice =
-    extractRegexGroup(rawText, [
-      /(URZ[ĄA]D GMINY\s*[-–]\s*[^\n]+)/i,
-    ], normalizeWhitespace);
-  const heightCm =
-    parseHeightCm(get("Height")) ??
-    parseHeightCm(
-      extractRegexGroup(rawText, [
-        /(?:WZROST|HEIGHT)[:\s-]*([0-9]{2,3})/i,
-      ])
-    );
-  const inferredDocumentType = inferDocumentType(fields, rawText);
-
-  if (inferredDocumentType === "PASSPORT") {
-    docNumber =
-      normalizeDocumentNumber(
-        extractRegexGroup(rawText, [
-          /(?:PASSPORT\s*NO\.?|PASAPORTE\s*N[°O.]*)[:\s-]*([A-Z0-9]{6,14})/i,
-          /\b([A-Z]{1,2}\d{6,9})\b/i,
-        ])
-      ) ?? docNumber;
-  }
-
-  if (inferredDocumentType === "KARTA_POBYTU") {
-    docNumber =
-      normalizeDocumentNumber(
-        extractRegexGroup(rawText, [
-          /\b(RS\d{6,10})\b/i,
-          /\b([A-Z]{1,3}\d{6,10})\b/i,
-        ])
-      ) ?? docNumber;
-  }
-  const issuingCountry =
-    get("CountryRegion") ??
-    get("IssuingCountry") ??
-    (normalizedRawText.includes("POLSKA") ? "POL" : undefined);
-  const passportType =
-    normalizeWhitespace(get("DocumentType")) ??
-    extractRegexGroup(rawText, [
-      /(?:TIPO|TYPE)[:\s-]*([A-Z])/i,
+    extractDateNearLabels(rawText, [
+      "DATE OF ISSUE",
+      "FECHA DE EXPEDICION",
+      "DATA WYDANIA",
     ]);
 
+  const dateOfExpiry =
+    normalizeDate(get("DateOfExpiry") ?? get("DateOfExpiration")) ??
+    mrzData.dateOfExpiry ??
+    extractDateNearLabels(rawText, [
+      "DATE OF EXPIRY",
+      "DATE OF EXPIRATION",
+      "FECHA DE VENCIMIENTO",
+      "DATA WAZNOSCI",
+    ]);
+
+  const dateOfBirth =
+    normalizeDate(get("DateOfBirth")) ??
+    mrzData.dateOfBirth ??
+    extractDateNearLabels(rawText, [
+      "DATE OF BIRTH",
+      "FECHA DE NACIMIENTO",
+      "DATA URODZENIA",
+    ]);
+
+  const passportAuthority =
+    normalizeWhitespace(get("IssuingAuthority")) ??
+    cleanLabeledValue(
+      extractRegexGroup(normalizedRawText, [
+        /(?:AUTORIDAD|AUTHORITY)[^A-Z0-9]{0,20}([A-Z0-9 .-]{3,80})/i,
+      ])
+    );
+
+  const kartaPobytuType =
+    inferredDocumentType === "KARTA_POBYTU"
+      ? normalizeWhitespace(get("Category")) ??
+        extractLineValueNearLabels(rawText, ["RODZAJ ZEZWOLENIA", "TYPE OF PERMIT"])
+      : undefined;
+
+  const remarks =
+    inferredDocumentType === "KARTA_POBYTU"
+      ? extractLineValueNearLabels(rawText, ["UWAGI", "REMARKS"], 1)
+      : undefined;
+
+  const municipalityOffice =
+    inferredDocumentType === "PESEL"
+      ? extractLineValueNearLabels(rawText, ["URZAD GMINY"], 0)
+      : undefined;
+
+  const addressOfRegistration =
+    inferredDocumentType === "KARTA_POBYTU"
+      ? extractLineValueNearLabels(rawText, ["ADRES ZAMELDOWANIA", "ADDRESS OF REGISTRATION"], 1)
+      : undefined;
+
+  const placeOfBirth =
+    normalizeWhitespace(get("PlaceOfBirth")) ??
+    extractLineValueNearLabels(rawText, [
+      "PLACE AND COUNTRY OF BIRTH",
+      "PLACE OF BIRTH",
+      "LUGAR DE NACIMIENTO",
+      "MIEJSCE I KRAJ URODZENIA",
+    ]);
+
+  const heightCm =
+    parseHeightCm(get("Height")) ??
+    parseHeightCm(extractLineValueNearLabels(rawText, ["WZROST", "HEIGHT"], 1));
+
+  const issuingCountry =
+    normalizeCountryCode(get("CountryRegion")) ??
+    normalizeCountryCode(get("IssuingCountry")) ??
+    mrzData.issuingCountry ??
+    (normalizedRawText.includes("POLSKA") ? "POL" : undefined);
+
+  const nationality =
+    normalizeCountryCode(get("Nationality")) ??
+    mrzData.nationality ??
+    normalizeCountryCode(extractLineValueNearLabels(rawText, ["NATIONALITY", "NACIONALIDAD", "OBYWATELSTWO"]));
+
+  const passportType =
+    normalizeWhitespace(get("DocumentType")) ??
+    cleanLabeledValue(
+      extractRegexGroup(normalizedRawText, [
+        /(?:TIPO|TYPE)[^A-Z0-9]{0,20}([A-Z])/i,
+      ])
+    );
+
   return {
-    firstName: get("FirstName"),
-    lastName: get("LastName"),
-    documentNumber: docNumber,
+    firstName: normalizeWhitespace(get("FirstName")) ?? mrzData.firstName,
+    lastName: normalizeWhitespace(get("LastName")) ?? mrzData.lastName,
+    documentNumber,
     personalNumber,
-    dateOfBirth: normalizeDate(get("DateOfBirth")),
-    dateOfExpiry: expiryDate,
-    dateOfIssue: issueDate,
-    sex: get("Sex"),
-    nationality: get("Nationality"),
+    dateOfBirth,
+    dateOfExpiry,
+    dateOfIssue,
+    sex: normalizeSex(get("Sex")) ?? mrzData.sex,
+    nationality,
     issuingCountry,
-    placeOfBirth: get("PlaceOfBirth"),
+    placeOfBirth,
     documentType: inferredDocumentType,
-    documentTypeCode: get("DocumentType"),
+    documentTypeCode: get("DocumentType") ?? mrzData.documentTypeCode,
     issuingAuthority: passportAuthority,
     passportAuthority,
     passportType,
-    passportBiometric: inferredDocumentType === "PASSPORT"
-      ? detectPassportBiometric(rawText, fields)
-      : undefined,
-    kartaPobytuType: inferredDocumentType === "KARTA_POBYTU" ? kartaType : undefined,
+    passportBiometric:
+      inferredDocumentType === "PASSPORT" ? detectPassportBiometric(rawText, fields) : undefined,
+    kartaPobytuType,
     remarks,
     municipalityOffice,
     addressOfRegistration,
@@ -395,27 +676,34 @@ async function shrinkImageForAzure(fileBuffer: Buffer, mimeType: string): Promis
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createCanvas, loadImage } = require("canvas") as typeof import("canvas");
     const image = await loadImage(fileBuffer);
-    const scale = Math.min(
-      1,
-      AZURE_MAX_IMAGE_DIMENSION / Math.max(image.width, image.height)
-    );
-    const width = Math.max(1, Math.round(image.width * scale));
-    const height = Math.max(1, Math.round(image.height * scale));
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(image, 0, 0, width, height);
+    let bestBuffer: Buffer | null = null;
 
-    for (const quality of [0.82, 0.72, 0.62, 0.52]) {
-      const compressed = canvas.toBuffer("image/jpeg", { quality });
-      if (compressed.length <= AZURE_MAX_IMAGE_BYTES || quality === 0.52) {
-        return compressed;
+    for (const dimensionFactor of [1, 0.85, 0.7, 0.55, 0.42]) {
+      const scale =
+        Math.min(1, AZURE_MAX_IMAGE_DIMENSION / Math.max(image.width, image.height)) *
+        dimensionFactor;
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0, width, height);
+
+      for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
+        const compressed = canvas.toBuffer("image/jpeg", { quality });
+        if (!bestBuffer || compressed.length < bestBuffer.length) {
+          bestBuffer = compressed;
+        }
+        if (compressed.length <= AZURE_MAX_IMAGE_BYTES) {
+          return compressed;
+        }
       }
     }
+
+    return bestBuffer ?? fileBuffer;
   } catch (err) {
     console.error("[OCR] Image shrink failed; sending original image:", err);
+    return fileBuffer;
   }
-
-  return fileBuffer;
 }
 
 export async function analyzeDocument(
@@ -427,24 +715,21 @@ export async function analyzeDocument(
     return null;
   }
 
-  let processBuffer = fileBuffer;
-  processBuffer = await shrinkImageForAzure(fileBuffer, mimeType);
-
+  const processBuffer = await shrinkImageForAzure(fileBuffer, mimeType);
   const restoreProxyEnv = disableBrokenLoopbackProxy();
 
   try {
     const client = new DocumentAnalysisClient(endpoint, new AzureKeyCredential(key));
     const uint8Data = new Uint8Array(processBuffer);
-    const poller = await client.beginAnalyzeDocument(
-      "prebuilt-idDocument",
-      uint8Data
-    );
+    const poller = await client.beginAnalyzeDocument("prebuilt-idDocument", uint8Data);
     const result = await poller.pollUntilDone();
     if (!result.documents || result.documents.length === 0) return null;
-    const doc = result.documents[0];
-    if (!doc.fields) return null;
+
+    const document = result.documents[0];
+    if (!document.fields) return null;
+
     return mapAzureIdDocumentFields(
-      doc.fields as Record<string, unknown>,
+      document.fields as Record<string, unknown>,
       result.content
     );
   } catch (error) {
@@ -457,12 +742,14 @@ export async function analyzeDocument(
 
 export async function analyzePassport(imageUrl: string): Promise<OcrExtractedData | null> {
   if (!endpoint || !key) return null;
+
   const restoreProxyEnv = disableBrokenLoopbackProxy();
   try {
     const client = new DocumentAnalysisClient(endpoint, new AzureKeyCredential(key));
     const poller = await client.beginAnalyzeDocumentFromUrl("prebuilt-idDocument", imageUrl);
     const result = await poller.pollUntilDone();
     if (!result.documents?.[0]?.fields) return null;
+
     return mapAzureIdDocumentFields(
       result.documents[0].fields as Record<string, unknown>,
       result.content
