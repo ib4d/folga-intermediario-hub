@@ -49,6 +49,7 @@ export async function inviteUserAction(
     success: string;
     emailSent: boolean;
     tempPassword: string;
+    deliveryDetail: string;
   },
   formData: FormData
 ) {
@@ -60,6 +61,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -73,6 +75,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -82,6 +85,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -91,6 +95,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -111,6 +116,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -120,6 +126,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -131,6 +138,7 @@ export async function inviteUserAction(
       success: "",
       emailSent: false,
       tempPassword: "",
+      deliveryDetail: "",
     };
   }
 
@@ -222,6 +230,7 @@ export async function inviteUserAction(
       success: `Usuario creado e invitacion enviada a ${email}.`,
       emailSent: true,
       tempPassword: "",
+      deliveryDetail: "El correo salio correctamente desde el proveedor SMTP configurado.",
     };
   }
 
@@ -230,5 +239,11 @@ export async function inviteUserAction(
     success: "Usuario creado, pero el correo no pudo enviarse desde la plataforma. Comparte estas credenciales de forma manual.",
     emailSent: false,
     tempPassword: temporaryPassword,
+    deliveryDetail:
+      emailResult.error === "SMTP_NOT_CONFIGURED"
+        ? "El proveedor SMTP no esta configurado en este entorno."
+        : emailResult.error
+          ? `Detalle tecnico del envio: ${emailResult.error}`
+          : "No se recibio confirmacion del proveedor de correo.",
   };
 }
