@@ -25,6 +25,21 @@ export type AppModule =
   | "revenue"
   | "marketplace";
 
+export const APP_MODULE_LABELS: Record<AppModule, string> = {
+  dashboard: "Dashboard",
+  candidates: "Candidatos",
+  documents: "Documentos",
+  logistics: "Logistica",
+  legal: "Legal",
+  settings: "Ajustes",
+  billing: "Facturacion",
+  apiKeys: "API Keys",
+  branding: "Branding",
+  leads: "Leads",
+  revenue: "Revenue",
+  marketplace: "Marketplace",
+};
+
 const MODULE_ACCESS: Record<Role, AppModule[]> = {
   [Role.SUPERADMIN]: [
     "dashboard",

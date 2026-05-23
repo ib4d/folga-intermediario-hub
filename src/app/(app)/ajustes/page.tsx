@@ -7,10 +7,13 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import {
+  APP_MODULE_LABELS,
   ROLE_PERMISSION_SUMMARIES,
   canAccessModule,
+  canInviteUsers,
   canManageMemberRole,
   canViewMemberRole,
+  getAccessibleModules,
   getInvitableRoles,
   roleLabel,
 } from "@/lib/permissions";
@@ -29,10 +32,13 @@ export default async function AjustesPage() {
   const users = memberships.filter((membership) =>
     canViewMemberRole(tenant.role, membership.role, membership.userId === tenant.userId)
   );
+  const canManageUsers = canInviteUsers(tenant.role);
   const invitableRoles = getInvitableRoles(tenant.role).filter(
     (role): role is InviteRole => role !== Role.SUPERADMIN
   );
   const assignableRoles = tenant.role === Role.SUPERADMIN ? [Role.SUPERADMIN, ...invitableRoles] : invitableRoles;
+  const currentRoleSummary = ROLE_PERMISSION_SUMMARIES[tenant.role];
+  const accessibleModules = getAccessibleModules(tenant.role);
 
   const permissionReport = [
     ROLE_PERMISSION_SUMMARIES[Role.SUPERADMIN],
@@ -140,9 +146,55 @@ export default async function AjustesPage() {
               className="card-header"
               style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
             >
+              <div>
+                <h2 style={{ margin: 0 }}>Tu Acceso Actual</h2>
+                <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontWeight: 700 }}>
+                  Resumen operativo del rol con el que estas trabajando ahora.
+                </p>
+              </div>
+              <span className="status-badge active">{roleLabel(tenant.role)}</span>
+            </div>
+
+            <div className="permission-matrix-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div className="permission-matrix-card">
+                <div className="permission-matrix-scope">Alcance</div>
+                <h3 style={{ marginTop: 0 }}>{currentRoleSummary.scope}</h3>
+                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.access}</p>
+              </div>
+              <div className="permission-matrix-card">
+                <div className="permission-matrix-scope">Gestion</div>
+                <h3 style={{ marginTop: 0 }}>{canManageUsers ? "Puede administrar accesos" : "Solo lectura"}</h3>
+                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.management}</p>
+              </div>
+              <div className="permission-matrix-card">
+                <div className="permission-matrix-scope">Usuarios visibles</div>
+                <h3 style={{ marginTop: 0 }}>Directorio permitido</h3>
+                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.visibleUsers}</p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "1.5rem" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
+                Modulos habilitados
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                {accessibleModules.map((module) => (
+                  <span key={module} className="status-badge active" style={{ paddingInline: "0.85rem" }}>
+                    {APP_MODULE_LABELS[module]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div
+              className="card-header"
+              style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Users size={24} />
-                <h2 style={{ margin: 0 }}>Miembros de la Organizacion</h2>
+                <h2 style={{ margin: 0 }}>{canManageUsers ? "Miembros de la Organizacion" : "Usuarios Visibles Para Tu Rol"}</h2>
               </div>
               {invitableRoles.length > 0 ? (
                 <InviteUserModal allowedRoles={invitableRoles} />
@@ -236,8 +288,9 @@ export default async function AjustesPage() {
               </table>
             </div>
             <div style={{ marginTop: "1rem", color: "var(--muted)", fontSize: "0.85rem", fontWeight: 700 }}>
-              Matriz activa: Superadmin ve y gestiona todo. Admin gestiona Legal, Logistica e Intermediarios.
-              Roles operativos solo ven usuarios de su mismo rango.
+              {canManageUsers
+                ? "Matriz activa: Superadmin ve y gestiona todo. Admin gestiona Legal, Logistica e Intermediarios."
+                : "Vista restringida: solo puedes consultar usuarios permitidos para tu mismo rango operativo."}
             </div>
           </div>
 
@@ -265,6 +318,13 @@ export default async function AjustesPage() {
                     {item.scope}
                   </div>
                   <h3 style={{ marginTop: 0 }}>{roleLabel(item.role)}</h3>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.85rem" }}>
+                    {getAccessibleModules(item.role).map((module) => (
+                      <span key={`${item.role}-${module}`} className="status-badge active" style={{ paddingInline: "0.65rem" }}>
+                        {APP_MODULE_LABELS[module]}
+                      </span>
+                    ))}
+                  </div>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{item.access}</p>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5, fontWeight: 800 }}>{item.management}</p>
                   <p style={{ fontSize: "0.78rem", lineHeight: 1.45, fontWeight: 700, opacity: 0.82 }}>

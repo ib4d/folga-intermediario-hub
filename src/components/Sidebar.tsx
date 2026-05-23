@@ -6,6 +6,7 @@ import { BarChart3, Briefcase, Car, FileText, Globe, Menu, Settings, Users, X } 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import { canAccessModule, type AppModule } from "@/lib/permissions";
 
 type SidebarRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
@@ -18,14 +19,14 @@ export default function Sidebar() {
 
   const role = session?.user?.role as SidebarRole | undefined;
   const links = [
-    { name: labels("nav.dashboard"), href: "/dashboard", icon: BarChart3, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
-    { name: labels("nav.candidates"), href: "/candidatos", icon: Users, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
-    { name: labels("nav.documents"), href: "/documentos", icon: FileText, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL"] },
-    { name: labels("nav.logistics"), href: "/logistica", icon: Car, roles: ["SUPERADMIN", "ADMIN", "LOGISTICA"] },
-    { name: labels("nav.legal"), href: "/legal", icon: Briefcase, roles: ["SUPERADMIN", "ADMIN", "LEGAL"] },
-    { name: labels("nav.settings"), href: "/ajustes", icon: Settings, roles: ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"] },
+    { name: labels("nav.dashboard"), href: "/dashboard", icon: BarChart3, module: "dashboard" as AppModule },
+    { name: labels("nav.candidates"), href: "/candidatos", icon: Users, module: "candidates" as AppModule },
+    { name: labels("nav.documents"), href: "/documentos", icon: FileText, module: "documents" as AppModule },
+    { name: labels("nav.logistics"), href: "/logistica", icon: Car, module: "logistics" as AppModule },
+    { name: labels("nav.legal"), href: "/legal", icon: Briefcase, module: "legal" as AppModule },
+    { name: labels("nav.settings"), href: "/ajustes", icon: Settings, module: "settings" as AppModule },
   ];
-  const visibleLinks = links.filter((link) => role && link.roles.includes(role));
+  const visibleLinks = links.filter((link) => role && canAccessModule(role, link.module));
 
   const isPlatformAdmin = session?.user?.isPlatformAdmin;
 
