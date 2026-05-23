@@ -477,6 +477,7 @@ type SmartUploadPreparation = {
   ocrData: OcrData;
   docType: DocumentType;
   preparationError: string | null;
+  ocrError: string | null;
   score: number;
 };
 
@@ -512,6 +513,7 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
       ocrData: null,
       docType: DocumentType.OTHER,
       preparationError: `Tipo de archivo no permitido: ${file.type || file.name}.`,
+      ocrError: null,
       score: 0,
     };
   }
@@ -524,12 +526,28 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
       ocrData: null,
       docType: DocumentType.OTHER,
       preparationError: "El archivo excede el limite de 10MB.",
+      ocrError: null,
+      score: 0,
+    };
+  }
+
+  let fileBuffer: Buffer;
+  try {
+    fileBuffer = Buffer.from(await file.arrayBuffer());
+  } catch {
+    return {
+      file,
+      fileBuffer: null,
+      normalizedMimeType,
+      ocrData: null,
+      docType: DocumentType.OTHER,
+      preparationError: "No se pudo leer el archivo seleccionado.",
+      ocrError: null,
       score: 0,
     };
   }
 
   try {
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const ocrData = await analyzeIdentityDocument(fileBuffer, normalizedMimeType);
     const docType = inferDocumentTypeFromSmartSignals(file.name, ocrData);
 
@@ -540,17 +558,21 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
       ocrData,
       docType,
       preparationError: null,
+      ocrError: null,
       score: scoreSmartOcrForCandidateResolution(file.name, docType, ocrData),
     };
   } catch (error) {
+    const docType = inferDocumentTypeFromSmartSignals(file.name, null);
+
     return {
       file,
-      fileBuffer: null,
+      fileBuffer,
       normalizedMimeType,
       ocrData: null,
-      docType: DocumentType.OTHER,
-      preparationError: getOperationalErrorMessage(error),
-      score: 0,
+      docType,
+      preparationError: null,
+      ocrError: getOperationalErrorMessage(error),
+      score: scoreSmartOcrForCandidateResolution(file.name, docType, null),
     };
   }
 }
@@ -1563,7 +1585,7 @@ export async function smartBatchUpload(formData: FormData) {
   }
 
   for (const prepared of preparedFiles) {
-    const { file, ocrData, docType, preparationError } = prepared;
+    const { file, ocrData, docType, preparationError, ocrError } = prepared;
 
     if (preparationError) {
       results.push({
@@ -1648,7 +1670,8 @@ export async function smartBatchUpload(formData: FormData) {
         await markDocumentOcrFailed(
           result.documentId,
           docType,
-          "OCR no devolvio datos utilizables. El archivo queda guardado para revision manual."
+          ocrError ??
+            "OCR no devolvio datos utilizables. El archivo queda guardado para revision manual."
         );
       }
 
@@ -1656,10 +1679,10 @@ export async function smartBatchUpload(formData: FormData) {
         filename: file.name,
         success: true,
         message: resolved.created
-          ? `Documento guardado y candidato creado: ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim()
-          : ocrData
-            ? `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; OCR pendiente de revision`.trim()
-            : `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; requiere OCR manual`.trim(),
+            ? `Documento guardado y candidato creado: ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim()
+            : ocrData
+              ? `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; OCR pendiente de revision`.trim()
+              : `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; requiere OCR manual. ${ocrError ?? ""}`.trim(),
       });
     } catch (error) {
       results.push({
