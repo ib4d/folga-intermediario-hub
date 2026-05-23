@@ -194,9 +194,9 @@ export default function LogisticsDashboard({
                               </span>
                             ) : null}
                             {legalOutcome?.followUpActions.length ? (
-                              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--muted)" }}>
-                                {legalOutcome.followUpActions.slice(0, 2).join(" · ")}
-                              </span>
+                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--muted)" }}>
+                                {legalOutcome.followUpActions.join(" · ")}
+                              </ExpandableText>
                             ) : null}
                           </div>
                         </td>
@@ -342,7 +342,7 @@ function StatCard({
   labelColor?: string;
 }) {
   return (
-    <div className="card" style={{ display: "flex", alignItems: "center", gap: "1.5rem", backgroundColor: cardBg }}>
+    <div className="card logistics-stat-card" style={{ backgroundColor: cardBg }}>
       <div
         style={{
           width: "56px",
@@ -379,7 +379,7 @@ function MiniMetric({
   backgroundColor?: string;
 }) {
   return (
-    <div className="card" style={{ padding: "1rem 1.25rem", backgroundColor }}>
+    <div className="card logistics-mini-card" style={{ backgroundColor }}>
       <div style={{ fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.35rem" }}>
         {title}
       </div>

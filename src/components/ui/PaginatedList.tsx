@@ -30,6 +30,10 @@ export default function PaginatedList<T>({
     const start = (safePage - 1) * pageSize;
     return items.slice(start, start + pageSize);
   }, [items, pageSize, safePage]);
+  const pageOptions = useMemo(
+    () => Array.from({ length: totalPages }, (_, index) => index + 1),
+    [totalPages],
+  );
 
   if (items.length === 0) {
     return <>{empty ?? null}</>;
@@ -63,6 +67,18 @@ export default function PaginatedList<T>({
           </div>
           <div className="pagination-meta">
             {label}: pagina {safePage} de {totalPages} - {items.length} total
+            <select
+              className="select pagination-select"
+              value={String(safePage)}
+              onChange={(event) => setPage(Number(event.target.value))}
+              aria-label={`Ir a pagina de ${label}`}
+            >
+              {pageOptions.map((pageNumber) => (
+                <option key={pageNumber} value={pageNumber}>
+                  Ir a pagina {pageNumber}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       ) : null}

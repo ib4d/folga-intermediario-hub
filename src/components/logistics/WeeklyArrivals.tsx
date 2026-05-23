@@ -61,8 +61,8 @@ export default function WeeklyArrivals({ events }: Props) {
         items={events}
         pageSize={6}
         label="Llegadas"
-        className="equal-card-grid"
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}
+        className="equal-card-grid logistics-card-grid"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}
         renderItem={(event) => <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />}
       />
     </div>

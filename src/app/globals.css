@@ -1171,10 +1171,21 @@ tr:hover td {
 }
 
 .pagination-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   color: var(--muted-foreground);
   font-size: 0.8rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.pagination-select {
+  min-height: 38px;
+  width: 150px;
+  padding-block: 0.35rem;
+  font-size: 0.72rem;
 }
 
 .equal-card-grid > * {
@@ -1183,9 +1194,43 @@ tr:hover td {
 
 .equal-card {
   height: 100%;
-  min-height: 320px;
   display: flex;
   flex-direction: column;
+}
+
+.logistics-card-grid,
+.legal-card-grid,
+.legal-list-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.logistics-card-grid .equal-card {
+  min-height: 360px;
+}
+
+.legal-card-grid .equal-card {
+  min-height: 520px;
+}
+
+.legal-list-grid .equal-card {
+  min-height: 0;
+}
+
+.logistics-stat-card {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.logistics-mini-card {
+  min-height: 132px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .inline-more-button {

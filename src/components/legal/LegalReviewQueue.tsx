@@ -222,11 +222,10 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole }: Prop
             items={filteredCandidates}
             pageSize={view === "grid" ? 6 : 8}
             label="Revision legal"
-            className={view === "grid" ? "equal-card-grid" : undefined}
+            className={view === "grid" ? "equal-card-grid legal-card-grid" : "legal-list-grid"}
             style={{
               display: "grid",
               gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr",
-              gap: "1.5rem",
             }}
             renderItem={(row) => <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} viewerRole={viewerRole} />}
           />
