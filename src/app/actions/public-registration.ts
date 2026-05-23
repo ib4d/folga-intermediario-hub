@@ -208,10 +208,14 @@ async function applyRegistrationUpdate(
 }
 
 async function recoverSuccessfulRegistration(token: string) {
-  const candidate = await findCandidateByToken(token);
-  if (isAlreadyRegisteredAfterError(candidate)) {
-    await ensureRegistrationFallbackNotification(candidate);
-    return true;
+  try {
+    const candidate = await findCandidateByToken(token);
+    if (isAlreadyRegisteredAfterError(candidate)) {
+      await ensureRegistrationFallbackNotification(candidate);
+      return true;
+    }
+  } catch (error) {
+    console.error("[public-registration] Recovery check failed", error);
   }
 
   return false;
