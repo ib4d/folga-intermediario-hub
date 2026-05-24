@@ -9,6 +9,7 @@ import {
 } from "react";
 import { CheckCircle2, Copy, Loader2, MailWarning, UserPlus, X } from "lucide-react";
 import { inviteUserAction } from "@/app/actions/invitations";
+import { AppLanguage, t } from "@/lib/i18n";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
@@ -22,6 +23,7 @@ const initialInviteState = {
 
 type InviteUserModalProps = {
   allowedRoles?: InviteRole[];
+  language?: AppLanguage;
 };
 
 const ROLE_LABELS: Record<InviteRole, string> = {
@@ -34,14 +36,17 @@ const ROLE_LABELS: Record<InviteRole, string> = {
 function InviteUserModalPanel({
   allowedRoles,
   onClose,
+  language,
 }: {
   allowedRoles: InviteRole[];
   onClose: () => void;
+  language: AppLanguage;
 }) {
   const [state, formAction, isPending] = useActionState(inviteUserAction, initialInviteState);
   const [copied, setCopied] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const defaultRole = allowedRoles[0] ?? "INTERMEDIARIO";
+  const labels = t.bind(null, language);
 
   const deliveryNoticeStyle: CSSProperties = state.emailSent
     ? {
@@ -104,7 +109,7 @@ function InviteUserModalPanel({
             paddingRight: "3rem",
           }}
         >
-          <UserPlus size={24} /> Invitar Nuevo Usuario
+          <UserPlus size={24} /> {labels("invite.title")}
         </h2>
 
         <form ref={formRef} action={formAction} className="compact-stack">
@@ -168,10 +173,10 @@ function InviteUserModalPanel({
                       marginBottom: "0.35rem",
                     }}
                   >
-                    Entrega manual requerida
+                    {labels("invite.manualDeliveryRequired")}
                   </div>
                   <div style={{ fontSize: "0.8rem", marginBottom: "0.55rem", fontWeight: 500 }}>
-                    Comparte esta contrasena temporal con el usuario por un canal seguro.
+                    {labels("invite.manualDeliveryHelp")}
                   </div>
                   <div
                     style={{
@@ -203,7 +208,7 @@ function InviteUserModalPanel({
                       style={{ minWidth: "140px", paddingInline: "0.9rem" }}
                     >
                       <Copy size={16} style={{ marginRight: "0.45rem" }} />
-                      {copied ? "Copiada" : "Copiar clave"}
+                      {copied ? labels("invite.copied") : labels("invite.copyPassword")}
                     </button>
                   </div>
                 </div>
@@ -213,7 +218,7 @@ function InviteUserModalPanel({
 
           <div>
             <label className="label" htmlFor="invite-name">
-              Nombre
+              {labels("invite.name")}
             </label>
             <input
               id="invite-name"
@@ -221,14 +226,14 @@ function InviteUserModalPanel({
               type="text"
               className="input"
               required
-              placeholder="Nombre completo"
+              placeholder={labels("invite.fullNamePlaceholder")}
               disabled={isPending}
             />
           </div>
 
           <div>
             <label className="label" htmlFor="invite-email">
-              Correo Electronico
+              {labels("invite.email")}
             </label>
             <input
               id="invite-email"
@@ -236,14 +241,14 @@ function InviteUserModalPanel({
               type="email"
               className="input"
               required
-              placeholder="correo@ejemplo.com"
+              placeholder={labels("invite.emailPlaceholder")}
               disabled={isPending}
             />
           </div>
 
           <div>
             <label className="label" htmlFor="invite-role">
-              Rol
+              {labels("invite.role")}
             </label>
             <select
               id="invite-role"
@@ -267,7 +272,7 @@ function InviteUserModalPanel({
                 marginBottom: 0,
               }}
             >
-              Solo veras roles que tu nivel puede conceder.
+              {labels("invite.roleHelp")}
             </p>
           </div>
 
@@ -280,10 +285,10 @@ function InviteUserModalPanel({
             {isPending ? (
               <>
                 <Loader2 className="animate-spin" size={20} style={{ marginRight: "0.5rem" }} />
-                Enviando...
+                {labels("invite.submitting")}
               </>
             ) : (
-              "Crear usuario e invitar"
+              labels("invite.submit")
             )}
           </button>
         </form>
@@ -294,9 +299,11 @@ function InviteUserModalPanel({
 
 export default function InviteUserModal({
   allowedRoles = ["INTERMEDIARIO"],
+  language = "es",
 }: InviteUserModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [sessionKey, setSessionKey] = useState(0);
+  const labels = t.bind(null, language);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -319,7 +326,7 @@ export default function InviteUserModal({
   return (
     <>
       <button className="button" type="button" onClick={openModal}>
-        <UserPlus size={16} style={{ marginRight: "0.5rem" }} /> Invitar Usuario
+        <UserPlus size={16} style={{ marginRight: "0.5rem" }} /> {labels("settings.inviteUser")}
       </button>
 
       {isOpen ? (
@@ -327,6 +334,7 @@ export default function InviteUserModal({
           key={sessionKey}
           allowedRoles={allowedRoles}
           onClose={closeModal}
+          language={language}
         />
       ) : null}
     </>

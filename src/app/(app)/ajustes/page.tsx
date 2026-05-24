@@ -18,11 +18,16 @@ import {
   roleLabel,
 } from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
+import { normalizeLanguage, t } from "@/lib/i18n";
+import { auth } from "@/auth";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
 export default async function AjustesPage() {
+  const session = await auth();
   const tenant = await requireTenant();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: tenant.organizationId },
@@ -68,14 +73,14 @@ export default async function AjustesPage() {
         }}
       >
         <div>
-          <h1 style={{ color: "var(--ghost-white)" }}>Ajustes del Sistema</h1>
+          <h1 style={{ color: "var(--ghost-white)" }}>{labels("settings.systemTitle")}</h1>
           <p style={{ color: "var(--grey-olive)" }}>
-            Configuracion de usuarios, notificaciones y exportacion de datos.
+            {labels("settings.systemDescription")}
           </p>
         </div>
         {organization && (
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6, marginBottom: "0.25rem" }}>Organizacion</div>
+            <div style={{ fontSize: "0.75rem", opacity: 0.6, marginBottom: "0.25rem" }}>{labels("settings.organization")}</div>
             <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>{organization.name}</div>
             <span
               style={{
@@ -106,8 +111,8 @@ export default async function AjustesPage() {
         >
           <Palette size={24} color="var(--amber-flame)" />
           <div>
-            <div style={{ fontWeight: "bold" }}>Branding</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Logo y colores</div>
+            <div style={{ fontWeight: "bold" }}>{labels("settings.branding")}</div>
+            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.logoColors")}</div>
           </div>
         </Link>
         ) : null}
@@ -119,8 +124,8 @@ export default async function AjustesPage() {
         >
           <Key size={24} color="var(--amber-flame)" />
           <div>
-            <div style={{ fontWeight: "bold" }}>API Keys</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Integraciones</div>
+            <div style={{ fontWeight: "bold" }}>{labels("settings.apiKeys")}</div>
+            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.integrations")}</div>
           </div>
         </Link>
         ) : null}
@@ -132,8 +137,8 @@ export default async function AjustesPage() {
         >
           <CreditCard size={24} color="var(--amber-flame)" />
           <div>
-            <div style={{ fontWeight: "bold" }}>Facturacion</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>Plan y pagos</div>
+            <div style={{ fontWeight: "bold" }}>{labels("settings.billing")}</div>
+            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.planPayments")}</div>
           </div>
         </Link>
         ) : null}
@@ -147,9 +152,9 @@ export default async function AjustesPage() {
               style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
             >
               <div>
-                <h2 style={{ margin: 0 }}>Tu Acceso Actual</h2>
+                <h2 style={{ margin: 0 }}>{labels("settings.currentAccess")}</h2>
                 <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontWeight: 700 }}>
-                  Resumen operativo del rol con el que estas trabajando ahora.
+                  {labels("settings.currentAccessDescription")}
                 </p>
               </div>
               <span className="status-badge active">{roleLabel(tenant.role)}</span>
@@ -157,25 +162,25 @@ export default async function AjustesPage() {
 
             <div className="permission-matrix-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               <div className="permission-matrix-card">
-                <div className="permission-matrix-scope">Alcance</div>
+                <div className="permission-matrix-scope">{labels("settings.scope")}</div>
                 <h3 style={{ marginTop: 0 }}>{currentRoleSummary.scope}</h3>
                 <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.access}</p>
               </div>
               <div className="permission-matrix-card">
-                <div className="permission-matrix-scope">Gestion</div>
-                <h3 style={{ marginTop: 0 }}>{canManageUsers ? "Puede administrar accesos" : "Solo lectura"}</h3>
+                <div className="permission-matrix-scope">{labels("settings.management")}</div>
+                <h3 style={{ marginTop: 0 }}>{canManageUsers ? labels("settings.manageAccess") : labels("settings.readOnly")}</h3>
                 <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.management}</p>
               </div>
               <div className="permission-matrix-card">
-                <div className="permission-matrix-scope">Usuarios visibles</div>
-                <h3 style={{ marginTop: 0 }}>Directorio permitido</h3>
+                <div className="permission-matrix-scope">{labels("settings.visibleUsers")}</div>
+                <h3 style={{ marginTop: 0 }}>{labels("settings.allowedDirectory")}</h3>
                 <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.visibleUsers}</p>
               </div>
             </div>
 
             <div style={{ marginTop: "1.5rem" }}>
               <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
-                Modulos habilitados
+                {labels("settings.enabledModules")}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                 {accessibleModules.map((module) => (
@@ -194,13 +199,13 @@ export default async function AjustesPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Users size={24} />
-                <h2 style={{ margin: 0 }}>{canManageUsers ? "Miembros de la Organizacion" : "Usuarios Visibles Para Tu Rol"}</h2>
+                <h2 style={{ margin: 0 }}>{canManageUsers ? labels("settings.membersTitleManage") : labels("settings.membersTitleRead")}</h2>
               </div>
               {invitableRoles.length > 0 ? (
-                <InviteUserModal allowedRoles={invitableRoles} />
+                <InviteUserModal allowedRoles={invitableRoles} language={language} />
               ) : (
-                <button className="button" disabled title="Solo Superadmin o Administrador">
-                  Invitar Usuario
+                <button className="button" disabled title={labels("settings.superadminAdminOnly")}>
+                  {labels("settings.inviteUser")}
                 </button>
               )}
             </div>
@@ -209,11 +214,11 @@ export default async function AjustesPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Permisos</th>
+                    <th>{labels("settings.name")}</th>
+                    <th>{labels("settings.email")}</th>
+                    <th>{labels("settings.role")}</th>
+                    <th>{labels("settings.status")}</th>
+                    <th>{labels("settings.permissions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,7 +253,7 @@ export default async function AjustesPage() {
                         </td>
                         <td>
                           <span className={`status-badge ${isActive ? "active" : ""}`}>
-                            {isActive ? "Activo" : "Inactivo"}
+                            {isActive ? labels("settings.active") : labels("settings.inactive")}
                           </span>
                         </td>
                         <td className="member-management-cell">
@@ -264,20 +269,20 @@ export default async function AjustesPage() {
                                   ))}
                                 </select>
                                 <button className="button button-secondary member-action-button" type="submit">
-                                  Guardar rol
+                                  {labels("settings.saveRole")}
                                 </button>
                               </form>
                               <form action={updateMemberAccessAction}>
                                 <input type="hidden" name="membershipId" value={membership.id} />
                                 <input type="hidden" name="isActive" value={isActive ? "false" : "true"} />
                                 <button className="button button-secondary member-action-button" type="submit">
-                                  {isActive ? "Quitar acceso" : "Activar acceso"}
+                                  {isActive ? labels("settings.removeAccess") : labels("settings.enableAccess")}
                                 </button>
                               </form>
                             </div>
                           ) : (
                             <span style={{ color: "var(--muted)", fontSize: "0.8rem", fontWeight: 700 }}>
-                              Solo lectura
+                              {labels("settings.readOnly")}
                             </span>
                           )}
                         </td>
@@ -289,8 +294,8 @@ export default async function AjustesPage() {
             </div>
             <div style={{ marginTop: "1rem", color: "var(--muted)", fontSize: "0.85rem", fontWeight: 700 }}>
               {canManageUsers
-                ? "Matriz activa: Superadmin ve y gestiona todo. Admin gestiona Legal, Logistica e Intermediarios."
-                : "Vista restringida: solo puedes consultar usuarios permitidos para tu mismo rango operativo."}
+                ? labels("settings.activeMatrixAdmin")
+                : labels("settings.activeMatrixRead")}
             </div>
           </div>
 
@@ -300,9 +305,9 @@ export default async function AjustesPage() {
               style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
             >
               <div>
-                <h2 style={{ margin: 0 }}>Matriz de Permisos</h2>
+                <h2 style={{ margin: 0 }}>{labels("settings.permissionMatrix")}</h2>
                 <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontWeight: 700 }}>
-                  Control de visibilidad y administracion por jerarquia.
+                  {labels("settings.permissionMatrixDescription")}
                 </p>
               </div>
             </div>
@@ -342,10 +347,10 @@ export default async function AjustesPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <Database size={24} />
-                <h2 style={{ margin: 0 }}>Exportacion de Datos</h2>
+                <h2 style={{ margin: 0 }}>{labels("settings.dataExport")}</h2>
               </div>
             </div>
-            <p>Genera reportes para RRHH, marketing o direccion basados en la base de datos actual.</p>
+            <p>{labels("settings.dataExportDescription")}</p>
             <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
               <ExportButton />
             </div>

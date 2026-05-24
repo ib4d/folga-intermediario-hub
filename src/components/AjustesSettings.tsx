@@ -62,10 +62,16 @@ export default function AjustesSettings() {
 
       if (response.ok) {
         setSaved(true);
-        setSettingsMessage({ type: "success", text: "Preferencias guardadas correctamente." });
+        setSettingsMessage({
+          type: "success",
+          text: labels("settings.preferencesSaved"),
+        });
         setTimeout(() => setSaved(false), 3000);
       } else {
-        setSettingsMessage({ type: "error", text: "Error al guardar preferencias." });
+        setSettingsMessage({
+          type: "error",
+          text: labels("settings.preferencesSaveError"),
+        });
       }
     });
   };
@@ -79,12 +85,18 @@ export default function AjustesSettings() {
     setPasswordMessage(null);
 
     if (passwordForm.nextPassword.length < 12) {
-      setPasswordMessage({ type: "error", text: "La nueva contrasena necesita minimo 12 caracteres." });
+      setPasswordMessage({
+        type: "error",
+        text: labels("settings.passwordMinLength"),
+      });
       return;
     }
 
     if (passwordForm.nextPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage({ type: "error", text: "La confirmacion no coincide." });
+      setPasswordMessage({
+        type: "error",
+        text: labels("settings.passwordMismatch"),
+      });
       return;
     }
 
@@ -100,12 +112,18 @@ export default function AjustesSettings() {
 
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) {
-        setPasswordMessage({ type: "error", text: payload.error ?? "No se pudo actualizar la contrasena." });
+        setPasswordMessage({
+          type: "error",
+          text: payload.error ?? labels("settings.passwordUpdateFailed"),
+        });
         return;
       }
 
       setPasswordForm({ currentPassword: "", nextPassword: "", confirmPassword: "" });
-      setPasswordMessage({ type: "success", text: "Contrasena actualizada correctamente." });
+      setPasswordMessage({
+        type: "success",
+        text: labels("settings.passwordUpdated"),
+      });
     });
   };
 
@@ -117,7 +135,7 @@ export default function AjustesSettings() {
         </h3>
 
         <div className="input-group" style={{ marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: "1px solid #ccc" }}>
-          <label className="label">Avatar / Foto de Perfil</label>
+          <label className="label">{labels("settings.avatar")}</label>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <div style={{ width: "50px", height: "50px", borderRadius: "50%", backgroundColor: "var(--pitch-black)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
               {settings.avatarUrl ? (
@@ -131,20 +149,20 @@ export default function AjustesSettings() {
               <input
                 type="url"
                 className="input"
-                placeholder="URL de la imagen (ej: https://ejemplo.com/foto.jpg)"
+                placeholder={labels("settings.avatarPlaceholder")}
                 value={settings.avatarUrl || ""}
                 onChange={(event) => setSettings({ ...settings, avatarUrl: event.target.value })}
                 style={{ marginBottom: "0.5rem" }}
               />
               <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0 }}>
-                Pega una URL publica o subela a tu proveedor de almacenamiento.
+                {labels("settings.avatarHelp")}
               </p>
             </div>
           </div>
         </div>
 
         <div className="input-group">
-          <label className="label">Autenticacion en 2 Pasos (2FA)</label>
+          <label className="label">{labels("settings.twoFactor")}</label>
           <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "not-allowed", opacity: 0.7 }}>
             <div
               style={{
@@ -169,21 +187,21 @@ export default function AjustesSettings() {
                 transition: "left 0.2s",
               }} />
             </div>
-            <span>Desactivado</span>
+            <span>{labels("settings.disabled")}</span>
           </label>
           <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0 }}>
-            Se activara cuando el flujo 2FA este conectado a correo o autenticador.
+            {labels("settings.twoFactorHelp")}
           </p>
         </div>
 
         <form className="input-group" style={{ marginTop: "1rem" }} onSubmit={handlePasswordUpdate}>
-          <label className="label" htmlFor="current-password">Cambiar Contrasena</label>
+          <label className="label" htmlFor="current-password">{labels("settings.changePassword")}</label>
           <input
             id="current-password"
             className="input"
             type="password"
             autoComplete="current-password"
-            placeholder="Contrasena actual"
+            placeholder={labels("settings.currentPassword")}
             value={passwordForm.currentPassword}
             onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
             required
@@ -192,7 +210,7 @@ export default function AjustesSettings() {
             className="input"
             type="password"
             autoComplete="new-password"
-            placeholder="Nueva contrasena"
+            placeholder={labels("settings.newPassword")}
             value={passwordForm.nextPassword}
             onChange={(event) => setPasswordForm((current) => ({ ...current, nextPassword: event.target.value }))}
             required
@@ -202,7 +220,7 @@ export default function AjustesSettings() {
             className="input"
             type="password"
             autoComplete="new-password"
-            placeholder="Confirmar nueva contrasena"
+            placeholder={labels("settings.confirmPassword")}
             value={passwordForm.confirmPassword}
             onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
             required
@@ -215,7 +233,7 @@ export default function AjustesSettings() {
           ) : null}
           <button className="button button-secondary" style={{ width: "100%" }} type="submit" disabled={isPasswordPending}>
             {isPasswordPending ? <Loader2 size={18} className="animate-spin" /> : null}
-            Actualizar Contrasena
+            {labels("settings.changePassword")}
           </button>
         </form>
       </div>
@@ -269,9 +287,9 @@ export default function AjustesSettings() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {([
-            { key: "notifyNewCandidates", label: "Nuevos candidatos" },
-            { key: "notifyLegalAlerts", label: "Alertas legales urgentes" },
-            { key: "notifyExpiringDocs", label: "Documentos a punto de expirar" },
+            { key: "notifyNewCandidates", label: labels("settings.notifyNewCandidates") },
+            { key: "notifyLegalAlerts", label: labels("settings.notifyLegalAlerts") },
+            { key: "notifyExpiringDocs", label: labels("settings.notifyExpiringDocs") },
           ] as { key: keyof Settings; label: string }[]).map(({ key, label }) => (
             <label
               key={key}
@@ -297,9 +315,9 @@ export default function AjustesSettings() {
           disabled={isPending}
         >
           {isPending ? (
-            <><Loader2 size={18} className="animate-spin" /> Guardando...</>
+            <><Loader2 size={18} className="animate-spin" /> {labels("common.saving")}</>
           ) : saved ? (
-            <><CheckCircle size={18} /> Guardado!</>
+            <><CheckCircle size={18} /> {labels("common.saved")}</>
           ) : (
             <><Save size={18} /> {labels("common.savePreferences")}</>
           )}
