@@ -19,6 +19,7 @@ import {
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { normalizeLanguage, t } from "@/lib/i18n";
 import {
   canMakeLegalDecision,
   canEditCandidateNotes,
@@ -49,6 +50,8 @@ import { notFound, redirect } from "next/navigation";
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) redirect("/login");
+  const language = normalizeLanguage(session.user.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const tenant = await requireTenant();
   const resolvedParams = await params;
@@ -109,14 +112,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
       <div className="candidate-detail-toolbar">
         <Link href="/candidatos" className="candidate-back-link">
           <ArrowLeft size={18} />
-          Volver a Candidatos
+          {labels("candidateDetail.backToCandidates")}
         </Link>
 
         <div className="candidate-detail-actions">
           {candidate.registrationToken ? <CopyRegistrationLink token={candidate.registrationToken} /> : null}
           {role !== "LEGAL" ? (
             <Link href={`/candidatos/${candidate.id}/edit`} className="button button-secondary flex items-center gap-2">
-              Editar Perfil
+              {labels("candidateDetail.editProfile")}
             </Link>
           ) : null}
         </div>
@@ -149,7 +152,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 </span>
                 {candidate.selfRegistered ? (
                   <span className="status-badge" style={{ backgroundColor: "var(--surface)", color: "var(--pitch-black)" }}>
-                    Auto-Registrado
+                    {labels("candidateDetail.selfRegistered")}
                   </span>
                 ) : null}
               </div>
@@ -163,11 +166,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   <Info size={18} /> {candidate.country}
                 </span>
                 <span>
-                  <FileText size={18} /> {candidate.passportNumber || "Sin Pasaporte"}
+                  <FileText size={18} /> {candidate.passportNumber || labels("candidateDetail.passportMissing")}
                 </span>
                 {canViewContact ? (
                   <span>
-                    <ClipboardList size={18} /> {candidate.phone || "Sin Telefono"}
+                    <ClipboardList size={18} /> {candidate.phone || labels("candidateDetail.phoneMissing")}
                   </span>
                 ) : null}
               </div>
@@ -182,7 +185,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 boxShadow: "var(--shadow-soft)",
               }}
             >
-              <div className="candidate-owner-label" style={{ color: "var(--muted)" }}>Intermediario</div>
+              <div className="candidate-owner-label" style={{ color: "var(--muted)" }}>{labels("candidateDetail.intermediary")}</div>
               <div className="candidate-owner-row">
                 <div className="candidate-owner-avatar" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
                   {candidate.intermediary.name?.[0]}
@@ -207,8 +210,8 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <DollarSign size={20} />
               </div>
               <div>
-                <div className="candidate-stat-label">Pago 400 PLN</div>
-                <div className="font-bold">{candidate.paid400pln ? "Confirmado" : "Pendiente"}</div>
+                <div className="candidate-stat-label">{labels("candidateDetail.payment400")}</div>
+                <div className="font-bold">{candidate.paid400pln ? labels("candidateDetail.confirmed") : labels("candidateDetail.pending")}</div>
               </div>
             </div>
           ) : null}
@@ -222,8 +225,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               <ShieldCheck size={20} />
             </div>
             <div>
-              <div className="candidate-stat-label">Documentacion</div>
-              <div className="font-bold">{checklist.isComplete ? "Completa" : `${checklist.missing.length} Faltantes`}</div>
+              <div className="candidate-stat-label">{labels("candidateDetail.documentation")}</div>
+              <div className="font-bold">
+                {checklist.isComplete
+                  ? labels("candidateDetail.complete")
+                  : labels("candidateDetail.missingCount").replace("{count}", String(checklist.missing.length))}
+              </div>
             </div>
           </div>
 
@@ -233,8 +240,8 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <Truck size={20} />
               </div>
               <div>
-                <div className="candidate-stat-label">Logistica</div>
-                <div className="font-bold">{candidate.logistics.length > 0 ? "Programada" : "No asignada"}</div>
+                <div className="candidate-stat-label">{labels("candidateDetail.logistics")}</div>
+                <div className="font-bold">{candidate.logistics.length > 0 ? labels("candidateDetail.scheduled") : labels("candidateDetail.unassigned")}</div>
               </div>
             </div>
           ) : null}
@@ -244,7 +251,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               <History size={20} />
             </div>
             <div>
-              <div className="candidate-stat-label">Ultimo Cambio</div>
+                <div className="candidate-stat-label">{labels("candidateDetail.lastChange")}</div>
               <div className="font-bold">{new Date(candidate.updatedAt).toLocaleDateString()}</div>
             </div>
           </div>
@@ -264,7 +271,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               <AlertTriangle className="shrink-0" size={24} />
               <div>
                 <h3 className="font-black uppercase tracking-tight mb-1">
-                  {candidate.status === "RECHAZADO" ? "Candidato Rechazado" : "Revision Adicional Requerida"}
+                  {candidate.status === "RECHAZADO" ? labels("candidateDetail.rejected") : labels("candidateDetail.additionalReview")}
                 </h3>
                 {legalOutcome?.category ? (
                   <div className="mb-3 inline-flex rounded-full border border-current/20 bg-white/50 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
@@ -292,62 +299,62 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           <div className="candidate-summary-grid candidate-summary-grid-primary">
             <SummaryTile
-              label="Listo Legal"
-              value={checklist.isReadyForLegal ? "Si" : "No"}
+              label={labels("candidateDetail.legalReady")}
+              value={checklist.isReadyForLegal ? labels("candidateDetail.yes") : labels("candidateDetail.no")}
               tone={checklist.isReadyForLegal ? "success" : "danger"}
-              hint={checklist.isReadyForLegal ? "Sin bloqueos activos" : `${checklist.blockers.length} bloqueos`}
+              hint={checklist.isReadyForLegal ? labels("candidateDetail.noActiveBlocks") : `${checklist.blockers.length} ${labels("candidateDetail.blocks").toLowerCase()}`}
             />
             <SummaryTile
-              label="Pendientes OCR"
+              label={labels("candidateDetail.pendingOcr")}
               value={String(checklist.stats.pendingReviewDocuments)}
               tone={checklist.stats.pendingReviewDocuments > 0 ? "warning" : "neutral"}
-              hint="Documentos por validar"
+              hint={labels("candidateDetail.docsToValidate")}
             />
             <SummaryTile
-              label="Por Vencer"
+              label={labels("candidateDetail.expiringSoon")}
               value={String(checklist.stats.expiringSoonDocuments)}
               tone={checklist.stats.expiringSoonDocuments > 0 ? "warning" : "neutral"}
-              hint="Expiran en 30 dias"
+              hint={labels("candidateDetail.expiresIn30Days")}
             />
             <SummaryTile
-              label="Duplicados"
+              label={labels("candidateDetail.duplicates")}
               value={String(checklist.stats.duplicateGroups)}
               tone={checklist.stats.duplicateGroups > 0 ? "warning" : "neutral"}
-              hint="Grupos a revisar"
+              hint={labels("candidateDetail.groupsToReview")}
             />
             <SummaryTile
-              label="Verificados"
+              label={labels("candidateDetail.verified")}
               value={`${checklist.stats.verifiedDocuments}/${checklist.stats.totalDocuments}`}
               tone={checklist.stats.verifiedDocuments > 0 ? "success" : "neutral"}
-              hint="Documentos confirmados"
+              hint={labels("candidateDetail.confirmedDocuments")}
             />
           </div>
 
           {canViewLogistics ? (
             <div className="candidate-summary-grid candidate-summary-grid-secondary">
               <SummaryTile
-                label="Listo Llegada"
-                value={arrivalReadiness.isReadyForArrival ? "Si" : "No"}
-                tone={arrivalReadiness.isReadyForArrival ? "success" : "warning"}
-                hint={arrivalReadiness.statusLabel}
-              />
-              <SummaryTile
-                label="Transporte"
-                value={arrivalReadiness.transportScheduled ? "OK" : "Falta"}
+              label={labels("candidateDetail.arrivalReady")}
+              value={arrivalReadiness.isReadyForArrival ? labels("candidateDetail.yes") : labels("candidateDetail.no")}
+              tone={arrivalReadiness.isReadyForArrival ? "success" : "warning"}
+              hint={arrivalReadiness.statusLabel}
+            />
+            <SummaryTile
+                label={labels("candidateDetail.transport")}
+                value={arrivalReadiness.transportScheduled ? "OK" : labels("candidateDetail.missing")}
                 tone={arrivalReadiness.transportScheduled ? "success" : "danger"}
-                hint={candidate.logistics.length > 0 ? `${candidate.logistics.length} evento(s)` : "Sin evento creado"}
+                hint={candidate.logistics.length > 0 ? `${candidate.logistics.length} evento(s)` : labels("candidateDetail.noEvent")}
               />
               <SummaryTile
-                label="Recogida"
-                value={arrivalReadiness.pickupAssigned ? "OK" : "Falta"}
+                label={labels("candidateDetail.pickup")}
+                value={arrivalReadiness.pickupAssigned ? "OK" : labels("candidateDetail.missing")}
                 tone={arrivalReadiness.pickupAssigned ? "success" : "danger"}
-                hint={candidate.logistics[0]?.pickedUpBy || "Sin responsable"}
+                hint={candidate.logistics[0]?.pickedUpBy || labels("candidateDetail.noResponsible")}
               />
               <SummaryTile
-                label="Alojamiento"
-                value={arrivalReadiness.accommodationAssigned ? "OK" : "Falta"}
+                label={labels("candidateDetail.accommodation")}
+                value={arrivalReadiness.accommodationAssigned ? "OK" : labels("candidateDetail.missing")}
                 tone={arrivalReadiness.accommodationAssigned ? "success" : "danger"}
-                hint={candidate.accommodation || "No asignado"}
+                hint={candidate.accommodation || labels("candidateDetail.notAssigned")}
               />
             </div>
           ) : null}
@@ -355,41 +362,41 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           <div className="candidate-section-card">
             <h2 className="candidate-section-title">
               <ClipboardList className="text-blue-600" />
-              Informacion Detallada
+              {labels("candidateDetail.detailedInfo")}
             </h2>
             <div className="candidate-info-grid">
               {[
-                { label: "Nacionalidad", val: candidate.nationality },
-                { label: "Fecha Nacimiento", val: candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : null },
-                { label: "Lugar Nacimiento", val: candidate.birthPlace },
-                { label: "Pasaporte", val: candidate.passportNumber },
+                { label: labels("candidateDetail.nationality"), val: candidate.nationality },
+                { label: labels("candidateDetail.birthDate"), val: candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : null },
+                { label: labels("candidateDetail.birthPlace"), val: candidate.birthPlace },
+                { label: labels("candidateDetail.passport"), val: candidate.passportNumber },
                 {
-                  label: "Pasaporte Biometrico",
+                  label: labels("candidateDetail.passportBiometric"),
                   val:
                     typeof candidate.passportBiometric === "boolean"
                       ? candidate.passportBiometric
-                        ? "Si"
-                        : "No"
+                        ? labels("candidateDetail.yes")
+                        : labels("candidateDetail.no")
                       : null,
                 },
-                { label: "Exp. Pasaporte", val: candidate.passportExpiry ? new Date(candidate.passportExpiry).toLocaleDateString() : null },
-                { label: "PESEL", val: candidate.peselNumber },
-                { label: "Karta Pobytu", val: candidate.kartaPobytuNumber },
-                { label: "Tipo Karta", val: candidate.kartaPobytuType },
-                { label: "Exp. Karta", val: candidate.kartaPobytuExpiry ? new Date(candidate.kartaPobytuExpiry).toLocaleDateString() : null },
-                { label: "Estatura", val: candidate.heightCm ? `${candidate.heightCm} cm` : null },
-                { label: "Direccion PL", val: candidate.polishAddress },
-                { label: "Ciudad PL", val: candidate.polishCity },
+                { label: labels("candidateDetail.passportExpiry"), val: candidate.passportExpiry ? new Date(candidate.passportExpiry).toLocaleDateString() : null },
+                { label: labels("candidateDetail.pesel"), val: candidate.peselNumber },
+                { label: labels("candidateDetail.kartaPobytu"), val: candidate.kartaPobytuNumber },
+                { label: labels("candidateDetail.kartaType"), val: candidate.kartaPobytuType },
+                { label: labels("candidateDetail.kartaExpiry"), val: candidate.kartaPobytuExpiry ? new Date(candidate.kartaPobytuExpiry).toLocaleDateString() : null },
+                { label: labels("candidateDetail.height"), val: candidate.heightCm ? `${candidate.heightCm} cm` : null },
+                { label: labels("candidateDetail.addressPl"), val: candidate.polishAddress },
+                { label: labels("candidateDetail.cityPl"), val: candidate.polishCity },
                 ...(canViewLogistics
                   ? [
-                      { label: "Llegada", val: candidate.arrivalDate ? new Date(candidate.arrivalDate).toLocaleDateString() : null },
-                      { label: "Alojamiento", val: candidate.accommodation },
+                      { label: labels("candidateDetail.arrival"), val: candidate.arrivalDate ? new Date(candidate.arrivalDate).toLocaleDateString() : null },
+                      { label: labels("candidateDetail.accommodation"), val: candidate.accommodation },
                     ]
                   : []),
               ].map((item) => (
                 <div key={item.label} className="space-y-1">
                   <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</div>
-                  <div className="font-bold text-gray-900">{item.val || "No disponible"}</div>
+                  <div className="font-bold text-gray-900">{item.val || labels("candidateDetail.notAvailable")}</div>
                 </div>
               ))}
             </div>
@@ -399,7 +406,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             <div className="candidate-section-header">
               <h2 className="candidate-section-title">
                 <FileText className="text-blue-600" />
-                Documentacion Subida
+                {labels("candidateDetail.uploadedDocs")}
               </h2>
               {canManageDocuments ? <DocumentUploadButton candidateId={candidate.id} /> : null}
             </div>
@@ -408,18 +415,18 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               <table className="w-full text-left">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Tipo</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Numero</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Expiracion</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Estado</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-right">Acciones</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">{labels("candidateDetail.type")}</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">{labels("candidateDetail.number")}</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">{labels("candidateDetail.expiry")}</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase">{labels("candidateDetail.status")}</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-right">{labels("candidateDetail.actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {candidate.documents.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">
-                        No se han cargado documentos aun.
+                        {labels("candidateDetail.noDocs")}
                       </td>
                     </tr>
                   ) : (
@@ -446,7 +453,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                               doc.isVerified ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                             }`}
                           >
-                            {doc.isVerified ? "Verificado" : doc.ocrStatus || "Pendiente"}
+                            {doc.isVerified ? labels("candidateDetail.verifiedStatus") : doc.ocrStatus || labels("candidateDetail.pending")}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -474,7 +481,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                               rel="noopener noreferrer"
                               className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold transition-colors"
                             >
-                              Ver
+                              {labels("candidateDetail.view")}
                             </a>
                             {canManageDocuments ? <DeleteDocumentButton documentId={doc.id} /> : null}
                           </div>
@@ -491,16 +498,16 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
         <div className="candidate-side-column">
           <div className="candidate-section-card">
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Estado de Documentacion</h3>
+            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">{labels("candidateDetail.docStatusTitle")}</h3>
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Verificados</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{labels("candidateDetail.verifiedLabel")}</div>
                 <div className="text-lg font-black text-gray-900">
                   {checklist.stats.verifiedDocuments}/{checklist.stats.totalDocuments}
                 </div>
               </div>
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Pendientes OCR</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{labels("candidateDetail.pendingOcr")}</div>
                 <div className="text-lg font-black text-gray-900">{checklist.stats.pendingReviewDocuments}</div>
               </div>
             </div>
@@ -524,9 +531,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     <span className="text-sm font-bold text-gray-700">{requiredDoc}</span>
                   </div>
                   {!checklist.uploaded.includes(requiredDoc as Parameters<typeof checklist.uploaded.includes>[0]) ? (
-                    <span className="text-[10px] font-black text-red-500 uppercase">Faltante</span>
+                    <span className="text-[10px] font-black text-red-500 uppercase">{labels("candidateDetail.missingLabel")}</span>
                   ) : !checklist.verified.includes(requiredDoc as Parameters<typeof checklist.verified.includes>[0]) ? (
-                    <span className="text-[10px] font-black text-amber-700 uppercase">Por verificar</span>
+                    <span className="text-[10px] font-black text-amber-700 uppercase">{labels("candidateDetail.toVerify")}</span>
                   ) : null}
                 </div>
               ))}
@@ -535,7 +542,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             {checklist.blockers.length > 0 ? (
               <div className="mt-6 p-4 bg-red-50 rounded-2xl border border-red-100 space-y-2">
                 <div className="flex items-center gap-2 text-red-700 font-bold text-xs uppercase">
-                  <AlertTriangle size={14} /> Bloqueos legales
+                  <AlertTriangle size={14} /> {labels("candidateDetail.legalBlocks")}
                 </div>
                 <ul className="text-xs text-red-800 space-y-1">
                   {checklist.blockers.map((blocker, index) => (
@@ -548,7 +555,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             {checklist.warnings.length > 0 ? (
               <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-2">
                 <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase">
-                  <AlertTriangle size={14} /> Advertencias
+                  <AlertTriangle size={14} /> {labels("candidateDetail.warnings")}
                 </div>
                 <ul className="text-xs text-amber-800 space-y-1">
                   {checklist.warnings.map((warning, index) => (
@@ -560,11 +567,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           </div>
 
           <div className="candidate-section-card candidate-action-card">
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">Centro de Acciones</h3>
+            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-2">{labels("candidateDetail.actionCenter")}</h3>
 
             {canViewLogistics ? (
               <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
-                <div className="text-xs font-black uppercase tracking-widest text-gray-500">Readiness de llegada</div>
+                <div className="text-xs font-black uppercase tracking-widest text-gray-500">{labels("candidateDetail.arrivalReadiness")}</div>
                 <div className="flex flex-wrap gap-2">
                   <span
                     className="status-badge"
@@ -577,18 +584,18 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   </span>
                   {arrivalReadiness.legalFollowUpOpen ? (
                     <span className="status-badge" style={{ backgroundColor: "#eef2ff", color: "#4338ca" }}>
-                      SEGUIMIENTO LEGAL
+                      {labels("candidateDetail.legalFollowUp").toUpperCase()}
                     </span>
                   ) : null}
                 </div>
                 {arrivalReadiness.blockers.length > 0 ? (
                   <div className="text-xs font-semibold text-red-700">
-                    Bloqueos: {arrivalReadiness.blockers.join(" | ")}
+                    {labels("candidateDetail.blocks")}: {arrivalReadiness.blockers.join(" | ")}
                   </div>
                 ) : null}
                 {arrivalReadiness.warnings.length > 0 ? (
                   <div className="text-xs font-semibold text-amber-700">
-                    Alertas: {arrivalReadiness.warnings.join(" | ")}
+                    {labels("candidateDetail.alerts")}: {arrivalReadiness.warnings.join(" | ")}
                   </div>
                 ) : null}
               </div>
@@ -596,7 +603,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
             {canRequestReview ? (
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-4">
-                <h4 className="text-xs font-bold text-blue-700 uppercase">Revision Legal</h4>
+                <h4 className="text-xs font-bold text-blue-700 uppercase">{labels("candidateDetail.legalReview")}</h4>
                 <RequestLegalReview
                   candidateId={candidate.id}
                   currentStatus={candidate.status}
@@ -609,9 +616,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
             {canMakeLegalDecisions ? (
               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <h4 className="text-xs font-bold text-gray-500 uppercase">Decision legal</h4>
+                <h4 className="text-xs font-bold text-gray-500 uppercase">{labels("candidateDetail.legalDecision")}</h4>
                 <p className="mt-2 text-xs text-gray-500">
-                  Las decisiones finales se gestionan desde el panel Legal para mantener trazabilidad y auditoria.
+                  {labels("candidateDetail.legalDecisionHelp")}
                 </p>
               </div>
             ) : null}
@@ -626,10 +633,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           </div>
 
           <div className="candidate-section-card">
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">Historial de Estados</h3>
+            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">{labels("candidateDetail.statusHistory")}</h3>
             <div className="space-y-6">
               {candidate.statusHistory.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No hay registros de historial.</p>
+                <p className="text-xs text-gray-400 italic">{labels("candidateDetail.noHistory")}</p>
               ) : (
                 candidate.statusHistory.slice(0, 5).map((entry, index) => (
                   <div key={entry.id} className="relative pl-6 pb-6 last:pb-0">

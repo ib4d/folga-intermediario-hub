@@ -84,10 +84,10 @@ export default function Sidebar() {
 
         <div style={{ padding: "1.25rem 1.5rem", borderTop: "1px solid rgba(111, 104, 99, 0.16)", backgroundColor: "rgba(243, 243, 243, 0.7)" }}>
           <div style={{ fontSize: "0.78rem", fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            SaaS Version 1.0
+            {labels("nav.saasVersion")}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", marginTop: "0.2rem" }}>
-            Multi-tenant ready
+            {labels("nav.multiTenantReady")}
           </div>
         </div>
       </aside>

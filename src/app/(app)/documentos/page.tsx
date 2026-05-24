@@ -1,12 +1,14 @@
-import { prisma } from "@/lib/prisma";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { auth } from "@/auth";
 import BatchUploadButton from "@/components/BatchUploadButton";
 import DocumentTable from "@/components/DocumentTable";
-import Link from "next/link";
+import { normalizeLanguage, t } from "@/lib/i18n";
+import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Prisma } from "@prisma/client";
-import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default async function DocumentosPage({
   searchParams,
@@ -16,6 +18,10 @@ export default async function DocumentosPage({
   const { status } = await searchParams;
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "documents")) redirect("/sin-permisos");
+
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
@@ -28,63 +34,79 @@ export default async function DocumentosPage({
   const documents = await prisma.document.findMany({
     where: documentWhere,
     include: { candidate: true },
-    orderBy: { createdAt: 'desc' },
-    take: status ? undefined : 10
+    orderBy: { createdAt: "desc" },
+    take: status ? undefined : 10,
   });
 
   const candidates = await prisma.candidate.findMany({
     where: candidateVisibilityWhere(tenant),
     select: { id: true, firstName: true, lastName: true },
-    orderBy: { firstName: 'asc' }
+    orderBy: { firstName: "asc" },
   });
 
-  const formattedCandidates = candidates.map(c => ({
-    id: c.id,
-    name: `${c.firstName} ${c.lastName}`
+  const formattedCandidates = candidates.map((candidate) => ({
+    id: candidate.id,
+    name: `${candidate.firstName} ${candidate.lastName}`,
   }));
 
   const pendingCount = await prisma.document.count({
     where: { ...documentWhere, ocrStatus: "PENDING" },
   });
+
   const completedCount = await prisma.document.count({
-    where: { ...documentWhere, ocrStatus: { in: ["REVIEW_REQUIRED", "OCR_CAPTURED", "SUCCESS"] } },
+    where: {
+      ...documentWhere,
+      ocrStatus: { in: ["REVIEW_REQUIRED", "OCR_CAPTURED", "SUCCESS"] },
+    },
   });
 
   return (
     <>
-      <div className="hero-section" style={{ padding: '2rem', backgroundColor: 'var(--pitch-black)', color: 'var(--ghost-white)' }}>
-        <h1 style={{ color: 'var(--ghost-white)' }}>Centro de Documentos</h1>
-        <p style={{ color: 'var(--grey-olive)' }}>Revisión OCR, gestión de visas, permisos de trabajo y auditoría legal.</p>
+      <div
+        className="hero-section"
+        style={{ padding: "2rem", backgroundColor: "var(--pitch-black)", color: "var(--ghost-white)" }}
+      >
+        <h1 style={{ color: "var(--ghost-white)" }}>{labels("documents.title")}</h1>
+        <p style={{ color: "var(--grey-olive)" }}>{labels("documents.description")}</p>
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
-        <Link href="/documentos?status=PENDING" className="card" style={{ backgroundColor: 'var(--amber-flame)', textDecoration: 'none', color: 'inherit' }}>
+      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
+        <Link
+          href="/documentos?status=PENDING"
+          className="card"
+          style={{ backgroundColor: "var(--amber-flame)", textDecoration: "none", color: "inherit" }}
+        >
           <div className="card-header">
-            <h3>Pendientes de Revisión</h3>
+            <h3>{labels("documents.pendingReview")}</h3>
             <AlertTriangle size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{pendingCount}</div>
-          <p style={{ margin: 0, marginTop: '0.5rem', color: 'var(--pitch-black)' }}>Docs por validar</p>
+          <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>{pendingCount}</div>
+          <p style={{ margin: 0, marginTop: "0.5rem", color: "var(--pitch-black)" }}>
+            {labels("documents.docsToValidate")}
+          </p>
         </Link>
-        
+
         <div className="card">
           <div className="card-header">
-            <h3>OCR Procesados</h3>
+            <h3>{labels("documents.ocrProcessed")}</h3>
             <CheckCircle size={24} />
           </div>
-          <div style={{ fontSize: '3rem', fontWeight: '900', lineHeight: 1 }}>{completedCount}</div>
-          <p style={{ margin: 0, marginTop: '0.5rem' }}>Extracción automática exitosa</p>
+          <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>{completedCount}</div>
+          <p style={{ margin: 0, marginTop: "0.5rem" }}>{labels("documents.ocrSuccess")}</p>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <div className="card-header" style={{ borderBottom: '2px solid var(--pitch-black)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-          <h2>Carga de Documentos</h2>
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div
+          className="card-header"
+          style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
+        >
+          <h2>{labels("documents.uploadTitle")}</h2>
           {canUploadCandidateDocuments(tenant.role) ? (
             <BatchUploadButton candidates={formattedCandidates} />
           ) : (
             <span style={{ color: "var(--muted)", fontWeight: 800, fontSize: "0.85rem" }}>
-              Carga restringida para este rol
+              {labels("documents.uploadRestricted")}
             </span>
           )}
         </div>

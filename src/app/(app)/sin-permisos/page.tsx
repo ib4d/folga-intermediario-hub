@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
+import { auth } from "@/auth";
+import { normalizeLanguage, t } from "@/lib/i18n";
 
-export default function SinPermisosPage() {
+export default async function SinPermisosPage() {
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
+
   return (
     <div
       style={{
@@ -45,21 +51,20 @@ export default function SinPermisosPage() {
               textTransform: "uppercase",
             }}
           >
-            Acceso restringido
+            {labels("forbidden.badge")}
           </p>
-          <h1 style={{ marginBottom: "0.75rem" }}>No tienes permisos para este modulo</h1>
+          <h1 style={{ marginBottom: "0.75rem" }}>{labels("forbidden.title")}</h1>
           <p style={{ margin: 0, maxWidth: "540px" }}>
-            Tu rol actual no tiene acceso a esta seccion. Si necesitas operar aqui, solicita a un administrador que ajuste tu
-            rol o permisos dentro de Ajustes.
+            {labels("forbidden.description")}
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <Link href="/dashboard" className="button">
-            Volver al dashboard
+            {labels("forbidden.backDashboard")}
           </Link>
           <Link href="/ajustes" className="button button-secondary">
-            Ver mi perfil
+            {labels("forbidden.viewProfile")}
           </Link>
         </div>
       </section>

@@ -24,7 +24,7 @@ type CandidateRow = {
 
 function getCandidateName(candidate: CandidateRow) {
   const fullName = `${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`.trim();
-  return fullName || "Sin nombre";
+  return fullName;
 }
 
 export default function CandidateTable({
@@ -35,6 +35,7 @@ export default function CandidateTable({
   currentLimit,
   canManageCandidates,
   canViewContact,
+  labels,
 }: {
   candidates: CandidateRow[];
   pageNumber: number;
@@ -43,6 +44,39 @@ export default function CandidateTable({
   currentLimit: string;
   canManageCandidates: boolean;
   canViewContact: boolean;
+  labels: {
+    summaryCount: string;
+    summaryPluralSuffix: string;
+    summaryView: string;
+    summaryAll: string;
+    bulkDelete: string;
+    bulkDeleted: string;
+    singleDeleted: string;
+    deleteFailed: string;
+    deleteOneFailed: string;
+    selectAll: string;
+    selectOne: string;
+    noName: string;
+    noPhone: string;
+    tableCandidate: string;
+    tableCountry: string;
+    tableDocs: string;
+    tableIntermediary: string;
+    tableStatus: string;
+    tableActions: string;
+    view: string;
+    delete: string;
+    firstPage: string;
+    previousPage: string;
+    nextPage: string;
+    lastPage: string;
+    pageOf: string;
+    goToPage: string;
+    deleteDialogTitleSingle: string;
+    deleteDialogTitleBulk: string;
+    deleteDialogDescriptionBulk: string;
+    deleteDialogDescriptionSingle: string;
+  };
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -96,10 +130,10 @@ export default function CandidateTable({
         await deleteCandidate(candidate.id);
         setSelectedIds((current) => current.filter((id) => id !== candidate.id));
         router.refresh();
-        setTableMessage({ tone: "success", text: "Candidato eliminado correctamente." });
+        setTableMessage({ tone: "success", text: labels.singleDeleted });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        setTableMessage({ tone: "error", text: `No se pudo eliminar el candidato: ${message}` });
+        setTableMessage({ tone: "error", text: `${labels.deleteOneFailed}: ${message}` });
       }
     });
   }
@@ -118,10 +152,10 @@ export default function CandidateTable({
         await deleteCandidatesBulk(ids);
         setSelectedIds([]);
         router.refresh();
-        setTableMessage({ tone: "success", text: "Candidatos seleccionados eliminados correctamente." });
+        setTableMessage({ tone: "success", text: labels.bulkDeleted });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        setTableMessage({ tone: "error", text: `No se pudo completar la eliminacion: ${message}` });
+        setTableMessage({ tone: "error", text: `${labels.deleteFailed}: ${message}` });
       }
     });
   }
@@ -131,10 +165,12 @@ export default function CandidateTable({
       <div className="candidate-list-summary">
         <div>
           <div className="candidate-list-count">
-            {totalCandidates} candidato{totalCandidates === 1 ? "" : "s"}
+            {labels.summaryCount
+              .replace("{count}", String(totalCandidates))
+              .replace("{suffix}", totalCandidates === 1 ? "" : labels.summaryPluralSuffix)}
           </div>
           <div className="candidate-list-subtle">
-            Vista operativa densa con {currentLimit === "ALL" ? "todos" : currentLimit} por pagina.
+            {labels.summaryView.replace("{limit}", currentLimit === "ALL" ? labels.summaryAll : currentLimit)}
           </div>
         </div>
         {canManageCandidates && selectedIds.length > 0 ? (
@@ -146,7 +182,7 @@ export default function CandidateTable({
             disabled={isPending}
           >
             {isPending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-            Eliminar seleccionados ({selectedIds.length})
+            {labels.bulkDelete} ({selectedIds.length})
           </button>
         ) : null}
       </div>
@@ -163,17 +199,17 @@ export default function CandidateTable({
             <tr>
               {canManageCandidates ? (
                 <th style={{ width: "52px" }}>
-                  <button type="button" className="icon-button" onClick={toggleAll} aria-label="Seleccionar todos">
+                  <button type="button" className="icon-button" onClick={toggleAll} aria-label={labels.selectAll}>
                     {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
                 </th>
               ) : null}
-              <th>Candidato</th>
-              <th>Pais</th>
-              <th>Docs</th>
-              <th>Intermediario</th>
-              <th>Estado</th>
-              <th style={{ width: "270px" }}>Acciones</th>
+              <th>{labels.tableCandidate}</th>
+              <th>{labels.tableCountry}</th>
+              <th>{labels.tableDocs}</th>
+              <th>{labels.tableIntermediary}</th>
+              <th>{labels.tableStatus}</th>
+              <th style={{ width: "270px" }}>{labels.tableActions}</th>
             </tr>
           </thead>
           <tbody>
@@ -185,7 +221,7 @@ export default function CandidateTable({
                       type="button"
                       className="icon-button"
                       onClick={() => toggleSelected(candidate.id)}
-                      aria-label={`Seleccionar ${getCandidateName(candidate)}`}
+                      aria-label={`${labels.selectOne} ${getCandidateName(candidate) || labels.noName}`}
                     >
                       {selectedIds.includes(candidate.id) ? (
                         <CheckSquare size={16} color="var(--amber-flame)" />
@@ -197,8 +233,8 @@ export default function CandidateTable({
                 ) : null}
                 <td>
                   <div className="candidate-name-cell">
-                    <div className="candidate-name">{getCandidateName(candidate)}</div>
-                    {canViewContact ? <div className="candidate-meta">{candidate.phone || "Sin telefono"}</div> : null}
+                    <div className="candidate-name">{getCandidateName(candidate) || labels.noName}</div>
+                    {canViewContact ? <div className="candidate-meta">{candidate.phone || labels.noPhone}</div> : null}
                   </div>
                 </td>
                 <td>{candidate.country}</td>
@@ -211,7 +247,7 @@ export default function CandidateTable({
                   <div className="candidate-actions">
                     <Link href={`/candidatos/${candidate.id}`} className="button button-secondary candidate-action-button">
                       <Eye size={15} />
-                      Ver
+                      {labels.view}
                     </Link>
                     {canManageCandidates ? (
                       <button
@@ -221,7 +257,7 @@ export default function CandidateTable({
                         disabled={isPending}
                       >
                         <Trash2 size={15} />
-                        Eliminar
+                        {labels.delete}
                       </button>
                     ) : null}
                     {canManageCandidates && !candidate.selfRegistered ? (
@@ -244,25 +280,25 @@ export default function CandidateTable({
           <div className="candidate-pagination-buttons">
             <button type="button" className="button button-outline" onClick={() => setPage(1)} disabled={pageNumber <= 1 || isPending}>
               <ChevronsLeft size={16} />
-              Primera
+              {labels.firstPage}
             </button>
             <button type="button" className="button button-outline" onClick={() => setPage(pageNumber - 1)} disabled={pageNumber <= 1 || isPending}>
               <ChevronLeft size={16} />
-              Anterior
+              {labels.previousPage}
             </button>
             <button type="button" className="button button-outline" onClick={() => setPage(pageNumber + 1)} disabled={pageNumber >= totalPages || isPending}>
-              Siguiente
+              {labels.nextPage}
               <ChevronRight size={16} />
             </button>
             <button type="button" className="button button-outline" onClick={() => setPage(totalPages)} disabled={pageNumber >= totalPages || isPending}>
-              Ultima
+              {labels.lastPage}
               <ChevronsRight size={16} />
             </button>
           </div>
 
         <div className="candidate-pagination-meta">
             <span className="candidate-list-subtle">
-              Pagina {pageNumber} de {totalPages}
+              {labels.pageOf.replace("{page}", String(pageNumber)).replace("{total}", String(totalPages))}
             </span>
             <select
               className="select"
@@ -272,7 +308,7 @@ export default function CandidateTable({
             >
               {pageOptions.map((page) => (
                 <option key={page} value={page}>
-                  Ir a pagina {page}
+                  {labels.goToPage.replace("{page}", String(page))}
                 </option>
               ))}
             </select>
@@ -282,15 +318,18 @@ export default function CandidateTable({
 
       <ConfirmDialog
         open={confirmTarget !== null}
-        title={confirmTarget?.type === "bulk" ? "Eliminar candidatos" : "Eliminar candidato"}
+        title={confirmTarget?.type === "bulk" ? labels.deleteDialogTitleBulk : labels.deleteDialogTitleSingle}
         description={
           confirmTarget?.type === "bulk"
-            ? `Se eliminaran ${confirmTarget.ids.length} candidatos seleccionados y sus datos relacionados. Esta accion no se puede deshacer.`
+            ? labels.deleteDialogDescriptionBulk.replace("{count}", String(confirmTarget.ids.length))
             : confirmTarget
-              ? `Se eliminara a ${getCandidateName(confirmTarget.candidate)} junto con su historial operativo. Esta accion no se puede deshacer.`
+              ? labels.deleteDialogDescriptionSingle.replace(
+                  "{name}",
+                  getCandidateName(confirmTarget.candidate) || labels.noName
+                )
               : ""
         }
-        confirmLabel="Eliminar"
+        confirmLabel={labels.delete}
         tone="danger"
         isBusy={isPending}
         onCancel={() => setConfirmTarget(null)}

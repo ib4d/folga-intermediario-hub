@@ -9,12 +9,15 @@ import DashboardOverview from "@/components/DashboardOverview";
 import ExpandableText from "@/components/ui/ExpandableText";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { normalizeLanguage, t } from "@/lib/i18n";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
+  const language = normalizeLanguage(session.user.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const tenant = await requireTenant();
   const whereClause = candidateVisibilityWhere(tenant);
@@ -176,16 +179,16 @@ export default async function DashboardPage() {
   if (total === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-        <h1 style={{ fontSize: "3rem", marginBottom: "1rem", fontWeight: 900 }}>Bienvenido a tu Hub</h1>
+        <h1 style={{ fontSize: "3rem", marginBottom: "1rem", fontWeight: 900 }}>{labels("dashboard.emptyTitle")}</h1>
         <p style={{ fontSize: "1.25rem", opacity: 0.7, marginBottom: "2.5rem" }}>
-          Todavia no tienes candidatos registrados. Comienza agregando uno o configurando tu perfil.
+          {labels("dashboard.emptyDescription")}
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/candidatos/nuevo" className="button" style={{ padding: '1rem 2rem' }}>
-            Registrar Primer Candidato
+            {labels("dashboard.emptyPrimary")}
           </Link>
           <Link href="/ajustes/branding" className="button button-secondary" style={{ padding: '1rem 2rem', border: '1px solid var(--pitch-black)' }}>
-            Configurar Marca Blanca
+            {labels("dashboard.emptySecondary")}
           </Link>
         </div>
       </div>
@@ -207,10 +210,11 @@ export default async function DashboardPage() {
         }}
       >
         <div>
-          <h1 style={{ marginBottom: "0.5rem" }}>Dashboard Central</h1>
+          <h1 style={{ marginBottom: "0.5rem" }}>{labels("dashboard.title")}</h1>
           <p style={{ margin: 0, color: "var(--pitch-black)" }}>
-            Bienvenido, <span style={{ fontWeight: "bold" }}>{session.user.name}</span>. Tienes{" "}
-            {recopilando} candidatos pendientes.
+            {labels("dashboard.welcomePending")
+              .replace("{name}", session.user.name ?? "")
+              .replace("{count}", recopilando.toString())}
           </p>
         </div>
         <ExportButton />
@@ -360,7 +364,7 @@ export default async function DashboardPage() {
               </p>
             </div>
             <Link href="/legal" className="button" style={{ fontSize: "0.875rem" }}>
-              Abrir Legal
+              {labels("dashboard.openLegal")}
             </Link>
           </div>
 
@@ -442,7 +446,7 @@ export default async function DashboardPage() {
               </p>
             </div>
             <Link href="/logistica" className="button" style={{ fontSize: "0.875rem" }}>
-              Abrir Logistica
+              {labels("dashboard.openLogistics")}
             </Link>
           </div>
 
@@ -507,9 +511,9 @@ export default async function DashboardPage() {
           className="card-header"
           style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
         >
-          <h2>Candidatos Recientes</h2>
+          <h2>{labels("dashboard.recentCandidates")}</h2>
           <Link href="/candidatos" className="button" style={{ fontSize: "0.875rem" }}>
-            Ver todos
+            {labels("dashboard.viewAll")}
           </Link>
         </div>
 
@@ -517,9 +521,9 @@ export default async function DashboardPage() {
           <table>
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Pais</th>
-                <th>Estado</th>
+                <th>{labels("dashboard.tableName")}</th>
+                <th>{labels("dashboard.tableCountry")}</th>
+                <th>{labels("dashboard.tableStatus")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -541,7 +545,7 @@ export default async function DashboardPage() {
                       className="button button-secondary"
                       style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
                     >
-                      Ver
+                      {labels("dashboard.view")}
                     </Link>
                   </td>
                 </tr>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
+import { normalizeLanguage, t } from "@/lib/i18n";
 import { LOGISTICS_BLOCKED_STATUSES } from "@/lib/logistics-policy";
 import { canManageLogistics, canViewCandidateAudit } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,8 @@ export default async function LogisticaPage() {
     redirect("/dashboard");
   }
 
+  const language = normalizeLanguage(session.user.interfaceLanguage);
+  const labels = t.bind(null, language);
   const tenant = await requireTenant();
 
   const pendingCandidates = await prisma.candidate.findMany({
@@ -90,11 +93,11 @@ export default async function LogisticaPage() {
           }}
         >
           <Truck size={20} strokeWidth={3} />
-          Departamento Logistica
+          {labels("logistics.department")}
         </div>
-        <h1 style={{ marginBottom: "0.5rem" }}>Gestion de Llegadas</h1>
+        <h1 style={{ marginBottom: "0.5rem" }}>{labels("logistics.title")}</h1>
         <p style={{ color: "var(--pitch-black)", fontSize: "1.1rem", margin: 0 }}>
-          Monitoreo y coordinacion de transporte para candidatos activos.
+          {labels("logistics.description")}
         </p>
       </div>
 

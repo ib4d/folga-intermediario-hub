@@ -5,7 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import FilterToolbar from "@/components/ui/FilterToolbar";
 
-export default function CandidateSearch() {
+export default function CandidateSearch({
+  labels,
+}: {
+  labels: {
+    placeholder: string;
+    option20: string;
+    option10: string;
+    option50: string;
+    option100: string;
+    option200: string;
+    option500: string;
+    option1000: string;
+    optionAll: string;
+  };
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -49,7 +63,7 @@ export default function CandidateSearch() {
         <input
           type="text"
           className="input"
-          placeholder="BUSCAR POR NOMBRE, DOCUMENTO, PAIS..."
+          placeholder={labels.placeholder}
           style={{ paddingLeft: "2.75rem", fontWeight: "bold", fontSize: "0.8rem" }}
           defaultValue={searchParams.get("q")?.toString()}
           onChange={(e) => handleSearch(e.target.value)}
@@ -76,14 +90,14 @@ export default function CandidateSearch() {
           defaultValue={searchParams.get("limit")?.toString() || "20"}
           onChange={(e) => handleLimit(e.target.value)}
         >
-          <option value="20">20 POR PAG.</option>
-          <option value="10">10 POR PAG.</option>
-          <option value="50">50 POR PAG.</option>
-          <option value="100">100 POR PAG.</option>
-          <option value="200">200 POR PAG.</option>
-          <option value="500">500 POR PAG.</option>
-          <option value="1000">1000 POR PAG.</option>
-          <option value="ALL">TODOS</option>
+          <option value="20">{labels.option20}</option>
+          <option value="10">{labels.option10}</option>
+          <option value="50">{labels.option50}</option>
+          <option value="100">{labels.option100}</option>
+          <option value="200">{labels.option200}</option>
+          <option value="500">{labels.option500}</option>
+          <option value="1000">{labels.option1000}</option>
+          <option value="ALL">{labels.optionAll}</option>
         </select>
       </div>
     </FilterToolbar>

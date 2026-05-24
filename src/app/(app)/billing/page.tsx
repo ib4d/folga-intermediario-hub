@@ -6,9 +6,12 @@ import { getPlanLimits } from "@/lib/billing/limits";
 import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
 import { canAccessModule } from "@/lib/permissions";
 import { redirect } from "next/navigation";
+import { normalizeLanguage, t, type AppLanguage } from "@/lib/i18n";
+import { auth } from "@/auth";
 
-function formatLimit(value: number) {
-  return value === Infinity ? "Ilimitado" : value.toLocaleString("es-ES");
+function formatLimit(value: number, language: AppLanguage) {
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  return value === Infinity ? t(language, "billing.unlimited") : value.toLocaleString(locale);
 }
 
 function usagePercent(used: number, limit: number) {
@@ -19,6 +22,9 @@ function usagePercent(used: number, limit: number) {
 export default async function BillingPage() {
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
   const stripeConfigured = isStripeConfigured();
   const portalUrl = getStripePortalUrl();
 
@@ -50,44 +56,44 @@ export default async function BillingPage() {
   return (
     <div className="content-shell">
       <section className="hero-section">
-        <h1>Suscripcion y Facturacion</h1>
-        <p>Gestiona el plan, limites operativos y estado de pagos de la organizacion.</p>
+        <h1>{labels("billing.title")}</h1>
+        <p>{labels("billing.description")}</p>
       </section>
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
         <div className="card">
           <div className="card-header">
-            <h3>Plan Actual</h3>
+            <h3>{labels("billing.currentPlan")}</h3>
             <Zap size={24} color="var(--amber-flame)" />
           </div>
           <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--pitch-black)", marginBottom: "1rem" }}>
             {organization.plan}
           </div>
           <Link href="/billing/plans" className="button" style={{ width: "100%" }}>
-            Cambiar Plan
+            {labels("billing.changePlan")}
           </Link>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3>Metodo de Pago</h3>
+            <h3>{labels("billing.paymentMethod")}</h3>
             <CreditCard size={24} />
           </div>
           <div style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--muted-foreground)" }}>
             {organization.subscription?.provider
-              ? `Gestionado via ${organization.subscription.provider}`
+              ? labels("billing.managedVia").replace("{provider}", organization.subscription.provider)
               : stripeConfigured
-                ? "Stripe configurado, sin suscripcion activa"
-                : "Stripe pendiente de configurar"}
+                ? labels("billing.stripeConfiguredNoSubscription")
+                : labels("billing.stripePendingConfig")}
           </div>
           {portalUrl ? (
             <a className="button button-secondary" style={{ width: "100%" }} href={portalUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={16} />
-              Gestionar en Stripe
+              {labels("billing.manageStripe")}
             </a>
           ) : (
             <button className="button button-secondary" style={{ width: "100%" }} disabled>
-              Portal Stripe no disponible
+              {labels("billing.stripePortalUnavailable")}
             </button>
           )}
         </div>
@@ -95,26 +101,27 @@ export default async function BillingPage() {
 
       <div className="card">
         <div className="card-header">
-          <h2>Uso de Limites</h2>
+          <h2>{labels("billing.usageLimits")}</h2>
         </div>
         <div style={{ display: "grid", gap: "1.5rem", marginTop: "1.5rem" }}>
-          <UsageBar label="Candidatos" used={candidateUsage} limit={limits.candidates} />
-          <UsageBar label="Usuarios" used={userUsage} limit={limits.users} />
-          <UsageBar label="Documentos este ciclo" used={documentUsage} limit={limits.documentsPerMonth} />
-          <UsageBar label="OCR este ciclo" used={ocrUsage} limit={limits.ocrPerMonth} />
+          <UsageBar language={language} label={labels("billing.candidates")} used={candidateUsage} limit={limits.candidates} />
+          <UsageBar language={language} label={labels("billing.users")} used={userUsage} limit={limits.users} />
+          <UsageBar language={language} label={labels("billing.documentsCycle")} used={documentUsage} limit={limits.documentsPerMonth} />
+          <UsageBar language={language} label={labels("billing.ocrCycle")} used={ocrUsage} limit={limits.ocrPerMonth} />
         </div>
       </div>
     </div>
   );
 }
 
-function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+function UsageBar({ language, label, used, limit }: { language: AppLanguage; label: string; used: number; limit: number }) {
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", gap: "1rem" }}>
         <span style={{ fontWeight: 800 }}>{label}</span>
         <span style={{ fontWeight: 800 }}>
-          {used.toLocaleString("es-ES")} / {formatLimit(limit)}
+          {used.toLocaleString(locale)} / {formatLimit(limit, language)}
         </span>
       </div>
       <div style={{ height: "8px", backgroundColor: "rgba(0,0,0,0.08)", overflow: "hidden" }}>

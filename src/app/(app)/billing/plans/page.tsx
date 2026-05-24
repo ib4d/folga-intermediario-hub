@@ -5,27 +5,72 @@ import { CheckCircle2, ExternalLink } from "lucide-react";
 import { Plan } from "@prisma/client";
 import { canAccessModule } from "@/lib/permissions";
 import { redirect } from "next/navigation";
+import { normalizeLanguage, t, type AppLanguage } from "@/lib/i18n";
+import { auth } from "@/auth";
 
-const plans: Array<{ name: Plan; price: string; desc: string }> = [
-  { name: Plan.FREE, price: "0 EUR", desc: "Para validar la operacion inicial." },
-  { name: Plan.STARTER, price: "49 EUR", desc: "Para agencias pequenas con flujo activo." },
-  { name: Plan.PRO, price: "149 EUR", desc: "Para equipos con OCR y revision legal recurrente." },
-  { name: Plan.BUSINESS, price: "399 EUR", desc: "Para operaciones multi-equipo y alto volumen." },
+const plans: Array<{ name: Plan; price: string }> = [
+  { name: Plan.FREE, price: "0 EUR" },
+  { name: Plan.STARTER, price: "49 EUR" },
+  { name: Plan.PRO, price: "149 EUR" },
+  { name: Plan.BUSINESS, price: "399 EUR" },
+  { name: Plan.ENTERPRISE, price: "Custom" },
 ];
 
-function formatLimit(value: number, label: string) {
-  return value === Infinity ? `${label} ilimitados` : `${value.toLocaleString("es-ES")} ${label}`;
+function planNameKey(plan: Plan) {
+  switch (plan) {
+    case Plan.FREE:
+      return "billing.plan.freeName" as const;
+    case Plan.STARTER:
+      return "billing.plan.starterName" as const;
+    case Plan.PRO:
+      return "billing.plan.proName" as const;
+    case Plan.BUSINESS:
+      return "billing.plan.businessName" as const;
+    case Plan.ENTERPRISE:
+      return "billing.plan.enterpriseName" as const;
+  }
+  const exhaustivePlan: never = plan;
+  throw new Error(`Unsupported plan name: ${exhaustivePlan}`);
+}
+
+function planDescKey(plan: Plan) {
+  switch (plan) {
+    case Plan.FREE:
+      return "billing.plan.freeDesc" as const;
+    case Plan.STARTER:
+      return "billing.plan.starterDesc" as const;
+    case Plan.PRO:
+      return "billing.plan.proDesc" as const;
+    case Plan.BUSINESS:
+      return "billing.plan.businessDesc" as const;
+    case Plan.ENTERPRISE:
+      return "billing.plan.enterpriseDesc" as const;
+  }
+  const exhaustivePlan: never = plan;
+  throw new Error(`Unsupported plan description: ${exhaustivePlan}`);
+}
+
+function formatFeature(value: number, language: AppLanguage, finiteKey: "billing.feature.candidates" | "billing.feature.users" | "billing.feature.ocrReads" | "billing.feature.documents", unlimitedKey: "billing.feature.unlimitedCandidates" | "billing.feature.unlimitedUsers" | "billing.feature.unlimitedOcrReads" | "billing.feature.unlimitedDocuments") {
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  if (value === Infinity) {
+    return t(language, unlimitedKey);
+  }
+
+  return t(language, finiteKey).replace("{count}", value.toLocaleString(locale));
 }
 
 export default async function PlansPage() {
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   return (
     <div className="content-shell">
       <section className="hero-section" style={{ textAlign: "center", marginBottom: "2rem" }}>
-        <h1>Planes y Precios</h1>
-        <p>Escala ORI CRUIT HUB segun volumen real de candidatos, usuarios y documentos.</p>
+        <h1>{labels("billing.plansTitle")}</h1>
+        <p>{labels("billing.plansDescription")}</p>
       </section>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.25rem" }}>
@@ -62,27 +107,27 @@ export default async function PlansPage() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Recomendado
+                  {labels("billing.recommended")}
                 </div>
               ) : null}
 
               <div style={{ marginBottom: "1.5rem", paddingRight: isRecommended ? "5rem" : 0 }}>
-                <h2 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>{plan.name}</h2>
+                <h2 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>{labels(planNameKey(plan.name))}</h2>
                 <div style={{ fontSize: "2.1rem", fontWeight: 900, marginBottom: "0.5rem" }}>
                   {plan.price}
-                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--muted-foreground)" }}>/mes</span>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--muted-foreground)" }}>{labels("billing.perMonth")}</span>
                 </div>
-                <p style={{ fontSize: "0.9rem", color: "var(--muted-foreground)", margin: 0 }}>{plan.desc}</p>
+                <p style={{ fontSize: "0.9rem", color: "var(--muted-foreground)", margin: 0 }}>{labels(planDescKey(plan.name))}</p>
               </div>
 
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.75rem", flex: 1 }}>
                 {[
-                  formatLimit(limits.candidates, "candidatos"),
-                  formatLimit(limits.users, "usuarios"),
-                  formatLimit(limits.ocrPerMonth, "lecturas OCR/mes"),
-                  formatLimit(limits.documentsPerMonth, "documentos/mes"),
-                  "Dashboard operativo",
-                  "Soporte por email",
+                  formatFeature(limits.candidates, language, "billing.feature.candidates", "billing.feature.unlimitedCandidates"),
+                  formatFeature(limits.users, language, "billing.feature.users", "billing.feature.unlimitedUsers"),
+                  formatFeature(limits.ocrPerMonth, language, "billing.feature.ocrReads", "billing.feature.unlimitedOcrReads"),
+                  formatFeature(limits.documentsPerMonth, language, "billing.feature.documents", "billing.feature.unlimitedDocuments"),
+                  labels("billing.feature.dashboardOps"),
+                  labels("billing.feature.emailSupport"),
                 ].map((feature) => (
                   <li key={feature} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.9rem" }}>
                     <CheckCircle2 size={16} color="var(--amber-flame)" />
@@ -93,16 +138,16 @@ export default async function PlansPage() {
 
               {plan.name === Plan.FREE ? (
                 <button className="button button-secondary" style={{ width: "100%", marginTop: "1.5rem" }} disabled>
-                  Plan inicial
+                  {labels("billing.initialPlan")}
                 </button>
               ) : paymentLink ? (
                 <a className="button" href={paymentLink} target="_blank" rel="noreferrer" style={{ width: "100%", marginTop: "1.5rem" }}>
                   <ExternalLink size={16} />
-                  Seleccionar Plan
+                  {labels("billing.selectPlan")}
                 </a>
               ) : (
                 <button className="button button-secondary" style={{ width: "100%", marginTop: "1.5rem" }} disabled>
-                  Stripe pendiente
+                  {labels("billing.stripePending")}
                 </button>
               )}
             </div>

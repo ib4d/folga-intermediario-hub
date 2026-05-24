@@ -8,6 +8,8 @@ import { CandidateStatus, Prisma } from "@prisma/client";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import CandidateTable from "@/components/CandidateTable";
+import { auth } from "@/auth";
+import { normalizeLanguage, t } from "@/lib/i18n";
 import {
   canCreateCandidates,
   canDeleteCandidates,
@@ -22,6 +24,9 @@ export default async function CandidatosPage({
 }) {
   const { q, page = "1", limit = "20", status } = await searchParams;
   const tenant = await requireTenant();
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const filters: Prisma.CandidateWhereInput[] = [];
 
@@ -69,8 +74,8 @@ export default async function CandidatosPage({
   return (
     <>
       <PageHeader
-        title="Candidatos"
-        description="Gestion completa de candidatos y sus estados legales."
+        title={labels("candidates.title")}
+        description={labels("candidates.description")}
         actions={
           <>
             {canImportCandidates(tenant.role) ? <BulkImportCandidates /> : null}
@@ -81,19 +86,31 @@ export default async function CandidatosPage({
                 style={{ backgroundColor: "var(--pitch-black)", color: "var(--amber-flame)" }}
               >
                 <PlusCircle size={20} />
-                Anadir Candidato
+                {labels("candidates.add")}
               </Link>
             ) : null}
           </>
         }
       />
 
-      <CandidateSearch />
+      <CandidateSearch
+        labels={{
+          placeholder: labels("candidates.searchPlaceholder"),
+          option20: labels("candidates.perPage20"),
+          option10: labels("candidates.perPage10"),
+          option50: labels("candidates.perPage50"),
+          option100: labels("candidates.perPage100"),
+          option200: labels("candidates.perPage200"),
+          option500: labels("candidates.perPage500"),
+          option1000: labels("candidates.perPage1000"),
+          optionAll: labels("candidates.perPageAll"),
+        }}
+      />
       {candidates.length === 0 ? (
         <div className="card">
           <EmptyState
-            title="No hay candidatos registrados todavia"
-            description="Crea un candidato manualmente o importa una hoja para iniciar el pipeline."
+            title={labels("candidates.emptyTitle")}
+            description={labels("candidates.emptyDescription")}
           />
         </div>
       ) : (
@@ -116,6 +133,39 @@ export default async function CandidatosPage({
           currentLimit={limit}
           canManageCandidates={canDeleteCandidates(tenant.role)}
           canViewContact={canViewCandidateContact(tenant.role)}
+          labels={{
+            summaryCount: labels("candidates.summaryCount"),
+            summaryPluralSuffix: labels("candidates.summarySuffixPlural"),
+            summaryView: labels("candidates.summaryView"),
+            summaryAll: labels("candidates.summaryAll"),
+            bulkDelete: labels("candidates.bulkDelete"),
+            bulkDeleted: labels("candidates.bulkDeleted"),
+            singleDeleted: labels("candidates.singleDeleted"),
+            deleteFailed: labels("candidates.deleteFailed"),
+            deleteOneFailed: labels("candidates.deleteOneFailed"),
+            selectAll: labels("candidates.selectAll"),
+            selectOne: labels("candidates.selectOne"),
+            noName: labels("candidates.noName"),
+            noPhone: labels("candidates.noPhone"),
+            tableCandidate: labels("candidates.tableCandidate"),
+            tableCountry: labels("candidates.tableCountry"),
+            tableDocs: labels("candidates.tableDocs"),
+            tableIntermediary: labels("candidates.tableIntermediary"),
+            tableStatus: labels("candidates.tableStatus"),
+            tableActions: labels("candidates.tableActions"),
+            view: labels("dashboard.view"),
+            delete: labels("candidates.delete"),
+            firstPage: labels("candidates.firstPage"),
+            previousPage: labels("candidates.previousPage"),
+            nextPage: labels("candidates.nextPage"),
+            lastPage: labels("candidates.lastPage"),
+            pageOf: labels("candidates.pageOf"),
+            goToPage: labels("candidates.goToPage"),
+            deleteDialogTitleSingle: labels("candidates.deleteDialogTitleSingle"),
+            deleteDialogTitleBulk: labels("candidates.deleteDialogTitleBulk"),
+            deleteDialogDescriptionBulk: labels("candidates.deleteDialogDescriptionBulk"),
+            deleteDialogDescriptionSingle: labels("candidates.deleteDialogDescriptionSingle"),
+          }}
         />
       )}
     </>
