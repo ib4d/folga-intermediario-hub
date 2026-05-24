@@ -12,6 +12,13 @@ export type RolePermissionSummary = {
   visibleUsers: string;
 };
 
+type RolePermissionSummaryKey = {
+  scope: string;
+  access: string;
+  management: string;
+  visibleUsers: string;
+};
+
 export type AppModule =
   | "dashboard"
   | "candidates"
@@ -118,6 +125,39 @@ export const ROLE_PERMISSION_SUMMARIES: Record<Role, RolePermissionSummary> = {
   },
 };
 
+const ROLE_PERMISSION_SUMMARY_KEYS: Record<Role, RolePermissionSummaryKey> = {
+  [Role.SUPERADMIN]: {
+    scope: "permissions.superadmin.scope",
+    access: "permissions.superadmin.access",
+    management: "permissions.superadmin.management",
+    visibleUsers: "permissions.superadmin.visibleUsers",
+  },
+  [Role.ADMIN]: {
+    scope: "permissions.admin.scope",
+    access: "permissions.admin.access",
+    management: "permissions.admin.management",
+    visibleUsers: "permissions.admin.visibleUsers",
+  },
+  [Role.INTERMEDIARIO]: {
+    scope: "permissions.intermediario.scope",
+    access: "permissions.intermediario.access",
+    management: "permissions.intermediario.management",
+    visibleUsers: "permissions.intermediario.visibleUsers",
+  },
+  [Role.LEGAL]: {
+    scope: "permissions.legal.scope",
+    access: "permissions.legal.access",
+    management: "permissions.legal.management",
+    visibleUsers: "permissions.legal.visibleUsers",
+  },
+  [Role.LOGISTICA]: {
+    scope: "permissions.logistica.scope",
+    access: "permissions.logistica.access",
+    management: "permissions.logistica.management",
+    visibleUsers: "permissions.logistica.visibleUsers",
+  },
+};
+
 export function canViewMemberRole(viewerRole: Role, targetRole: Role, isSelf = false): boolean {
   if (isSelf) return true;
   if (viewerRole === Role.SUPERADMIN) return true;
@@ -153,6 +193,22 @@ export function getAccessibleModules(viewerRole: Role): AppModule[] {
 
 export function getRolePermissionSummary(role: Role): RolePermissionSummary {
   return ROLE_PERMISSION_SUMMARIES[role];
+}
+
+export function getLocalizedRolePermissionSummary(
+  role: Role,
+  language: AppLanguage = "es"
+): RolePermissionSummary {
+  const labels = t.bind(null, language);
+  const summaryKeys = ROLE_PERMISSION_SUMMARY_KEYS[role];
+
+  return {
+    role,
+    scope: labels(summaryKeys.scope as Parameters<typeof labels>[0]),
+    access: labels(summaryKeys.access as Parameters<typeof labels>[0]),
+    management: labels(summaryKeys.management as Parameters<typeof labels>[0]),
+    visibleUsers: labels(summaryKeys.visibleUsers as Parameters<typeof labels>[0]),
+  };
 }
 
 export function canCreateCandidates(viewerRole: Role): boolean {

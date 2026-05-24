@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import {
-  ROLE_PERMISSION_SUMMARIES,
   canAccessModule,
   canInviteUsers,
   canManageMemberRole,
@@ -15,6 +14,7 @@ import {
   getAccessibleModules,
   getAppModuleLabel,
   getInvitableRoles,
+  getLocalizedRolePermissionSummary,
   roleLabel,
 } from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
@@ -42,15 +42,15 @@ export default async function AjustesPage() {
     (role): role is InviteRole => role !== Role.SUPERADMIN
   );
   const assignableRoles = tenant.role === Role.SUPERADMIN ? [Role.SUPERADMIN, ...invitableRoles] : invitableRoles;
-  const currentRoleSummary = ROLE_PERMISSION_SUMMARIES[tenant.role];
+  const currentRoleSummary = getLocalizedRolePermissionSummary(tenant.role, language);
   const accessibleModules = getAccessibleModules(tenant.role);
 
   const permissionReport = [
-    ROLE_PERMISSION_SUMMARIES[Role.SUPERADMIN],
-    ROLE_PERMISSION_SUMMARIES[Role.ADMIN],
-    ROLE_PERMISSION_SUMMARIES[Role.LEGAL],
-    ROLE_PERMISSION_SUMMARIES[Role.LOGISTICA],
-    ROLE_PERMISSION_SUMMARIES[Role.INTERMEDIARIO],
+    getLocalizedRolePermissionSummary(Role.SUPERADMIN, language),
+    getLocalizedRolePermissionSummary(Role.ADMIN, language),
+    getLocalizedRolePermissionSummary(Role.LEGAL, language),
+    getLocalizedRolePermissionSummary(Role.LOGISTICA, language),
+    getLocalizedRolePermissionSummary(Role.INTERMEDIARIO, language),
   ];
 
   const organization = await prisma.organization.findUnique({
