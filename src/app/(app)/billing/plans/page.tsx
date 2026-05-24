@@ -8,12 +8,12 @@ import { redirect } from "next/navigation";
 import { normalizeLanguage, t, type AppLanguage } from "@/lib/i18n";
 import { auth } from "@/auth";
 
-const plans: Array<{ name: Plan; price: string }> = [
-  { name: Plan.FREE, price: "0 EUR" },
-  { name: Plan.STARTER, price: "49 EUR" },
-  { name: Plan.PRO, price: "149 EUR" },
-  { name: Plan.BUSINESS, price: "399 EUR" },
-  { name: Plan.ENTERPRISE, price: "Custom" },
+const plans: Array<{ name: Plan; priceKey: string }> = [
+  { name: Plan.FREE, priceKey: "billing.price.free" },
+  { name: Plan.STARTER, priceKey: "billing.price.starter" },
+  { name: Plan.PRO, priceKey: "billing.price.pro" },
+  { name: Plan.BUSINESS, priceKey: "billing.price.business" },
+  { name: Plan.ENTERPRISE, priceKey: "billing.price.enterprise" },
 ];
 
 function planNameKey(plan: Plan) {
@@ -114,7 +114,7 @@ export default async function PlansPage() {
               <div style={{ marginBottom: "1.5rem", paddingRight: isRecommended ? "5rem" : 0 }}>
                 <h2 style={{ fontSize: "1.35rem", marginBottom: "0.5rem" }}>{labels(planNameKey(plan.name))}</h2>
                 <div style={{ fontSize: "2.1rem", fontWeight: 900, marginBottom: "0.5rem" }}>
-                  {plan.price}
+                  {labels(plan.priceKey as Parameters<typeof labels>[0])}
                   <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--muted-foreground)" }}>{labels("billing.perMonth")}</span>
                 </div>
                 <p style={{ fontSize: "0.9rem", color: "var(--muted-foreground)", margin: 0 }}>{labels(planDescKey(plan.name))}</p>
