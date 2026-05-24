@@ -57,7 +57,7 @@ export default async function Header() {
       </div>
 
       <div className="header-actions">
-        <NotificationsDropdown />
+        <NotificationsDropdown language={language} />
 
         <div
           className="user-chip"

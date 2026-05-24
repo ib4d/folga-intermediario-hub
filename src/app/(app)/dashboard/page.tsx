@@ -11,6 +11,7 @@ import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 
 export default async function DashboardPage() {
@@ -108,6 +109,7 @@ export default async function DashboardPage() {
           createdAt: true,
           updatedAt: true,
           documents: true,
+          logistics: true,
         },
       }),
     ]);
@@ -126,6 +128,7 @@ export default async function DashboardPage() {
   const arrivalSummaries = documentHealthCandidates.map((candidate) => ({
     candidate,
     arrivalReadiness: getArrivalReadiness(candidate),
+    operationalAlerts: getCandidateOperationalAlerts(candidate),
   }));
 
   const readyForLegal = checklistSummaries.filter((summary) => summary.isReadyForLegal).length;
@@ -148,10 +151,23 @@ export default async function DashboardPage() {
     .sort((a, b) => new Date(b.candidate.updatedAt).getTime() - new Date(a.candidate.updatedAt).getTime())
     .slice(0, 4);
   const readyForArrival = arrivalSummaries.filter((entry) => entry.arrivalReadiness.isReadyForArrival).length;
-  const missingAccommodation = arrivalSummaries.filter((entry) => !entry.arrivalReadiness.accommodationAssigned).length;
-  const missingPickup = arrivalSummaries.filter((entry) => !entry.arrivalReadiness.pickupAssigned).length;
+  const arrivalsToday = arrivalSummaries.filter((entry) =>
+    entry.operationalAlerts.some((alert) => alert.type === "LOGISTICS_ARRIVAL_TODAY"),
+  ).length;
+  const overdueArrivals = arrivalSummaries.filter((entry) =>
+    entry.operationalAlerts.some((alert) => alert.type === "LOGISTICS_ARRIVAL_OVERDUE"),
+  ).length;
+  const missingTransport = arrivalSummaries.filter((entry) =>
+    entry.operationalAlerts.some((alert) => alert.type === "LOGISTICS_MISSING_TRANSPORT"),
+  ).length;
+  const missingAccommodation = arrivalSummaries.filter((entry) =>
+    entry.operationalAlerts.some((alert) => alert.type === "LOGISTICS_MISSING_ACCOMMODATION"),
+  ).length;
+  const missingPickup = arrivalSummaries.filter((entry) =>
+    entry.operationalAlerts.some((alert) => alert.type === "LOGISTICS_MISSING_PICKUP"),
+  ).length;
   const logisticsAttention = arrivalSummaries
-    .filter((entry) => entry.arrivalReadiness.blockers.length > 0 || entry.arrivalReadiness.warnings.length > 0)
+    .filter((entry) => entry.operationalAlerts.length > 0)
     .sort((a, b) => new Date(b.candidate.updatedAt).getTime() - new Date(a.candidate.updatedAt).getTime())
     .slice(0, 4);
 
@@ -331,6 +347,24 @@ export default async function DashboardPage() {
             icon: "check",
           },
           {
+            id: "llegadas-hoy",
+            title: "Llegadas de Hoy",
+            value: arrivalsToday,
+            href: "/logistica",
+            tone: arrivalsToday > 0 ? "accent" : "default",
+            helper: "Pendientes de confirmar",
+            icon: "clock",
+          },
+          {
+            id: "sin-transporte",
+            title: "Sin Transporte",
+            value: missingTransport,
+            href: "/logistica",
+            tone: missingTransport > 0 ? "danger" : "default",
+            helper: "Viajes sin programar",
+            icon: "alert",
+          },
+          {
             id: "sin-alojamiento",
             title: "Sin Alojamiento",
             value: missingAccommodation,
@@ -347,6 +381,15 @@ export default async function DashboardPage() {
             tone: "danger",
             helper: "Falta responsable",
             icon: "clock",
+          },
+          {
+            id: "llegadas-vencidas",
+            title: "Llegadas Vencidas",
+            value: overdueArrivals,
+            href: "/logistica",
+            tone: overdueArrivals > 0 ? "danger" : "default",
+            helper: "Sin confirmacion operativa",
+            icon: "alert",
           },
         ]}
       />
@@ -451,7 +494,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="dashboard-pulse-grid">
-            {logisticsAttention.map(({ candidate, arrivalReadiness }) => (
+            {logisticsAttention.map(({ candidate, arrivalReadiness, operationalAlerts }) => (
               <Link
                 key={candidate.id}
                 href={`/candidatos/${candidate.id}`}
@@ -474,6 +517,11 @@ export default async function DashboardPage() {
                   {arrivalReadiness.warnings.length > 0 ? (
                     <ExpandableText maxLength={96} style={{ display: "block", marginTop: "auto", fontSize: "0.78rem", fontWeight: 700, color: "#92400e" }}>
                       {arrivalReadiness.warnings.join(" | ")}
+                    </ExpandableText>
+                  ) : null}
+                  {operationalAlerts.length > 0 ? (
+                    <ExpandableText maxLength={100} style={{ display: "block", marginTop: "0.55rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400e" }}>
+                      {operationalAlerts.map((alert) => alert.title).join(" · ")}
                     </ExpandableText>
                   ) : null}
                 </div>

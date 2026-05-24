@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { requireTenant, type TenantContext } from "@/lib/tenant";
 import { canManageLogistics } from "@/lib/permissions";
 import { isLogisticsSchedulableStatus } from "@/lib/logistics-policy";
+import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 
 function assertLogisticsAccess(tenant: TenantContext) {
   if (!canManageLogistics(tenant.role)) {
@@ -43,6 +44,14 @@ function buildSafeLogisticsUpdate(
   }
 
   return update;
+}
+
+async function refreshOperationalSurfaces(candidateId: string, organizationId: string) {
+  await syncCandidateOperationalAlerts({ candidateId, organizationId });
+  revalidatePath("/logistica");
+  revalidatePath("/dashboard");
+  revalidatePath("/notificaciones");
+  revalidatePath(`/candidatos/${candidateId}`);
 }
 
 export async function createLogisticsEvent(formData: FormData) {
@@ -126,9 +135,7 @@ export async function createLogisticsEvent(formData: FormData) {
     });
   }
 
-  revalidatePath("/logistica");
-  revalidatePath("/dashboard");
-  revalidatePath(`/candidatos/${candidateId}`);
+  await refreshOperationalSurfaces(candidateId, tenant.organizationId);
   return { success: true };
 }
 
@@ -154,9 +161,7 @@ export async function updateLogisticsEvent(
     details: data as Prisma.InputJsonValue,
   });
 
-  revalidatePath("/logistica");
-  revalidatePath("/dashboard");
-  revalidatePath(`/candidatos/${event.candidateId}`);
+  await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
   return { success: true };
 }
 
@@ -182,9 +187,7 @@ export async function confirmLogisticsEvent(eventId: string) {
     data: { locationStatus: LocationStatus.EN_POLONIA },
   });
 
-  revalidatePath("/logistica");
-  revalidatePath("/dashboard");
-  revalidatePath(`/candidatos/${event.candidateId}`);
+  await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
   return { success: true };
 }
 
@@ -204,9 +207,7 @@ export async function deleteLogisticsEvent(eventId: string) {
     entityId: eventId,
   });
 
-  revalidatePath("/logistica");
-  revalidatePath("/dashboard");
-  revalidatePath(`/candidatos/${event.candidateId}`);
+  await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
   return { success: true };
 }
 
@@ -278,9 +279,7 @@ export async function updateArrivalReadinessDetails(formData: FormData) {
     } as Prisma.InputJsonValue,
   });
 
-  revalidatePath("/logistica");
-  revalidatePath("/dashboard");
-  revalidatePath(`/candidatos/${candidate.id}`);
+  await refreshOperationalSurfaces(candidate.id, tenant.organizationId);
 
   return { success: true };
 }

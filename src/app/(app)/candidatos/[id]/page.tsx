@@ -17,6 +17,7 @@ import {
   getDocumentDisplayNumber,
 } from "@/lib/document-display";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
+import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { normalizeLanguage, t } from "@/lib/i18n";
@@ -106,6 +107,8 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
   const arrivalReadiness = getArrivalReadiness(candidate);
+  const operationalAlerts = getCandidateOperationalAlerts(candidate as Parameters<typeof getCandidateOperationalAlerts>[0]);
+  const latestLogisticsEvent = candidate.logistics[0] ?? null;
 
   return (
     <div className="candidate-detail-shell">
@@ -356,6 +359,74 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 tone={arrivalReadiness.accommodationAssigned ? "success" : "danger"}
                 hint={candidate.accommodation || labels("candidateDetail.notAssigned")}
               />
+            </div>
+          ) : null}
+
+          {canViewLogistics ? (
+            <div className="candidate-section-card">
+              <h2 className="candidate-section-title">
+                <Truck className="text-blue-600" />
+                {labels("candidateDetail.journeySummary")}
+              </h2>
+              <div className="candidate-info-grid">
+                {[
+                  { label: labels("candidateDetail.journeyState"), val: arrivalReadiness.statusLabel },
+                  {
+                    label: labels("candidateDetail.latestArrival"),
+                    val: latestLogisticsEvent?.arrivalDate
+                      ? new Date(latestLogisticsEvent.arrivalDate).toLocaleString()
+                      : candidate.arrivalDate
+                        ? new Date(candidate.arrivalDate).toLocaleDateString()
+                        : labels("candidateDetail.noUpcomingArrival"),
+                  },
+                  {
+                    label: labels("candidateDetail.terminal"),
+                    val: latestLogisticsEvent?.terminal || labels("candidateDetail.notAvailable"),
+                  },
+                  {
+                    label: labels("candidateDetail.reference"),
+                    val: latestLogisticsEvent?.flightOrTrain || labels("candidateDetail.notAvailable"),
+                  },
+                  {
+                    label: labels("candidateDetail.pickupResponsible"),
+                    val: latestLogisticsEvent?.pickedUpBy || labels("candidateDetail.notAvailable"),
+                  },
+                  {
+                    label: labels("candidateDetail.confirmedArrival"),
+                    val: arrivalReadiness.confirmedArrival ? labels("candidateDetail.yes") : labels("candidateDetail.no"),
+                  },
+                  {
+                    label: labels("candidateDetail.transportType"),
+                    val: latestLogisticsEvent?.transportType || labels("candidateDetail.notAvailable"),
+                  },
+                  {
+                    label: labels("candidateDetail.accommodation"),
+                    val: candidate.accommodation || labels("candidateDetail.notAvailable"),
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</div>
+                    <div className="font-bold text-gray-900">{item.val || labels("candidateDetail.notAvailable")}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                  {labels("candidateDetail.operationalAlerts")}
+                </div>
+                {operationalAlerts.length > 0 ? (
+                  <ul className="mt-3 space-y-2 text-sm font-semibold text-amber-900">
+                    {operationalAlerts.map((alert) => (
+                      <li key={alert.type}>- {alert.title}: {alert.message}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mt-3 text-sm font-semibold text-green-700">
+                    {labels("candidateDetail.noOperationalAlerts")}
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 

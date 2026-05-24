@@ -3,7 +3,7 @@ import { normalizeLanguage, t } from "@/lib/i18n";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
-import { Bell, Clock, FileText, UserPlus } from "lucide-react";
+import { AlertTriangle, Bell, Clock, FileText, Truck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -33,6 +33,15 @@ export default async function NotificationsPage() {
         return <Clock size={20} />;
       case "CANDIDATE_CREATED":
         return <UserPlus size={20} />;
+      case "LOGISTICS_LEGAL_BLOCKER":
+      case "LOGISTICS_DOCUMENT_BLOCKER":
+      case "LOGISTICS_ARRIVAL_OVERDUE":
+        return <AlertTriangle size={20} />;
+      case "LOGISTICS_MISSING_TRANSPORT":
+      case "LOGISTICS_MISSING_PICKUP":
+      case "LOGISTICS_MISSING_ACCOMMODATION":
+      case "LOGISTICS_ARRIVAL_TODAY":
+        return <Truck size={20} />;
       default:
         return <Bell size={20} />;
     }
@@ -49,6 +58,20 @@ export default async function NotificationsPage() {
         return labels("notifications.type.newCandidate");
       case "DOCUMENT_UPLOADED":
         return labels("notifications.type.document");
+      case "LOGISTICS_MISSING_TRANSPORT":
+        return labels("notifications.type.transport");
+      case "LOGISTICS_MISSING_PICKUP":
+        return labels("notifications.type.pickup");
+      case "LOGISTICS_MISSING_ACCOMMODATION":
+        return labels("notifications.type.accommodation");
+      case "LOGISTICS_LEGAL_BLOCKER":
+        return labels("notifications.type.legalBlock");
+      case "LOGISTICS_DOCUMENT_BLOCKER":
+        return labels("notifications.type.documentBlock");
+      case "LOGISTICS_ARRIVAL_OVERDUE":
+        return labels("notifications.type.arrivalOverdue");
+      case "LOGISTICS_ARRIVAL_TODAY":
+        return labels("notifications.type.arrivalToday");
       default:
         return type.replace(/_/g, " ");
     }

@@ -11,6 +11,7 @@ import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { type AppLanguage, t } from "@/lib/i18n";
+import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import ExpandableText from "@/components/ui/ExpandableText";
 
 import ArrivalReadinessEditor from "./ArrivalReadinessEditor";
@@ -60,6 +61,7 @@ export default function LogisticsDashboard({
     checklist: getCandidateDocumentChecklist(candidate),
     legalOutcome: getCandidateLegalOutcome(candidate),
     arrivalReadiness: getArrivalReadiness(candidate),
+    operationalAlerts: getCandidateOperationalAlerts(candidate),
   }));
 
   const candidatesWithoutLogistics = candidateSummaries.filter((entry) => entry.candidate.logistics.length === 0);
@@ -149,7 +151,7 @@ export default function LogisticsDashboard({
         <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
           <section>
             <SectionTitle title={labels("logistics.weeklyTitle")} />
-            <WeeklyArrivals events={weeklyEvents} />
+            <WeeklyArrivals events={weeklyEvents} language={language} />
           </section>
 
           <section>
@@ -172,7 +174,7 @@ export default function LogisticsDashboard({
                       </td>
                     </tr>
                   ) : (
-                    visibleCandidateSummaries.map(({ candidate, legalOutcome, arrivalReadiness }) => (
+                    visibleCandidateSummaries.map(({ candidate, legalOutcome, arrivalReadiness, operationalAlerts }) => (
                       <tr key={candidate.id}>
                         <td style={{ fontWeight: "900" }}>{candidate.firstName} {candidate.lastName}</td>
                         <td style={{ fontWeight: "bold" }}>{candidate.country}</td>
@@ -202,6 +204,11 @@ export default function LogisticsDashboard({
                             {legalOutcome?.followUpActions.length ? (
                               <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--muted)" }}>
                                 {legalOutcome.followUpActions.join(" · ")}
+                              </ExpandableText>
+                            ) : null}
+                            {operationalAlerts.length > 0 ? (
+                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#92400e" }}>
+                                {operationalAlerts.map((alert) => alert.title).join(" · ")}
                               </ExpandableText>
                             ) : null}
                           </div>

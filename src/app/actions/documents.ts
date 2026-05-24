@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { revalidatePath } from "next/cache";
 import { analyzeIdentityDocument } from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
@@ -1203,9 +1204,17 @@ export async function uploadDocument(formData: FormData) {
     console.error("[uploadDocument] event dispatch failed", error);
   }
 
+  await syncCandidateOperationalAlerts({
+    candidateId,
+    organizationId: tenant.organizationId!,
+  });
+
   revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/candidatos");
   revalidatePath("/documentos");
+  revalidatePath("/dashboard");
+  revalidatePath("/logistica");
+  revalidatePath("/notificaciones");
 
   return {
     success: true,
@@ -1254,7 +1263,16 @@ export async function verifyDocument(documentId: string) {
     details: toInputJsonValue({ verifiedBy: tenant.userId }),
   });
 
+  await syncCandidateOperationalAlerts({
+    candidateId: updated.candidateId,
+    organizationId: tenant.organizationId!,
+  });
+
   revalidatePath(`/candidatos/${updated.candidateId}`);
+  revalidatePath("/documentos");
+  revalidatePath("/dashboard");
+  revalidatePath("/logistica");
+  revalidatePath("/notificaciones");
 
   return { success: true };
 }
@@ -1437,10 +1455,18 @@ export async function reviewDocumentOcr(input: {
     }),
   });
 
+  await syncCandidateOperationalAlerts({
+    candidateId: document.candidateId,
+    organizationId: tenant.organizationId!,
+  });
+
   revalidatePath("/documentos");
   revalidatePath(`/candidatos/${document.candidateId}`);
   revalidatePath("/candidatos");
   revalidatePath("/legal");
+  revalidatePath("/dashboard");
+  revalidatePath("/logistica");
+  revalidatePath("/notificaciones");
 
   return { success: true };
 }
@@ -1523,8 +1549,16 @@ export async function deleteDocument(documentId: string) {
     details: toInputJsonValue({ url: document.url, type: document.type }),
   });
 
+  await syncCandidateOperationalAlerts({
+    candidateId: document.candidateId,
+    organizationId: tenant.organizationId!,
+  });
+
   revalidatePath(`/candidatos/${document.candidateId}`);
   revalidatePath("/documentos");
+  revalidatePath("/dashboard");
+  revalidatePath("/logistica");
+  revalidatePath("/notificaciones");
 
   return { success: true };
 }
@@ -1553,6 +1587,7 @@ export async function smartBatchUpload(formData: FormData) {
 
   const results: Array<{ filename: string; success: boolean; message: string }> = [];
   const batchCandidates = new Map<string, string>();
+  const touchedCandidateIds = new Set<string>();
   let batchAnchorCandidateId: string | null = candidateId;
 
   const preparedFiles = await Promise.all(files.map((file) => prepareSmartUploadFile(file)));
@@ -1609,6 +1644,7 @@ export async function smartBatchUpload(formData: FormData) {
       if (!batchAnchorCandidateId) {
         batchAnchorCandidateId = resolved.candidate.id;
       }
+      touchedCandidateIds.add(resolved.candidate.id);
 
       const single = new FormData();
       single.append("file", file);
@@ -1636,6 +1672,10 @@ export async function smartBatchUpload(formData: FormData) {
           await mergeOcrIntoExistingDocument(result.documentId, docType, ocrData);
           await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
           rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
+          await syncCandidateOperationalAlerts({
+            candidateId: resolved.candidate.id,
+            organizationId: tenant.organizationId!,
+          });
 
           results.push({
             filename: file.name,
@@ -1675,6 +1715,11 @@ export async function smartBatchUpload(formData: FormData) {
         );
       }
 
+      await syncCandidateOperationalAlerts({
+        candidateId: resolved.candidate.id,
+        organizationId: tenant.organizationId!,
+      });
+
       results.push({
         filename: file.name,
         success: true,
@@ -1695,6 +1740,9 @@ export async function smartBatchUpload(formData: FormData) {
 
   if (candidateId) {
     revalidatePath(`/candidatos/${candidateId}`);
+  }
+  if (touchedCandidateIds.size > 0) {
+    revalidatePath("/notificaciones");
   }
   revalidatePath("/documentos");
   revalidatePath("/candidatos");

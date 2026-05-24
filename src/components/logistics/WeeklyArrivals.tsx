@@ -6,12 +6,15 @@ import { useState } from "react";
 
 import { confirmLogisticsEvent, updateLogisticsEvent } from "@/app/actions/logistics";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
+import { type AppLanguage, t } from "@/lib/i18n";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import ExpandableText from "@/components/ui/ExpandableText";
 import PaginatedList from "@/components/ui/PaginatedList";
 
 interface Props {
   events: (LogisticsEvent & { candidate: Candidate & { documents: Document[]; logistics?: LogisticsEvent[] } })[];
+  language: AppLanguage;
 }
 
 const TransportIcon = ({ type }: { type: string | null }) => {
@@ -28,16 +31,17 @@ const TransportIcon = ({ type }: { type: string | null }) => {
   }
 };
 
-export default function WeeklyArrivals({ events }: Props) {
+export default function WeeklyArrivals({ events, language }: Props) {
+  const labels = t.bind(null, language);
   const [listMessage, setListMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const handleConfirm = async (id: string) => {
     setListMessage(null);
     try {
       await confirmLogisticsEvent(id);
-      setListMessage({ tone: "success", text: "Llegada confirmada correctamente." });
+      setListMessage({ tone: "success", text: labels("logistics.arrivalConfirmedSuccess") });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error al confirmar la llegada.";
+      const message = error instanceof Error ? error.message : labels("logistics.arrivalConfirmedError");
       setListMessage({ tone: "error", text: message });
     }
   };
@@ -45,7 +49,7 @@ export default function WeeklyArrivals({ events }: Props) {
   if (events.length === 0) {
     return (
       <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--muted)" }}>
-        <p style={{ fontWeight: "bold", textTransform: "uppercase" }}>No hay llegadas programadas para esta semana.</p>
+        <p style={{ fontWeight: "bold", textTransform: "uppercase" }}>{labels("logistics.noWeeklyArrivals")}</p>
       </div>
     );
   }
@@ -60,10 +64,12 @@ export default function WeeklyArrivals({ events }: Props) {
       <PaginatedList
         items={events}
         pageSize={6}
-        label="Llegadas"
+        label={labels("logistics.weeklyTitle")}
         className="equal-card-grid logistics-card-grid"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}
-        renderItem={(event) => <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} />}
+        renderItem={(event) => (
+          <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} language={language} />
+        )}
       />
     </div>
   );
@@ -72,12 +78,19 @@ export default function WeeklyArrivals({ events }: Props) {
 function WeeklyArrivalCard({
   event,
   onConfirm,
+  language,
 }: {
   event: LogisticsEvent & { candidate: Candidate & { documents: Document[]; logistics?: LogisticsEvent[] } };
   onConfirm: (id: string) => Promise<void>;
+  language: AppLanguage;
 }) {
+  const labels = t.bind(null, language);
   const outcome = getCandidateLegalOutcome(event.candidate);
   const arrivalReadiness = getArrivalReadiness({
+    ...event.candidate,
+    logistics: [event],
+  });
+  const operationalAlerts = getCandidateOperationalAlerts({
     ...event.candidate,
     logistics: [event],
   });
@@ -99,7 +112,7 @@ function WeeklyArrivalCard({
       });
       setIsEditing(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo actualizar la llegada";
+      const message = error instanceof Error ? error.message : labels("logistics.arrivalConfirmedError");
       setEditError(message);
     } finally {
       setIsSubmitting(false);
@@ -132,7 +145,7 @@ function WeeklyArrivalCard({
             <p style={{ fontSize: "0.75rem", fontWeight: "bold", color: "var(--muted)", margin: 0 }}>
               {event.arrivalDate
                 ? new Date(event.arrivalDate).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })
-                : "Fecha pendiente"}
+                : labels("logistics.pendingDate")}
             </p>
           </div>
         </div>
@@ -156,7 +169,7 @@ function WeeklyArrivalCard({
             style={{ padding: "0.25rem 0.75rem", fontSize: "0.7rem" }}
             onClick={() => setIsEditing((current) => !current)}
           >
-            {isEditing ? "Cerrar" : "Editar"}
+            {isEditing ? labels("logistics.close") : labels("logistics.edit")}
           </button>
         </div>
       </div>
@@ -173,7 +186,7 @@ function WeeklyArrivalCard({
           }}
         >
           <div style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.25rem" }}>
-            Seguimiento operativo
+            {labels("logistics.operationalFollowUpTitle")}
           </div>
           <ExpandableText maxLength={96}>
             {outcome.followUpActions.join(" | ")}
@@ -192,7 +205,7 @@ function WeeklyArrivalCard({
         }}
       >
         <div style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.25rem" }}>
-          Estado de llegada
+          {labels("logistics.arrivalStatusTitle")}
         </div>
         <div>{arrivalReadiness.statusLabel}</div>
         {arrivalReadiness.blockers.length > 0 ? (
@@ -202,17 +215,34 @@ function WeeklyArrivalCard({
         ) : null}
       </div>
 
+      {operationalAlerts.length > 0 ? (
+        <div
+          style={{
+            marginTop: "0.9rem",
+            padding: "0.65rem 0.75rem",
+            border: "1px solid #fca5a5",
+            backgroundColor: "#fff1f2",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+          }}
+        >
+          <ExpandableText maxLength={110}>
+            {operationalAlerts.map((alert) => alert.title).join(" | ")}
+          </ExpandableText>
+        </div>
+      ) : null}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.8rem", fontWeight: "bold" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <MapPin size={14} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {event.terminal || "TBA"}
+            {event.terminal || labels("logistics.tba")}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <User size={14} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {event.pickedUpBy || "SIN ASIGNAR"}
+            {event.pickedUpBy || labels("logistics.unassignedShort")}
           </span>
         </div>
         {event.flightOrTrain ? (
@@ -235,7 +265,7 @@ function WeeklyArrivalCard({
       {isEditing ? (
         <form action={handleSave} style={{ marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem", display: "grid", gap: "0.75rem" }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Medio de transporte</label>
+            <label className="label">{labels("logistics.transportType")}</label>
             <select name="transportType" className="select" defaultValue={event.transportType ?? "AVION"}>
               <option value="AVION">Avion</option>
               <option value="TREN">Tren</option>
@@ -245,7 +275,7 @@ function WeeklyArrivalCard({
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Fecha y hora</label>
+            <label className="label">{labels("logistics.arrivalDateTime")}</label>
             <input
               type="datetime-local"
               name="arrivalDate"
@@ -255,22 +285,22 @@ function WeeklyArrivalCard({
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Terminal / estacion</label>
+            <label className="label">{labels("logistics.terminal")}</label>
             <input type="text" name="terminal" className="input" defaultValue={event.terminal ?? ""} />
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Referencia</label>
+            <label className="label">{labels("logistics.reference")}</label>
             <input type="text" name="flightOrTrain" className="input" defaultValue={event.flightOrTrain ?? ""} />
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Responsable de recogida</label>
+            <label className="label">{labels("logistics.pickupResponsible")}</label>
             <input type="text" name="pickedUpBy" className="input" defaultValue={event.pickedUpBy ?? ""} />
           </div>
 
           <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label">Notas operativas</label>
+            <label className="label">{labels("logistics.operationalNotes")}</label>
             <textarea
               name="description"
               className="input"
@@ -281,7 +311,7 @@ function WeeklyArrivalCard({
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button type="submit" className="button" style={{ flex: 1 }} disabled={isSubmitting}>
-              {isSubmitting ? "Guardando..." : "Guardar"}
+              {isSubmitting ? labels("logistics.savingArrival") : labels("logistics.saveArrival")}
             </button>
             <button
               type="button"
@@ -289,7 +319,7 @@ function WeeklyArrivalCard({
               style={{ flex: 1 }}
               onClick={() => setIsEditing(false)}
             >
-              Cancelar
+              {labels("logistics.cancel")}
             </button>
           </div>
 

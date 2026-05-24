@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
+import { type AppLanguage, t } from "@/lib/i18n";
 
 type Notification = {
   id: string;
@@ -17,23 +18,37 @@ type Notification = {
   } | null;
 };
 
-function getNotificationLabel(type: string) {
+function getNotificationLabel(type: string, language: AppLanguage) {
   switch (type) {
     case "STATUS_UPDATE":
-      return "Estado";
+      return t(language, "notifications.type.status");
     case "CANDIDATE_APPROVED":
-      return "Aprobado";
+      return t(language, "notifications.type.approved");
     case "NEW_CANDIDATE":
     case "CANDIDATE_CREATED":
-      return "Nuevo candidato";
+      return t(language, "notifications.type.newCandidate");
     case "DOCUMENT_UPLOADED":
-      return "Documento";
+      return t(language, "notifications.type.document");
+    case "LOGISTICS_MISSING_TRANSPORT":
+      return t(language, "notifications.type.transport");
+    case "LOGISTICS_MISSING_PICKUP":
+      return t(language, "notifications.type.pickup");
+    case "LOGISTICS_MISSING_ACCOMMODATION":
+      return t(language, "notifications.type.accommodation");
+    case "LOGISTICS_LEGAL_BLOCKER":
+      return t(language, "notifications.type.legalBlock");
+    case "LOGISTICS_DOCUMENT_BLOCKER":
+      return t(language, "notifications.type.documentBlock");
+    case "LOGISTICS_ARRIVAL_OVERDUE":
+      return t(language, "notifications.type.arrivalOverdue");
+    case "LOGISTICS_ARRIVAL_TODAY":
+      return t(language, "notifications.type.arrivalToday");
     default:
       return type.replace(/_/g, " ");
   }
 }
 
-export default function NotificationsDropdown() {
+export default function NotificationsDropdown({ language }: { language: AppLanguage }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -120,7 +135,7 @@ export default function NotificationsDropdown() {
               alignItems: "center",
             }}
           >
-            <h3 style={{ margin: 0 }}>Notificaciones</h3>
+            <h3 style={{ margin: 0 }}>{t(language, "notifications.title")}</h3>
             <button
               onClick={() => setIsOpen(false)}
               style={{ background: "none", border: "none", cursor: "pointer" }}
@@ -133,7 +148,7 @@ export default function NotificationsDropdown() {
           <div style={{ padding: "0.5rem" }}>
             {notifications.length === 0 ? (
               <p style={{ textAlign: "center", color: "var(--muted-foreground)", padding: "1rem" }}>
-                No hay notificaciones
+                {t(language, "notifications.empty")}
               </p>
             ) : (
               notifications.map((notification) => (
@@ -166,7 +181,7 @@ export default function NotificationsDropdown() {
                         color: "var(--pitch-black)",
                       }}
                     >
-                      {getNotificationLabel(notification.type)}
+                      {getNotificationLabel(notification.type, language)}
                     </span>
                     <span style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>
                       {new Date(notification.createdAt).toLocaleDateString()}
@@ -205,7 +220,7 @@ export default function NotificationsDropdown() {
                 textDecoration: "none",
               }}
             >
-              Ver todas
+              {t(language, "notifications.viewAll")}
             </a>
           </div>
         </div>

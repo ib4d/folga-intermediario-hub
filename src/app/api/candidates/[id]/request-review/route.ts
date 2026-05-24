@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { prisma } from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
@@ -103,6 +104,11 @@ export async function POST(
         missingAtRequest: checklist.missing,
         warningsAtRequest: checklist.warnings,
       },
+    });
+
+    await syncCandidateOperationalAlerts({
+      candidateId: id,
+      organizationId,
     });
 
     return NextResponse.json({

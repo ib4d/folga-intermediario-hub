@@ -12,6 +12,7 @@ import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { emitEvent } from "@/core/events";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { getStorageProvider } from "@/lib/providers/storage";
 import {
   canCreateCandidates,
@@ -802,25 +803,33 @@ export async function updateCandidateStatus(
     }
   }
 
-  await emitEvent(
-    "STATUS_CHANGED",
-    tenant.organizationId!,
-    {
-      userId: tenant.userId,
+      await emitEvent(
+        "STATUS_CHANGED",
+        tenant.organizationId!,
+        {
+          userId: tenant.userId,
+          candidateId,
+          candidate: { ...candidate, status: parsedStatus },
+          oldStatus: candidate.status,
+          newStatus: parsedStatus,
+        },
+        tenant.userId,
+      );
+
+    await syncCandidateOperationalAlerts({
       candidateId,
-      candidate: { ...candidate, status: parsedStatus },
-      oldStatus: candidate.status,
-      newStatus: parsedStatus,
-    },
-    tenant.userId
-  );
+      organizationId: tenant.organizationId!,
+    });
 
-  revalidatePath(`/candidatos/${candidateId}`);
-  revalidatePath("/candidatos");
-  revalidatePath("/legal");
+    revalidatePath(`/candidatos/${candidateId}`);
+    revalidatePath("/candidatos");
+    revalidatePath("/legal");
+    revalidatePath("/dashboard");
+    revalidatePath("/logistica");
+    revalidatePath("/notificaciones");
 
-  return { success: true };
-}
+    return { success: true };
+  }
 
 export async function updateCandidateNotes(candidateId: string, notes: string) {
   const tenant = await requireTenant();
