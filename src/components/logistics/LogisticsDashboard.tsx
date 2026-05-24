@@ -10,6 +10,7 @@ import { useState } from "react";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import { type AppLanguage, t } from "@/lib/i18n";
 import ExpandableText from "@/components/ui/ExpandableText";
 
 import ArrivalReadinessEditor from "./ArrivalReadinessEditor";
@@ -40,6 +41,7 @@ interface Props {
     } | null;
   }>;
   canViewActivityActors: boolean;
+  language: AppLanguage;
 }
 
 export default function LogisticsDashboard({
@@ -47,7 +49,9 @@ export default function LogisticsDashboard({
   weeklyEvents,
   recentActivity,
   canViewActivityActors,
+  language,
 }: Props) {
+  const labels = t.bind(null, language);
   const [candidatePage, setCandidatePage] = useState(1);
   const [activityPage, setActivityPage] = useState(1);
 
@@ -88,19 +92,19 @@ export default function LogisticsDashboard({
           icon={<UserCheck size={28} strokeWidth={2.5} />}
           iconBg="var(--primary)"
           value={String(candidatesWithoutLogistics.length)}
-          label="Sin logistica"
+          label={labels("logistics.metricNoLogistics")}
         />
         <StatCard
           icon={<Truck size={28} strokeWidth={2.5} color="var(--primary)" />}
           iconBg="var(--pitch-black)"
           value={String(weeklyEvents.length)}
-          label="Llegadas semana"
+          label={labels("logistics.metricWeeklyArrivals")}
         />
         <StatCard
           icon={<CheckCircle size={28} strokeWidth={2.5} color="#4ade80" />}
           iconBg="var(--pitch-black)"
           value={String(confirmedCount)}
-          label="Confirmadas"
+          label={labels("logistics.metricConfirmed")}
           cardBg="#4ade80"
           labelColor="var(--pitch-black)"
         />
@@ -108,33 +112,35 @@ export default function LogisticsDashboard({
           icon={<AlertTriangle size={28} strokeWidth={2.5} color="white" />}
           iconBg="#e63946"
           value={String(pendingConfirm)}
-          label="Pendiente confirmar"
+          label={labels("logistics.metricPendingConfirm")}
           cardBg={pendingConfirm > 0 ? "#ffccd5" : "var(--background)"}
         />
       </div>
 
       <div className="dashboard-grid" style={{ marginTop: "-1rem" }}>
         <MiniMetric
-          title="Aprobados limpios"
+          title={labels("logistics.metricApprovedClean")}
           value={String(candidatesReadyNow.length)}
-          helper="Sin bloqueos documentales activos"
+          helper={labels("logistics.helperNoDocsBlocks")}
         />
         <MiniMetric
-          title="Seguimiento operativo"
+          title={labels("logistics.metricOperationalFollowUp")}
           value={String(candidatesWithFollowUp.length)}
-          helper="Casos con acciones pendientes desde legal"
+          helper={labels("logistics.helperPendingLegal")}
           backgroundColor={candidatesWithFollowUp.length > 0 ? "#fef3c7" : "var(--background)"}
         />
         <MiniMetric
-          title="Listos para llegada"
+          title={labels("logistics.metricReadyForArrival")}
           value={String(readyForArrivalCount)}
-          helper="Transporte, recogida y alojamiento resueltos"
+          helper={labels("logistics.helperResolvedHandoff")}
           backgroundColor={readyForArrivalCount > 0 ? "#dcfce7" : "var(--background)"}
         />
         <MiniMetric
-          title="Handoff incompleto"
+          title={labels("logistics.metricIncompleteHandoff")}
           value={String(missingAccommodationCount + missingPickupCount)}
-          helper={`${missingAccommodationCount} sin alojamiento · ${missingPickupCount} sin recogida`}
+          helper={labels("logistics.helperMissingPickup")
+            .replace("{accommodation}", String(missingAccommodationCount))
+            .replace("{pickup}", String(missingPickupCount))}
           backgroundColor={missingAccommodationCount > 0 || missingPickupCount > 0 ? "#fee2e2" : "var(--background)"}
         />
       </div>
@@ -142,27 +148,27 @@ export default function LogisticsDashboard({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "2.5rem", alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
           <section>
-            <SectionTitle title="Llegadas de la semana" />
+            <SectionTitle title={labels("logistics.weeklyTitle")} />
             <WeeklyArrivals events={weeklyEvents} />
           </section>
 
           <section>
-            <SectionTitle title="Aprobados para logistica" />
+            <SectionTitle title={labels("logistics.approvedTitle")} />
             <div className="table-container">
               <table>
                 <thead>
                   <tr>
-                    <th>Candidato</th>
-                    <th>Pais</th>
-                    <th>Estado operativo</th>
-                    <th>Accion</th>
+                    <th>{labels("logistics.tableCandidate")}</th>
+                    <th>{labels("logistics.tableCountry")}</th>
+                    <th>{labels("logistics.tableStatus")}</th>
+                    <th>{labels("logistics.tableAction")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {candidateSummaries.length === 0 ? (
                     <tr>
                       <td colSpan={4} style={{ textAlign: "center", padding: "3rem", color: "var(--muted)", fontWeight: "bold", fontSize: "0.875rem" }}>
-                        No hay candidatos aprobados disponibles.
+                        {labels("logistics.noApprovedCandidates")}
                       </td>
                     </tr>
                   ) : (
@@ -207,7 +213,7 @@ export default function LogisticsDashboard({
                               className="button button-secondary"
                               style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem" }}
                             >
-                              Ver candidato
+                              {labels("logistics.viewCandidate")}
                             </Link>
                             <ArrivalReadinessEditor candidate={candidate} />
                           </div>
@@ -219,7 +225,8 @@ export default function LogisticsDashboard({
               </table>
             </div>
             <PaginationControls
-              label="Candidatos logistica"
+              label={labels("logistics.paginationCandidates")}
+              labels={labels}
               page={safeCandidatePage}
               totalPages={candidateTotalPages}
               totalItems={candidateSummaries.length}
@@ -232,11 +239,11 @@ export default function LogisticsDashboard({
           <LogisticsEventForm candidates={pendingCandidates} />
           <div className="card" style={{ marginTop: "1.5rem", padding: "1.25rem" }}>
             <div style={{ fontSize: "0.85rem", fontWeight: 900, textTransform: "uppercase", marginBottom: "1rem" }}>
-              Actividad reciente
+              {labels("logistics.recentActivity")}
             </div>
             {recentActivity.length === 0 ? (
               <div style={{ fontSize: "0.82rem", color: "var(--muted)", fontWeight: 700 }}>
-                Sin cambios recientes en logistica.
+                {labels("logistics.noRecentChanges")}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
@@ -244,18 +251,20 @@ export default function LogisticsDashboard({
                   <div key={entry.id} style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "0.9rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.25rem" }}>
                       <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
-                        {getActivityLabel(entry.action)}
+                        {getActivityLabel(entry.action, labels)}
                       </div>
                       <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
                         {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true, locale: es })}
                       </div>
                     </div>
                     <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)" }}>
-                      {getActivitySummary(entry)}
+                      {getActivitySummary(entry, labels)}
                     </div>
                     {canViewActivityActors ? (
                       <div style={{ marginTop: "0.2rem", fontSize: "0.74rem", color: "var(--muted)" }}>
-                        Por {entry.User?.name || "Sistema"} ({entry.User?.role || "SYSTEM"})
+                        {labels("logistics.activityBy")
+                          .replace("{name}", entry.User?.name || labels("logistics.system"))
+                          .replace("{role}", entry.User?.role || "SYSTEM")}
                       </div>
                     ) : null}
                   </div>
@@ -263,7 +272,8 @@ export default function LogisticsDashboard({
               </div>
             )}
             <PaginationControls
-              label="Actividad"
+              label={labels("logistics.paginationActivity")}
+              labels={labels}
               page={safeActivityPage}
               totalPages={activityTotalPages}
               totalItems={recentActivity.length}
@@ -279,6 +289,7 @@ export default function LogisticsDashboard({
 
 function PaginationControls({
   label,
+  labels,
   page,
   totalPages,
   totalItems,
@@ -286,6 +297,7 @@ function PaginationControls({
   compact = false,
 }: {
   label: string;
+  labels: (key: Parameters<typeof t>[1]) => string;
   page: number;
   totalPages: number;
   totalItems: number;
@@ -298,20 +310,20 @@ function PaginationControls({
     <div className="pagination-bar" style={{ marginTop: compact ? "1rem" : "0.75rem", padding: compact ? "0.7rem" : undefined }}>
       <div className="pagination-controls">
         <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(1)} disabled={page <= 1}>
-          Primera
+          {labels("logistics.pageFirst")}
         </button>
         <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
-          Anterior
+          {labels("logistics.pagePrevious")}
         </button>
         <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
-          Siguiente
+          {labels("logistics.pageNext")}
         </button>
         <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(totalPages)} disabled={page >= totalPages}>
-          Ultima
+          {labels("logistics.pageLast")}
         </button>
       </div>
       <div className="pagination-meta">
-        {label}: pagina {page} de {totalPages} - {totalItems} total
+        {label}: {labels("logistics.pageMeta").replace("{page}", String(page)).replace("{total}", String(totalPages)).replace("{count}", String(totalItems))}
       </div>
     </div>
   );
@@ -403,25 +415,25 @@ function getReadinessBadgeColor(readiness: ReturnType<typeof getArrivalReadiness
   return "#1d4ed8";
 }
 
-function getActivityLabel(action: string) {
+function getActivityLabel(action: string, labels: (key: Parameters<typeof t>[1]) => string) {
   switch (action) {
     case "LOGISTICS_EVENT_CREATED":
-      return "Llegada creada";
+      return labels("logistics.activityCreated");
     case "LOGISTICS_EVENT_UPDATED":
-      return "Llegada actualizada";
+      return labels("logistics.activityUpdated");
     case "LOGISTICS_EVENT_CONFIRMED":
-      return "Llegada confirmada";
+      return labels("logistics.activityConfirmed");
     case "LOGISTICS_EVENT_DELETED":
-      return "Llegada eliminada";
+      return labels("logistics.activityDeleted");
     default:
       return action.replace(/_/g, " ");
   }
 }
 
-function getActivitySummary(entry: Props["recentActivity"][number]) {
+function getActivitySummary(entry: Props["recentActivity"][number], labels: (key: Parameters<typeof t>[1]) => string) {
   const details = entry.details && typeof entry.details === "object" ? entry.details : null;
   if (!details) {
-    return "Cambio logistico registrado.";
+    return labels("logistics.activityGeneric");
   }
 
   const transportType = typeof details.transportType === "string" ? details.transportType : null;
@@ -430,15 +442,15 @@ function getActivitySummary(entry: Props["recentActivity"][number]) {
   const accommodation = typeof details.accommodation === "string" ? details.accommodation : null;
 
   if (entry.action === "LOGISTICS_EVENT_CREATED") {
-    return `Transporte ${transportType ?? "sin definir"} programado.`;
+    return labels("logistics.transportScheduled").replace("{transport}", transportType ?? "sin definir");
   }
 
   if (entry.action === "LOGISTICS_EVENT_CONFIRMED") {
-    return "La llegada fue marcada como confirmada.";
+    return labels("logistics.arrivalConfirmed");
   }
 
   if (entry.action === "LOGISTICS_EVENT_DELETED") {
-    return "Se elimino un evento de llegada.";
+    return labels("logistics.arrivalDeleted");
   }
 
   const parts = [
@@ -447,5 +459,5 @@ function getActivitySummary(entry: Props["recentActivity"][number]) {
     accommodation ? `Alojamiento: ${accommodation}` : null,
   ].filter(Boolean);
 
-  return parts.length > 0 ? parts.join(" · ") : "Se actualizaron datos operativos del handoff.";
+  return parts.length > 0 ? parts.join(" · ") : labels("logistics.updatedFields");
 }

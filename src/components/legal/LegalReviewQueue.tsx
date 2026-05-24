@@ -5,6 +5,7 @@ import { AlertTriangle, LayoutGrid, List, Search, ShieldAlert, TimerReset } from
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { type AppLanguage, t } from "@/lib/i18n";
 import PaginatedList from "@/components/ui/PaginatedList";
 import LegalCandidateCard from "./LegalCandidateCard";
 
@@ -14,12 +15,14 @@ interface Props {
     intermediary: User;
   })[];
   viewerRole: Role;
+  language: AppLanguage;
 }
 
 type QueueFilter = "all" | "ready" | "blocked" | "expiring" | "duplicates";
 type QueueSort = "priority" | "updated" | "name";
 
-export default function LegalReviewQueue({ initialCandidates, viewerRole }: Props) {
+export default function LegalReviewQueue({ initialCandidates, viewerRole, language }: Props) {
+  const labels = t.bind(null, language);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [activeFilter, setActiveFilter] = useState<QueueFilter>("all");
@@ -109,7 +112,7 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole }: Prop
           />
           <input
             type="text"
-            placeholder="BUSCAR POR NOMBRE, PASAPORTE, KARTA O PESEL..."
+            placeholder={labels("legal.searchPlaceholder")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="input"
@@ -119,30 +122,30 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole }: Prop
 
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <FilterChip
-            label={`Todos (${filterCounts.all})`}
+            label={`${labels("legal.filterAll")} (${filterCounts.all})`}
             active={activeFilter === "all"}
             onClick={() => setActiveFilter("all")}
           />
           <FilterChip
-            label={`Listos (${filterCounts.ready})`}
+            label={`${labels("legal.filterReady")} (${filterCounts.ready})`}
             active={activeFilter === "ready"}
             onClick={() => setActiveFilter("ready")}
             tone="success"
           />
           <FilterChip
-            label={`Bloqueados (${filterCounts.blocked})`}
+            label={`${labels("legal.filterBlocked")} (${filterCounts.blocked})`}
             active={activeFilter === "blocked"}
             onClick={() => setActiveFilter("blocked")}
             tone="danger"
           />
           <FilterChip
-            label={`Por vencer (${filterCounts.expiring})`}
+            label={`${labels("legal.filterExpiring")} (${filterCounts.expiring})`}
             active={activeFilter === "expiring"}
             onClick={() => setActiveFilter("expiring")}
             tone="warning"
           />
           <FilterChip
-            label={`Duplicados (${filterCounts.duplicates})`}
+            label={`${labels("legal.filterDuplicates")} (${filterCounts.duplicates})`}
             active={activeFilter === "duplicates"}
             onClick={() => setActiveFilter("duplicates")}
           />
@@ -150,9 +153,9 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole }: Prop
 
         <div className="input-group" style={{ marginBottom: 0, width: "190px" }}>
           <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value as QueueSort)}>
-            <option value="priority">Ordenar por prioridad</option>
-            <option value="updated">Ultima actualizacion</option>
-            <option value="name">Nombre</option>
+            <option value="priority">{labels("legal.sortPriority")}</option>
+            <option value="updated">{labels("legal.sortUpdated")}</option>
+            <option value="name">{labels("legal.sortName")}</option>
           </select>
         </div>
 
@@ -204,24 +207,24 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole }: Prop
             <Search size={32} strokeWidth={2.5} />
           </div>
           <h3 style={{ fontSize: "1.5rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-            NO HAY CANDIDATOS EN ESTE CORTE
+            {labels("legal.emptyTitle")}
           </h3>
           <p style={{ fontWeight: "bold", textTransform: "uppercase", fontSize: "0.875rem" }}>
-            AJUSTE FILTROS O BUSQUEDA PARA VER OTROS CASOS.
+            {labels("legal.emptyDescription")}
           </p>
         </div>
       ) : (
         <>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <QueueSummary icon={<ShieldAlert size={16} />} label="Bloqueados" value={String(filterCounts.blocked)} tone="danger" />
-            <QueueSummary icon={<TimerReset size={16} />} label="Por vencer" value={String(filterCounts.expiring)} tone="warning" />
-            <QueueSummary icon={<AlertTriangle size={16} />} label="Duplicados" value={String(filterCounts.duplicates)} tone="neutral" />
+            <QueueSummary icon={<ShieldAlert size={16} />} label={labels("legal.summaryBlocked")} value={String(filterCounts.blocked)} tone="danger" />
+            <QueueSummary icon={<TimerReset size={16} />} label={labels("legal.summaryExpiring")} value={String(filterCounts.expiring)} tone="warning" />
+            <QueueSummary icon={<AlertTriangle size={16} />} label={labels("legal.summaryDuplicates")} value={String(filterCounts.duplicates)} tone="neutral" />
           </div>
 
           <PaginatedList
             items={filteredCandidates}
             pageSize={view === "grid" ? 6 : 8}
-            label="Revision legal"
+            label={labels("legal.paginationLabel")}
             className={view === "grid" ? "equal-card-grid legal-card-grid" : "legal-list-grid"}
             style={{
               display: "grid",

@@ -106,6 +106,7 @@ export default async function LogisticaPage() {
         weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>["weeklyEvents"]}
         recentActivity={recentActivity as React.ComponentProps<typeof LogisticsDashboard>["recentActivity"]}
         canViewActivityActors={canViewCandidateAudit(tenant.role)}
+        language={language}
       />
     </>
   );

@@ -137,6 +137,7 @@ export default async function LegalPage() {
         <LegalReviewQueue
           initialCandidates={candidates as React.ComponentProps<typeof LegalReviewQueue>["initialCandidates"]}
           viewerRole={tenant.role}
+          language={language}
         />
       </section>
     </>
