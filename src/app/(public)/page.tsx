@@ -11,86 +11,96 @@ import {
   Zap,
 } from "lucide-react";
 import LanguageSwitcher from "@/components/public/LanguageSwitcher";
-import { localizedHref, normalizeLanguage, t } from "@/lib/i18n";
+import { localizedHref, normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 
 const problemCards = [
   {
     icon: Zap,
-    title: "Mensajes Perdidos",
-    text: "Pasaportes en hilos de WhatsApp imposibles de encontrar cuando los necesitas.",
+    title: "public.problem.messagesTitle",
+    text: "public.problem.messagesText",
   },
   {
     icon: FileText,
-    title: "Errores de Datos",
-    text: "Nombres y numeros mal escritos en Excel que causan rechazos legales masivos.",
+    title: "public.problem.dataTitle",
+    text: "public.problem.dataText",
   },
   {
     icon: CalendarDays,
-    title: "Logistica a Ciegas",
-    text: "Nadie sabe quien llega hoy, en que vuelo o quien debe recogerlos.",
+    title: "public.problem.logisticsTitle",
+    text: "public.problem.logisticsText",
   },
-];
+] as const satisfies readonly { icon: typeof Zap; title: TranslationKey; text: TranslationKey }[];
 
 const featureCards = [
   {
     icon: Users,
-    title: "ATS Especializado",
-    text: "Gestion de pipeline visual disenada para procesos internacionales con estados personalizados.",
+    title: "public.features.atsTitle",
+    text: "public.features.atsText",
   },
   {
     icon: Zap,
-    title: "OCR de Documentos",
-    text: "Sube un pasaporte y deja que nuestra IA extraiga los datos automaticamente en segundos.",
+    title: "public.features.ocrTitle",
+    text: "public.features.ocrText",
   },
   {
     icon: ShieldCheck,
-    title: "Modulo Legal",
-    text: "Revisiones estructuradas de documentos, PESEL y Karta Pobytu con trazabilidad completa.",
+    title: "public.features.legalTitle",
+    text: "public.features.legalText",
   },
   {
     icon: Globe2,
-    title: "Gestion Logistica",
-    text: "Coordina vuelos, trenes y transportes. Sincroniza la llegada de tus candidatos en tiempo real.",
+    title: "public.features.logisticsTitle",
+    text: "public.features.logisticsText",
   },
   {
     icon: BarChart3,
-    title: "Reportes Brandeados",
-    text: "Genera informes de rendimiento y cumplimiento legal para tus clientes con tu propia marca.",
+    title: "public.features.reportsTitle",
+    text: "public.features.reportsText",
   },
   {
     icon: CheckCircle2,
-    title: "Multi-Inquilino (SaaS)",
-    text: "Aislamiento total de datos. Tu informacion es solo tuya, protegida y segura.",
+    title: "public.features.saasTitle",
+    text: "public.features.saasText",
   },
-];
+] as const satisfies readonly { icon: typeof Zap; title: TranslationKey; text: TranslationKey }[];
 
-const pricingPlans = [
+type PricingPlan = {
+  badge: TranslationKey;
+  title?: TranslationKey;
+  price?: `EUR ${number}`;
+  suffix?: TranslationKey;
+  items: readonly TranslationKey[];
+  featured: boolean;
+  darkBadge?: boolean;
+};
+
+const pricingPlans: readonly PricingPlan[] = [
   {
-    badge: "Basico",
-    title: "Gratis",
-    items: ["25 Candidatos", "2 Usuarios", "OCR Limitado", "Branding ORI CRUIT HUB"],
+    badge: "public.pricing.basic",
+    title: "public.pricing.free",
+    items: ["public.pricing.candidates25", "public.pricing.users2", "public.pricing.ocrLimited", "public.pricing.brandingOri"],
     featured: false,
   },
   {
-    badge: "Popular",
-    title: "EUR 49",
-    suffix: "/mes",
-    items: ["250 Candidatos", "5 Usuarios", "OCR Estandar", "Exportacion XLSX"],
+    badge: "public.pricing.popular",
+    price: "EUR 49",
+    suffix: "public.pricing.perMonth",
+    items: ["public.pricing.candidates250", "public.pricing.users5", "public.pricing.ocrStandard", "public.pricing.exportXlsx"],
     featured: true,
   },
   {
-    badge: "Profesional",
-    title: "EUR 149",
-    suffix: "/mes",
-    items: ["2500 Candidatos", "20 Usuarios", "OCR Completo", "Paneles Legal/Logistica"],
+    badge: "public.pricing.professional",
+    price: "EUR 149",
+    suffix: "public.pricing.perMonth",
+    items: ["public.pricing.candidates2500", "public.pricing.users20", "public.pricing.ocrFull", "public.pricing.legalLogistics"],
     featured: false,
     darkBadge: true,
   },
   {
-    badge: "Empresa",
-    title: "EUR 349",
-    suffix: "/mes",
-    items: ["10000 Candidatos", "50 Usuarios", "API de Integracion", "Branding Propio"],
+    badge: "public.pricing.company",
+    price: "EUR 349",
+    suffix: "public.pricing.perMonth",
+    items: ["public.pricing.candidates10000", "public.pricing.users50", "public.pricing.apiIntegration", "public.pricing.customBranding"],
     featured: false,
   },
 ];
@@ -208,8 +218,8 @@ export default async function LandingPage({
               return (
                 <div key={card.title} style={{ padding: "2rem", border: "1px solid rgba(255,255,255,0.15)" }}>
                   <Icon size={40} style={{ color: "#ff4d4d", marginBottom: "1.5rem" }} />
-                  <h3 style={{ marginBottom: "1rem" }}>{card.title}</h3>
-                  <p style={{ opacity: 0.75 }}>{card.text}</p>
+                  <h3 style={{ marginBottom: "1rem" }}>{labels(card.title)}</h3>
+                  <p style={{ opacity: 0.75 }}>{labels(card.text)}</p>
                 </div>
               );
             })}
@@ -243,8 +253,8 @@ export default async function LandingPage({
                   }}
                 >
                   <Icon size={32} style={{ color: "var(--amber-flame)", marginBottom: "1.5rem" }} />
-                  <h3 style={{ color: "var(--amber-flame)" }}>{card.title}</h3>
-                  <p>{card.text}</p>
+                  <h3 style={{ color: "var(--amber-flame)" }}>{labels(card.title)}</h3>
+                  <p>{labels(card.text)}</p>
                 </div>
               );
             })}
@@ -264,7 +274,7 @@ export default async function LandingPage({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "2rem" }}>
             {pricingPlans.map((plan) => (
               <div
-                key={plan.title}
+                key={plan.title ?? plan.price}
                 className="card"
                 style={{
                   backgroundColor: "white",
@@ -284,22 +294,22 @@ export default async function LandingPage({
                       color: plan.darkBadge ? "white" : undefined,
                     }}
                   >
-                    {plan.badge}
+                    {labels(plan.badge)}
                   </div>
                   <h3 style={{ fontSize: "2.35rem" }}>
-                    {plan.title}
-                    {plan.suffix ? <span style={{ fontSize: "1rem" }}>{plan.suffix}</span> : null}
+                    {plan.price ?? labels(plan.title ?? "public.pricing.free")}
+                    {plan.suffix ? <span style={{ fontSize: "1rem" }}>{labels(plan.suffix)}</span> : null}
                   </h3>
                 </div>
                 <ul style={{ listStyle: "none", marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
                   {plan.items.map((item) => (
                     <li key={item} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <CheckCircle2 size={18} color="green" /> {item}
+                      <CheckCircle2 size={18} color="green" /> {labels(item)}
                     </li>
                   ))}
                 </ul>
                 <Link href={loginHref} className="button" style={{ width: "100%" }}>
-                  {plan.title === "Gratis" ? labels("public.hero.primaryCta") : "Seleccionar Plan"}
+                  {plan.title === "public.pricing.free" ? labels("public.hero.primaryCta") : labels("public.pricing.selectPlan")}
                 </Link>
               </div>
             ))}
@@ -332,7 +342,7 @@ export default async function LandingPage({
             </Link>
           </div>
           <div style={{ fontSize: "0.8rem", opacity: 0.45 }}>
-            (c) 2026 ORI CRUIT HUB SaaS. Todos los derechos reservados.
+            {labels("public.footer.rights")}
           </div>
         </div>
       </footer>

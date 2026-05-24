@@ -131,14 +131,65 @@ const translations = {
     "public.hero.primaryCta": "Empieza gratis ahora",
     "public.hero.secondaryCta": "Solicitar demo",
     "public.problem.title": "El caos del reclutamiento internacional",
+    "public.problem.messagesTitle": "Mensajes Perdidos",
+    "public.problem.messagesText":
+      "Pasaportes en hilos de WhatsApp imposibles de encontrar cuando los necesitas.",
+    "public.problem.dataTitle": "Errores de Datos",
+    "public.problem.dataText":
+      "Nombres y numeros mal escritos en Excel que causan rechazos legales masivos.",
+    "public.problem.logisticsTitle": "Logistica a Ciegas",
+    "public.problem.logisticsText":
+      "Nadie sabe quien llega hoy, en que vuelo o quien debe recogerlos.",
     "public.features.title": "Centraliza tu crecimiento",
     "public.features.description":
       "ORI CRUIT HUB automatiza las tareas administrativas para que tu equipo se enfoque en el talento.",
+    "public.features.atsTitle": "ATS Especializado",
+    "public.features.atsText":
+      "Gestion de pipeline visual disenada para procesos internacionales con estados personalizados.",
+    "public.features.ocrTitle": "OCR de Documentos",
+    "public.features.ocrText":
+      "Sube un pasaporte y deja que nuestra IA extraiga los datos automaticamente en segundos.",
+    "public.features.legalTitle": "Modulo Legal",
+    "public.features.legalText":
+      "Revisiones estructuradas de documentos, PESEL y Karta Pobytu con trazabilidad completa.",
+    "public.features.logisticsTitle": "Gestion Logistica",
+    "public.features.logisticsText":
+      "Coordina vuelos, trenes y transportes. Sincroniza la llegada de tus candidatos en tiempo real.",
+    "public.features.reportsTitle": "Reportes Brandeados",
+    "public.features.reportsText":
+      "Genera informes de rendimiento y cumplimiento legal para tus clientes con tu propia marca.",
+    "public.features.saasTitle": "Multi-Inquilino (SaaS)",
+    "public.features.saasText":
+      "Aislamiento total de datos. Tu informacion es solo tuya, protegida y segura.",
     "public.pricing.title": "Planes hechos para crecer",
     "public.pricing.description":
       "Elige el plan que mejor se adapte al volumen de tu agencia.",
+    "public.pricing.basic": "Basico",
+    "public.pricing.free": "Gratis",
+    "public.pricing.popular": "Popular",
+    "public.pricing.professional": "Profesional",
+    "public.pricing.company": "Empresa",
+    "public.pricing.perMonth": "/mes",
+    "public.pricing.selectPlan": "Seleccionar Plan",
+    "public.pricing.candidates25": "25 Candidatos",
+    "public.pricing.candidates250": "250 Candidatos",
+    "public.pricing.candidates2500": "2500 Candidatos",
+    "public.pricing.candidates10000": "10000 Candidatos",
+    "public.pricing.users2": "2 Usuarios",
+    "public.pricing.users5": "5 Usuarios",
+    "public.pricing.users20": "20 Usuarios",
+    "public.pricing.users50": "50 Usuarios",
+    "public.pricing.ocrLimited": "OCR Limitado",
+    "public.pricing.ocrStandard": "OCR Estandar",
+    "public.pricing.ocrFull": "OCR Completo",
+    "public.pricing.brandingOri": "Branding ORI CRUIT HUB",
+    "public.pricing.exportXlsx": "Exportacion XLSX",
+    "public.pricing.legalLogistics": "Paneles Legal/Logistica",
+    "public.pricing.apiIntegration": "API de Integracion",
+    "public.pricing.customBranding": "Branding Propio",
     "public.footer.description":
       "Sustituyendo el caos de WhatsApp y Excel con tecnologia disenada para el reclutamiento internacional.",
+    "public.footer.rights": "(c) 2026 ORI CRUIT HUB SaaS. Todos los derechos reservados.",
     "login.badge": "Acceso seguro",
     "login.shellTitle": "Entra a tu mesa de control",
     "login.shellDescription":
@@ -266,14 +317,65 @@ const translations = {
     "public.hero.primaryCta": "Start free now",
     "public.hero.secondaryCta": "Request demo",
     "public.problem.title": "The chaos of international recruitment",
+    "public.problem.messagesTitle": "Lost Messages",
+    "public.problem.messagesText":
+      "Passports buried in WhatsApp threads when your team needs them most.",
+    "public.problem.dataTitle": "Data Errors",
+    "public.problem.dataText":
+      "Names and document numbers mistyped in spreadsheets create legal rejections.",
+    "public.problem.logisticsTitle": "Blind Logistics",
+    "public.problem.logisticsText":
+      "Teams do not know who arrives today, on which flight, or who should pick them up.",
     "public.features.title": "Centralize your growth",
     "public.features.description":
       "ORI CRUIT HUB automates administrative work so your team can focus on talent.",
+    "public.features.atsTitle": "Specialized ATS",
+    "public.features.atsText":
+      "Visual pipeline management designed for international processes with custom statuses.",
+    "public.features.ocrTitle": "Document OCR",
+    "public.features.ocrText":
+      "Upload a passport and let AI extract the data automatically in seconds.",
+    "public.features.legalTitle": "Legal Module",
+    "public.features.legalText":
+      "Structured reviews for passports, PESEL and Karta Pobytu with full traceability.",
+    "public.features.logisticsTitle": "Logistics Management",
+    "public.features.logisticsText":
+      "Coordinate flights, trains and transport. Synchronize candidate arrivals in real time.",
+    "public.features.reportsTitle": "Branded Reports",
+    "public.features.reportsText":
+      "Generate performance and compliance reports for clients with your own brand.",
+    "public.features.saasTitle": "Multi-Tenant SaaS",
+    "public.features.saasText":
+      "Full data isolation. Your information stays yours, protected and secure.",
     "public.pricing.title": "Plans built to scale",
     "public.pricing.description":
       "Choose the plan that fits your agency volume.",
+    "public.pricing.basic": "Basic",
+    "public.pricing.free": "Free",
+    "public.pricing.popular": "Popular",
+    "public.pricing.professional": "Professional",
+    "public.pricing.company": "Company",
+    "public.pricing.perMonth": "/mo",
+    "public.pricing.selectPlan": "Select Plan",
+    "public.pricing.candidates25": "25 Candidates",
+    "public.pricing.candidates250": "250 Candidates",
+    "public.pricing.candidates2500": "2500 Candidates",
+    "public.pricing.candidates10000": "10000 Candidates",
+    "public.pricing.users2": "2 Users",
+    "public.pricing.users5": "5 Users",
+    "public.pricing.users20": "20 Users",
+    "public.pricing.users50": "50 Users",
+    "public.pricing.ocrLimited": "Limited OCR",
+    "public.pricing.ocrStandard": "Standard OCR",
+    "public.pricing.ocrFull": "Full OCR",
+    "public.pricing.brandingOri": "ORI CRUIT HUB branding",
+    "public.pricing.exportXlsx": "XLSX export",
+    "public.pricing.legalLogistics": "Legal/Logistics panels",
+    "public.pricing.apiIntegration": "Integration API",
+    "public.pricing.customBranding": "Custom branding",
     "public.footer.description":
       "Replacing WhatsApp and Excel chaos with software designed for international recruitment.",
+    "public.footer.rights": "(c) 2026 ORI CRUIT HUB SaaS. All rights reserved.",
     "login.badge": "Secure access",
     "login.shellTitle": "Enter your control desk",
     "login.shellDescription":
@@ -401,14 +503,65 @@ const translations = {
     "public.hero.primaryCta": "Zacznij za darmo",
     "public.hero.secondaryCta": "Popros o demo",
     "public.problem.title": "Chaos rekrutacji miedzynarodowej",
+    "public.problem.messagesTitle": "Zagubione wiadomosci",
+    "public.problem.messagesText":
+      "Paszporty ginace w watkach WhatsApp wtedy, gdy zespol potrzebuje ich najbardziej.",
+    "public.problem.dataTitle": "Bledy danych",
+    "public.problem.dataText":
+      "Blednie wpisane nazwiska i numery dokumentow w arkuszach powoduja odrzucenia legalne.",
+    "public.problem.logisticsTitle": "Logistyka bez widocznosci",
+    "public.problem.logisticsText":
+      "Zespol nie wie, kto przylatuje dzisiaj, jakim lotem i kto powinien odebrac kandydata.",
     "public.features.title": "Centralizuj wzrost",
     "public.features.description":
       "ORI CRUIT HUB automatyzuje prace administracyjna, aby zespol mogl skupic sie na kandydatach.",
+    "public.features.atsTitle": "Specjalistyczny ATS",
+    "public.features.atsText":
+      "Wizualne zarzadzanie pipeline stworzone dla procesow miedzynarodowych i niestandardowych statusow.",
+    "public.features.ocrTitle": "OCR dokumentow",
+    "public.features.ocrText":
+      "Przeslij paszport i pozwol AI automatycznie wyciagnac dane w kilka sekund.",
+    "public.features.legalTitle": "Modul legalizacji",
+    "public.features.legalText":
+      "Strukturalne przeglady paszportow, PESEL i Karta Pobytu z pelna historia zmian.",
+    "public.features.logisticsTitle": "Zarzadzanie logistyka",
+    "public.features.logisticsText":
+      "Koordynuj loty, pociagi i transport. Synchronizuj przyjazdy kandydatow w czasie rzeczywistym.",
+    "public.features.reportsTitle": "Raporty z brandingiem",
+    "public.features.reportsText":
+      "Generuj raporty wynikow i zgodnosci dla klientow z wlasna marka.",
+    "public.features.saasTitle": "SaaS multi-tenant",
+    "public.features.saasText":
+      "Pelna izolacja danych. Twoje informacje pozostaja Twoje, chronione i bezpieczne.",
     "public.pricing.title": "Plany stworzone do skalowania",
     "public.pricing.description":
       "Wybierz plan dopasowany do wolumenu Twojej agencji.",
+    "public.pricing.basic": "Podstawowy",
+    "public.pricing.free": "Darmowy",
+    "public.pricing.popular": "Popularny",
+    "public.pricing.professional": "Profesjonalny",
+    "public.pricing.company": "Firma",
+    "public.pricing.perMonth": "/mies.",
+    "public.pricing.selectPlan": "Wybierz plan",
+    "public.pricing.candidates25": "25 kandydatow",
+    "public.pricing.candidates250": "250 kandydatow",
+    "public.pricing.candidates2500": "2500 kandydatow",
+    "public.pricing.candidates10000": "10000 kandydatow",
+    "public.pricing.users2": "2 uzytkownikow",
+    "public.pricing.users5": "5 uzytkownikow",
+    "public.pricing.users20": "20 uzytkownikow",
+    "public.pricing.users50": "50 uzytkownikow",
+    "public.pricing.ocrLimited": "Ograniczony OCR",
+    "public.pricing.ocrStandard": "Standardowy OCR",
+    "public.pricing.ocrFull": "Pelny OCR",
+    "public.pricing.brandingOri": "Branding ORI CRUIT HUB",
+    "public.pricing.exportXlsx": "Eksport XLSX",
+    "public.pricing.legalLogistics": "Panele Legal/Logistyka",
+    "public.pricing.apiIntegration": "API integracji",
+    "public.pricing.customBranding": "Wlasny branding",
     "public.footer.description":
       "Zastepujemy chaos WhatsAppa i Excela technologia stworzona dla rekrutacji miedzynarodowej.",
+    "public.footer.rights": "(c) 2026 ORI CRUIT HUB SaaS. Wszelkie prawa zastrzezone.",
     "login.badge": "Bezpieczny dostep",
     "login.shellTitle": "Wejdz do centrum kontroli",
     "login.shellDescription":
@@ -429,7 +582,7 @@ const translations = {
   },
 } as const;
 
-type TranslationKey = keyof typeof translations.es;
+export type TranslationKey = keyof typeof translations.es;
 
 export function t(language: AppLanguage, key: TranslationKey): string {
   return translations[language][key] ?? translations[DEFAULT_LANGUAGE][key];
