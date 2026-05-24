@@ -1,91 +1,99 @@
+import { auth } from "@/auth";
+import { normalizeLanguage, t } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
-import { Building2, Users, FileText, Activity } from "lucide-react";
+import { Activity, Building2, FileText, Users } from "lucide-react";
 
 export default async function PlatformAdminPage() {
   await requirePlatformAdmin();
+  const session = await auth();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const [orgs, stats] = await Promise.all([
     prisma.organization.findMany({
       include: {
         _count: {
-          select: { memberships: true, candidates: true, documents: true }
-        }
+          select: { memberships: true, candidates: true, documents: true },
+        },
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     }),
     prisma.organization.aggregate({
       _count: { _all: true },
-    })
+    }),
   ]);
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <div className="hero-section" style={{ marginBottom: '2rem' }}>
-        <h1>Platform Administration</h1>
-        <p>Visión global de todos los inquilinos y uso del sistema.</p>
+    <div style={{ padding: "2rem" }}>
+      <div className="hero-section" style={{ marginBottom: "2rem" }}>
+        <h1>{labels("platform.title")}</h1>
+        <p>{labels("platform.description")}</p>
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
+      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
         <div className="card">
           <div className="card-header">
-            <h3>Organizaciones</h3>
+            <h3>{labels("platform.organizations")}</h3>
             <Building2 size={24} />
           </div>
-          <div style={{ fontSize: '2.5rem', fontWeight: '900' }}>{stats._count._all}</div>
+          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{stats._count._all}</div>
         </div>
         <div className="card">
           <div className="card-header">
-            <h3>Usuarios Totales</h3>
+            <h3>{labels("platform.totalUsers")}</h3>
             <Users size={24} />
           </div>
-          <div style={{ fontSize: '2.5rem', fontWeight: '900' }}>{totalUsers}</div>
+          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalUsers}</div>
         </div>
         <div className="card">
           <div className="card-header">
-            <h3>Candidatos Totales</h3>
+            <h3>{labels("platform.totalCandidates")}</h3>
             <FileText size={24} />
           </div>
-          <div style={{ fontSize: '2.5rem', fontWeight: '900' }}>{totalCandidates}</div>
+          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalCandidates}</div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>Tenants Activos</h2>
+          <h2>{labels("platform.activeTenants")}</h2>
           <Activity size={20} />
         </div>
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th>Organización</th>
-                <th>Plan</th>
-                <th>Estado</th>
-                <th>Usuarios</th>
-                <th>Candidatos</th>
-                <th>Docs</th>
-                <th>Creado</th>
+                <th>{labels("platform.organization")}</th>
+                <th>{labels("platform.plan")}</th>
+                <th>{labels("platform.status")}</th>
+                <th>{labels("platform.users")}</th>
+                <th>{labels("platform.candidates")}</th>
+                <th>{labels("platform.documents")}</th>
+                <th>{labels("platform.createdAt")}</th>
               </tr>
             </thead>
             <tbody>
               {orgs.map((org) => (
                 <tr key={org.id}>
-                  <td style={{ fontWeight: 'bold' }}>
+                  <td style={{ fontWeight: "bold" }}>
                     {org.name}
-                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{org.slug}</div>
+                    <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
                   </td>
                   <td>
-                    <span className="status-badge active" style={{ backgroundColor: 'var(--amber-flame)', color: 'var(--pitch-black)' }}>
+                    <span
+                      className="status-badge active"
+                      style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
+                    >
                       {org.plan}
                     </span>
                   </td>
                   <td>
-                    <span className={`status-badge ${org.isActive ? 'active' : ''}`}>
-                      {org.isActive ? 'Activo' : 'Inactivo'}
+                    <span className={`status-badge ${org.isActive ? "active" : ""}`}>
+                      {org.isActive ? labels("platform.active") : labels("platform.inactive")}
                     </span>
                   </td>
                   <td>{org._count.memberships}</td>
