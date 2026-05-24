@@ -7,13 +7,13 @@ import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import {
-  APP_MODULE_LABELS,
   ROLE_PERMISSION_SUMMARIES,
   canAccessModule,
   canInviteUsers,
   canManageMemberRole,
   canViewMemberRole,
   getAccessibleModules,
+  getAppModuleLabel,
   getInvitableRoles,
   roleLabel,
 } from "@/lib/permissions";
@@ -157,7 +157,7 @@ export default async function AjustesPage() {
                   {labels("settings.currentAccessDescription")}
                 </p>
               </div>
-              <span className="status-badge active">{roleLabel(tenant.role)}</span>
+              <span className="status-badge active">{roleLabel(tenant.role, language)}</span>
             </div>
 
             <div className="permission-matrix-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
@@ -178,6 +178,31 @@ export default async function AjustesPage() {
               </div>
             </div>
 
+            <div
+              style={{
+                display: "grid",
+                gap: "0.75rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                marginTop: "1.25rem",
+              }}
+            >
+              {[labels("settings.superadminScope"), labels("settings.adminScope"), labels("settings.operationalScope")].map((item) => (
+                <div
+                  key={item}
+                  style={{
+                    border: "1px solid var(--grey-olive)",
+                    padding: "0.85rem 1rem",
+                    backgroundColor: "rgba(255,255,255,0.6)",
+                    fontSize: "0.9rem",
+                    fontWeight: 800,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+
             <div style={{ marginTop: "1.5rem" }}>
               <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
                 {labels("settings.enabledModules")}
@@ -185,7 +210,7 @@ export default async function AjustesPage() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
                 {accessibleModules.map((module) => (
                   <span key={module} className="status-badge active" style={{ paddingInline: "0.85rem" }}>
-                    {APP_MODULE_LABELS[module]}
+                    {getAppModuleLabel(module, language)}
                   </span>
                 ))}
               </div>
@@ -248,7 +273,7 @@ export default async function AjustesPage() {
                                 membership.role === "SUPERADMIN" ? "var(--ghost-white)" : "var(--pitch-black)",
                             }}
                           >
-                            {roleLabel(membership.role)}
+                            {roleLabel(membership.role, language)}
                           </span>
                         </td>
                         <td>
@@ -264,7 +289,7 @@ export default async function AjustesPage() {
                                 <select name="role" className="select member-role-select" defaultValue={membership.role}>
                                   {assignableRoles.map((role) => (
                                     <option key={role} value={role}>
-                                      {roleLabel(role)}
+                                      {roleLabel(role, language)}
                                     </option>
                                   ))}
                                 </select>
@@ -322,18 +347,18 @@ export default async function AjustesPage() {
                   >
                     {item.scope}
                   </div>
-                  <h3 style={{ marginTop: 0 }}>{roleLabel(item.role)}</h3>
+                <h3 style={{ marginTop: 0 }}>{roleLabel(item.role, language)}</h3>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.85rem" }}>
                     {getAccessibleModules(item.role).map((module) => (
                       <span key={`${item.role}-${module}`} className="status-badge active" style={{ paddingInline: "0.65rem" }}>
-                        {APP_MODULE_LABELS[module]}
+                        {getAppModuleLabel(module, language)}
                       </span>
                     ))}
                   </div>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{item.access}</p>
                   <p style={{ fontSize: "0.85rem", lineHeight: 1.5, fontWeight: 800 }}>{item.management}</p>
                   <p style={{ fontSize: "0.78rem", lineHeight: 1.45, fontWeight: 700, opacity: 0.82 }}>
-                    Usuarios visibles: {item.visibleUsers}
+                    {labels("settings.visibleUsers")}: {item.visibleUsers}
                   </p>
                 </div>
               ))}

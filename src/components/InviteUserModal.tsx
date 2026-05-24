@@ -10,6 +10,8 @@ import {
 import { CheckCircle2, Copy, Loader2, MailWarning, UserPlus, X } from "lucide-react";
 import { inviteUserAction } from "@/app/actions/invitations";
 import { AppLanguage, t } from "@/lib/i18n";
+import { Role } from "@prisma/client";
+import { roleLabel } from "@/lib/permissions";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
@@ -26,11 +28,11 @@ type InviteUserModalProps = {
   language?: AppLanguage;
 };
 
-const ROLE_LABELS: Record<InviteRole, string> = {
-  ADMIN: "Administrador",
-  INTERMEDIARIO: "Intermediario",
-  LEGAL: "Legal",
-  LOGISTICA: "Logistica",
+const ROLE_LABELS: Record<InviteRole, Role> = {
+  ADMIN: "ADMIN",
+  INTERMEDIARIO: "INTERMEDIARIO",
+  LEGAL: "LEGAL",
+  LOGISTICA: "LOGISTICA",
 };
 
 function InviteUserModalPanel({
@@ -260,7 +262,7 @@ function InviteUserModalPanel({
             >
               {allowedRoles.map((role) => (
                 <option key={role} value={role}>
-                  {ROLE_LABELS[role]}
+                  {roleLabel(ROLE_LABELS[role], language)}
                 </option>
               ))}
             </select>

@@ -1,4 +1,5 @@
 import { Role } from "@prisma/client";
+import { AppLanguage, t } from "@/lib/i18n";
 
 const ADMIN_MANAGED_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA] as const;
 const SUPERADMIN_INVITABLE_ROLES = [Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA, Role.ADMIN] as const;
@@ -25,20 +26,25 @@ export type AppModule =
   | "revenue"
   | "marketplace";
 
-export const APP_MODULE_LABELS: Record<AppModule, string> = {
-  dashboard: "Dashboard",
-  candidates: "Candidatos",
-  documents: "Documentos",
-  logistics: "Logistica",
-  legal: "Legal",
-  settings: "Ajustes",
-  billing: "Facturacion",
-  apiKeys: "API Keys",
-  branding: "Branding",
-  leads: "Leads",
-  revenue: "Revenue",
-  marketplace: "Marketplace",
-};
+export function getAppModuleLabel(module: AppModule, language: AppLanguage = "es"): string {
+  const labels = t.bind(null, language);
+  const moduleLabels: Record<AppModule, string> = {
+    dashboard: labels("module.dashboard"),
+    candidates: labels("module.candidates"),
+    documents: labels("module.documents"),
+    logistics: labels("module.logistics"),
+    legal: labels("module.legal"),
+    settings: labels("module.settings"),
+    billing: labels("module.billing"),
+    apiKeys: labels("module.apiKeys"),
+    branding: labels("module.branding"),
+    leads: labels("module.leads"),
+    revenue: labels("module.revenue"),
+    marketplace: labels("module.marketplace"),
+  };
+
+  return moduleLabels[module];
+}
 
 const MODULE_ACCESS: Record<Role, AppModule[]> = {
   [Role.SUPERADMIN]: [
@@ -233,14 +239,15 @@ export function canEditCandidateNotes(viewerRole: Role): boolean {
   return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
 }
 
-export function roleLabel(role: Role): string {
-  const labels: Record<Role, string> = {
-    SUPERADMIN: "Superadmin",
-    ADMIN: "Administrador",
-    INTERMEDIARIO: "Intermediario",
-    LEGAL: "Legal",
-    LOGISTICA: "Logistica",
+export function roleLabel(role: Role, language: AppLanguage = "es"): string {
+  const labels = t.bind(null, language);
+  const keys: Record<Role, string> = {
+    SUPERADMIN: labels("role.superadmin"),
+    ADMIN: labels("role.admin"),
+    INTERMEDIARIO: labels("role.intermediario"),
+    LEGAL: labels("role.legal"),
+    LOGISTICA: labels("role.logistica"),
   };
 
-  return labels[role];
+  return keys[role];
 }

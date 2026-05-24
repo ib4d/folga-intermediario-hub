@@ -4,9 +4,15 @@ import { canAccessModule } from "@/lib/permissions";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { normalizeLanguage, t } from "@/lib/i18n";
 
 export default async function BrandingSettingsPage() {
+  const session = await auth();
   const tenant = await requireTenant();
+  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const labels = t.bind(null, language);
+
   if (!canAccessModule(tenant.role, "branding")) redirect("/sin-permisos");
 
   const org = await prisma.organization.findUnique({
@@ -30,17 +36,17 @@ export default async function BrandingSettingsPage() {
     <div style={{ padding: "2rem", maxWidth: "640px" }}>
       <div style={{ marginBottom: "2rem" }}>
         <Link href="/ajustes" style={{ color: "var(--muted)", textDecoration: "none", fontSize: "0.875rem" }}>
-          ← Volver a Ajustes
+          {labels("settings.backToSettings")}
         </Link>
-        <h1 style={{ marginTop: "0.5rem" }}>Branding de la Organización</h1>
-        <p style={{ opacity: 0.7 }}>Personaliza la apariencia de tu espacio de trabajo.</p>
+        <h1 style={{ marginTop: "0.5rem" }}>{labels("settings.brandingTitle")}</h1>
+        <p style={{ opacity: 0.7 }}>{labels("settings.brandingDescription")}</p>
       </div>
 
       <div className="card">
         <form action={saveBranding} style={{ display: "grid", gap: "1.5rem" }}>
           <div>
             <label htmlFor="logoUrl" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              URL del Logo
+              {labels("settings.logoUrl")}
             </label>
             <input
               id="logoUrl"
@@ -54,7 +60,7 @@ export default async function BrandingSettingsPage() {
             {org.logoUrl && (
               <Image
                 src={org.logoUrl}
-                alt="Logo actual"
+                alt={labels("settings.logoCurrent")}
                 width={160}
                 height={48}
                 unoptimized
@@ -65,7 +71,7 @@ export default async function BrandingSettingsPage() {
 
           <div>
             <label htmlFor="primaryColor" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              Color Primario
+              {labels("settings.primaryColor")}
             </label>
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <input
@@ -88,7 +94,7 @@ export default async function BrandingSettingsPage() {
 
           <div>
             <label htmlFor="secondaryColor" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              Color Secundario
+              {labels("settings.secondaryColor")}
             </label>
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <input
@@ -111,7 +117,7 @@ export default async function BrandingSettingsPage() {
 
           <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--muted)" }}>
             <button type="submit" className="button" style={{ width: "100%" }}>
-              Guardar Cambios
+              {labels("settings.saveChanges")}
             </button>
           </div>
         </form>
