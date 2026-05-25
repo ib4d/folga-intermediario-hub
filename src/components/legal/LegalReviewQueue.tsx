@@ -21,6 +21,16 @@ interface Props {
 
 type QueueFilter = "all" | "ready" | "blocked" | "expiring" | "duplicates";
 type QueueSort = "priority" | "updated" | "name";
+type DuplicateQueueItem = {
+  candidateId: string;
+  candidateName: string;
+  country: string | null;
+  duplicateCount: number;
+  groups: string[];
+  groupCounts: Array<{ count: number }>;
+  blockers: number;
+  warnings: number;
+};
 
 export default function LegalReviewQueue({ initialCandidates, viewerRole, language }: Props) {
   const labels = t.bind(null, language);
@@ -115,6 +125,24 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
           return duplicateScore(b) - duplicateScore(a) || new Date(b.candidate.updatedAt).getTime() - new Date(a.candidate.updatedAt).getTime();
         })
         .slice(0, 4),
+    [candidateRows],
+  );
+
+  const duplicateQueueItems = useMemo<DuplicateQueueItem[]>(
+    () =>
+      [...candidateRows]
+        .filter((row) => row.hasDuplicates)
+        .map((row) => ({
+          candidateId: row.candidate.id,
+          candidateName: `${row.candidate.firstName ?? ""} ${row.candidate.lastName ?? ""}`.trim() || "N/A",
+          country: row.candidate.country,
+          duplicateCount: row.checklist.duplicates.reduce((total, group) => total + group.count, 0),
+          groups: row.checklist.duplicates.map((group) => `${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`),
+          groupCounts: row.checklist.duplicates.map((group) => ({ count: group.count })),
+          blockers: row.checklist.blockers.length,
+          warnings: row.checklist.warnings.length,
+        }))
+        .sort((a, b) => b.duplicateCount - a.duplicateCount || b.blockers - a.blockers || b.warnings - a.warnings),
     [candidateRows],
   );
 
@@ -303,6 +331,68 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
                   </div>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {duplicateQueueItems.length > 0 ? (
+            <div className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.45rem" }}>
+                    <AlertTriangle size={16} strokeWidth={2.75} />
+                    {labels("legal.duplicateWorkbenchTitle")}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "bold", color: "var(--muted)", maxWidth: "720px" }}>
+                    {labels("legal.duplicateWorkbenchDescription")}
+                  </p>
+                </div>
+              </div>
+
+              <PaginatedList
+                items={duplicateQueueItems}
+                pageSize={4}
+                label={labels("legal.duplicateWorkbenchPagination")}
+                className="equal-card-grid legal-duplicate-grid"
+                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}
+                renderItem={(item) => (
+                  <div key={item.candidateId} className="card equal-card" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase", lineHeight: 1.25 }}>
+                          {item.candidateName}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "var(--muted)", marginTop: "0.2rem" }}>
+                          {item.country ?? "N/A"} · {item.groups.length} {labels("legal.summaryDuplicates").toLowerCase()}
+                        </div>
+                      </div>
+                      <span className="status-badge" style={{ backgroundColor: "#fef3c7", color: "#92400e", fontSize: "0.62rem", whiteSpace: "nowrap" }}>
+                        {labels("legal.duplicateWorkbenchBadge")}
+                      </span>
+                    </div>
+
+                    <div style={{ minHeight: "4.8rem", fontSize: "0.72rem", fontWeight: "bold", color: "#7c2d12", lineHeight: 1.55 }}>
+                      {item.groups.slice(0, 4).join(" · ")}
+                    </div>
+
+                    <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "var(--muted)", lineHeight: 1.45 }}>
+                      {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(item.groupCounts, labels)}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginTop: "auto", alignItems: "center" }}>
+                      <div style={{ fontSize: "0.68rem", fontWeight: "900", color: "var(--muted)", textTransform: "uppercase" }}>
+                        {item.blockers > 0
+                          ? `${item.blockers} ${labels("legal.blocked").toLowerCase()}`
+                          : item.warnings > 0
+                            ? `${item.warnings} ${labels("candidateDetail.warnings").toLowerCase()}`
+                            : labels("legal.filterReady")}
+                      </div>
+                      <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
+                        {labels("legal.openCandidate")}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              />
             </div>
           ) : null}
 
