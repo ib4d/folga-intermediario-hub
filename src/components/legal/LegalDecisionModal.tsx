@@ -108,8 +108,17 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
 
   const handleDecisionChange = (nextDecision: "APROBADO" | "RECHAZADO" | "REVISION_ADICIONAL") => {
     setDecision(nextDecision);
-    setCategory("");
-    setFollowUpActions([]);
+    const nextCategory =
+      nextDecision === "REVISION_ADICIONAL" && checklist.duplicates.length > 0
+        ? "Falta clasificar duplicados"
+        : "";
+    const nextFollowUpActions =
+      nextDecision === "REVISION_ADICIONAL" && checklist.duplicates.length > 0
+        ? ["Revisar duplicados / frente-reverso"]
+        : [];
+
+    setCategory(nextCategory);
+    setFollowUpActions(nextFollowUpActions);
     setFormError("");
     if (!notes.trim() && defaultReviewNotes) {
       setNotes(defaultReviewNotes);
@@ -288,6 +297,26 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
               <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
                 {visibleWarnings.slice(0, 4).map((warning, index) => (
                   <li key={`${warning}-${index}`}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {checklist.duplicates.length > 0 ? (
+            <div style={{ padding: "1rem", backgroundColor: "#fff7ed", border: "2px solid #c2410c" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+                <AlertTriangle size={16} /> Duplicados por clasificar
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700, lineHeight: 1.55, color: "#7c2d12" }}>
+                {checklist.duplicates.map((group) => (
+                  <li key={group.key}>
+                    {group.type}
+                    {group.number ? ` (${group.number})` : ""} x{group.count}
+                    {" - "}
+                    {group.count <= 2
+                      ? "Confirmar si es frente y reverso"
+                      : "Mantener un principal y reclasificar soporte/duplicados"}
+                  </li>
                 ))}
               </ul>
             </div>
