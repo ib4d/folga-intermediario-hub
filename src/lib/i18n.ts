@@ -452,6 +452,9 @@ const translations = {
     "legal.focusDuplicates": "Ver solo duplicados",
     "legal.duplicatePriorityBadge": "Prioridad duplicados",
     "legal.openCandidate": "Abrir candidato",
+    "legal.duplicateSuggestedAction": "Siguiente paso sugerido",
+    "legal.duplicateSuggestFrontBack": "Confirmar si es frente/reverso",
+    "legal.duplicateSuggestReclassify": "Conservar un principal y reclasificar soporte/duplicados",
     "legal.duplicateReviewTitle": "Revision de duplicados",
     "legal.duplicateReviewDescription":
       "Hay documentos repetidos que deben clasificarse antes de cerrar la decision legal.",
@@ -1078,6 +1081,9 @@ const translations = {
     "legal.focusDuplicates": "Show duplicates only",
     "legal.duplicatePriorityBadge": "Duplicate priority",
     "legal.openCandidate": "Open candidate",
+    "legal.duplicateSuggestedAction": "Suggested next step",
+    "legal.duplicateSuggestFrontBack": "Confirm whether this is front/back",
+    "legal.duplicateSuggestReclassify": "Keep one primary and reclassify the rest as supporting/duplicate",
     "legal.duplicateReviewTitle": "Duplicate review",
     "legal.duplicateReviewDescription":
       "There are repeated documents that should be classified before closing the legal decision.",
@@ -1704,6 +1710,9 @@ const translations = {
     "legal.focusDuplicates": "Pokaz tylko duplikaty",
     "legal.duplicatePriorityBadge": "Priorytet duplikatow",
     "legal.openCandidate": "Otworz kandydata",
+    "legal.duplicateSuggestedAction": "Sugerowany nastepny krok",
+    "legal.duplicateSuggestFrontBack": "Potwierdz, czy to przod/tyl",
+    "legal.duplicateSuggestReclassify": "Zostaw jeden glowny i przeklasyfikuj reszte jako wsparcie/duplikat",
     "legal.duplicateReviewTitle": "Przeglad duplikatow",
     "legal.duplicateReviewDescription":
       "Sa powtorzone dokumenty, ktore trzeba sklasyfikowac przed zamknieciem decyzji prawnej.",

@@ -286,6 +286,10 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
                         .join(" · ")}
                     </div>
 
+                    <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "var(--muted)", lineHeight: 1.45 }}>
+                      {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(row.checklist.duplicates, labels)}
+                    </div>
+
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginTop: "auto", alignItems: "center" }}>
                       <div style={{ fontSize: "0.68rem", fontWeight: "900", color: "var(--muted)", textTransform: "uppercase" }}>
                         {row.checklist.blockers.length > 0
@@ -330,6 +334,20 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
       )}
     </div>
   );
+}
+
+function getDuplicateSuggestion(
+  duplicates: Array<{
+    count: number;
+  }>,
+  labels: (key: Parameters<typeof t>[1]) => string,
+) {
+  const maxCount = duplicates.reduce((highest, group) => Math.max(highest, group.count), 0);
+  if (maxCount <= 2) {
+    return labels("legal.duplicateSuggestFrontBack");
+  }
+
+  return labels("legal.duplicateSuggestReclassify");
 }
 
 function FilterChip({

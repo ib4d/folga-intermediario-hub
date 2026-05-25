@@ -180,6 +180,9 @@ export default function LegalCandidateCard({ candidate, viewerRole, language }: 
               .map((group) => `${labels("legal.duplicateDetected")}: ${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`)
               .join(" | ")}
           </ExpandableText>
+          <div style={{ marginTop: "0.45rem", fontSize: "0.7rem", fontWeight: "800", color: "#9a3412", lineHeight: 1.45 }}>
+            {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(checklist.duplicates, labels)}
+          </div>
         </div>
       ) : null}
 
@@ -263,4 +266,18 @@ export default function LegalCandidateCard({ candidate, viewerRole, language }: 
       <LegalDecisionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} candidate={candidate} viewerRole={viewerRole} />
     </div>
   );
+}
+
+function getDuplicateSuggestion(
+  duplicates: Array<{
+    count: number;
+  }>,
+  labels: (key: Parameters<typeof t>[1]) => string,
+) {
+  const maxCount = duplicates.reduce((highest, group) => Math.max(highest, group.count), 0);
+  if (maxCount <= 2) {
+    return labels("legal.duplicateSuggestFrontBack");
+  }
+
+  return labels("legal.duplicateSuggestReclassify");
 }
