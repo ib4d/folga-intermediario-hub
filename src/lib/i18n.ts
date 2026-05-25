@@ -446,6 +446,12 @@ const translations = {
     "legal.summaryBlocked": "Bloqueados",
     "legal.summaryExpiring": "Por vencer",
     "legal.summaryDuplicates": "Duplicados",
+    "legal.duplicateQueueTitle": "Cola prioritaria de duplicados",
+    "legal.duplicateQueueDescription":
+      "Casos con documentos repetidos que conviene revisar antes de cerrar la decision legal.",
+    "legal.focusDuplicates": "Ver solo duplicados",
+    "legal.duplicatePriorityBadge": "Prioridad duplicados",
+    "legal.openCandidate": "Abrir candidato",
     "legal.duplicateReviewTitle": "Revision de duplicados",
     "legal.duplicateReviewDescription":
       "Hay documentos repetidos que deben clasificarse antes de cerrar la decision legal.",
@@ -1066,6 +1072,12 @@ const translations = {
     "legal.summaryBlocked": "Blocked",
     "legal.summaryExpiring": "Expiring soon",
     "legal.summaryDuplicates": "Duplicates",
+    "legal.duplicateQueueTitle": "Duplicate priority queue",
+    "legal.duplicateQueueDescription":
+      "Cases with repeated documents that should be checked before closing the legal decision.",
+    "legal.focusDuplicates": "Show duplicates only",
+    "legal.duplicatePriorityBadge": "Duplicate priority",
+    "legal.openCandidate": "Open candidate",
     "legal.duplicateReviewTitle": "Duplicate review",
     "legal.duplicateReviewDescription":
       "There are repeated documents that should be classified before closing the legal decision.",
@@ -1686,6 +1698,12 @@ const translations = {
     "legal.summaryBlocked": "Zablokowane",
     "legal.summaryExpiring": "Wygasa wkrotce",
     "legal.summaryDuplicates": "Duplikaty",
+    "legal.duplicateQueueTitle": "Priorytetowa kolejka duplikatow",
+    "legal.duplicateQueueDescription":
+      "Sprawy z powtorzonymi dokumentami, ktore warto sprawdzic przed zamknieciem decyzji prawnej.",
+    "legal.focusDuplicates": "Pokaz tylko duplikaty",
+    "legal.duplicatePriorityBadge": "Priorytet duplikatow",
+    "legal.openCandidate": "Otworz kandydata",
     "legal.duplicateReviewTitle": "Przeglad duplikatow",
     "legal.duplicateReviewDescription":
       "Sa powtorzone dokumenty, ktore trzeba sklasyfikowac przed zamknieciem decyzji prawnej.",

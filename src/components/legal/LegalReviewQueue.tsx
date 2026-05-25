@@ -4,6 +4,7 @@ import { Candidate, Document, Role, User } from "@prisma/client";
 import { AlertTriangle, LayoutGrid, List, Search, ShieldAlert, TimerReset } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { type AppLanguage, t } from "@/lib/i18n";
 import PaginatedList from "@/components/ui/PaginatedList";
@@ -100,6 +101,22 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
 
     return sortedRows;
   }, [activeFilter, candidateRows, search, sortBy]);
+
+  const duplicatePriorityRows = useMemo(
+    () =>
+      [...candidateRows]
+        .filter((row) => row.hasDuplicates)
+        .sort((a, b) => {
+          const duplicateScore = (row: (typeof candidateRows)[number]) =>
+            row.checklist.duplicates.reduce((total, group) => total + group.count, 0) +
+            row.checklist.blockers.length * 2 +
+            row.checklist.warnings.length;
+
+          return duplicateScore(b) - duplicateScore(a) || new Date(b.candidate.updatedAt).getTime() - new Date(a.candidate.updatedAt).getTime();
+        })
+        .slice(0, 4),
+    [candidateRows],
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -215,6 +232,76 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
         </div>
       ) : (
         <>
+          {duplicatePriorityRows.length > 0 ? (
+            <div className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.45rem" }}>
+                    <AlertTriangle size={16} strokeWidth={2.75} />
+                    {labels("legal.duplicateQueueTitle")}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "bold", color: "var(--muted)", maxWidth: "720px" }}>
+                    {labels("legal.duplicateQueueDescription")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => setActiveFilter("duplicates")}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {labels("legal.focusDuplicates")}
+                </button>
+              </div>
+
+              <div className="equal-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+                {duplicatePriorityRows.map((row) => (
+                  <div key={row.candidate.id} className="card equal-card" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase", lineHeight: 1.25 }}>
+                          {row.candidate.firstName} {row.candidate.lastName}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "var(--muted)", marginTop: "0.2rem" }}>
+                          {row.candidate.country} · {row.checklist.stats.duplicateGroups} {labels("legal.summaryDuplicates").toLowerCase()}
+                        </div>
+                      </div>
+                      <span
+                        className="status-badge"
+                        style={{
+                          backgroundColor: row.checklist.blockers.length > 0 ? "#fee2e2" : "#fef3c7",
+                          color: row.checklist.blockers.length > 0 ? "#991b1b" : "#92400e",
+                          fontSize: "0.62rem",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {labels("legal.duplicatePriorityBadge")}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "#7c2d12", lineHeight: 1.55, minHeight: "4.2rem" }}>
+                      {row.checklist.duplicates
+                        .slice(0, 3)
+                        .map((group) => `${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`)
+                        .join(" · ")}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginTop: "auto", alignItems: "center" }}>
+                      <div style={{ fontSize: "0.68rem", fontWeight: "900", color: "var(--muted)", textTransform: "uppercase" }}>
+                        {row.checklist.blockers.length > 0
+                          ? `${row.checklist.blockers.length} ${labels("legal.blocked").toLowerCase()}`
+                          : labels("legal.filterReady")}
+                      </div>
+                      <Link href={`/candidatos/${row.candidate.id}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
+                        {labels("legal.openCandidate")}
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             <QueueSummary icon={<ShieldAlert size={16} />} label={labels("legal.summaryBlocked")} value={String(filterCounts.blocked)} tone="danger" />
             <QueueSummary icon={<TimerReset size={16} />} label={labels("legal.summaryExpiring")} value={String(filterCounts.expiring)} tone="warning" />
