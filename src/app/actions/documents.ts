@@ -503,6 +503,36 @@ function scoreSmartOcrForCandidateResolution(
   return score;
 }
 
+function buildIdentityLookupKeys(input: {
+  ocrData: OcrData;
+  fileName?: string | null;
+  candidate?: { firstName: string | null; lastName: string | null } | null;
+}) {
+  const keys = new Set<string>();
+  const ocrSignature = candidateNameSignature(input.ocrData?.firstName, input.ocrData?.lastName);
+  const fileNameHints = input.fileName ? extractNameHintsFromFileName(input.fileName) : null;
+  const fileSignature = candidateNameSignature(fileNameHints?.firstName, fileNameHints?.lastName);
+  const candidateSignature = input.candidate
+    ? candidateNameSignature(input.candidate.firstName, input.candidate.lastName)
+    : "";
+  const normalizedDob = normalizeOptionalString(input.ocrData?.dateOfBirth);
+  const documentNumber = normalizeOptionalString(input.ocrData?.documentNumber);
+  const personalNumber = normalizeOptionalString(input.ocrData?.personalNumber);
+
+  for (const key of [documentNumber, personalNumber, ocrSignature, fileSignature, candidateSignature]) {
+    if (key) keys.add(key);
+  }
+
+  if (normalizedDob) {
+    keys.add(`DOB:${normalizedDob}`);
+    if (ocrSignature) keys.add(`DOBSIG:${normalizedDob}:${ocrSignature}`);
+    if (fileSignature) keys.add(`DOBSIG:${normalizedDob}:${fileSignature}`);
+    if (candidateSignature) keys.add(`DOBSIG:${normalizedDob}:${candidateSignature}`);
+  }
+
+  return Array.from(keys);
+}
+
 async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparation> {
   const normalizedMimeType = normalizeMimeType(file);
 
@@ -581,14 +611,14 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
 function rememberBatchCandidate(
   batchCandidates: Map<string, string>,
   candidate: { id: string; firstName: string | null; lastName: string | null },
-  ocrData: OcrData
+  ocrData: OcrData,
+  fileName?: string | null
 ) {
-  for (const key of [
-    normalizeOptionalString(ocrData?.documentNumber),
-    normalizeOptionalString(ocrData?.personalNumber),
-    candidateNameSignature(ocrData?.firstName, ocrData?.lastName),
-    candidateNameSignature(candidate.firstName, candidate.lastName),
-  ]) {
+  for (const key of buildIdentityLookupKeys({
+    ocrData,
+    fileName,
+    candidate,
+  })) {
     if (key) {
       batchCandidates.set(key, candidate.id);
     }
@@ -740,8 +770,9 @@ async function resolveSmartUploadCandidate(
   const docNumber = normalizeOptionalString(ocrData?.documentNumber);
   const personalNumber = normalizeOptionalString(ocrData?.personalNumber);
   const ocrNameSignature = candidateNameSignature(ocrData?.firstName, ocrData?.lastName);
+  const identityLookupKeys = buildIdentityLookupKeys({ ocrData, fileName: file.name });
 
-  for (const key of [docNumber, personalNumber, ocrNameSignature]) {
+  for (const key of identityLookupKeys) {
     if (!key) continue;
     const cachedCandidateId = batchCandidates.get(key);
     if (!cachedCandidateId) continue;
@@ -1608,7 +1639,7 @@ export async function smartBatchUpload(formData: FormData) {
         );
 
         batchAnchorCandidateId = resolved.candidate.id;
-        rememberBatchCandidate(batchCandidates, resolved.candidate, prepared.ocrData);
+        rememberBatchCandidate(batchCandidates, resolved.candidate, prepared.ocrData, prepared.file.name);
         break;
       } catch (error) {
         console.warn("[smartBatchUpload] anchor resolution skipped", {
@@ -1671,7 +1702,7 @@ export async function smartBatchUpload(formData: FormData) {
         if (result.status === "DUPLICATE_DOCUMENT" && result.documentId && ocrData) {
           await mergeOcrIntoExistingDocument(result.documentId, docType, ocrData);
           await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-          rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
+          rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData, file.name);
           await syncCandidateOperationalAlerts({
             candidateId: resolved.candidate.id,
             organizationId: tenant.organizationId!,
@@ -1705,7 +1736,7 @@ export async function smartBatchUpload(formData: FormData) {
       if (ocrData) {
         await persistExtractedData(result.documentId, docType, ocrData);
         await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-        rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
+        rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData, file.name);
       } else if (isOcrSupported(docType)) {
         await markDocumentOcrFailed(
           result.documentId,
