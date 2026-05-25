@@ -545,6 +545,19 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                                       ? (doc.extractedData as Record<string, unknown>)
                                       : null,
                                 }}
+                                allDocuments={candidate.documents.map((candidateDoc) => ({
+                                  id: candidateDoc.id,
+                                  type: candidateDoc.type,
+                                  number: candidateDoc.number,
+                                  expiryDate: candidateDoc.expiryDate,
+                                  issueDate: candidateDoc.issueDate,
+                                  extractedData:
+                                    candidateDoc.extractedData &&
+                                    typeof candidateDoc.extractedData === "object" &&
+                                    !Array.isArray(candidateDoc.extractedData)
+                                      ? (candidateDoc.extractedData as Record<string, unknown>)
+                                      : null,
+                                }))}
                               />
                             ) : null}
                             <a

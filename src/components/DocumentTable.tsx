@@ -232,7 +232,7 @@ export default function DocumentTable({
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                        {canReviewDocuments ? <DocumentReviewModal doc={doc} /> : null}
+                        {canReviewDocuments ? <DocumentReviewModal doc={doc} allDocuments={initialDocuments.filter((candidateDoc) => candidateDoc.candidateId === doc.candidateId)} /> : null}
                         <Link
                           href={`/candidatos/${doc.candidateId}`}
                           className="button button-secondary"

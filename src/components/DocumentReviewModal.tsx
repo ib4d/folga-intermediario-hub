@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Loader2, PencilLine, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { reviewDocumentOcr } from "@/app/actions/documents";
+import { getDocumentDisplayNumber, getDocumentDisposition } from "@/lib/document-display";
 
 type ReviewableDocument = {
   id: string;
@@ -13,6 +14,47 @@ type ReviewableDocument = {
   issueDate: string | Date | null;
   extractedData: Record<string, unknown> | null;
 };
+
+type DuplicateContext = {
+  type: string;
+  number: string | null;
+  count: number;
+  suggestion: string;
+};
+
+function buildDuplicateContext(doc: ReviewableDocument, allDocuments: ReviewableDocument[]): DuplicateContext | null {
+  const currentNumber = getDocumentDisplayNumber(doc);
+  const currentDisposition = getDocumentDisposition(doc);
+
+  if (!currentNumber || currentDisposition === "BACK" || currentDisposition === "SUPPORTING") {
+    return null;
+  }
+
+  const matchingDocuments = allDocuments.filter((candidateDocument) => {
+    if (candidateDocument.type !== doc.type) return false;
+
+    const candidateDisposition = getDocumentDisposition(candidateDocument);
+    if (candidateDisposition === "BACK" || candidateDisposition === "SUPPORTING") {
+      return false;
+    }
+
+    return getDocumentDisplayNumber(candidateDocument) === currentNumber;
+  });
+
+  if (matchingDocuments.length <= 1) {
+    return null;
+  }
+
+  return {
+    type: doc.type,
+    number: currentNumber,
+    count: matchingDocuments.length,
+    suggestion:
+      matchingDocuments.length <= 2
+        ? "Sugerencia: confirma si este grupo corresponde a frente y reverso antes de dejarlo como duplicado."
+        : "Sugerencia: conserva un principal y reclasifica el resto como soporte o duplicado real.",
+  };
+}
 
 function toDateInputValue(value: string | Date | null | undefined): string {
   if (!value) return "";
@@ -65,11 +107,18 @@ function deriveInitialState(doc: ReviewableDocument) {
   };
 }
 
-export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }) {
+export default function DocumentReviewModal({
+  doc,
+  allDocuments = [],
+}: {
+  doc: ReviewableDocument;
+  allDocuments?: ReviewableDocument[];
+}) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const initialState = useMemo(() => deriveInitialState(doc), [doc]);
+  const duplicateContext = useMemo(() => buildDuplicateContext(doc, allDocuments), [allDocuments, doc]);
   const [form, setForm] = useState(initialState);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -169,6 +218,24 @@ export default function DocumentReviewModal({ doc }: { doc: ReviewableDocument }
               <p className="form-message-error" style={{ marginBottom: "1rem" }}>
                 OCR no pudo completar este documento: {form.ocrError}
               </p>
+            ) : null}
+            {duplicateContext ? (
+              <div
+                style={{
+                  marginBottom: "1rem",
+                  border: "1px solid #f59e0b",
+                  background: "#fffbeb",
+                  padding: "0.85rem 1rem",
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 800 }}>
+                  Duplicado detectado: {duplicateContext.type}
+                  {duplicateContext.number ? ` (${duplicateContext.number})` : ""} x{duplicateContext.count}
+                </p>
+                <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontSize: "0.875rem" }}>
+                  {duplicateContext.suggestion}
+                </p>
+              </div>
             ) : null}
 
             <div className="compact-stack">
