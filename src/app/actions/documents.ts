@@ -112,6 +112,18 @@ function candidateNameSignature(firstName: string | null | undefined, lastName: 
   return Array.from(buildCandidateTokenSet(firstName, lastName)).sort().join(" ");
 }
 
+function sharedTokenCount(
+  leftFirstName: string | null | undefined,
+  leftLastName: string | null | undefined,
+  rightFirstName: string | null | undefined,
+  rightLastName: string | null | undefined
+) {
+  const leftTokens = buildCandidateTokenSet(leftFirstName, leftLastName);
+  const rightTokens = buildCandidateTokenSet(rightFirstName, rightLastName);
+
+  return Array.from(leftTokens).filter((token) => rightTokens.has(token)).length;
+}
+
 function datesMatch(a: Date | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
   return a.toISOString().slice(0, 10) === b;
@@ -533,6 +545,125 @@ function buildIdentityLookupKeys(input: {
   return Array.from(keys);
 }
 
+function scoreBatchCandidateHeuristicMatch(input: {
+  candidate: { firstName: string | null; lastName: string | null; dateOfBirth: Date | null };
+  ocrData: OcrData;
+  fileNameHints: ReturnType<typeof extractNameHintsFromFileName>;
+}) {
+  const candidateSignature = candidateNameSignature(
+    input.candidate.firstName,
+    input.candidate.lastName
+  );
+  const ocrSignature = candidateNameSignature(
+    input.ocrData?.firstName,
+    input.ocrData?.lastName
+  );
+  const fileSignature = candidateNameSignature(
+    input.fileNameHints.firstName,
+    input.fileNameHints.lastName
+  );
+
+  let score = 0;
+
+  if (ocrSignature && candidateSignature && ocrSignature === candidateSignature) {
+    score += 6;
+  } else if (hasStrongCandidateNameMatch(input.candidate, input.ocrData)) {
+    score += 5;
+  } else {
+    const ocrSharedTokens = sharedTokenCount(
+      input.ocrData?.firstName,
+      input.ocrData?.lastName,
+      input.candidate.firstName,
+      input.candidate.lastName
+    );
+
+    if (ocrSharedTokens >= 2) score += 3;
+    else if (ocrSharedTokens === 1) score += 1;
+  }
+
+  if (fileSignature && candidateSignature && fileSignature === candidateSignature) {
+    score += 4;
+  } else {
+    const fileSharedTokens = sharedTokenCount(
+      input.fileNameHints.firstName,
+      input.fileNameHints.lastName,
+      input.candidate.firstName,
+      input.candidate.lastName
+    );
+
+    if (fileSharedTokens >= 2) score += 2;
+    else if (fileSharedTokens === 1) score += 1;
+  }
+
+  if (datesMatch(input.candidate.dateOfBirth, input.ocrData?.dateOfBirth)) {
+    score += 3;
+  }
+
+  return score;
+}
+
+async function findBestBatchCandidateHeuristicMatch(
+  tenant: Awaited<ReturnType<typeof requireTenant>>,
+  batchCandidates: Map<string, string>,
+  ocrData: OcrData,
+  fileName: string,
+  batchAnchorCandidateId: string | null
+) {
+  const candidateIds = Array.from(
+    new Set([
+      ...batchCandidates.values(),
+      ...(batchAnchorCandidateId ? [batchAnchorCandidateId] : []),
+    ])
+  );
+
+  if (candidateIds.length === 0) return null;
+
+  const batchCandidatePool = await prisma.candidate.findMany({
+    where: {
+      id: { in: candidateIds },
+      organizationId: tenant.organizationId!,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      createdAt: true,
+    },
+  });
+
+  if (batchCandidatePool.length === 0) return null;
+
+  const fileNameHints = extractNameHintsFromFileName(fileName);
+  const scoredCandidates = batchCandidatePool
+    .map((candidate) => ({
+      candidate,
+      score: scoreBatchCandidateHeuristicMatch({
+        candidate,
+        ocrData,
+        fileNameHints,
+      }),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return right.candidate.createdAt.getTime() - left.candidate.createdAt.getTime();
+    });
+
+  if (scoredCandidates.length === 0) return null;
+
+  const [bestMatch, secondMatch] = scoredCandidates;
+  const bestIsConfident = bestMatch.score >= 5;
+  const clearlyBetterThanNext =
+    !secondMatch || bestMatch.score - secondMatch.score >= 2;
+
+  if (!bestIsConfident || !clearlyBetterThanNext) {
+    return null;
+  }
+
+  return bestMatch.candidate;
+}
+
 async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparation> {
   const normalizedMimeType = normalizeMimeType(file);
 
@@ -829,6 +960,21 @@ async function resolveSmartUploadCandidate(
   const fileNameHints = extractNameHintsFromFileName(file.name);
   const firstName = ocrFirstName ?? fileNameHints.firstName;
   const lastName = ocrLastName ?? fileNameHints.lastName;
+  const hasStandaloneIdentity = Boolean(docNumber || personalNumber || (firstName && lastName));
+
+  if (!hasStandaloneIdentity || !(docNumber || personalNumber)) {
+    const heuristicBatchMatch = await findBestBatchCandidateHeuristicMatch(
+      tenant,
+      batchCandidates,
+      ocrData,
+      file.name,
+      batchAnchorCandidateId
+    );
+
+    if (heuristicBatchMatch) {
+      return { candidate: heuristicBatchMatch, created: false };
+    }
+  }
 
   if (firstName && lastName) {
     const byName = await prisma.candidate.findFirst({
@@ -868,7 +1014,6 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  const hasStandaloneIdentity = Boolean(docNumber || personalNumber || (firstName && lastName));
   if (batchAnchorCandidateId && !hasStandaloneIdentity) {
     const batchCandidate = await prisma.candidate.findFirst({
       where: {
