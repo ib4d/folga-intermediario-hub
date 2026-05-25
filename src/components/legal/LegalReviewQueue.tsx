@@ -230,7 +230,14 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
               display: "grid",
               gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr",
             }}
-            renderItem={(row) => <LegalCandidateCard key={row.candidate.id} candidate={row.candidate} viewerRole={viewerRole} />}
+            renderItem={(row) => (
+              <LegalCandidateCard
+                key={row.candidate.id}
+                candidate={row.candidate}
+                viewerRole={viewerRole}
+                language={language}
+              />
+            )}
           />
         </>
       )}

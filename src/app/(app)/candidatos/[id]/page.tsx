@@ -7,6 +7,7 @@ import DocumentUploadButton from "@/components/DocumentUploadButton";
 import RequestLegalReview from "@/components/RequestLegalReview";
 import UpdateNotes from "@/components/UpdateNotes";
 import UpdatePaymentStatus from "@/components/UpdatePaymentStatus";
+import ExpandableText from "@/components/ui/ExpandableText";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import {
@@ -633,6 +634,29 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     <li key={`${warning}-${index}`}>- {warning}</li>
                   ))}
                 </ul>
+              </div>
+            ) : null}
+
+            {checklist.duplicates.length > 0 ? (
+              <div className="mt-6 p-4 bg-orange-50 rounded-2xl border border-orange-100 space-y-3">
+                <div className="flex items-center gap-2 text-orange-700 font-bold text-xs uppercase">
+                  <AlertTriangle size={14} /> {labels("candidateDetail.duplicateReviewTitle")}
+                </div>
+                <p className="text-xs font-semibold text-orange-800">
+                  {labels("candidateDetail.duplicateReviewDescription")}
+                </p>
+                <div className="space-y-2">
+                  {checklist.duplicates.map((group) => (
+                    <div key={group.key} className="rounded-xl border border-orange-100 bg-white/80 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-orange-600">
+                        {labels("candidateDetail.duplicateDetected")}
+                      </div>
+                      <ExpandableText maxLength={72} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", fontWeight: 800, color: "#9a3412" }}>
+                        {`${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`}
+                      </ExpandableText>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

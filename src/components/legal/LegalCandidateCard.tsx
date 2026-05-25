@@ -3,6 +3,7 @@
 import { Candidate, Document, Role, User } from "@prisma/client";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
+import { type AppLanguage, t } from "@/lib/i18n";
 import { canViewCandidatePayment } from "@/lib/permissions";
 import { AlertCircle, FileText, MapPin, ShieldAlert, User as UserIcon } from "lucide-react";
 import { useState } from "react";
@@ -16,10 +17,12 @@ interface Props {
     intermediary: User;
   };
   viewerRole: Role;
+  language: AppLanguage;
 }
 
-export default function LegalCandidateCard({ candidate, viewerRole }: Props) {
+export default function LegalCandidateCard({ candidate, viewerRole, language }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const labels = t.bind(null, language);
   const checklist = getCandidateDocumentChecklist(candidate);
   const legalOutcome = getCandidateLegalOutcome(candidate);
   const canViewPayment = canViewCandidatePayment(viewerRole);
@@ -159,6 +162,23 @@ export default function LegalCandidateCard({ candidate, viewerRole }: Props) {
           </div>
           <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
             {checklist.blockers.map((blocker) => `- ${blocker}`).join(" | ")}
+          </ExpandableText>
+        </div>
+      ) : null}
+
+      {checklist.duplicates.length > 0 ? (
+        <div style={{ padding: "0.75rem 1.5rem", backgroundColor: "#fff7ed", borderBottom: "2px solid var(--pitch-black)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+            <ShieldAlert size={14} strokeWidth={3} />
+            {labels("legal.duplicateReviewTitle")}
+          </div>
+          <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "#9a3412", marginBottom: "0.45rem", lineHeight: 1.5 }}>
+            {labels("legal.duplicateReviewDescription")}
+          </div>
+          <ExpandableText maxLength={130} style={{ display: "block", fontSize: "0.72rem", fontWeight: "bold", lineHeight: 1.5, color: "#7c2d12" }}>
+            {checklist.duplicates
+              .map((group) => `${labels("legal.duplicateDetected")}: ${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`)
+              .join(" | ")}
           </ExpandableText>
         </div>
       ) : null}

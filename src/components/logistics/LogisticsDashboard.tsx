@@ -174,7 +174,7 @@ export default function LogisticsDashboard({
                       </td>
                     </tr>
                   ) : (
-                    visibleCandidateSummaries.map(({ candidate, legalOutcome, arrivalReadiness, operationalAlerts }) => (
+                    visibleCandidateSummaries.map(({ candidate, checklist, legalOutcome, arrivalReadiness, operationalAlerts }) => (
                       <tr key={candidate.id}>
                         <td style={{ fontWeight: "900" }}>{candidate.firstName} {candidate.lastName}</td>
                         <td style={{ fontWeight: "bold" }}>{candidate.country}</td>
@@ -209,6 +209,11 @@ export default function LogisticsDashboard({
                             {operationalAlerts.length > 0 ? (
                               <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#92400e" }}>
                                 {operationalAlerts.map((alert) => alert.title).join(" · ")}
+                              </ExpandableText>
+                            ) : null}
+                            {checklist.duplicates.length > 0 ? (
+                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#7c2d12" }}>
+                                {`${labels("logistics.duplicateReviewLabel")}: ${checklist.duplicates.map((group) => `${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`).join(" · ")}`}
                               </ExpandableText>
                             ) : null}
                           </div>
