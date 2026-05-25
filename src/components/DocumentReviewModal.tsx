@@ -22,6 +22,11 @@ type DuplicateContext = {
   suggestion: string;
 };
 
+type DispositionOption = {
+  value: "PRIMARY" | "FRONT" | "BACK" | "SUPPORTING" | "DUPLICATE";
+  label: string;
+};
+
 function buildDuplicateContext(doc: ReviewableDocument, allDocuments: ReviewableDocument[]): DuplicateContext | null {
   const currentNumber = getDocumentDisplayNumber(doc);
   const currentDisposition = getDocumentDisposition(doc);
@@ -54,6 +59,26 @@ function buildDuplicateContext(doc: ReviewableDocument, allDocuments: Reviewable
         ? "Sugerencia: confirma si este grupo corresponde a frente y reverso antes de dejarlo como duplicado."
         : "Sugerencia: conserva un principal y reclasifica el resto como soporte o duplicado real.",
   };
+}
+
+function getSuggestedDispositionOptions(duplicateContext: DuplicateContext | null): DispositionOption[] {
+  if (!duplicateContext) {
+    return [];
+  }
+
+  if (duplicateContext.count <= 2) {
+    return [
+      { value: "PRIMARY", label: "Mantener principal" },
+      { value: "FRONT", label: "Marcar como frente" },
+      { value: "BACK", label: "Marcar como reverso" },
+    ];
+  }
+
+  return [
+    { value: "PRIMARY", label: "Mantener principal" },
+    { value: "SUPPORTING", label: "Marcar como soporte" },
+    { value: "DUPLICATE", label: "Marcar como duplicado" },
+  ];
 }
 
 function toDateInputValue(value: string | Date | null | undefined): string {
@@ -119,6 +144,10 @@ export default function DocumentReviewModal({
   const [isPending, startTransition] = useTransition();
   const initialState = useMemo(() => deriveInitialState(doc), [doc]);
   const duplicateContext = useMemo(() => buildDuplicateContext(doc, allDocuments), [allDocuments, doc]);
+  const suggestedDispositionOptions = useMemo(
+    () => getSuggestedDispositionOptions(duplicateContext),
+    [duplicateContext],
+  );
   const [form, setForm] = useState(initialState);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -235,6 +264,28 @@ export default function DocumentReviewModal({
                 <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontSize: "0.875rem" }}>
                   {duplicateContext.suggestion}
                 </p>
+                {suggestedDispositionOptions.length > 0 ? (
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+                    {suggestedDispositionOptions.map((option) => {
+                      const isActive = form.documentDisposition === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className="button button-secondary"
+                          style={{
+                            padding: "0.4rem 0.75rem",
+                            fontSize: "0.75rem",
+                            backgroundColor: isActive ? "var(--primary)" : "var(--background)",
+                          }}
+                          onClick={() => setField("documentDisposition", option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
