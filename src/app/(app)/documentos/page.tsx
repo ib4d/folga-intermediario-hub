@@ -22,6 +22,10 @@ export default async function DocumentosPage({
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const withCount = (key: Parameters<typeof labels>[0], count: number) =>
+    labels(key).replace("{count}", String(count));
+  const withMessage = (key: Parameters<typeof labels>[0], message: string) =>
+    labels(key).replace("{message}", message);
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
@@ -116,6 +120,39 @@ export default async function DocumentosPage({
         initialDocuments={documents as never}
         canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
         canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
+        labels={{
+          processedTitle: labels("documents.processedTitle"),
+          deleteSelected: (count) => `${labels("documents.deleteSelected")} (${count})`,
+          deleteBulkTitle: labels("documents.deleteBulkTitle"),
+          deleteSingleTitle: labels("documents.deleteSingleTitle"),
+          deleteBulkDescription: (count) => withCount("documents.deleteBulkDescription", count),
+          deleteSingleDescription: labels("documents.deleteSingleDescription"),
+          deleteConfirm: labels("documents.deleteConfirm"),
+          empty: labels("documents.empty"),
+          file: labels("documents.file"),
+          candidate: labels("documents.candidate"),
+          type: labels("documents.type"),
+          number: labels("documents.number"),
+          expiry: labels("documents.expiry"),
+          ocrStatus: labels("documents.ocrStatus"),
+          action: labels("documents.action"),
+          ocrCaptured: labels("documents.ocrCaptured"),
+          pending: labels("documents.pending"),
+          deletedManySuccess: labels("documents.deletedManySuccess"),
+          deletedOneSuccess: labels("documents.deletedOneSuccess"),
+          deleteManyError: (message) => withMessage("documents.deleteManyError", message),
+          deleteOneError: (message) => withMessage("documents.deleteOneError", message),
+          fix: labels("documents.fix"),
+          verify: labels("documents.verify"),
+          duplicateWorkbenchTitle: labels("documents.duplicateWorkbenchTitle"),
+          duplicateWorkbenchDescription: labels("documents.duplicateWorkbenchDescription"),
+          duplicateWorkbenchPagination: labels("documents.duplicateWorkbenchPagination"),
+          duplicateWorkbenchBadge: labels("documents.duplicateWorkbenchBadge"),
+          duplicateSuggestedAction: labels("documents.duplicateSuggestedAction"),
+          duplicateSuggestFrontBack: labels("documents.duplicateSuggestFrontBack"),
+          duplicateSuggestReclassify: labels("documents.duplicateSuggestReclassify"),
+          openCandidate: labels("documents.openCandidate"),
+        }}
       />
     </>
   );
