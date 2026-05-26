@@ -75,6 +75,9 @@ RUN chown nextjs:nodejs .next-prod
 COPY --from=builder --chown=nextjs:nodejs /app/.next-prod/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next-prod/static ./.next-prod/static
 
+RUN mkdir -p public/uploads
+RUN chown -R nextjs:nodejs public
+
 USER nextjs
 
 EXPOSE 3000

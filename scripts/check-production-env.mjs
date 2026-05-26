@@ -32,21 +32,32 @@ function loadEnvFile(path) {
 loadEnvFile(".env.production");
 loadEnvFile(".env");
 
+const storageProvider = (process.env.STORAGE_PROVIDER || "supabase").trim();
+const errors = [];
+const warnings = [];
+
 const required = [
   "DB_PASSWORD",
   "AUTH_URL",
   "AUTH_SECRET",
   "NEXTAUTH_SECRET",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "SUPABASE_STORAGE_BUCKET",
   "SMTP_HOST",
   "SMTP_USER",
   "SMTP_PASS",
   "SMTP_FROM",
   "CRON_SECRET",
 ];
+
+if (storageProvider === "supabase") {
+  required.push(
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_STORAGE_BUCKET",
+  );
+} else if (storageProvider === "local") {
+  warnings.push("STORAGE_PROVIDER=local is active. Documents will persist on the VPS local volume instead of Supabase Storage.");
+}
 
 const placeholderPatterns = [
   /^change-this/i,
@@ -55,9 +66,6 @@ const placeholderPatterns = [
   /^use-a-/i,
   /example/i,
 ];
-
-const errors = [];
-const warnings = [];
 
 const ocrProvider = (process.env.OCR_PROVIDER || "azure").trim();
 if (ocrProvider === "azure") {
@@ -113,7 +121,7 @@ if (cronSecret && cronSecret.length < 32) {
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-if (supabaseUrl && !supabaseUrl.startsWith("https://")) {
+if (storageProvider === "supabase" && supabaseUrl && !supabaseUrl.startsWith("https://")) {
   errors.push("NEXT_PUBLIC_SUPABASE_URL must use https://.");
 }
 
@@ -150,7 +158,7 @@ if (stripeKeys.length > 0 && stripeKeys.length < 3) {
 }
 
 const providerAllowlist = {
-  STORAGE_PROVIDER: ["supabase"],
+  STORAGE_PROVIDER: ["supabase", "local"],
   OCR_PROVIDER: ["azure", "manual"],
   EMAIL_PROVIDER: ["smtp"],
   JOB_PROVIDER: ["inline"],

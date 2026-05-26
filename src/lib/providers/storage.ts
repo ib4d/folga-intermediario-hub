@@ -1,6 +1,8 @@
+import { mkdir, rm, writeFile, access } from "node:fs/promises";
+import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export type StorageProviderName = "supabase";
+export type StorageProviderName = "supabase" | "local";
 
 export interface UploadObjectInput {
   path: string;
@@ -23,9 +25,19 @@ export interface StorageProvider {
 }
 
 const DEFAULT_BUCKET = "documentos-candidatos";
+const DEFAULT_LOCAL_STORAGE_DIR = path.join(process.cwd(), "public", "uploads");
 
 function getStorageBucket() {
   return process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_BUCKET;
+}
+
+function getLocalStorageDir() {
+  return process.env.LOCAL_STORAGE_DIR || DEFAULT_LOCAL_STORAGE_DIR;
+}
+
+function getLocalPublicBaseUrl() {
+  const authUrl = process.env.AUTH_URL?.trim() || process.env.NEXTAUTH_URL?.trim() || "http://localhost:3000";
+  return authUrl.replace(/\/+$/, "");
 }
 
 let supabaseAdmin: SupabaseClient | null = null;
@@ -99,12 +111,67 @@ export class SupabaseStorageProvider implements StorageProvider {
   }
 }
 
-export function getStorageProvider(): StorageProvider {
-  const provider = process.env.STORAGE_PROVIDER || "supabase";
+export class LocalDiskStorageProvider implements StorageProvider {
+  readonly name = "local" as const;
 
-  if (provider !== "supabase") {
-    throw new Error(`Unsupported STORAGE_PROVIDER: ${provider}`);
+  private async ensureBaseDir() {
+    await mkdir(getLocalStorageDir(), { recursive: true });
   }
 
-  return new SupabaseStorageProvider();
+  private resolveTargetPath(relativePath: string) {
+    const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+    const target = path.resolve(getLocalStorageDir(), normalized);
+    const base = path.resolve(getLocalStorageDir());
+
+    if (!target.startsWith(base)) {
+      throw new Error("Ruta de almacenamiento local invalida.");
+    }
+
+    return { normalized, target };
+  }
+
+  async uploadObject(input: UploadObjectInput): Promise<UploadObjectResult> {
+    await this.ensureBaseDir();
+    const { normalized, target } = this.resolveTargetPath(input.path);
+
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, input.body);
+
+    const publicUrl = `${getLocalPublicBaseUrl()}/uploads/${normalized}`;
+    return { path: normalized, publicUrl };
+  }
+
+  async removeObjects(paths: string[]): Promise<void> {
+    for (const relativePath of paths) {
+      const { target } = this.resolveTargetPath(relativePath);
+      await rm(target, { force: true });
+    }
+  }
+
+  getObjectPathFromPublicUrl(publicUrl: string): string | null {
+    const localMarker = "/uploads/";
+    const markerIndex = publicUrl.indexOf(localMarker);
+    if (markerIndex === -1) return null;
+
+    return publicUrl.slice(markerIndex + localMarker.length) || null;
+  }
+
+  async checkConnection(): Promise<void> {
+    await this.ensureBaseDir();
+    await access(getLocalStorageDir());
+  }
+}
+
+export function getStorageProvider(): StorageProvider {
+  const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
+
+  if (provider === "supabase") {
+    return new SupabaseStorageProvider();
+  }
+
+  if (provider === "local") {
+    return new LocalDiskStorageProvider();
+  }
+
+  throw new Error(`Unsupported STORAGE_PROVIDER: ${provider}`);
 }

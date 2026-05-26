@@ -29,6 +29,10 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_STORAGE_BUCKET=documentos-candidatos
 
+# If Supabase Storage is unavailable, you can keep uploads alive on the VPS:
+# STORAGE_PROVIDER=local
+# LOCAL_STORAGE_DIR=/app/public/uploads
+
 OCR_PROVIDER=azure
 AZURE_DI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
 AZURE_DI_KEY=your-azure-key
