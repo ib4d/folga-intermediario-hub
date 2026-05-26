@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { revalidatePath } from "next/cache";
-import { analyzeIdentityDocument } from "@/lib/providers/ocr";
+import { analyzeIdentityDocument, getOcrProviderName } from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
@@ -32,6 +32,8 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   ".png": "image/png",
   ".webp": "image/webp",
 };
+
+const ACTIVE_OCR_SOURCE = getOcrProviderName().toUpperCase();
 
 function parseDateSafe(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -197,6 +199,13 @@ function getOperationalErrorMessage(error: unknown): string {
   }
 
   if (
+    message.includes("OCR is running in manual review mode") ||
+    structured.code === "OCR_PROVIDER_UNAVAILABLE"
+  ) {
+    return "El documento fue guardado correctamente, pero el OCR automatico esta desactivado o no disponible. Continua con revision manual hasta conectar el nuevo proveedor.";
+  }
+
+  if (
     message.includes("DOMMatrix is not defined") ||
     message.includes("PDF->PNG failed") ||
     message.includes("@napi-rs/canvas")
@@ -206,6 +215,16 @@ function getOperationalErrorMessage(error: unknown): string {
 
   if (structured.code === "InvalidRequest" || message === "Invalid request." || apiMessage === "Invalid request.") {
     return "El archivo fue guardado, pero el proveedor OCR rechazo el contenido. Revisa si el archivo esta corrupto, protegido o en un formato no legible.";
+  }
+
+  if (
+    message.toLowerCase().includes("unauthorized") ||
+    message.toLowerCase().includes("forbidden") ||
+    message.toLowerCase().includes("access denied") ||
+    message.toLowerCase().includes("subscription") ||
+    message.toLowerCase().includes("quota")
+  ) {
+    return "El documento fue guardado, pero el proveedor OCR ya no esta disponible para esta instalacion. Continua con revision manual mientras conectamos el proveedor sustituto.";
   }
 
   return message;
@@ -275,11 +294,11 @@ async function markDocumentOcrFailed(
 
   const existingExtractedData = getExtractedDataRecord(existingDocument?.extractedData);
   const failedPayload = mergeOcrPayload(existingExtractedData, {
-    documentType: docType,
-    ocrStatus: "FAILED",
-    ocrSource: "AZURE",
-    ocrError: reason,
-    ocrFailedAt: new Date().toISOString(),
+      documentType: docType,
+      ocrStatus: "FAILED",
+      ocrSource: ACTIVE_OCR_SOURCE,
+      ocrError: reason,
+      ocrFailedAt: new Date().toISOString(),
   });
 
   await prisma.document.update({
@@ -855,7 +874,7 @@ async function applyCandidateFieldsFromOcr(
   }
 
   candidateUpdateData.ocrProcessed = true;
-  candidateUpdateData.ocrSource = "AZURE";
+  candidateUpdateData.ocrSource = ACTIVE_OCR_SOURCE;
 
   await prisma.candidate.update({
     where: { id: candidateId },
@@ -1075,9 +1094,9 @@ async function resolveSmartUploadCandidate(
             : null,
       intermediaryId,
       organizationId: tenant.organizationId!,
-      status: CandidateStatus.RECOPILANDO_DOCS,
-      ocrProcessed: true,
-      ocrSource: "AZURE",
+        status: CandidateStatus.RECOPILANDO_DOCS,
+        ocrProcessed: true,
+        ocrSource: ACTIVE_OCR_SOURCE,
       passportNumber:
         inferDocumentTypeFromSmartSignals(file.name, ocrData) === DocumentType.PASSPORT
           ? normalizeOptionalString(ocrData?.documentNumber)
@@ -1286,7 +1305,7 @@ export async function uploadDocument(formData: FormData) {
           details: toInputJsonValue({
             docType,
             documentNumber: ocrData.documentNumber ?? null,
-            ocrSource: "AZURE",
+            ocrSource: ACTIVE_OCR_SOURCE,
           }),
         });
 
@@ -1581,10 +1600,10 @@ export async function reviewDocumentOcr(input: {
         ? normalizedSex
         : document.candidate.gender,
     heightCm: normalizedHeight ?? document.candidate.heightCm,
-    polishAddress: normalizedAddress ?? document.candidate.polishAddress,
-    ocrProcessed: true,
-    ocrSource: "AZURE_REVIEWED",
-  };
+      polishAddress: normalizedAddress ?? document.candidate.polishAddress,
+      ocrProcessed: true,
+      ocrSource: `${ACTIVE_OCR_SOURCE}_REVIEWED`,
+    };
 
   if (normalizedType === DocumentType.PASSPORT) {
     candidateUpdateData.passportNumber = normalizedDocumentNumber;

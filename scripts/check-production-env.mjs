@@ -41,8 +41,6 @@ const required = [
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_STORAGE_BUCKET",
-  "AZURE_DI_ENDPOINT",
-  "AZURE_DI_KEY",
   "SMTP_HOST",
   "SMTP_USER",
   "SMTP_PASS",
@@ -60,6 +58,13 @@ const placeholderPatterns = [
 
 const errors = [];
 const warnings = [];
+
+const ocrProvider = (process.env.OCR_PROVIDER || "azure").trim();
+if (ocrProvider === "azure") {
+  required.push("AZURE_DI_ENDPOINT", "AZURE_DI_KEY");
+} else if (ocrProvider === "manual") {
+  warnings.push("OCR_PROVIDER=manual is active. Documents will upload, but OCR extraction will require manual review.");
+}
 
 for (const key of required) {
   const value = process.env[key]?.trim();
@@ -146,7 +151,7 @@ if (stripeKeys.length > 0 && stripeKeys.length < 3) {
 
 const providerAllowlist = {
   STORAGE_PROVIDER: ["supabase"],
-  OCR_PROVIDER: ["azure"],
+  OCR_PROVIDER: ["azure", "manual"],
   EMAIL_PROVIDER: ["smtp"],
   JOB_PROVIDER: ["inline"],
 };

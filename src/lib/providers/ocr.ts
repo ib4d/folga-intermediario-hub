@@ -1,6 +1,17 @@
 import { analyzeDocument as analyzeAzureDocument, type OcrExtractedData } from "@/lib/ocr";
 
-export type OcrProviderName = "azure";
+export type OcrProviderName = "azure" | "manual";
+
+export class OcrProviderUnavailableError extends Error {
+  readonly code = "OCR_PROVIDER_UNAVAILABLE";
+  readonly provider: OcrProviderName;
+
+  constructor(provider: OcrProviderName, message: string) {
+    super(message);
+    this.name = "OcrProviderUnavailableError";
+    this.provider = provider;
+  }
+}
 
 export interface OcrProvider {
   readonly name: OcrProviderName;
@@ -15,14 +26,36 @@ class AzureOcrProvider implements OcrProvider {
   }
 }
 
-export function getOcrProvider(): OcrProvider {
-  const provider = process.env.OCR_PROVIDER || "azure";
+class ManualOcrProvider implements OcrProvider {
+  readonly name = "manual" as const;
 
-  if (provider !== "azure") {
-    throw new Error(`Unsupported OCR_PROVIDER: ${provider}`);
+  async analyzeIdentityDocument(fileBuffer: Buffer, mimeType: string): Promise<OcrExtractedData | null> {
+    void fileBuffer;
+    void mimeType;
+    throw new OcrProviderUnavailableError(
+      "manual",
+      "OCR is running in manual review mode. Documents can still be uploaded and reviewed without automatic extraction."
+    );
+  }
+}
+
+export function getOcrProviderName(): OcrProviderName {
+  const provider = process.env.OCR_PROVIDER?.trim().toLowerCase();
+  return provider === "manual" ? "manual" : "azure";
+}
+
+export function getOcrProvider(): OcrProvider {
+  const provider = getOcrProviderName();
+
+  if (provider === "azure") {
+    return new AzureOcrProvider();
   }
 
-  return new AzureOcrProvider();
+  if (provider === "manual") {
+    return new ManualOcrProvider();
+  }
+
+  throw new Error(`Unsupported OCR_PROVIDER: ${provider}`);
 }
 
 export async function analyzeIdentityDocument(fileBuffer: Buffer, mimeType: string) {
