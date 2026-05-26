@@ -46,10 +46,10 @@ type DuplicateQueueItem = {
 
 type DocumentTableLabels = {
   processedTitle: string;
-  deleteSelected: (count: number) => string;
+  deleteSelected: string;
   deleteBulkTitle: string;
   deleteSingleTitle: string;
-  deleteBulkDescription: (count: number) => string;
+  deleteBulkDescription: string;
   deleteSingleDescription: string;
   deleteConfirm: string;
   empty: string;
@@ -64,8 +64,8 @@ type DocumentTableLabels = {
   pending: string;
   deletedManySuccess: string;
   deletedOneSuccess: string;
-  deleteManyError: (message: string) => string;
-  deleteOneError: (message: string) => string;
+  deleteManyError: string;
+  deleteOneError: string;
   fix: string;
   verify: string;
   duplicateWorkbenchTitle: string;
@@ -94,6 +94,11 @@ export default function DocumentTable({
   const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ type: "single"; id: string } | { type: "bulk"; ids: string[] } | null>(null);
   const router = useRouter();
+  const interpolate = (template: string, replacements: Record<string, string | number>) =>
+    Object.entries(replacements).reduce(
+      (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
+      template,
+    );
 
   const duplicateQueueItems = useMemo<DuplicateQueueItem[]>(() => {
     const grouped = new Map<string, Document[]>();
@@ -184,7 +189,7 @@ export default function DocumentTable({
       setTableMessage({ tone: "success", text: labels.deletedManySuccess });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
-      setTableMessage({ tone: "error", text: labels.deleteManyError(message) });
+      setTableMessage({ tone: "error", text: interpolate(labels.deleteManyError, { message }) });
     } finally {
       setIsDeleting(false);
     }
@@ -204,7 +209,7 @@ export default function DocumentTable({
       setTableMessage({ tone: "success", text: labels.deletedOneSuccess });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
-      setTableMessage({ tone: "error", text: labels.deleteOneError(message) });
+      setTableMessage({ tone: "error", text: interpolate(labels.deleteOneError, { message }) });
     } finally {
       setIsDeleting(false);
     }
@@ -292,7 +297,7 @@ export default function DocumentTable({
               disabled={isDeleting}
             >
               {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-              {labels.deleteSelected(selectedIds.length)}
+              {`${labels.deleteSelected} (${selectedIds.length})`}
             </button>
           ) : null}
         </div>
@@ -425,7 +430,7 @@ export default function DocumentTable({
           title={confirmTarget?.type === "bulk" ? labels.deleteBulkTitle : labels.deleteSingleTitle}
           description={
             confirmTarget?.type === "bulk"
-              ? labels.deleteBulkDescription(confirmTarget.ids.length)
+              ? interpolate(labels.deleteBulkDescription, { count: confirmTarget.ids.length })
               : labels.deleteSingleDescription
           }
           confirmLabel={labels.deleteConfirm}

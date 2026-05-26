@@ -26,10 +26,6 @@ export default async function DocumentosPage({
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
-  const withCount = (key: Parameters<typeof labels>[0], count: number) =>
-    labels(key).replace("{count}", String(count));
-  const withMessage = (key: Parameters<typeof labels>[0], message: string) =>
-    labels(key).replace("{message}", message);
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
@@ -126,10 +122,10 @@ export default async function DocumentosPage({
         canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
         labels={{
           processedTitle: labels("documents.processedTitle"),
-          deleteSelected: (count) => `${labels("documents.deleteSelected")} (${count})`,
+          deleteSelected: labels("documents.deleteSelected"),
           deleteBulkTitle: labels("documents.deleteBulkTitle"),
           deleteSingleTitle: labels("documents.deleteSingleTitle"),
-          deleteBulkDescription: (count) => withCount("documents.deleteBulkDescription", count),
+          deleteBulkDescription: labels("documents.deleteBulkDescription"),
           deleteSingleDescription: labels("documents.deleteSingleDescription"),
           deleteConfirm: labels("documents.deleteConfirm"),
           empty: labels("documents.empty"),
@@ -144,8 +140,8 @@ export default async function DocumentosPage({
           pending: labels("documents.pending"),
           deletedManySuccess: labels("documents.deletedManySuccess"),
           deletedOneSuccess: labels("documents.deletedOneSuccess"),
-          deleteManyError: (message) => withMessage("documents.deleteManyError", message),
-          deleteOneError: (message) => withMessage("documents.deleteOneError", message),
+          deleteManyError: labels("documents.deleteManyError"),
+          deleteOneError: labels("documents.deleteOneError"),
           fix: labels("documents.fix"),
           verify: labels("documents.verify"),
           duplicateWorkbenchTitle: labels("documents.duplicateWorkbenchTitle"),
