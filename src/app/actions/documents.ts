@@ -3,7 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { revalidatePath } from "next/cache";
-import { analyzeIdentityDocument, getOcrProviderName } from "@/lib/providers/ocr";
+import {
+  analyzeIdentityDocument,
+  getOcrProviderName,
+  isManualOcrMode,
+} from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
@@ -158,6 +162,36 @@ function hasStrongCandidateNameMatch(
 function parseDocumentType(value: string): DocumentType {
   if (Object.values(DocumentType).includes(value as DocumentType)) {
     return value as DocumentType;
+  }
+
+  return DocumentType.OTHER;
+}
+
+function inferDocumentTypeFromFileName(fileName: string): DocumentType {
+  const normalized = normalizeNameSignature(fileName);
+
+  if (
+    normalized.includes("PASSPORT") ||
+    normalized.includes("PASZPORT") ||
+    normalized.includes("PASAPORTE")
+  ) {
+    return DocumentType.PASSPORT;
+  }
+
+  if (normalized.includes("KARTA") && normalized.includes("POBYTU")) {
+    return DocumentType.KARTA_POBYTU;
+  }
+
+  if (normalized.includes("PESEL")) {
+    return DocumentType.PESEL;
+  }
+
+  if (normalized.includes("WOJEWOD")) {
+    return DocumentType.DECYZJA_WOJEWODY;
+  }
+
+  if (normalized.includes("CV")) {
+    return DocumentType.CV;
   }
 
   return DocumentType.OTHER;
@@ -1301,7 +1335,11 @@ export async function uploadDocument(formData: FormData) {
           ? issuerCountry.trim()
           : null,
       expiryDate: typeof expiryDate === "string" ? parseDateSafe(expiryDate) : null,
-      ocrStatus: isOcrSupported(docType) ? "PENDING" : null,
+      ocrStatus: isOcrSupported(docType)
+        ? isManualOcrMode()
+          ? "REVIEW_REQUIRED"
+          : "PENDING"
+        : null,
       candidateId,
       organizationId: tenant.organizationId!,
     },
@@ -1310,7 +1348,7 @@ export async function uploadDocument(formData: FormData) {
   let ocrOutcome: "not_supported" | "skipped" | "captured" | "failed" =
     isOcrSupported(docType) ? "skipped" : "not_supported";
 
-  if (isOcrSupported(docType) && !skipOcr) {
+  if (isOcrSupported(docType) && !skipOcr && !isManualOcrMode()) {
     try {
       await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
 
@@ -1455,13 +1493,17 @@ export async function uploadDocument(formData: FormData) {
   revalidatePath("/logistica");
   revalidatePath("/notificaciones");
 
+  const manualReviewMode = isOcrSupported(docType) && isManualOcrMode();
+
   return {
     success: true,
     documentId: newDoc.id,
     publicUrl,
-    ocrStatus: ocrOutcome,
+    ocrStatus: manualReviewMode ? "manual_review" : ocrOutcome,
     message:
-      ocrOutcome === "captured"
+      manualReviewMode
+        ? "Documento guardado. Queda pendiente de revision manual porque el OCR automatico no esta disponible."
+        : ocrOutcome === "captured"
         ? "Documento subido y enviado a revision OCR"
         : ocrOutcome === "failed"
           ? "Documento guardado. OCR no pudo extraer datos y queda para correccion manual."
@@ -1712,14 +1754,20 @@ export async function reviewDocumentOcr(input: {
 
 export async function batchUploadDocuments(candidateId: string, formData: FormData) {
   const files = formData.getAll("files") as File[];
-  const docType = (formData.get("docType") as string) || "OTHER";
+  const requestedType = parseDocumentType((formData.get("docType") as string) || "OTHER");
   const results: Array<{ filename: string; success: boolean; message: string }> = [];
 
   for (const file of files) {
     const single = new FormData();
+    const inferredType = inferDocumentTypeFromFileName(file.name);
+    const effectiveType =
+      requestedType === DocumentType.OTHER && inferredType !== DocumentType.OTHER
+        ? inferredType
+        : requestedType;
+
     single.append("file", file);
     single.append("candidateId", candidateId);
-    single.append("type", docType);
+    single.append("type", effectiveType);
 
     try {
       const result = await uploadDocument(single);
@@ -1823,6 +1871,15 @@ export async function smartBatchUpload(formData: FormData) {
     typeof candidateIdValue === "string" && candidateIdValue.trim().length > 0
       ? candidateIdValue
       : null;
+
+  if (isManualOcrMode()) {
+    return {
+      success: false,
+      message:
+        "El modo inteligente no esta disponible mientras el OCR automatico este desactivado. Usa modo manual o conecta un nuevo proveedor OCR.",
+      results: [],
+    };
+  }
 
   const results: Array<{ filename: string; success: boolean; message: string }> = [];
   const batchCandidates = new Map<string, string>();

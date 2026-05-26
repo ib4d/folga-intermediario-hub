@@ -61,6 +61,8 @@ type DocumentTableLabels = {
   ocrStatus: string;
   action: string;
   ocrCaptured: string;
+  ocrFailed: string;
+  manualReview: string;
   pending: string;
   deletedManySuccess: string;
   deletedOneSuccess: string;
@@ -68,6 +70,7 @@ type DocumentTableLabels = {
   deleteOneError: string;
   fix: string;
   verify: string;
+  review: string;
   duplicateWorkbenchTitle: string;
   duplicateWorkbenchDescription: string;
   duplicateWorkbenchPagination: string;
@@ -160,7 +163,10 @@ export default function DocumentTable({
 
   const getOcrBadgeClassName = (ocrStatus: string | null) => {
     if (ocrStatus === "FAILED") return "status-badge danger";
-    if (ocrStatus === "REVIEW_REQUIRED" || ocrStatus === "OCR_CAPTURED" || ocrStatus === "SUCCESS") {
+    if (ocrStatus === "REVIEW_REQUIRED") {
+      return "status-badge warning";
+    }
+    if (ocrStatus === "OCR_CAPTURED" || ocrStatus === "SUCCESS") {
       return "status-badge active";
     }
     return "status-badge";
@@ -168,6 +174,8 @@ export default function DocumentTable({
 
   const getOcrLabel = (ocrStatus: string | null) => {
     if (ocrStatus === "OCR_CAPTURED") return labels.ocrCaptured;
+    if (ocrStatus === "FAILED") return labels.ocrFailed;
+    if (ocrStatus === "REVIEW_REQUIRED") return labels.manualReview;
     return ocrStatus || labels.pending;
   };
 
@@ -398,7 +406,11 @@ export default function DocumentTable({
                             className="button button-secondary"
                             style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
                           >
-                            {doc.ocrStatus === "FAILED" ? labels.fix : labels.verify}
+                            {doc.ocrStatus === "FAILED"
+                              ? labels.fix
+                              : doc.ocrStatus === "REVIEW_REQUIRED"
+                                ? labels.review
+                                : labels.verify}
                           </Link>
                           {canDeleteDocuments ? (
                             <button

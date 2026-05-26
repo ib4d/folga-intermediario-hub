@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import BatchUploadButton from "@/components/BatchUploadButton";
 import DocumentTable from "@/components/DocumentTable";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import { isManualOcrMode } from "@/lib/providers/ocr";
 import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
@@ -26,6 +27,7 @@ export default async function DocumentosPage({
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const manualOcrMode = isManualOcrMode();
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
@@ -54,13 +56,20 @@ export default async function DocumentosPage({
   }));
 
   const pendingCount = await prisma.document.count({
-    where: { ...documentWhere, ocrStatus: "PENDING" },
+    where: { ...documentWhere, ocrStatus: { in: ["PENDING", "REVIEW_REQUIRED"] } },
   });
 
   const completedCount = await prisma.document.count({
     where: {
       ...documentWhere,
-      ocrStatus: { in: ["REVIEW_REQUIRED", "OCR_CAPTURED", "SUCCESS"] },
+      ocrStatus: { in: ["OCR_CAPTURED", "SUCCESS"] },
+    },
+  });
+
+  const manualReviewCount = await prisma.document.count({
+    where: {
+      ...documentWhere,
+      ocrStatus: { in: ["REVIEW_REQUIRED", "PENDING"] },
     },
   });
 
@@ -92,11 +101,21 @@ export default async function DocumentosPage({
 
         <div className="card">
           <div className="card-header">
-            <h3>{labels("documents.ocrProcessed")}</h3>
+            <h3>
+              {manualOcrMode
+                ? labels("documents.manualQueueTitle")
+                : labels("documents.ocrProcessed")}
+            </h3>
             <CheckCircle size={24} />
           </div>
-          <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>{completedCount}</div>
-          <p style={{ margin: 0, marginTop: "0.5rem" }}>{labels("documents.ocrSuccess")}</p>
+          <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>
+            {manualOcrMode ? manualReviewCount : completedCount}
+          </div>
+          <p style={{ margin: 0, marginTop: "0.5rem" }}>
+            {manualOcrMode
+              ? labels("documents.manualQueueDescription")
+              : labels("documents.ocrSuccess")}
+          </p>
         </div>
       </div>
 
@@ -107,7 +126,10 @@ export default async function DocumentosPage({
         >
           <h2>{labels("documents.uploadTitle")}</h2>
           {canUploadCandidateDocuments(tenant.role) ? (
-            <BatchUploadButton candidates={formattedCandidates} />
+            <BatchUploadButton
+              candidates={formattedCandidates}
+              ocrMode={manualOcrMode ? "manual" : "automatic"}
+            />
           ) : (
             <span style={{ color: "var(--muted)", fontWeight: 800, fontSize: "0.85rem" }}>
               {labels("documents.uploadRestricted")}
@@ -137,6 +159,8 @@ export default async function DocumentosPage({
           ocrStatus: labels("documents.ocrStatus"),
           action: labels("documents.action"),
           ocrCaptured: labels("documents.ocrCaptured"),
+          ocrFailed: labels("documents.ocrFailed"),
+          manualReview: labels("documents.manualReview"),
           pending: labels("documents.pending"),
           deletedManySuccess: labels("documents.deletedManySuccess"),
           deletedOneSuccess: labels("documents.deletedOneSuccess"),
@@ -144,6 +168,7 @@ export default async function DocumentosPage({
           deleteOneError: labels("documents.deleteOneError"),
           fix: labels("documents.fix"),
           verify: labels("documents.verify"),
+          review: labels("documents.review"),
           duplicateWorkbenchTitle: labels("documents.duplicateWorkbenchTitle"),
           duplicateWorkbenchDescription: labels("documents.duplicateWorkbenchDescription"),
           duplicateWorkbenchPagination: labels("documents.duplicateWorkbenchPagination"),
