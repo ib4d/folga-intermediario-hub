@@ -19,6 +19,7 @@ export interface StorageProvider {
   uploadObject(input: UploadObjectInput): Promise<UploadObjectResult>;
   removeObjects(paths: string[]): Promise<void>;
   getObjectPathFromPublicUrl(publicUrl: string): string | null;
+  checkConnection(): Promise<void>;
 }
 
 const DEFAULT_BUCKET = "documentos-candidatos";
@@ -43,6 +44,10 @@ function getSupabaseAdmin() {
   return supabaseAdmin;
 }
 
+function formatStorageError(prefix: string, error: { message: string }) {
+  return new Error(`${prefix}: ${error.message}`);
+}
+
 export class SupabaseStorageProvider implements StorageProvider {
   readonly name = "supabase" as const;
 
@@ -57,7 +62,7 @@ export class SupabaseStorageProvider implements StorageProvider {
       });
 
     if (error) {
-      throw new Error(`Error de subida: ${error.message}`);
+      throw formatStorageError("Error de subida", error);
     }
 
     const {
@@ -72,7 +77,7 @@ export class SupabaseStorageProvider implements StorageProvider {
 
     const { error } = await getSupabaseAdmin().storage.from(getStorageBucket()).remove(paths);
     if (error) {
-      throw new Error(`Error eliminando archivo: ${error.message}`);
+      throw formatStorageError("Error eliminando archivo", error);
     }
   }
 
@@ -80,6 +85,17 @@ export class SupabaseStorageProvider implements StorageProvider {
     const marker = `${getStorageBucket()}/`;
     const [, path] = publicUrl.split(marker);
     return path || null;
+  }
+
+  async checkConnection(): Promise<void> {
+    const { error } = await getSupabaseAdmin()
+      .storage
+      .from(getStorageBucket())
+      .list("", { limit: 1 });
+
+    if (error) {
+      throw formatStorageError("Storage no disponible", error);
+    }
   }
 }
 

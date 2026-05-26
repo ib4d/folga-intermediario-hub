@@ -230,6 +230,40 @@ function getOperationalErrorMessage(error: unknown): string {
   return message;
 }
 
+function getStorageErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "Error desconocido");
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("bucket") &&
+    (normalized.includes("not found") || normalized.includes("does not exist"))
+  ) {
+    return "No se pudo guardar el archivo porque el bucket configurado en Supabase Storage no existe o no coincide con el entorno actual.";
+  }
+
+  if (
+    normalized.includes("invalid api key") ||
+    normalized.includes("jwt") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden")
+  ) {
+    return "No se pudo guardar el archivo porque la credencial de Supabase Storage no es valida para este servidor.";
+  }
+
+  if (
+    normalized.includes("fetch failed") ||
+    normalized.includes("network") ||
+    normalized.includes("dns") ||
+    normalized.includes("getaddrinfo") ||
+    normalized.includes("econnreset") ||
+    normalized.includes("etimedout")
+  ) {
+    return "No se pudo conectar con Supabase Storage desde el servidor. Revisa conectividad del VPS, bucket y credenciales del proveedor.";
+  }
+
+  return `No se pudo guardar el archivo en storage: ${message}`;
+}
+
 type OcrData = Awaited<ReturnType<typeof analyzeIdentityDocument>>;
 type PresentOcrData = NonNullable<OcrData>;
 
@@ -1239,13 +1273,23 @@ export async function uploadDocument(formData: FormData) {
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   const storage = getStorageProvider();
+  let publicUrl: string;
 
-  const { publicUrl } = await storage.uploadObject({
-    path: filePath,
-    body: fileBuffer,
-    contentType: normalizedMimeType,
-    upsert: false,
-  });
+  try {
+    ({ publicUrl } = await storage.uploadObject({
+      path: filePath,
+      body: fileBuffer,
+      contentType: normalizedMimeType,
+      upsert: false,
+    }));
+  } catch (error) {
+    console.error("[uploadDocument] storage error:", error);
+    return {
+      success: false,
+      status: "STORAGE_ERROR",
+      message: getStorageErrorMessage(error),
+    };
+  }
 
   const newDoc = await prisma.document.create({
     data: {

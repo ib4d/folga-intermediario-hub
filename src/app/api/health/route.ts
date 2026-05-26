@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getOcrProviderName } from "@/lib/providers/ocr";
+import { getStorageProvider } from "@/lib/providers/storage";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -7,11 +8,13 @@ export async function GET() {
     // Check DB connection
     await prisma.$queryRaw`SELECT 1`;
     const ocrProvider = getOcrProviderName();
+    const storageProvider = getStorageProvider();
+    await storageProvider.checkConnection();
 
     return NextResponse.json({
       status: "ok",
       db: "connected",
-      storage: process.env.STORAGE_PROVIDER || "supabase",
+      storage: storageProvider.name,
       ocr: ocrProvider,
       email: process.env.EMAIL_PROVIDER || "smtp",
       jobs: process.env.JOB_PROVIDER || "inline",
