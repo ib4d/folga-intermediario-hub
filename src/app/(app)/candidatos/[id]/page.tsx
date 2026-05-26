@@ -538,6 +538,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                                   number: doc.number,
                                   expiryDate: doc.expiryDate,
                                   issueDate: doc.issueDate,
+                                  url: doc.url,
+                                  ocrStatus: doc.ocrStatus,
+                                  isVerified: doc.isVerified,
                                   extractedData:
                                     doc.extractedData &&
                                     typeof doc.extractedData === "object" &&
@@ -551,6 +554,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                                   number: candidateDoc.number,
                                   expiryDate: candidateDoc.expiryDate,
                                   issueDate: candidateDoc.issueDate,
+                                  url: candidateDoc.url,
+                                  ocrStatus: candidateDoc.ocrStatus,
+                                  isVerified: candidateDoc.isVerified,
                                   extractedData:
                                     candidateDoc.extractedData &&
                                     typeof candidateDoc.extractedData === "object" &&

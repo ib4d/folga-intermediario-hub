@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Loader2, PencilLine, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { reviewDocumentOcr } from "@/app/actions/documents";
-import { getDocumentDisplayNumber, getDocumentDisposition } from "@/lib/document-display";
+import {
+  getDocumentDisplayNumber,
+  getDocumentDisposition,
+  getDocumentDispositionLabel,
+} from "@/lib/document-display";
 
 type ReviewableDocument = {
   id: string;
@@ -12,6 +16,9 @@ type ReviewableDocument = {
   number: string | null;
   expiryDate: string | Date | null;
   issueDate: string | Date | null;
+  url?: string | null;
+  ocrStatus?: string | null;
+  isVerified?: boolean;
   extractedData: Record<string, unknown> | null;
 };
 
@@ -20,6 +27,7 @@ type DuplicateContext = {
   number: string | null;
   count: number;
   suggestion: string;
+  matchingDocuments: ReviewableDocument[];
 };
 
 type DispositionOption = {
@@ -58,6 +66,7 @@ function buildDuplicateContext(doc: ReviewableDocument, allDocuments: Reviewable
       matchingDocuments.length <= 2
         ? "Sugerencia: confirma si este grupo corresponde a frente y reverso antes de dejarlo como duplicado."
         : "Sugerencia: conserva un principal y reclasifica el resto como soporte o duplicado real.",
+    matchingDocuments,
   };
 }
 
@@ -102,6 +111,21 @@ function asBoolean(value: unknown): boolean {
 
 function asNumber(value: unknown): string {
   return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+}
+
+function getReviewableDocumentName(doc: ReviewableDocument): string {
+  const fromUrl = doc.url?.split("/").pop()?.trim();
+  if (fromUrl) return fromUrl;
+  return `Documento ${doc.id.slice(0, 8)}`;
+}
+
+function getReviewableDocumentStatus(doc: ReviewableDocument): string {
+  if (doc.isVerified) return "Verificado";
+  if (doc.ocrStatus === "FAILED") return "OCR fallido";
+  if (doc.ocrStatus === "OCR_CAPTURED") return "OCR capturado";
+  if (doc.ocrStatus === "REVIEW_REQUIRED") return "Requiere revision";
+  if (doc.ocrStatus === "SUCCESS") return "OCR exitoso";
+  return doc.ocrStatus ?? "Pendiente";
 }
 
 function deriveInitialState(doc: ReviewableDocument) {
@@ -286,6 +310,45 @@ export default function DocumentReviewModal({
                     })}
                   </div>
                 ) : null}
+                <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 800 }}>
+                    Otros documentos del grupo
+                  </p>
+                  <div style={{ display: "grid", gap: "0.5rem" }}>
+                    {duplicateContext.matchingDocuments.map((matchingDoc) => {
+                      const isCurrent = matchingDoc.id === doc.id;
+                      const dispositionLabel =
+                        getDocumentDispositionLabel(getDocumentDisposition(matchingDoc)) || "Sin clasificar";
+
+                      return (
+                        <div
+                          key={matchingDoc.id}
+                          style={{
+                            border: "1px solid #fcd34d",
+                            background: isCurrent ? "#fff7ed" : "var(--background)",
+                            padding: "0.55rem 0.75rem",
+                            display: "grid",
+                            gap: "0.2rem",
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem" }}>
+                            <span style={{ fontSize: "0.76rem", fontWeight: 800, lineHeight: 1.35 }}>
+                              {getReviewableDocumentName(matchingDoc)}
+                            </span>
+                            {isCurrent ? (
+                              <span style={{ fontSize: "0.68rem", fontWeight: 900, color: "#9a3412" }}>
+                                Documento actual
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ fontSize: "0.72rem", color: "var(--muted)", lineHeight: 1.4 }}>
+                            {dispositionLabel} · {getReviewableDocumentStatus(matchingDoc)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ) : null}
 
