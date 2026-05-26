@@ -18,19 +18,19 @@ import {
 
 type Document = {
   id: string;
-  url: string;
+  url: string | null;
   type: string;
   number: string | null;
   expiryDate: string | Date | null;
   issueDate: string | Date | null;
   ocrStatus: string | null;
-  extractedData: Record<string, unknown> | null;
+  extractedData: unknown;
   isVerified: boolean;
   candidateId: string;
   candidate: {
     firstName: string | null;
     lastName: string | null;
-  };
+  } | null;
 };
 
 type DuplicateQueueItem = {
@@ -118,10 +118,11 @@ export default function DocumentTable({
         if (documents.length < 2) return null;
 
         const representative = documents[0];
+        const candidateName = `${representative.candidate?.firstName ?? ""} ${representative.candidate?.lastName ?? ""}`.trim();
         return {
           key,
           candidateId: representative.candidateId,
-          candidateName: `${representative.candidate.firstName ?? ""} ${representative.candidate.lastName ?? ""}`.trim(),
+          candidateName: candidateName || "Sin candidato asignado",
           type: representative.type,
           number: getDocumentDisplayNumber(representative),
           count: documents.length,
@@ -338,6 +339,8 @@ export default function DocumentTable({
                   const displayNumber = getDocumentDisplayNumber(doc) ?? "-";
                   const displayExpiry = formatDocumentDisplayDate(getDocumentDisplayExpiry(doc));
                   const dispositionLabel = getDocumentDispositionLabel(getDocumentDisposition(doc));
+                  const candidateName = `${doc.candidate?.firstName ?? ""} ${doc.candidate?.lastName ?? ""}`.trim() || "Sin candidato asignado";
+                  const filename = doc.url?.split("/").pop()?.trim() || `documento-${doc.id.slice(0, 8)}`;
 
                   return (
                     <tr key={doc.id}>
@@ -358,12 +361,10 @@ export default function DocumentTable({
                       <td>
                         <div style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           <FileText size={16} />
-                          {doc.url.split("/").pop()}
+                          {filename}
                         </div>
                       </td>
-                      <td>
-                        {doc.candidate.firstName} {doc.candidate.lastName}
-                      </td>
+                      <td>{candidateName}</td>
                       <td>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
                           <span>{doc.type}</span>

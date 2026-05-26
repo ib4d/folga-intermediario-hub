@@ -10,6 +10,10 @@ import { AlertTriangle, CheckCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+function toPlainData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export default async function DocumentosPage({
   searchParams,
 }: {
@@ -117,7 +121,7 @@ export default async function DocumentosPage({
       </div>
 
       <DocumentTable
-        initialDocuments={documents as never}
+        initialDocuments={toPlainData(documents)}
         canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
         canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
         labels={{

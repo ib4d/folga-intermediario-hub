@@ -19,7 +19,7 @@ type ReviewableDocument = {
   url?: string | null;
   ocrStatus?: string | null;
   isVerified?: boolean;
-  extractedData: Record<string, unknown> | null;
+  extractedData: unknown;
 };
 
 type DuplicateContext = {
@@ -34,6 +34,14 @@ type DispositionOption = {
   value: "PRIMARY" | "FRONT" | "BACK" | "SUPPORTING" | "DUPLICATE";
   label: string;
 };
+
+function getExtractedData(value: unknown): Record<string, unknown> {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
 
 function buildDuplicateContext(doc: ReviewableDocument, allDocuments: ReviewableDocument[]): DuplicateContext | null {
   const currentNumber = getDocumentDisplayNumber(doc);
@@ -129,7 +137,7 @@ function getReviewableDocumentStatus(doc: ReviewableDocument): string {
 }
 
 function deriveInitialState(doc: ReviewableDocument) {
-  const extracted = doc.extractedData ?? {};
+  const extracted = getExtractedData(doc.extractedData);
   return {
     type: doc.type,
     documentDisposition: asString(extracted.documentDisposition) || "PRIMARY",
