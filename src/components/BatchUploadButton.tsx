@@ -4,7 +4,24 @@ import type { CSSProperties } from "react";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, Loader2, CheckCircle2, AlertCircle, Brain, UserCircle } from "lucide-react";
-import { batchUploadDocuments, smartBatchUpload } from "@/app/actions/documents";
+
+function normalizeBatchUploadErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "Error desconocido";
+
+  if (
+    message.includes("Failed to find Server Action") ||
+    message.includes("older or newer deployment") ||
+    message.includes("was not found on the server")
+  ) {
+    return "La aplicacion se actualizo mientras esta pagina estaba abierta. Recarga la pagina y vuelve a intentar la subida por lotes.";
+  }
+
+  if (message.toLowerCase().includes("fetch failed")) {
+    return "No se pudo completar la subida porque la conexion con el servidor se interrumpio. Recarga la pagina e intenta nuevamente.";
+  }
+
+  return `No se pudo completar la subida: ${message}`;
+}
 
 const DOC_TYPES = [
   { value: "PASSPORT", label: "Pasaporte" },
@@ -51,10 +68,27 @@ export default function BatchUploadButton({
         const formData = new FormData();
         Array.from(files).forEach((file) => formData.append("files", file));
         formData.append("candidateId", selectedCandidateId);
+        formData.append("mode", isSmartMode ? "smart" : "manual");
+        if (!isSmartMode) {
+          formData.append("docType", docType);
+        }
 
-        const res = isSmartMode
-          ? await smartBatchUpload(formData)
-          : await batchUploadDocuments(selectedCandidateId, formDataWithDocType(formData, docType));
+        const response = await fetch("/api/documents/batch-upload", {
+          method: "POST",
+          body: formData,
+        });
+        const res = (await response.json()) as {
+          success: boolean;
+          results?: { filename: string; success: boolean; message?: string }[];
+          message?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(
+            res.message ||
+              "No se pudo iniciar la subida por lotes. Revisa permisos, archivos seleccionados e intenta de nuevo."
+          );
+        }
 
         if (res.success) {
           const nextResults = res.results || [];
@@ -73,9 +107,7 @@ export default function BatchUploadButton({
         }
       } catch (error) {
         console.error(error);
-        const message =
-          error instanceof Error ? error.message : "Error inesperado durante la carga";
-        setErrorMessage(`No se pudo completar la subida: ${message}`);
+        setErrorMessage(normalizeBatchUploadErrorMessage(error));
       }
     });
   };
@@ -353,11 +385,6 @@ function ResultMetric({
       <p style={{ margin: "0.25rem 0 0", fontSize: "1.35rem", fontWeight: 900 }}>{value}</p>
     </div>
   );
-}
-
-function formDataWithDocType(formData: FormData, docType: string) {
-  formData.append("docType", docType);
-  return formData;
 }
 
 function modeButtonStyle(active: boolean) {

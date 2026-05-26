@@ -3,7 +3,24 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, Loader2 } from "lucide-react";
-import { uploadDocument } from "@/app/actions/documents";
+
+function normalizeUploadErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "Error desconocido";
+
+  if (
+    message.includes("Failed to find Server Action") ||
+    message.includes("older or newer deployment") ||
+    message.includes("was not found on the server")
+  ) {
+    return "La aplicacion se actualizo mientras esta pagina estaba abierta. Recarga la pagina e intenta subir el documento otra vez.";
+  }
+
+  if (message.toLowerCase().includes("fetch failed")) {
+    return "No se pudo completar la subida porque la conexion con el servidor se interrumpio. Recarga la pagina e intenta nuevamente.";
+  }
+
+  return `No se pudo completar la subida: ${message}`;
+}
 
 export default function DocumentUploadButton({ candidateId }: { candidateId: string }) {
   const router = useRouter();
@@ -34,7 +51,20 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
         formData.append("candidateId", candidateId);
         formData.append("type", type);
 
-        const res = await uploadDocument(formData);
+        const response = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const res = (await response.json()) as {
+          success: boolean;
+          message?: string;
+          ocrStatus?: "captured" | "failed" | "not_supported";
+        };
+
+        if (!response.ok) {
+          throw new Error(res.message || "Error al subir documento.");
+        }
+
         if (res.success) {
           setIsOpen(false);
           setFile(null);
@@ -48,8 +78,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
         }
       } catch (err) {
         console.error(err);
-        const message = err instanceof Error ? err.message : "Error desconocido";
-        setMessage({ tone: "error", text: `No se pudo completar la subida: ${message}` });
+        setMessage({ tone: "error", text: normalizeUploadErrorMessage(err) });
       }
     });
   };
