@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Loader2, PencilLine, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { reviewDocumentOcr } from "@/app/actions/documents";
 import {
   getDocumentDisplayNumber,
   getDocumentDisposition,
@@ -33,6 +32,11 @@ type DuplicateContext = {
 type DispositionOption = {
   value: "PRIMARY" | "FRONT" | "BACK" | "SUPPORTING" | "DUPLICATE";
   label: string;
+};
+
+type InferredNameParts = {
+  firstName: string;
+  lastName: string;
 };
 
 function getExtractedData(value: unknown): Record<string, unknown> {
@@ -131,22 +135,170 @@ function getReviewableDocumentStatus(doc: ReviewableDocument): string {
   if (doc.isVerified) return "Verificado";
   if (doc.ocrStatus === "FAILED") return "OCR fallido";
   if (doc.ocrStatus === "OCR_CAPTURED") return "OCR capturado";
-  if (doc.ocrStatus === "REVIEW_REQUIRED") return "Requiere revision";
+  if (doc.ocrStatus === "REVIEW_REQUIRED") return "Pendiente de revision manual";
   if (doc.ocrStatus === "SUCCESS") return "OCR exitoso";
   return doc.ocrStatus ?? "Pendiente";
 }
 
+function normalizeReviewErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Error al guardar la revision";
+
+  if (
+    message.includes("Failed to find Server Action") ||
+    message.includes("older or newer deployment") ||
+    message.includes("was not found on the server")
+  ) {
+    return "La aplicacion se actualizo mientras esta pagina estaba abierta. Recarga la pagina y vuelve a guardar la revision.";
+  }
+
+  if (message.toLowerCase().includes("fetch failed")) {
+    return "No se pudo guardar la revision porque la conexion con el servidor se interrumpio. Recarga la pagina e intenta nuevamente.";
+  }
+
+  return message;
+}
+
+function normalizeFileStem(fileName: string): string {
+  return fileName
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[_\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function inferDocumentTypeFromFileName(fileName: string): string {
+  const normalized = normalizeFileStem(fileName).toLowerCase();
+
+  if (
+    normalized.includes("karta pobytu") ||
+    normalized.includes("kartapobytu") ||
+    normalized.includes("residence permit")
+  ) {
+    return "KARTA_POBYTU";
+  }
+
+  if (normalized.includes("pesel")) {
+    return "PESEL";
+  }
+
+  if (
+    normalized.includes("passport") ||
+    normalized.includes("pasaporte") ||
+    normalized.includes("paszport")
+  ) {
+    return "PASSPORT";
+  }
+
+  if (normalized.includes("wojewody") || normalized.includes("decyzja")) {
+    return "DECYZJA_WOJEWODY";
+  }
+
+  if (normalized.includes("cv") || normalized.includes("resume")) {
+    return "CV";
+  }
+
+  return "OTHER";
+}
+
+function inferDocumentNumberFromFileName(fileName: string): string {
+  const normalized = normalizeFileStem(fileName).toUpperCase();
+  const peselMatch = normalized.match(/\b\d{11}\b/);
+  if (peselMatch) {
+    return peselMatch[0];
+  }
+
+  const passportMatch = normalized.match(/\b[A-Z]{1,3}\d{5,10}\b/);
+  if (passportMatch) {
+    return passportMatch[0];
+  }
+
+  return "";
+}
+
+function inferNamePartsFromFileName(fileName: string): InferredNameParts | null {
+  const normalized = normalizeFileStem(fileName).toLowerCase();
+  const tokens = normalized
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .filter((token) => !/^\d+$/.test(token))
+    .filter(
+      (token) =>
+        ![
+          "passport",
+          "pasaporte",
+          "paszport",
+          "pesel",
+          "karta",
+          "pobytu",
+          "decyzja",
+          "wojewody",
+          "residence",
+          "permit",
+          "page",
+          "scan",
+          "front",
+          "back",
+          "reverso",
+          "frente",
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "doc",
+          "documento",
+        ].includes(token),
+    );
+
+  if (tokens.length < 2 || tokens.length > 4) {
+    return null;
+  }
+
+  const prettyTokens = tokens.map((token) => token.charAt(0).toUpperCase() + token.slice(1));
+
+  if (prettyTokens.length === 2) {
+    return {
+      firstName: prettyTokens[0],
+      lastName: prettyTokens[1],
+    };
+  }
+
+  if (prettyTokens.length === 3) {
+    return {
+      firstName: prettyTokens.slice(0, 2).join(" "),
+      lastName: prettyTokens[2],
+    };
+  }
+
+  return {
+    firstName: prettyTokens.slice(2).join(" "),
+    lastName: prettyTokens.slice(0, 2).join(" "),
+  };
+}
+
 function deriveInitialState(doc: ReviewableDocument) {
   const extracted = getExtractedData(doc.extractedData);
+  const fileName = getReviewableDocumentName(doc);
+  const inferredType = inferDocumentTypeFromFileName(fileName);
+  const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
+  const inferredNameParts = inferNamePartsFromFileName(fileName);
+  const extractedDocumentType = asString(extracted.documentType);
+  const initialType =
+    doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType;
+
   return {
-    type: doc.type,
+    type: initialType,
     documentDisposition: asString(extracted.documentDisposition) || "PRIMARY",
-    documentNumber: asString(extracted.documentNumber) || doc.number || "",
-    personalNumber: asString(extracted.personalNumber),
+    documentNumber: asString(extracted.documentNumber) || doc.number || inferredDocumentNumber,
+    personalNumber:
+      asString(extracted.personalNumber) ||
+      (initialType === "PESEL" && /^\d{11}$/.test(inferredDocumentNumber) ? inferredDocumentNumber : ""),
     expiryDate: toDateInputValue(doc.expiryDate) || asString(extracted.dateOfExpiry),
     issueDate: toDateInputValue(doc.issueDate) || asString(extracted.dateOfIssue),
-    firstName: asString(extracted.firstName),
-    lastName: asString(extracted.lastName),
+    firstName: asString(extracted.firstName) || inferredNameParts?.firstName || "",
+    lastName: asString(extracted.lastName) || inferredNameParts?.lastName || "",
     nationality: asString(extracted.nationality),
     issuingCountry: asString(extracted.issuingCountry),
     dateOfBirth: asString(extracted.dateOfBirth),
@@ -200,42 +352,53 @@ export default function DocumentReviewModal({
     startTransition(async () => {
       setErrorMessage("");
       try {
-        await reviewDocumentOcr({
-          documentId: doc.id,
-          type: form.type as
-            | "PASSPORT"
-            | "KARTA_POBYTU"
-            | "PESEL"
-            | "DECYZJA_WOJEWODY"
-            | "CV"
-            | "OTHER",
-          documentDisposition: form.documentDisposition,
-          documentNumber: form.documentNumber,
-          personalNumber: form.personalNumber,
-          expiryDate: form.expiryDate,
-          issueDate: form.issueDate,
-          firstName: form.firstName,
-          lastName: form.lastName,
-          nationality: form.nationality,
-          issuingCountry: form.issuingCountry,
-          dateOfBirth: form.dateOfBirth,
-          sex: form.sex,
-          placeOfBirth: form.placeOfBirth,
-          issuingAuthority: form.issuingAuthority,
-          passportBiometric: form.passportBiometric,
-          kartaPobytuType: form.kartaPobytuType,
-          remarks: form.remarks,
-          municipalityOffice: form.municipalityOffice,
-          addressOfRegistration: form.addressOfRegistration,
-          heightCm: form.heightCm ? Number.parseInt(form.heightCm, 10) : undefined,
-          markVerified: form.markVerified,
+        const response = await fetch("/api/documents/review", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            documentId: doc.id,
+            type: form.type as
+              | "PASSPORT"
+              | "KARTA_POBYTU"
+              | "PESEL"
+              | "DECYZJA_WOJEWODY"
+              | "CV"
+              | "OTHER",
+            documentDisposition: form.documentDisposition,
+            documentNumber: form.documentNumber,
+            personalNumber: form.personalNumber,
+            expiryDate: form.expiryDate,
+            issueDate: form.issueDate,
+            firstName: form.firstName,
+            lastName: form.lastName,
+            nationality: form.nationality,
+            issuingCountry: form.issuingCountry,
+            dateOfBirth: form.dateOfBirth,
+            sex: form.sex,
+            placeOfBirth: form.placeOfBirth,
+            issuingAuthority: form.issuingAuthority,
+            passportBiometric: form.passportBiometric,
+            kartaPobytuType: form.kartaPobytuType,
+            remarks: form.remarks,
+            municipalityOffice: form.municipalityOffice,
+            addressOfRegistration: form.addressOfRegistration,
+            heightCm: form.heightCm ? Number.parseInt(form.heightCm, 10) : undefined,
+            markVerified: form.markVerified,
+          }),
         });
+
+        const result = (await response.json()) as { success?: boolean; message?: string };
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Error al guardar la revision");
+        }
 
         setIsOpen(false);
         router.refresh();
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Error al guardar la revision";
-        setErrorMessage(message);
+        setErrorMessage(normalizeReviewErrorMessage(error));
       }
     });
   };
@@ -274,6 +437,9 @@ export default function DocumentReviewModal({
             <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>Revision OCR</h2>
             <p style={{ color: "var(--muted)", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
               Corrige los campos detectados y guarda la version confiable del documento.
+            </p>
+            <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.8rem" }}>
+              Guardar esta revision actualiza el documento y la ficha del candidato con los datos confirmados.
             </p>
             {form.ocrError ? (
               <p className="form-message-error" style={{ marginBottom: "1rem" }}>
