@@ -378,7 +378,7 @@ export default function BatchUploadButton({
                         {result.message ||
                           (result.success
                             ? result.reviewRequired
-                              ? "Guardado; requiere revision manual"
+                              ? "Guardado; pendiente de revision manual"
                               : isSmartMode
                                 ? "Procesado automaticamente"
                                 : "Documento guardado"
