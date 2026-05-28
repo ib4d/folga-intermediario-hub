@@ -71,7 +71,7 @@ export default function BatchUploadButton({
     e.preventDefault();
     if (isSmartMode && !automaticOcrAvailable) {
       setErrorMessage(
-        "El modo inteligente no esta disponible mientras el OCR automatico este desactivado. Usa modo manual para guardar documentos y revisarlos despues."
+        "El modo inteligente no esta disponible en este momento. Usa modo manual para guardar documentos y revisarlos despues."
       );
       return;
     }
@@ -152,7 +152,7 @@ export default function BatchUploadButton({
   const switchMode = (nextMode: "manual" | "smart") => {
     if (nextMode === "smart" && !automaticOcrAvailable) {
       setErrorMessage(
-        "El modo inteligente requiere un proveedor OCR automatico activo. Por ahora puedes seguir trabajando en modo manual."
+        "El modo inteligente no esta disponible en este momento. Puedes seguir trabajando en modo manual."
       );
       setIsSmartMode(false);
       return;
@@ -279,9 +279,9 @@ export default function BatchUploadButton({
                     }}
                   >
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                      <strong>Modo Inteligente:</strong> requiere un proveedor OCR automatico
-                      activo. Si el OCR no esta disponible, usa modo manual para guardar los
-                      documentos sin extraccion automatica.
+                      <strong>Modo Inteligente:</strong> procesa documentos de forma automatica
+                      cuando el proveedor OCR esta activo. Si no esta disponible, usa modo manual
+                      para guardar y revisar los documentos despues.
                     </p>
                   </div>
                 ) : !automaticOcrAvailable ? (
@@ -295,8 +295,7 @@ export default function BatchUploadButton({
                   >
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>
                       <strong>Modo Manual activo:</strong> los documentos se guardaran de forma
-                      real en la app, pero quedaran pendientes de revision porque el OCR automatico
-                      esta desactivado temporalmente.
+                      real en la app y quedaran pendientes de revision manual.
                     </p>
                   </div>
                 ) : null}

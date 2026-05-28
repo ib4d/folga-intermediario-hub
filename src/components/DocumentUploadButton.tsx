@@ -157,8 +157,7 @@ export default function DocumentUploadButton({
 
               {ocrMode === "manual" ? (
                 <div className="form-message-warning">
-                  El documento se guardara correctamente y quedara pendiente de revision manual,
-                  porque el OCR automatico no esta disponible en este momento.
+                  El documento se guardara correctamente y quedara pendiente de revision manual.
                 </div>
               ) : null}
 
