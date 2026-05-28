@@ -429,7 +429,9 @@ export default function DocumentTable({
                             {doc.ocrStatus === "FAILED"
                               ? labels.fix
                               : isManualReviewOcrStatus(doc.ocrStatus)
-                                ? labels.review
+                                ? ocrMode === "manual"
+                                  ? "Revisar manual"
+                                  : labels.review
                                 : labels.verify}
                           </Link>
                           {canDeleteDocuments ? (
