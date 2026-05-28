@@ -44,6 +44,14 @@ export function getOcrProviderName(): OcrProviderName {
   return provider === "manual" ? "manual" : "azure";
 }
 
+export function isManualOcrMode() {
+  return getOcrProviderName() === "manual";
+}
+
+export function isAutomaticOcrAvailable() {
+  return !isManualOcrMode();
+}
+
 export function getOcrProvider(): OcrProvider {
   const provider = getOcrProviderName();
 

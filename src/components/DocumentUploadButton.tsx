@@ -22,7 +22,13 @@ function normalizeUploadErrorMessage(error: unknown) {
   return `No se pudo completar la subida: ${message}`;
 }
 
-export default function DocumentUploadButton({ candidateId }: { candidateId: string }) {
+export default function DocumentUploadButton({
+  candidateId,
+  ocrMode = "automatic",
+}: {
+  candidateId: string;
+  ocrMode?: "manual" | "automatic";
+}) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -58,7 +64,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
         const res = (await response.json()) as {
           success: boolean;
           message?: string;
-          ocrStatus?: "captured" | "failed" | "not_supported";
+          ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
         };
 
         if (!response.ok) {
@@ -70,7 +76,10 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
           setFile(null);
           router.refresh();
           setMessage({
-            tone: res.ocrStatus === "failed" ? "warning" : "success",
+            tone:
+              res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
+                ? "warning"
+                : "success",
             text: res.message || "Documento subido correctamente.",
           });
         } else {
@@ -146,6 +155,13 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
                 />
               </div>
 
+              {ocrMode === "manual" ? (
+                <div className="form-message-warning">
+                  El documento se guardara correctamente y quedara pendiente de revision manual,
+                  porque el OCR automatico no esta disponible en este momento.
+                </div>
+              ) : null}
+
               <button
                 type="submit"
                 className="button"
@@ -163,7 +179,7 @@ export default function DocumentUploadButton({ candidateId }: { candidateId: str
                     <Loader2 className="animate-spin" size={20} /> Subiendo...
                   </>
                 ) : (
-                  "Empezar Proceso OCR"
+                  "Subir documento"
                 )}
               </button>
 

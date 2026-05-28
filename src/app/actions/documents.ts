@@ -197,6 +197,22 @@ function inferDocumentTypeFromFileName(fileName: string): DocumentType {
   return DocumentType.OTHER;
 }
 
+function requiresManualDocumentReview(input: {
+  docType: DocumentType;
+  manualReviewMode: boolean;
+  ocrOutcome: "captured" | "failed" | "not_supported" | "skipped";
+}) {
+  if (!isOcrSupported(input.docType)) {
+    return false;
+  }
+
+  if (input.manualReviewMode) {
+    return true;
+  }
+
+  return input.ocrOutcome === "captured" || input.ocrOutcome === "failed";
+}
+
 function canAccessCandidate(role: Role, candidateIntermediaryId: string, userId: string): boolean {
   return canAccessCandidateByOwnership(role, candidateIntermediaryId, userId);
 }
@@ -1494,12 +1510,18 @@ export async function uploadDocument(formData: FormData) {
   revalidatePath("/notificaciones");
 
   const manualReviewMode = isOcrSupported(docType) && isManualOcrMode();
+  const reviewRequired = requiresManualDocumentReview({
+    docType,
+    manualReviewMode,
+    ocrOutcome,
+  });
 
   return {
     success: true,
     documentId: newDoc.id,
     publicUrl,
     ocrStatus: manualReviewMode ? "manual_review" : ocrOutcome,
+    reviewRequired,
     message:
       manualReviewMode
         ? "Documento guardado. Queda pendiente de revision manual porque el OCR automatico no esta disponible."
@@ -1755,7 +1777,13 @@ export async function reviewDocumentOcr(input: {
 export async function batchUploadDocuments(candidateId: string, formData: FormData) {
   const files = formData.getAll("files") as File[];
   const requestedType = parseDocumentType((formData.get("docType") as string) || "OTHER");
-  const results: Array<{ filename: string; success: boolean; message: string }> = [];
+  const results: Array<{
+    filename: string;
+    success: boolean;
+    message: string;
+    reviewRequired?: boolean;
+    ocrStatus?: string;
+  }> = [];
 
   for (const file of files) {
     const single = new FormData();
@@ -1776,6 +1804,8 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
         filename: file.name,
         success: result.success,
         message: result.message,
+        reviewRequired: result.reviewRequired,
+        ocrStatus: result.ocrStatus,
       });
     } catch (error) {
       results.push({

@@ -17,6 +17,7 @@ import {
   getDocumentDispositionLabel,
   getDocumentDisplayNumber,
 } from "@/lib/document-display";
+import { isManualOcrMode } from "@/lib/providers/ocr";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
@@ -480,7 +481,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <FileText className="text-blue-600" />
                 {labels("candidateDetail.uploadedDocs")}
               </h2>
-              {canManageDocuments ? <DocumentUploadButton candidateId={candidate.id} /> : null}
+              {canManageDocuments ? (
+                <DocumentUploadButton
+                  candidateId={candidate.id}
+                  ocrMode={isManualOcrMode() ? "manual" : "automatic"}
+                />
+              ) : null}
             </div>
 
             <div className="overflow-x-auto">

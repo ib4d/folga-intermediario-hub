@@ -34,8 +34,10 @@ const DOC_TYPES = [
 
 export default function BatchUploadButton({
   candidates,
+  ocrMode,
 }: {
   candidates: { id: string; name: string }[];
+  ocrMode: "manual" | "automatic";
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -44,10 +46,17 @@ export default function BatchUploadButton({
   const [docType, setDocType] = useState("PASSPORT");
   const [files, setFiles] = useState<FileList | null>(null);
   const [results, setResults] = useState<
-    { filename: string; success: boolean; message?: string }[] | null
+    {
+      filename: string;
+      success: boolean;
+      message?: string;
+      reviewRequired?: boolean;
+      ocrStatus?: string;
+    }[] | null
   >(null);
   const [isSmartMode, setIsSmartMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const automaticOcrAvailable = ocrMode === "automatic";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -60,6 +69,12 @@ export default function BatchUploadButton({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSmartMode && !automaticOcrAvailable) {
+      setErrorMessage(
+        "El modo inteligente no esta disponible mientras el OCR automatico este desactivado. Usa modo manual para guardar documentos y revisarlos despues."
+      );
+      return;
+    }
     if (!files || (!isSmartMode && !selectedCandidateId)) return;
 
     startTransition(async () => {
@@ -79,7 +94,13 @@ export default function BatchUploadButton({
         });
         const res = (await response.json()) as {
           success: boolean;
-          results?: { filename: string; success: boolean; message?: string }[];
+          results?: {
+            filename: string;
+            success: boolean;
+            message?: string;
+            reviewRequired?: boolean;
+            ocrStatus?: string;
+          }[];
           message?: string;
         };
 
@@ -94,9 +115,15 @@ export default function BatchUploadButton({
           const nextResults = res.results || [];
           setResults(nextResults);
           const failedCount = nextResults.filter((result) => !result.success).length;
+          const reviewCount = nextResults.filter((result) => result.reviewRequired).length;
+
           if (failedCount > 0) {
             setErrorMessage(
-              `${failedCount} archivo(s) requieren revision. Los documentos procesados correctamente ya quedaron guardados.`
+              `${failedCount} archivo(s) no se pudieron guardar. Los demas documentos procesados correctamente ya quedaron almacenados.`
+            );
+          } else if (reviewCount > 0) {
+            setErrorMessage(
+              `${reviewCount} archivo(s) quedaron guardados y requieren revision manual antes de completar datos del candidato.`
             );
           }
           router.refresh();
@@ -120,6 +147,19 @@ export default function BatchUploadButton({
     setSelectedCandidateId("");
     setIsSmartMode(false);
     setErrorMessage("");
+  };
+
+  const switchMode = (nextMode: "manual" | "smart") => {
+    if (nextMode === "smart" && !automaticOcrAvailable) {
+      setErrorMessage(
+        "El modo inteligente requiere un proveedor OCR automatico activo. Por ahora puedes seguir trabajando en modo manual."
+      );
+      setIsSmartMode(false);
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSmartMode(nextMode === "smart");
   };
 
   return (
@@ -170,15 +210,20 @@ export default function BatchUploadButton({
             >
               <button
                 type="button"
-                onClick={() => setIsSmartMode(false)}
+                onClick={() => switchMode("manual")}
                 style={modeButtonStyle(!isSmartMode)}
               >
                 <UserCircle size={18} /> Manual
               </button>
               <button
                 type="button"
-                onClick={() => setIsSmartMode(true)}
-                style={modeButtonStyle(isSmartMode)}
+                onClick={() => switchMode("smart")}
+                style={{
+                  ...modeButtonStyle(isSmartMode),
+                  opacity: automaticOcrAvailable ? 1 : 0.55,
+                  cursor: automaticOcrAvailable ? "pointer" : "not-allowed",
+                }}
+                disabled={!automaticOcrAvailable}
               >
                 <Brain size={18} /> Inteligente
               </button>
@@ -234,9 +279,24 @@ export default function BatchUploadButton({
                     }}
                   >
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                      <strong>Modo Inteligente:</strong> el OCR intentara identificar el tipo de
-                      documento, localizar un candidato existente por numero o nombre, y si no lo
-                      encuentra podra crear un perfil nuevo con los datos detectados.
+                      <strong>Modo Inteligente:</strong> requiere un proveedor OCR automatico
+                      activo. Si el OCR no esta disponible, usa modo manual para guardar los
+                      documentos sin extraccion automatica.
+                    </p>
+                  </div>
+                ) : !automaticOcrAvailable ? (
+                  <div
+                    style={{
+                      padding: "1rem",
+                      border: "1px dashed var(--amber-flame)",
+                      backgroundColor: "rgba(252, 186, 4, 0.08)",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: "0.875rem" }}>
+                      <strong>Modo Manual activo:</strong> los documentos se guardaran de forma
+                      real en la app, pero quedaran pendientes de revision porque el OCR automatico
+                      esta desactivado temporalmente.
                     </p>
                   </div>
                 ) : null}
@@ -266,10 +326,10 @@ export default function BatchUploadButton({
                 >
                   {isPending ? (
                     <>
-                      <Loader2 className="animate-spin" size={20} /> Procesando con OCR...
+                      <Loader2 className="animate-spin" size={20} /> Subiendo documentos...
                     </>
                   ) : (
-                    "Subir y Procesar"
+                    isSmartMode ? "Subir y procesar" : "Subir documentos"
                   )}
                 </button>
 
@@ -295,7 +355,11 @@ export default function BatchUploadButton({
                       }}
                     >
                       {result.success ? (
-                        <CheckCircle2 size={18} color="green" />
+                        result.reviewRequired ? (
+                          <AlertCircle size={18} color="#d97706" />
+                        ) : (
+                          <CheckCircle2 size={18} color="green" />
+                        )
                       ) : (
                         <AlertCircle size={18} color="red" />
                       )}
@@ -305,10 +369,19 @@ export default function BatchUploadButton({
                       <span
                         style={{
                           fontSize: "0.75rem",
-                          color: result.success ? "green" : "red",
+                          color: result.success
+                            ? result.reviewRequired
+                              ? "#b45309"
+                              : "green"
+                            : "red",
                         }}
                       >
-                        {result.message || (result.success ? "OCR procesado" : "Error")}
+                        {result.message ||
+                          (result.success
+                            ? result.reviewRequired
+                              ? "Guardado; requiere revision manual"
+                              : "OCR procesado"
+                            : "Error")}
                       </span>
                     </div>
                   ))}
@@ -333,10 +406,10 @@ export default function BatchUploadButton({
 function BatchResultSummary({
   results,
 }: {
-  results: { success: boolean }[];
+  results: { success: boolean; reviewRequired?: boolean }[];
 }) {
   const successCount = results.filter((result) => result.success).length;
-  const failedCount = results.length - successCount;
+  const reviewCount = results.filter((result) => result.reviewRequired).length;
 
   return (
     <div
@@ -349,7 +422,11 @@ function BatchResultSummary({
     >
       <ResultMetric label="Archivos" value={results.length} tone="neutral" />
       <ResultMetric label="Guardados" value={successCount} tone="success" />
-      <ResultMetric label="Revisar" value={failedCount} tone={failedCount > 0 ? "warning" : "neutral"} />
+      <ResultMetric
+        label="Revisar"
+        value={reviewCount}
+        tone={reviewCount > 0 ? "warning" : "neutral"}
+      />
     </div>
   );
 }
