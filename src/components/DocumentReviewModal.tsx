@@ -459,8 +459,7 @@ export default function DocumentReviewModal({
                   fontWeight: 600,
                 }}
               >
-                OCR automatico no disponible o no concluyente. Este documento queda listo para
-                validacion manual antes de consolidar los datos.
+                Documento pendiente de revision manual antes de consolidar los datos.
               </div>
             ) : null}
             {form.ocrError ? (
