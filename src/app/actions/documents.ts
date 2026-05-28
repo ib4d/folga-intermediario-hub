@@ -1523,8 +1523,8 @@ export async function uploadDocument(formData: FormData) {
     ocrStatus: manualReviewMode ? "manual_review" : ocrOutcome,
     reviewRequired,
     message:
-      manualReviewMode
-        ? "Documento guardado. Queda pendiente de revision manual porque el OCR automatico no esta disponible."
+        manualReviewMode
+        ? "Documento guardado. Queda pendiente de revision manual."
         : ocrOutcome === "captured"
         ? "Documento subido y enviado a revision OCR"
         : ocrOutcome === "failed"
