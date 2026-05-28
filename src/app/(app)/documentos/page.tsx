@@ -96,7 +96,7 @@ export default async function DocumentosPage({
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
         <Link
-          href="/documentos?status=PENDING"
+          href="/documentos?status=REVIEW_REQUIRED"
           className="card"
           style={{ backgroundColor: "var(--amber-flame)", textDecoration: "none", color: "inherit" }}
         >
