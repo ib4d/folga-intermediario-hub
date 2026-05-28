@@ -531,7 +531,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                               doc.isVerified ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                             }`}
                           >
-                            {doc.isVerified ? labels("candidateDetail.verifiedStatus") : doc.ocrStatus || labels("candidateDetail.pending")}
+                            {doc.isVerified
+                              ? labels("candidateDetail.verifiedStatus")
+                              : doc.ocrStatus === "REVIEW_REQUIRED" || doc.ocrStatus === "manual_review"
+                                ? labels("candidateDetail.pending")
+                                : doc.ocrStatus || labels("candidateDetail.pending")}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
