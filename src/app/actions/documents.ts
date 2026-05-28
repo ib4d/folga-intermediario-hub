@@ -1906,7 +1906,7 @@ export async function smartBatchUpload(formData: FormData) {
     return {
       success: false,
       message:
-        "El modo inteligente no esta disponible mientras el OCR automatico este desactivado. Usa modo manual o conecta un nuevo proveedor OCR.",
+        "El modo inteligente no esta disponible en este momento. Usa modo manual para continuar.",
       results: [],
     };
   }
