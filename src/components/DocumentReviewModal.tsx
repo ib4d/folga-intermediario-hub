@@ -417,7 +417,7 @@ export default function DocumentReviewModal({
           setIsOpen(true);
         }}
       >
-        <PencilLine size={14} /> Revisar OCR
+        <PencilLine size={14} /> {isManualReviewDocument ? "Revisar manual" : "Revisar OCR"}
       </button>
 
       {isOpen ? (
