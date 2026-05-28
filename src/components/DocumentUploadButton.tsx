@@ -80,7 +80,11 @@ export default function DocumentUploadButton({
               res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
                 ? "warning"
                 : "success",
-            text: res.message || "Documento subido correctamente.",
+            text:
+              res.message ||
+              (res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
+                ? "Documento guardado. Queda pendiente de revision manual."
+                : "Documento subido correctamente."),
           });
         } else {
           setMessage({ tone: "error", text: res.message || "Error al subir documento." });
