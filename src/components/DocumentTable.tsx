@@ -165,7 +165,7 @@ export default function DocumentTable({
 
   const getOcrBadgeClassName = (ocrStatus: string | null) => {
     if (ocrStatus === "FAILED") return "status-badge danger";
-    if (ocrStatus === "REVIEW_REQUIRED") {
+    if (ocrStatus === "REVIEW_REQUIRED" || ocrStatus === "manual_review") {
       return "status-badge warning";
     }
     if (ocrStatus === "OCR_CAPTURED" || ocrStatus === "SUCCESS") {
@@ -177,7 +177,7 @@ export default function DocumentTable({
   const getOcrLabel = (ocrStatus: string | null) => {
     if (ocrStatus === "OCR_CAPTURED") return labels.ocrCaptured;
     if (ocrStatus === "FAILED") return labels.ocrFailed;
-    if (ocrStatus === "REVIEW_REQUIRED") return labels.manualReview;
+    if (ocrStatus === "REVIEW_REQUIRED" || ocrStatus === "manual_review") return labels.manualReview;
     return ocrStatus || labels.pending;
   };
 
@@ -427,7 +427,7 @@ export default function DocumentTable({
                           >
                             {doc.ocrStatus === "FAILED"
                               ? labels.fix
-                              : doc.ocrStatus === "REVIEW_REQUIRED"
+                              : doc.ocrStatus === "REVIEW_REQUIRED" || doc.ocrStatus === "manual_review"
                                 ? labels.review
                                 : labels.verify}
                           </Link>

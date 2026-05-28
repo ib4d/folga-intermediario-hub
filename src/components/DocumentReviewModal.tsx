@@ -136,6 +136,7 @@ function getReviewableDocumentStatus(doc: ReviewableDocument): string {
   if (doc.ocrStatus === "FAILED") return "OCR fallido";
   if (doc.ocrStatus === "OCR_CAPTURED") return "OCR capturado";
   if (doc.ocrStatus === "REVIEW_REQUIRED") return "Pendiente de revision manual";
+  if (doc.ocrStatus === "manual_review") return "Pendiente de revision manual";
   if (doc.ocrStatus === "SUCCESS") return "OCR exitoso";
   return doc.ocrStatus ?? "Pendiente";
 }
@@ -334,7 +335,10 @@ export default function DocumentReviewModal({
   );
   const [form, setForm] = useState(initialState);
   const [errorMessage, setErrorMessage] = useState("");
-  const isManualReviewDocument = doc.ocrStatus === "REVIEW_REQUIRED" || doc.ocrStatus === "FAILED";
+  const isManualReviewDocument =
+    doc.ocrStatus === "REVIEW_REQUIRED" ||
+    doc.ocrStatus === "FAILED" ||
+    doc.ocrStatus === "manual_review";
 
   useEffect(() => {
     if (!isOpen) return;
