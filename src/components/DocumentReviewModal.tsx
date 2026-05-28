@@ -334,6 +334,7 @@ export default function DocumentReviewModal({
   );
   const [form, setForm] = useState(initialState);
   const [errorMessage, setErrorMessage] = useState("");
+  const isManualReviewDocument = doc.ocrStatus === "REVIEW_REQUIRED" || doc.ocrStatus === "FAILED";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -434,13 +435,33 @@ export default function DocumentReviewModal({
               <X size={20} />
             </button>
 
-            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>Revision OCR</h2>
+            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>
+              {isManualReviewDocument ? "Revision manual del documento" : "Revision OCR"}
+            </h2>
             <p style={{ color: "var(--muted)", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
-              Corrige los campos detectados y guarda la version confiable del documento.
+              {isManualReviewDocument
+                ? "Completa o corrige los datos manualmente y guarda la version confiable del documento."
+                : "Corrige los campos detectados y guarda la version confiable del documento."}
             </p>
             <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.8rem" }}>
               Guardar esta revision actualiza el documento y la ficha del candidato con los datos confirmados.
             </p>
+            {isManualReviewDocument ? (
+              <div
+                style={{
+                  marginBottom: "1rem",
+                  border: "1px solid #f59e0b",
+                  background: "#fffbeb",
+                  padding: "0.85rem 1rem",
+                  color: "#92400e",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                OCR automatico no disponible o no concluyente. Este documento queda listo para
+                validacion manual antes de consolidar los datos.
+              </div>
+            ) : null}
             {form.ocrError ? (
               <p className="form-message-error" style={{ marginBottom: "1rem" }}>
                 OCR no pudo completar este documento: {form.ocrError}
