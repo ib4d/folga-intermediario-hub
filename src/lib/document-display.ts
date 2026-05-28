@@ -8,6 +8,7 @@ type DisplayableDocument = {
 };
 
 export type DocumentDisposition = "PRIMARY" | "FRONT" | "BACK" | "SUPPORTING" | "DUPLICATE";
+export type DocumentOcrStatus = string | null | undefined;
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -67,6 +68,10 @@ export function getDocumentDispositionLabel(disposition: DocumentDisposition | n
   if (disposition === "DUPLICATE") return "Duplicado";
   if (disposition === "PRIMARY") return "Principal";
   return null;
+}
+
+export function isManualReviewOcrStatus(status: DocumentOcrStatus): boolean {
+  return status === "REVIEW_REQUIRED" || status === "manual_review";
 }
 
 function parseDateValue(value: string | Date | null | undefined): Date | null {

@@ -16,6 +16,7 @@ import {
   getDocumentDisposition,
   getDocumentDispositionLabel,
   getDocumentDisplayNumber,
+  isManualReviewOcrStatus,
 } from "@/lib/document-display";
 import { isManualOcrMode } from "@/lib/providers/ocr";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
@@ -533,7 +534,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                           >
                             {doc.isVerified
                               ? labels("candidateDetail.verifiedStatus")
-                              : doc.ocrStatus === "REVIEW_REQUIRED" || doc.ocrStatus === "manual_review"
+                              : isManualReviewOcrStatus(doc.ocrStatus)
                                 ? labels("candidateDetail.pending")
                                 : doc.ocrStatus || labels("candidateDetail.pending")}
                           </span>
