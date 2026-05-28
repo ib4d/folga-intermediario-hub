@@ -142,6 +142,7 @@ export default async function DocumentosPage({
         initialDocuments={toPlainData(documents)}
         canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
         canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
+        ocrMode={manualOcrMode ? "manual" : "automatic"}
         labels={{
           processedTitle: labels("documents.processedTitle"),
           deleteSelected: labels("documents.deleteSelected"),

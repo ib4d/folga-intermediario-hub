@@ -85,11 +85,13 @@ export default function DocumentTable({
   initialDocuments,
   canReviewDocuments,
   canDeleteDocuments,
+  ocrMode = "automatic",
   labels,
 }: {
   initialDocuments: Document[];
   canReviewDocuments: boolean;
   canDeleteDocuments: boolean;
+  ocrMode?: "manual" | "automatic";
   labels: DocumentTableLabels;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -285,6 +287,23 @@ export default function DocumentTable({
       ) : null}
 
       <div className="card">
+        {ocrMode === "manual" ? (
+          <div
+            style={{
+              marginBottom: "1rem",
+              padding: "0.85rem 1rem",
+              border: "1px solid #f59e0b",
+              backgroundColor: "#fffbeb",
+              color: "#92400e",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+            }}
+          >
+            Modo OCR manual activo: los documentos se guardan correctamente y quedan pendientes de
+            revisión antes de validar los datos.
+          </div>
+        ) : null}
+
         <div
           className="card-header"
           style={{
