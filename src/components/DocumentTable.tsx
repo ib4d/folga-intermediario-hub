@@ -301,7 +301,7 @@ export default function DocumentTable({
             }}
           >
             Modo OCR manual activo: los documentos se guardan correctamente y quedan pendientes de
-            revisión antes de validar los datos.
+            revision antes de validar los datos.
           </div>
         ) : null}
 
@@ -483,3 +483,4 @@ export default function DocumentTable({
     </>
   );
 }
+
