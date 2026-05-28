@@ -71,7 +71,7 @@ export default function BatchUploadButton({
     e.preventDefault();
     if (isSmartMode && !automaticOcrAvailable) {
       setErrorMessage(
-        "El modo inteligente no esta disponible en este momento. Usa modo manual para guardar documentos y revisarlos despues."
+        "El modo inteligente no esta disponible en este momento. La carga manual sigue activa."
       );
       return;
     }
@@ -152,7 +152,7 @@ export default function BatchUploadButton({
   const switchMode = (nextMode: "manual" | "smart") => {
     if (nextMode === "smart" && !automaticOcrAvailable) {
       setErrorMessage(
-        "El modo inteligente no esta disponible en este momento. Puedes seguir trabajando en modo manual."
+        "El modo inteligente no esta disponible en este momento. La carga manual sigue activa."
       );
       setIsSmartMode(false);
       return;

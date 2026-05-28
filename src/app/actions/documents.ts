@@ -1906,7 +1906,7 @@ export async function smartBatchUpload(formData: FormData) {
     return {
       success: false,
       message:
-        "El modo inteligente no esta disponible en este momento. Usa modo manual para continuar.",
+        "El modo inteligente no esta disponible en este momento. La carga manual sigue activa.",
       results: [],
     };
   }
