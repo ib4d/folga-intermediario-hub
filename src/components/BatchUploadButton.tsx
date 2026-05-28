@@ -379,7 +379,9 @@ export default function BatchUploadButton({
                           (result.success
                             ? result.reviewRequired
                               ? "Guardado; requiere revision manual"
-                              : "OCR procesado"
+                              : isSmartMode
+                                ? "Procesado automaticamente"
+                                : "Documento guardado"
                             : "Error")}
                       </span>
                     </div>
