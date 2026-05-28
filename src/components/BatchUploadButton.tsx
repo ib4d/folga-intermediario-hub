@@ -280,8 +280,8 @@ export default function BatchUploadButton({
                   >
                     <p style={{ margin: 0, fontSize: "0.875rem" }}>
                       <strong>Modo Inteligente:</strong> procesa documentos de forma automatica
-                      cuando el proveedor OCR esta activo. Si no esta disponible, usa modo manual
-                      para guardar y revisar los documentos despues.
+                      cuando el proveedor OCR esta activo. Si no esta disponible, la carga manual
+                      sigue activa.
                     </p>
                   </div>
                 ) : !automaticOcrAvailable ? (
