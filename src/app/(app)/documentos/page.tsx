@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import BatchUploadButton from "@/components/BatchUploadButton";
 import DocumentTable from "@/components/DocumentTable";
+import { DOCUMENT_REVIEW_PENDING_STATUSES } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { isManualOcrMode } from "@/lib/providers/ocr";
 import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
@@ -13,6 +14,11 @@ import Link from "next/link";
 
 function toPlainData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function isReviewQueueStatus(status?: string): boolean {
+  if (!status) return false;
+  return DOCUMENT_REVIEW_PENDING_STATUSES.has(status);
 }
 
 export default async function DocumentosPage({
@@ -28,10 +34,15 @@ export default async function DocumentosPage({
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const manualOcrMode = isManualOcrMode();
+  const reviewQueueFilterActive = isReviewQueueStatus(status);
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
-    ...(status ? { ocrStatus: status } : {}),
+    ...(reviewQueueFilterActive
+      ? { ocrStatus: { in: Array.from(DOCUMENT_REVIEW_PENDING_STATUSES) } }
+      : status
+        ? { ocrStatus: status }
+        : {}),
     ...(canAccessAllCandidates(tenant.role)
       ? {}
       : { candidate: { intermediaryId: tenant.userId } }),
@@ -56,7 +67,7 @@ export default async function DocumentosPage({
   }));
 
   const pendingCount = await prisma.document.count({
-    where: { ...documentWhere, ocrStatus: { in: ["PENDING", "REVIEW_REQUIRED"] } },
+    where: { ...documentWhere, ocrStatus: { in: Array.from(DOCUMENT_REVIEW_PENDING_STATUSES) } },
   });
 
   const completedCount = await prisma.document.count({
@@ -69,7 +80,7 @@ export default async function DocumentosPage({
   const manualReviewCount = await prisma.document.count({
     where: {
       ...documentWhere,
-      ocrStatus: { in: ["REVIEW_REQUIRED", "PENDING"] },
+      ocrStatus: { in: Array.from(DOCUMENT_REVIEW_PENDING_STATUSES) },
     },
   });
 

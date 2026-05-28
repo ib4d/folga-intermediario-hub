@@ -8,6 +8,14 @@ import {
 
 type CandidateWithDocuments = Candidate & { documents: Document[] };
 
+export const DOCUMENT_REVIEW_PENDING_STATUSES = new Set([
+  "PENDING",
+  "OCR_CAPTURED",
+  "REVIEW_REQUIRED",
+  "manual_review",
+  "FAILED",
+]);
+
 export interface DocumentDuplicateGroup {
   key: string;
   type: DocumentType;
@@ -36,7 +44,6 @@ export interface DocumentChecklist {
   isReadyForLegal: boolean;
 }
 
-const REVIEW_PENDING_STATUSES = new Set(["PENDING", "OCR_CAPTURED", "REVIEW_REQUIRED", "FAILED"]);
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function addUnique(list: string[], value: string) {
@@ -106,7 +113,7 @@ export function getCandidateDocumentChecklist(candidate: CandidateWithDocuments)
       addUnique(verifiedUnique, document.type);
     }
 
-    if (!document.isVerified || (document.ocrStatus && REVIEW_PENDING_STATUSES.has(document.ocrStatus))) {
+    if (!document.isVerified || (document.ocrStatus && DOCUMENT_REVIEW_PENDING_STATUSES.has(document.ocrStatus))) {
       addUnique(pendingReviewUnique, document.type);
     }
   }
@@ -191,7 +198,7 @@ export function getCandidateDocumentChecklist(candidate: CandidateWithDocuments)
       uniqueDocumentTypes: uploadedUnique.length,
       verifiedDocuments: candidate.documents.filter((document) => document.isVerified).length,
       pendingReviewDocuments: candidate.documents.filter(
-        (document) => !document.isVerified || (document.ocrStatus && REVIEW_PENDING_STATUSES.has(document.ocrStatus)),
+        (document) => !document.isVerified || (document.ocrStatus && DOCUMENT_REVIEW_PENDING_STATUSES.has(document.ocrStatus)),
       ).length,
       expiringSoonDocuments,
       duplicateGroups: duplicates.length,
