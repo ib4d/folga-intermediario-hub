@@ -69,6 +69,25 @@ function normalizeOptionalString(value: unknown): string | null {
   return placeholderValues.has(normalized.toUpperCase()) ? null : normalized;
 }
 
+function normalizeManualReviewValue(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).trim();
+  if (normalized.length === 0) return null;
+
+  const placeholderValues = new Set([
+    "NO DISPONIBLE",
+    "N/A",
+    "NA",
+    "-",
+    "NULL",
+    "UNDEFINED",
+    "PENDING",
+    "PENDIENTE",
+  ]);
+
+  return placeholderValues.has(normalized.toUpperCase()) ? null : normalized;
+}
+
 function normalizeMimeType(file: File): string {
   const rawMimeType = normalizeOptionalString(file.type);
   if (rawMimeType && rawMimeType !== "application/octet-stream") {
@@ -1629,23 +1648,23 @@ export async function reviewDocumentOcr(input: {
   }
 
   const normalizedType = parseDocumentType(input.type);
-  const normalizedDocumentNumber = normalizeOptionalString(input.documentNumber);
+  const normalizedDocumentNumber = normalizeManualReviewValue(input.documentNumber);
   const normalizedDisposition = normalizeOptionalString(input.documentDisposition)?.toUpperCase() ?? null;
-  const normalizedPersonalNumber = normalizeOptionalString(input.personalNumber);
-  const normalizedExpiry = normalizeOptionalString(input.expiryDate);
-  const normalizedIssue = normalizeOptionalString(input.issueDate);
-  const normalizedFirstName = normalizePersonName(input.firstName);
-  const normalizedLastName = normalizePersonName(input.lastName);
-  const normalizedNationality = normalizeOptionalString(input.nationality);
-  const normalizedIssuingCountry = normalizeOptionalString(input.issuingCountry);
-  const normalizedDob = normalizeOptionalString(input.dateOfBirth);
-  const normalizedSex = normalizeOptionalString(input.sex)?.toUpperCase() ?? null;
-  const normalizedBirthPlace = normalizeOptionalString(input.placeOfBirth);
-  const normalizedAuthority = normalizeOptionalString(input.issuingAuthority);
-  const normalizedKartaType = normalizeOptionalString(input.kartaPobytuType);
-  const normalizedRemarks = normalizeOptionalString(input.remarks);
-  const normalizedMunicipality = normalizeOptionalString(input.municipalityOffice);
-  const normalizedAddress = normalizeOptionalString(input.addressOfRegistration);
+  const normalizedPersonalNumber = normalizeManualReviewValue(input.personalNumber);
+  const normalizedExpiry = normalizeManualReviewValue(input.expiryDate);
+  const normalizedIssue = normalizeManualReviewValue(input.issueDate);
+  const normalizedFirstName = normalizePersonName(normalizeManualReviewValue(input.firstName));
+  const normalizedLastName = normalizePersonName(normalizeManualReviewValue(input.lastName));
+  const normalizedNationality = normalizeManualReviewValue(input.nationality);
+  const normalizedIssuingCountry = normalizeManualReviewValue(input.issuingCountry);
+  const normalizedDob = normalizeManualReviewValue(input.dateOfBirth);
+  const normalizedSex = normalizeManualReviewValue(input.sex)?.toUpperCase() ?? null;
+  const normalizedBirthPlace = normalizeManualReviewValue(input.placeOfBirth);
+  const normalizedAuthority = normalizeManualReviewValue(input.issuingAuthority);
+  const normalizedKartaType = normalizeManualReviewValue(input.kartaPobytuType);
+  const normalizedRemarks = normalizeManualReviewValue(input.remarks);
+  const normalizedMunicipality = normalizeManualReviewValue(input.municipalityOffice);
+  const normalizedAddress = normalizeManualReviewValue(input.addressOfRegistration);
   const normalizedHeight =
     typeof input.heightCm === "number" && Number.isFinite(input.heightCm) ? input.heightCm : null;
 

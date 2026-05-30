@@ -275,6 +275,7 @@ export default function DocumentTable({
                     <DocumentReviewModal
                       doc={item.documents[0]}
                       allDocuments={initialDocuments.filter((candidateDoc) => candidateDoc.candidateId === item.candidateId)}
+                      candidateDefaults={item.documents[0].candidate ?? undefined}
                     />
                   ) : null}
                   <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
@@ -419,6 +420,7 @@ export default function DocumentTable({
                             <DocumentReviewModal
                               doc={doc}
                               allDocuments={initialDocuments.filter((candidateDoc) => candidateDoc.candidateId === doc.candidateId)}
+                              candidateDefaults={doc.candidate ?? undefined}
                             />
                           ) : null}
                           <Link

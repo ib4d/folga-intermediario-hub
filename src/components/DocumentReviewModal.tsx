@@ -22,6 +22,27 @@ type ReviewableDocument = {
   extractedData: unknown;
 };
 
+type CandidateDefaults = {
+  firstName?: string | null;
+  lastName?: string | null;
+  nationality?: string | null;
+  citizenship?: string | null;
+  dateOfBirth?: string | Date | null;
+  birthPlace?: string | null;
+  gender?: string | null;
+  heightCm?: number | null;
+  polishAddress?: string | null;
+  passportNumber?: string | null;
+  passportIssueDate?: string | Date | null;
+  passportExpiry?: string | Date | null;
+  passportBiometric?: boolean | null;
+  kartaPobytuNumber?: string | null;
+  kartaPobytuIssueDate?: string | Date | null;
+  kartaPobytuExpiry?: string | Date | null;
+  kartaPobytuType?: string | null;
+  peselNumber?: string | null;
+};
+
 type DuplicateContext = {
   type: string;
   number: string | null;
@@ -116,6 +137,27 @@ function toDateInputValue(value: string | Date | null | undefined): string {
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function normalizeFallbackText(value: string | null | undefined): string {
+  if (!value) return "";
+
+  const normalized = value.trim();
+  if (!normalized) return "";
+
+  const placeholders = new Set([
+    "NO DISPONIBLE",
+    "N/A",
+    "NA",
+    "-",
+    "NONE",
+    "NULL",
+    "UNDEFINED",
+    "PENDIENTE",
+    "PENDING",
+  ]);
+
+  return placeholders.has(normalized.toUpperCase()) ? "" : normalized;
 }
 
 function asBoolean(value: unknown): boolean {
@@ -279,38 +321,64 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
   };
 }
 
-function deriveInitialState(doc: ReviewableDocument) {
+function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults) {
   const extracted = getExtractedData(doc.extractedData);
   const fileName = getReviewableDocumentName(doc);
   const inferredType = inferDocumentTypeFromFileName(fileName);
   const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
   const inferredNameParts = inferNamePartsFromFileName(fileName);
   const extractedDocumentType = asString(extracted.documentType);
+  const fallbackDocumentNumber =
+    normalizeFallbackText(candidateDefaults?.passportNumber) ||
+    normalizeFallbackText(candidateDefaults?.kartaPobytuNumber) ||
+    normalizeFallbackText(candidateDefaults?.peselNumber) ||
+    "";
   const initialType =
     doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType;
 
   return {
     type: initialType,
     documentDisposition: asString(extracted.documentDisposition) || "PRIMARY",
-    documentNumber: asString(extracted.documentNumber) || doc.number || inferredDocumentNumber,
+    documentNumber:
+      asString(extracted.documentNumber) ||
+      doc.number ||
+      fallbackDocumentNumber ||
+      inferredDocumentNumber,
     personalNumber:
       asString(extracted.personalNumber) ||
+      normalizeFallbackText(candidateDefaults?.peselNumber) ||
       (initialType === "PESEL" && /^\d{11}$/.test(inferredDocumentNumber) ? inferredDocumentNumber : ""),
-    expiryDate: toDateInputValue(doc.expiryDate) || asString(extracted.dateOfExpiry),
-    issueDate: toDateInputValue(doc.issueDate) || asString(extracted.dateOfIssue),
-    firstName: asString(extracted.firstName) || inferredNameParts?.firstName || "",
-    lastName: asString(extracted.lastName) || inferredNameParts?.lastName || "",
-    nationality: asString(extracted.nationality),
-    issuingCountry: asString(extracted.issuingCountry),
-    dateOfBirth: asString(extracted.dateOfBirth),
-    sex: asString(extracted.sex),
-    placeOfBirth: asString(extracted.placeOfBirth),
+    expiryDate:
+      toDateInputValue(doc.expiryDate) ||
+      toDateInputValue(candidateDefaults?.passportExpiry) ||
+      toDateInputValue(candidateDefaults?.kartaPobytuExpiry) ||
+      asString(extracted.dateOfExpiry),
+    issueDate:
+      toDateInputValue(doc.issueDate) ||
+      toDateInputValue(candidateDefaults?.passportIssueDate) ||
+      toDateInputValue(candidateDefaults?.kartaPobytuIssueDate) ||
+      asString(extracted.dateOfIssue),
+    firstName:
+      asString(extracted.firstName) ||
+      normalizeFallbackText(candidateDefaults?.firstName) ||
+      inferredNameParts?.firstName ||
+      "",
+    lastName:
+      asString(extracted.lastName) ||
+      normalizeFallbackText(candidateDefaults?.lastName) ||
+      inferredNameParts?.lastName ||
+      "",
+    nationality: asString(extracted.nationality) || normalizeFallbackText(candidateDefaults?.nationality),
+    issuingCountry: asString(extracted.issuingCountry) || normalizeFallbackText(candidateDefaults?.citizenship),
+    dateOfBirth: asString(extracted.dateOfBirth) || toDateInputValue(candidateDefaults?.dateOfBirth),
+    sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
+    placeOfBirth: asString(extracted.placeOfBirth) || normalizeFallbackText(candidateDefaults?.birthPlace),
     issuingAuthority: asString(extracted.issuingAuthority),
-    passportBiometric: asBoolean(extracted.passportBiometric),
-    kartaPobytuType: asString(extracted.kartaPobytuType),
+    passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
+    kartaPobytuType: asString(extracted.kartaPobytuType) || normalizeFallbackText(candidateDefaults?.kartaPobytuType),
     remarks: asString(extracted.remarks),
     municipalityOffice: asString(extracted.municipalityOffice),
-    addressOfRegistration: asString(extracted.addressOfRegistration),
+    addressOfRegistration: asString(extracted.addressOfRegistration) || normalizeFallbackText(candidateDefaults?.polishAddress),
     heightCm: asNumber(extracted.heightCm),
     ocrError: asString(extracted.ocrError),
     markVerified: false,
@@ -320,14 +388,16 @@ function deriveInitialState(doc: ReviewableDocument) {
 export default function DocumentReviewModal({
   doc,
   allDocuments = [],
+  candidateDefaults,
 }: {
   doc: ReviewableDocument;
   allDocuments?: ReviewableDocument[];
+  candidateDefaults?: CandidateDefaults;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const initialState = useMemo(() => deriveInitialState(doc), [doc]);
+  const initialState = useMemo(() => deriveInitialState(doc, candidateDefaults), [doc, candidateDefaults]);
   const duplicateContext = useMemo(() => buildDuplicateContext(doc, allDocuments), [allDocuments, doc]);
   const suggestedDispositionOptions = useMemo(
     () => getSuggestedDispositionOptions(duplicateContext),

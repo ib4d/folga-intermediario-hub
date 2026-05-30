@@ -575,6 +575,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                                       ? (candidateDoc.extractedData as Record<string, unknown>)
                                       : null,
                                 }))}
+                                candidateDefaults={candidate}
                               />
                             ) : null}
                             <a
