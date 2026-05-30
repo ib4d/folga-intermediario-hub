@@ -1720,22 +1720,44 @@ export async function reviewDocumentOcr(input: {
     },
   });
 
+  const currentCandidateFirstName = isMeaningfulCandidateString(document.candidate.firstName)
+    ? document.candidate.firstName
+    : null;
+  const currentCandidateLastName = isMeaningfulCandidateString(document.candidate.lastName)
+    ? document.candidate.lastName
+    : null;
+  const currentCandidateNationality = isMeaningfulCandidateString(document.candidate.nationality)
+    ? document.candidate.nationality
+    : null;
+  const currentCandidateCitizenship = isMeaningfulCandidateString(document.candidate.citizenship)
+    ? document.candidate.citizenship
+    : null;
+  const currentCandidateBirthPlace = isMeaningfulCandidateString(document.candidate.birthPlace)
+    ? document.candidate.birthPlace
+    : null;
+  const currentCandidateGender = isMeaningfulCandidateString(document.candidate.gender)
+    ? document.candidate.gender
+    : null;
+  const currentCandidatePolishAddress = isMeaningfulCandidateString(document.candidate.polishAddress)
+    ? document.candidate.polishAddress
+    : null;
+
   const candidateUpdateData: Prisma.CandidateUncheckedUpdateInput = {
-    firstName: normalizedFirstName ?? document.candidate.firstName,
-    lastName: normalizedLastName ?? document.candidate.lastName,
-    nationality: normalizedNationality ?? document.candidate.nationality,
-    citizenship: normalizedIssuingCountry ?? document.candidate.citizenship,
+    firstName: normalizedFirstName ?? currentCandidateFirstName,
+    lastName: normalizedLastName ?? currentCandidateLastName,
+    nationality: normalizedNationality ?? currentCandidateNationality,
+    citizenship: normalizedIssuingCountry ?? currentCandidateCitizenship,
     dateOfBirth: parseDateSafe(normalizedDob) ?? document.candidate.dateOfBirth,
-    birthPlace: normalizedBirthPlace ?? document.candidate.birthPlace,
+    birthPlace: normalizedBirthPlace ?? currentCandidateBirthPlace,
     gender:
       normalizedSex === "M" || normalizedSex === "F"
         ? normalizedSex
-        : document.candidate.gender,
+        : currentCandidateGender,
     heightCm: normalizedHeight ?? document.candidate.heightCm,
-      polishAddress: normalizedAddress ?? document.candidate.polishAddress,
-      ocrProcessed: true,
-      ocrSource: `${ACTIVE_OCR_SOURCE}_REVIEWED`,
-    };
+    polishAddress: normalizedAddress ?? currentCandidatePolishAddress,
+    ocrProcessed: true,
+    ocrSource: `${ACTIVE_OCR_SOURCE}_REVIEWED`,
+  };
 
   if (normalizedType === DocumentType.PASSPORT) {
     candidateUpdateData.passportNumber = normalizedDocumentNumber;
