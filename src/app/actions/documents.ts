@@ -88,6 +88,11 @@ function normalizeManualReviewValue(value: unknown): string | null {
   return placeholderValues.has(normalized.toUpperCase()) ? null : normalized;
 }
 
+function isMeaningfulCandidateString(value: string | null | undefined): boolean {
+  const normalized = normalizeManualReviewValue(value);
+  return normalized !== null;
+}
+
 function normalizeMimeType(file: File): string {
   const rawMimeType = normalizeOptionalString(file.type);
   if (rawMimeType && rawMimeType !== "application/octet-stream") {
@@ -919,14 +924,14 @@ async function applyCandidateFieldsFromOcr(
   const documentNumber = normalizeOptionalString(ocrData.documentNumber);
   const addressOfRegistration = normalizeOptionalString(ocrData.addressOfRegistration);
 
-  if (firstName && !candidate.firstName) candidateUpdateData.firstName = firstName;
-  if (lastName && !candidate.lastName) candidateUpdateData.lastName = lastName;
-  if (citizenship && !candidate.citizenship) candidateUpdateData.citizenship = citizenship;
-  if (nationality && !candidate.nationality) candidateUpdateData.nationality = nationality;
-  if (birthPlace && !candidate.birthPlace) candidateUpdateData.birthPlace = birthPlace;
-  if ((gender === "M" || gender === "F") && !candidate.gender) candidateUpdateData.gender = gender;
+  if (firstName && !isMeaningfulCandidateString(candidate.firstName)) candidateUpdateData.firstName = firstName;
+  if (lastName && !isMeaningfulCandidateString(candidate.lastName)) candidateUpdateData.lastName = lastName;
+  if (citizenship && !isMeaningfulCandidateString(candidate.citizenship)) candidateUpdateData.citizenship = citizenship;
+  if (nationality && !isMeaningfulCandidateString(candidate.nationality)) candidateUpdateData.nationality = nationality;
+  if (birthPlace && !isMeaningfulCandidateString(candidate.birthPlace)) candidateUpdateData.birthPlace = birthPlace;
+  if ((gender === "M" || gender === "F") && !isMeaningfulCandidateString(candidate.gender)) candidateUpdateData.gender = gender;
   if (ocrData.heightCm && !candidate.heightCm) candidateUpdateData.heightCm = ocrData.heightCm;
-  if (addressOfRegistration && !candidate.polishAddress) {
+  if (addressOfRegistration && !isMeaningfulCandidateString(candidate.polishAddress)) {
     candidateUpdateData.polishAddress = addressOfRegistration;
   }
   if (ocrData.dateOfBirth && !candidate.dateOfBirth) {
@@ -934,7 +939,7 @@ async function applyCandidateFieldsFromOcr(
   }
 
   if (docType === DocumentType.PASSPORT) {
-    if (documentNumber && !candidate.passportNumber) {
+    if (documentNumber && !isMeaningfulCandidateString(candidate.passportNumber)) {
       candidateUpdateData.passportNumber = documentNumber;
     }
     if (ocrData.dateOfExpiry && !candidate.passportExpiry) {
@@ -949,7 +954,7 @@ async function applyCandidateFieldsFromOcr(
   }
 
   if (docType === DocumentType.KARTA_POBYTU) {
-    if (documentNumber && !candidate.kartaPobytuNumber) {
+    if (documentNumber && !isMeaningfulCandidateString(candidate.kartaPobytuNumber)) {
       candidateUpdateData.kartaPobytuNumber = documentNumber;
     }
     if (ocrData.dateOfExpiry && !candidate.kartaPobytuExpiry) {
@@ -958,16 +963,16 @@ async function applyCandidateFieldsFromOcr(
     if (ocrData.dateOfIssue && !candidate.kartaPobytuIssueDate) {
       candidateUpdateData.kartaPobytuIssueDate = parseDateSafe(ocrData.dateOfIssue);
     }
-    if (ocrData.kartaPobytuType && !candidate.kartaPobytuType) {
+    if (ocrData.kartaPobytuType && !isMeaningfulCandidateString(candidate.kartaPobytuType)) {
       candidateUpdateData.kartaPobytuType = ocrData.kartaPobytuType;
     }
-    if (personalNumber && !candidate.peselNumber) {
+    if (personalNumber && !isMeaningfulCandidateString(candidate.peselNumber)) {
       candidateUpdateData.peselNumber = personalNumber;
     }
   }
 
   if (docType === DocumentType.PESEL) {
-    if (personalNumber && !candidate.peselNumber) {
+    if (personalNumber && !isMeaningfulCandidateString(candidate.peselNumber)) {
       candidateUpdateData.peselNumber = personalNumber;
     }
   }
