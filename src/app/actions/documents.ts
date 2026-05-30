@@ -252,7 +252,7 @@ function getOperationalErrorMessage(error: unknown): string {
     message.includes("OCR is running in manual review mode") ||
     structured.code === "OCR_PROVIDER_UNAVAILABLE"
   ) {
-    return "El documento fue guardado correctamente, pero el OCR automatico esta desactivado o no disponible. Continua con revision manual hasta conectar el nuevo proveedor.";
+    return "El documento fue guardado correctamente y queda en modo manual hasta conectar el nuevo proveedor.";
   }
 
   if (
@@ -274,7 +274,7 @@ function getOperationalErrorMessage(error: unknown): string {
     message.toLowerCase().includes("subscription") ||
     message.toLowerCase().includes("quota")
   ) {
-    return "El documento fue guardado, pero el proveedor OCR ya no esta disponible para esta instalacion. Continua con revision manual mientras conectamos el proveedor sustituto.";
+    return "El documento fue guardado y queda pendiente de revision manual mientras conectamos el proveedor sustituto.";
   }
 
   return message;
