@@ -300,7 +300,7 @@ export default function DocumentTable({
               fontWeight: 600,
             }}
           >
-            Modo OCR manual activo: los documentos se guardan correctamente y quedan pendientes de
+            Modo manual activo: los documentos se guardan correctamente y quedan pendientes de
             revision antes de validar los datos.
           </div>
         ) : null}
