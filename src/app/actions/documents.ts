@@ -1523,12 +1523,12 @@ export async function uploadDocument(formData: FormData) {
     ocrStatus: manualReviewMode ? "manual_review" : ocrOutcome,
     reviewRequired,
     message:
-        manualReviewMode
+      manualReviewMode
         ? "Documento guardado. Queda pendiente de revision manual."
         : ocrOutcome === "captured"
         ? "Documento subido y enviado a revision OCR"
         : ocrOutcome === "failed"
-          ? "Documento guardado. OCR no pudo extraer datos y queda para correccion manual."
+          ? "Documento guardado. Queda pendiente de revision manual."
           : "Documento subido correctamente",
   };
 }
@@ -2036,8 +2036,7 @@ export async function smartBatchUpload(formData: FormData) {
         await markDocumentOcrFailed(
           result.documentId,
           docType,
-          ocrError ??
-            "OCR no devolvio datos utilizables. El archivo queda guardado para revision manual."
+          ocrError ?? "El archivo queda guardado y pendiente de revision manual."
         );
       }
 
