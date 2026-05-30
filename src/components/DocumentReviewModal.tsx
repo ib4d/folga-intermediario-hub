@@ -459,7 +459,7 @@ export default function DocumentReviewModal({
                   fontWeight: 600,
                 }}
               >
-                Documento pendiente de revision manual antes de consolidar los datos.
+                Documento guardado y pendiente de revision manual antes de consolidar los datos.
               </div>
             ) : null}
             {form.ocrError ? (
