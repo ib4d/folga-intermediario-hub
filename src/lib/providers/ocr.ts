@@ -34,7 +34,7 @@ class ManualOcrProvider implements OcrProvider {
     void mimeType;
     throw new OcrProviderUnavailableError(
       "manual",
-      "OCR is running in manual review mode. Documents can still be uploaded and reviewed without automatic extraction."
+      "OCR is running in manual mode. Documents can still be uploaded and reviewed without automatic extraction."
     );
   }
 }

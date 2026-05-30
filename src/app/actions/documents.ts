@@ -249,7 +249,7 @@ function getOperationalErrorMessage(error: unknown): string {
   }
 
   if (
-    message.includes("OCR is running in manual review mode") ||
+    message.includes("OCR is running in manual mode") ||
     structured.code === "OCR_PROVIDER_UNAVAILABLE"
   ) {
     return "El documento fue guardado correctamente y queda en modo manual hasta conectar el nuevo proveedor.";
