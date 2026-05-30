@@ -464,7 +464,7 @@ export default function DocumentReviewModal({
             ) : null}
             {form.ocrError ? (
               <p className="form-message-error" style={{ marginBottom: "1rem" }}>
-                OCR no pudo completar este documento: {form.ocrError}
+                La lectura automatica no pudo completar este documento: {form.ocrError}
               </p>
             ) : null}
             {duplicateContext ? (
