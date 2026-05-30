@@ -61,6 +61,13 @@ type InferredNameParts = {
   lastName: string;
 };
 
+type ReviewChecklistItem = {
+  label: string;
+  value: string;
+  required: boolean;
+  missing: boolean;
+};
+
 function getExtractedData(value: unknown): Record<string, unknown> {
   if (!value || Array.isArray(value) || typeof value !== "object") {
     return {};
@@ -158,6 +165,11 @@ function normalizeFallbackText(value: string | null | undefined): string {
   ]);
 
   return placeholders.has(normalized.toUpperCase()) ? "" : normalized;
+}
+
+function isFilledReviewValue(value: string | boolean | null | undefined): boolean {
+  if (typeof value === "boolean") return value;
+  return Boolean(normalizeFallbackText(value));
 }
 
 function asBoolean(value: unknown): boolean {
@@ -321,6 +333,79 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
   };
 }
 
+function buildManualReviewChecklist(form: {
+  type: string;
+  documentNumber: string;
+  personalNumber: string;
+  expiryDate: string;
+  issueDate: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  issuingCountry: string;
+  dateOfBirth: string;
+  kartaPobytuType: string;
+  passportBiometric: boolean;
+}) {
+  const passportChecklist: ReviewChecklistItem[] = [
+    { label: "Numero de documento", value: form.documentNumber, required: true, missing: !isFilledReviewValue(form.documentNumber) },
+    { label: "Fecha de expiracion", value: form.expiryDate, required: true, missing: !isFilledReviewValue(form.expiryDate) },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
+    { label: "Nacionalidad", value: form.nationality, required: true, missing: !isFilledReviewValue(form.nationality) },
+    { label: "Pais emisor", value: form.issuingCountry, required: true, missing: !isFilledReviewValue(form.issuingCountry) },
+    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
+    { label: "Pasaporte biometrico", value: form.passportBiometric ? "Si" : "", required: false, missing: !form.passportBiometric },
+  ];
+
+  const kartaChecklist: ReviewChecklistItem[] = [
+    { label: "Numero de tarjeta", value: form.documentNumber, required: true, missing: !isFilledReviewValue(form.documentNumber) },
+    { label: "Fecha de expiracion", value: form.expiryDate, required: true, missing: !isFilledReviewValue(form.expiryDate) },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
+    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber) },
+    { label: "Tipo de karta", value: form.kartaPobytuType, required: true, missing: !isFilledReviewValue(form.kartaPobytuType) },
+    { label: "Nacionalidad", value: form.nationality, required: true, missing: !isFilledReviewValue(form.nationality) },
+    { label: "Pais emisor", value: form.issuingCountry, required: true, missing: !isFilledReviewValue(form.issuingCountry) },
+    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
+  ];
+
+  const peselChecklist: ReviewChecklistItem[] = [
+    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber) },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
+    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
+    { label: "Nacionalidad", value: form.nationality, required: false, missing: !isFilledReviewValue(form.nationality) },
+  ];
+
+  const decisionChecklist: ReviewChecklistItem[] = [
+    { label: "Numero de documento", value: form.documentNumber, required: false, missing: !isFilledReviewValue(form.documentNumber) },
+    { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName) },
+    { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName) },
+    { label: "Fecha de expedicion", value: form.issueDate, required: false, missing: !isFilledReviewValue(form.issueDate) },
+    { label: "Fecha de expiracion", value: form.expiryDate, required: false, missing: !isFilledReviewValue(form.expiryDate) },
+  ];
+
+  let items: ReviewChecklistItem[] = [];
+  if (form.type === "PASSPORT") items = passportChecklist;
+  else if (form.type === "KARTA_POBYTU") items = kartaChecklist;
+  else if (form.type === "PESEL") items = peselChecklist;
+  else if (form.type === "DECYZJA_WOJEWODY") items = decisionChecklist;
+  else {
+    items = [
+      { label: "Numero de documento", value: form.documentNumber, required: false, missing: !isFilledReviewValue(form.documentNumber) },
+      { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName) },
+      { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName) },
+    ];
+  }
+
+  return {
+    items,
+    missingRequired: items.filter((item) => item.required && item.missing),
+    filledRequired: items.filter((item) => item.required && !item.missing),
+  };
+}
+
 function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults) {
   const extracted = getExtractedData(doc.extractedData);
   const fileName = getReviewableDocumentName(doc);
@@ -406,6 +491,7 @@ export default function DocumentReviewModal({
   const [form, setForm] = useState(initialState);
   const [errorMessage, setErrorMessage] = useState("");
   const isManualReviewDocument = doc.ocrStatus === "FAILED" || isManualReviewOcrStatus(doc.ocrStatus);
+  const reviewChecklist = useMemo(() => buildManualReviewChecklist(form), [form]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -616,6 +702,59 @@ export default function DocumentReviewModal({
                 </div>
               </div>
             ) : null}
+
+            <div
+              style={{
+                marginBottom: "1rem",
+                border: "1px solid #e5e7eb",
+                background: "#fafafa",
+                padding: "0.85rem 1rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center" }}>
+                <p style={{ margin: 0, fontWeight: 800 }}>Checklist de revision</p>
+                <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#6b7280" }}>
+                  {reviewChecklist.filledRequired.length}/{reviewChecklist.items.filter((item) => item.required).length} campos clave
+                </span>
+              </div>
+              {reviewChecklist.missingRequired.length > 0 ? (
+                <p style={{ margin: "0.35rem 0 0.75rem", color: "#b45309", fontSize: "0.85rem", fontWeight: 700 }}>
+                  Revisa primero los campos marcados como pendientes antes de guardar la version final.
+                </p>
+              ) : (
+                <p style={{ margin: "0.35rem 0 0.75rem", color: "#15803d", fontSize: "0.85rem", fontWeight: 700 }}>
+                  Los campos clave ya tienen valor. Puedes guardar la revision con mayor confianza.
+                </p>
+              )}
+              <div style={{ display: "grid", gap: "0.5rem" }}>
+                {reviewChecklist.items.map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "0.75rem",
+                      alignItems: "center",
+                      padding: "0.45rem 0.65rem",
+                      border: "1px solid #e5e7eb",
+                      background: item.missing ? "#fff7ed" : "#ecfdf5",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "0.78rem", fontWeight: 800 }}>{item.label}</span>
+                      {item.required ? (
+                        <span style={{ fontSize: "0.64rem", fontWeight: 900, color: "#b45309" }}>CLAVE</span>
+                      ) : (
+                        <span style={{ fontSize: "0.64rem", fontWeight: 900, color: "#6b7280" }}>OPCIONAL</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 800, color: item.missing ? "#b45309" : "#15803d" }}>
+                      {item.missing ? "Pendiente" : item.value || "OK"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div className="compact-stack">
               <div className="input-group" style={{ marginBottom: 0 }}>
