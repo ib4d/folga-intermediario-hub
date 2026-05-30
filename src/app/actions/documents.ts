@@ -2048,11 +2048,11 @@ export async function smartBatchUpload(formData: FormData) {
       results.push({
         filename: file.name,
         success: true,
-      message: resolved.created
+        message: resolved.created
             ? `Documento guardado y candidato creado: ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}`.trim()
             : ocrData
               ? `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; pendiente de revision manual`.trim()
-              : `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; pendiente de revision manual. ${ocrError ?? ""}`.trim(),
+              : `Documento guardado para ${resolved.candidate.firstName ?? ""} ${resolved.candidate.lastName ?? ""}; pendiente de revision manual`.trim(),
       });
     } catch (error) {
       results.push({
