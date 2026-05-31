@@ -125,6 +125,39 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           take: 8,
         })
       : [];
+  const documentAuditSummary = documentAuditLogs.reduce(
+    (summary, log) => {
+      switch (log.action) {
+        case "DOCUMENT_UPLOADED":
+          summary.uploads += 1;
+          break;
+        case "DOCUMENT_VERIFIED":
+          summary.verified += 1;
+          break;
+        case "DOCUMENT_DELETED":
+          summary.deleted += 1;
+          break;
+        case "OCR_EXTRACTED_PENDING_REVIEW":
+        case "OCR_FAILED":
+          summary.reviewPending += 1;
+          break;
+        case "DOCUMENT_INTEGRITY_CHECKED":
+          summary.integrityChecks += 1;
+          break;
+        default:
+          break;
+      }
+
+      return summary;
+    },
+    {
+      uploads: 0,
+      verified: 0,
+      deleted: 0,
+      reviewPending: 0,
+      integrityChecks: 0,
+    },
+  );
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
@@ -811,6 +844,38 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <p className="mb-6 text-xs text-gray-500">
                   {labels("candidateDetail.documentActivityDescription")}
                 </p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      {labels("candidateDetail.documentUploadsLabel")}
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-slate-900">{documentAuditSummary.uploads}</div>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                      {labels("candidateDetail.documentVerificationsLabel")}
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-emerald-900">{documentAuditSummary.verified}</div>
+                  </div>
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-red-600">
+                      {labels("candidateDetail.documentDeletionsLabel")}
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-red-900">{documentAuditSummary.deleted}</div>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                      {labels("candidateDetail.documentReviewPendingLabel")}
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-amber-900">{documentAuditSummary.reviewPending}</div>
+                  </div>
+                  <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                      {labels("candidateDetail.documentIntegrityChecksLabel")}
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-indigo-900">{documentAuditSummary.integrityChecks}</div>
+                  </div>
+                </div>
                 {documentAuditLogs.length > 0 ? (
                   <AuditTimeline logs={documentAuditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
                 ) : (
