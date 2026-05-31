@@ -19,6 +19,8 @@ import {
 } from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import { isManualOcrMode } from "@/lib/providers/ocr";
+import { getStorageProvider } from "@/lib/providers/storage";
 import { auth } from "@/auth";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
@@ -28,6 +30,8 @@ export default async function AjustesPage() {
   const tenant = await requireTenant();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const storageProvider = getStorageProvider();
+  const manualOcrMode = isManualOcrMode();
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: tenant.organizationId },
@@ -213,6 +217,30 @@ export default async function AjustesPage() {
                     {getAppModuleLabel(module, language)}
                   </span>
                 ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: "1.5rem" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
+                {labels("settings.providersTitle")}
+              </div>
+              <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                <div style={{ border: "1px solid var(--grey-olive)", padding: "0.85rem 1rem", backgroundColor: "rgba(255,255,255,0.6)" }}>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
+                    {labels("settings.storageLabel")}
+                  </div>
+                  <div style={{ marginTop: "0.35rem", fontSize: "0.95rem", fontWeight: 800 }}>
+                    {storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
+                  </div>
+                </div>
+                <div style={{ border: "1px solid var(--grey-olive)", padding: "0.85rem 1rem", backgroundColor: "rgba(255,255,255,0.6)" }}>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
+                    {labels("settings.ocrLabel")}
+                  </div>
+                  <div style={{ marginTop: "0.35rem", fontSize: "0.95rem", fontWeight: 800 }}>
+                    {manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
