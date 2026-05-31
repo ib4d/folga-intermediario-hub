@@ -12,8 +12,7 @@ import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
-import { isManualOcrMode } from "@/lib/providers/ocr";
-import { getStorageProvider } from "@/lib/providers/storage";
+import { getProviderStatus } from "@/lib/provider-status";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 
 export default async function DashboardPage() {
@@ -21,8 +20,8 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
-  const storageProvider = getStorageProvider();
-  const manualOcrMode = isManualOcrMode();
+  const providerStatus = getProviderStatus();
+  const { storageProvider, manualOcrMode } = providerStatus;
 
   const tenant = await requireTenant();
   const whereClause = candidateVisibilityWhere(tenant);

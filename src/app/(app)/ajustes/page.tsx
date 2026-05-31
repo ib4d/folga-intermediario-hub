@@ -19,8 +19,7 @@ import {
 } from "@/lib/permissions";
 import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/user-permissions";
 import { normalizeLanguage, t } from "@/lib/i18n";
-import { isManualOcrMode } from "@/lib/providers/ocr";
-import { getStorageProvider } from "@/lib/providers/storage";
+import { getProviderStatus } from "@/lib/provider-status";
 import { auth } from "@/auth";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
@@ -30,8 +29,8 @@ export default async function AjustesPage() {
   const tenant = await requireTenant();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
-  const storageProvider = getStorageProvider();
-  const manualOcrMode = isManualOcrMode();
+  const providerStatus = getProviderStatus();
+  const { storageProvider, manualOcrMode } = providerStatus;
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: tenant.organizationId },

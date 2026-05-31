@@ -5,8 +5,7 @@ import DocumentIntegrityCard from "@/components/DocumentIntegrityCard";
 import DocumentTable from "@/components/DocumentTable";
 import { DOCUMENT_REVIEW_PENDING_STATUSES } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
-import { isManualOcrMode } from "@/lib/providers/ocr";
-import { getStorageProvider } from "@/lib/providers/storage";
+import { getProviderStatus } from "@/lib/provider-status";
 import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { canAccessAllCandidates, candidateAccessWhere, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
@@ -37,8 +36,8 @@ export default async function DocumentosPage({
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
-  const storageProvider = getStorageProvider();
-  const manualOcrMode = isManualOcrMode();
+  const providerStatus = getProviderStatus();
+  const { storageProvider, manualOcrMode } = providerStatus;
   const reviewQueueFilterActive = isReviewQueueStatus(status);
   const candidateFilter = candidateId
     ? await prisma.candidate.findFirst({
