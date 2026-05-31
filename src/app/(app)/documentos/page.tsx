@@ -6,6 +6,7 @@ import DocumentTable from "@/components/DocumentTable";
 import { DOCUMENT_REVIEW_PENDING_STATUSES } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { isManualOcrMode } from "@/lib/providers/ocr";
+import { getStorageProvider } from "@/lib/providers/storage";
 import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { canAccessAllCandidates, candidateAccessWhere, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
@@ -36,6 +37,7 @@ export default async function DocumentosPage({
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const storageProvider = getStorageProvider();
   const manualOcrMode = isManualOcrMode();
   const reviewQueueFilterActive = isReviewQueueStatus(status);
   const candidateFilter = candidateId
@@ -174,6 +176,50 @@ export default async function DocumentosPage({
             </Link>
           </div>
         ) : null}
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem", padding: "1.25rem 1.5rem" }}>
+        <div className="card-header" style={{ marginBottom: "1rem" }}>
+          <div>
+            <h2 style={{ marginBottom: "0.35rem" }}>{labels("documents.providersTitle")}</h2>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.875rem", maxWidth: "760px" }}>
+              {labels("documents.providersDescription")}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              background: "rgba(255, 255, 255, 0.72)",
+              padding: "1rem 1.1rem",
+            }}
+          >
+            <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>
+              {labels("documents.storageProvider")}
+            </div>
+            <div style={{ marginTop: "0.5rem", fontSize: "1.1rem", fontWeight: 900 }}>
+              {storageProvider.name === "local"
+                ? labels("documents.storageLocal")
+                : labels("documents.storageSupabase")}
+            </div>
+          </div>
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              background: "rgba(255, 255, 255, 0.72)",
+              padding: "1rem 1.1rem",
+            }}
+          >
+            <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>
+              {labels("documents.ocrProvider")}
+            </div>
+            <div style={{ marginTop: "0.5rem", fontSize: "1.1rem", fontWeight: 900 }}>
+              {manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
