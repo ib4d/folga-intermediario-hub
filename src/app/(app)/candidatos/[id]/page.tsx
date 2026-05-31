@@ -24,6 +24,7 @@ import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import type { ComponentProps } from "react";
 import {
   canMakeLegalDecision,
   canEditCandidateNotes,
@@ -107,6 +108,23 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
         take: 10,
       })
     : [];
+  const documentAuditLogs =
+    canViewAudit && candidate.documents.length > 0
+      ? await prisma.auditLog.findMany({
+          where: {
+            organizationId: tenant.organizationId,
+            entityType: "Document",
+            entityId: { in: candidate.documents.map((document) => document.id) },
+          },
+          include: {
+            User: {
+              select: { name: true, role: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : [];
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
@@ -785,8 +803,24 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
           </div>
 
           {canViewAudit ? (
-            <div className="candidate-section-card">
-              <AuditTimeline logs={auditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
+            <div className="space-y-6">
+              <div className="candidate-section-card">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3">
+                  {labels("candidateDetail.documentActivityTitle")}
+                </h3>
+                <p className="mb-6 text-xs text-gray-500">
+                  {labels("candidateDetail.documentActivityDescription")}
+                </p>
+                {documentAuditLogs.length > 0 ? (
+                  <AuditTimeline logs={documentAuditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
+                ) : (
+                  <p className="text-xs text-gray-400 italic">{labels("candidateDetail.noDocumentActivity")}</p>
+                )}
+              </div>
+
+              <div className="candidate-section-card">
+                <AuditTimeline logs={auditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
+              </div>
             </div>
           ) : null}
         </div>

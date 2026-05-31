@@ -665,6 +665,10 @@ const translations = {
     "candidateDetail.noDocs": "No se han cargado documentos aun.",
     "candidateDetail.verifiedStatus": "Verificado",
     "candidateDetail.docStatusTitle": "Estado de Documentacion",
+    "candidateDetail.documentActivityTitle": "Actividad documental",
+    "candidateDetail.documentActivityDescription":
+      "Resumen reciente de subidas, verificaciones, borrados e incidencias documentales de este candidato.",
+    "candidateDetail.noDocumentActivity": "No hay actividad documental registrada para este candidato.",
     "candidateDetail.missingLabel": "Faltante",
     "candidateDetail.toVerify": "Por verificar",
     "candidateDetail.legalBlocks": "Bloqueos legales",
@@ -1356,6 +1360,10 @@ const translations = {
     "candidateDetail.noDocs": "No documents uploaded yet.",
     "candidateDetail.verifiedStatus": "Verified",
     "candidateDetail.docStatusTitle": "Documentation Status",
+    "candidateDetail.documentActivityTitle": "Document activity",
+    "candidateDetail.documentActivityDescription":
+      "Recent uploads, verifications, deletions, and document incidents for this candidate.",
+    "candidateDetail.noDocumentActivity": "No document activity has been recorded for this candidate.",
     "candidateDetail.missingLabel": "Missing",
     "candidateDetail.toVerify": "To verify",
     "candidateDetail.legalBlocks": "Legal blocks",
@@ -2047,6 +2055,10 @@ const translations = {
     "candidateDetail.noDocs": "Nie przeslano jeszcze zadnych dokumentow.",
     "candidateDetail.verifiedStatus": "Zweryfikowany",
     "candidateDetail.docStatusTitle": "Status dokumentacji",
+    "candidateDetail.documentActivityTitle": "Aktywnosc dokumentow",
+    "candidateDetail.documentActivityDescription":
+      "Najnowsze wysylki, weryfikacje, usuniecia i incydenty dokumentow dla tego kandydata.",
+    "candidateDetail.noDocumentActivity": "Brak zarejestrowanej aktywnosci dokumentow dla tego kandydata.",
     "candidateDetail.missingLabel": "Brakujacy",
     "candidateDetail.toVerify": "Do weryfikacji",
     "candidateDetail.legalBlocks": "Blokady prawne",
