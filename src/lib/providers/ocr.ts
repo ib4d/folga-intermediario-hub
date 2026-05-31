@@ -18,6 +18,16 @@ export interface OcrProvider {
   analyzeIdentityDocument(fileBuffer: Buffer, mimeType: string): Promise<OcrExtractedData | null>;
 }
 
+export type OcrProviderMode = "manual" | "automatic";
+
+export interface OcrProviderStatus {
+  readonly name: OcrProviderName;
+  readonly mode: OcrProviderMode;
+  readonly supportsAutomaticExtraction: boolean;
+  readonly statusLabel: string;
+  readonly statusDescription: string;
+}
+
 class AzureOcrProvider implements OcrProvider {
   readonly name = "azure" as const;
 
@@ -50,6 +60,28 @@ export function isManualOcrMode() {
 
 export function isAutomaticOcrAvailable() {
   return !isManualOcrMode();
+}
+
+export function getOcrProviderStatus(): OcrProviderStatus {
+  const name = getOcrProviderName();
+
+  if (name === "manual") {
+    return {
+      name,
+      mode: "manual",
+      supportsAutomaticExtraction: false,
+      statusLabel: "Modo manual",
+      statusDescription: "La lectura automatica no esta activa; los documentos quedan listos para revision manual.",
+    };
+  }
+
+  return {
+    name,
+    mode: "automatic",
+    supportsAutomaticExtraction: true,
+    statusLabel: "Modo automatico",
+    statusDescription: "La lectura automatica esta activa y puede extraer datos de documentos compatibles.",
+  };
 }
 
 export function getOcrProvider(): OcrProvider {

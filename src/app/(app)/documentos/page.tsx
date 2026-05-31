@@ -185,6 +185,7 @@ export default async function DocumentosPage({
         storageValue={storageProvider.name === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
         ocrLabel={labels("documents.ocrProvider")}
         ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
+        ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>

@@ -7,17 +7,21 @@ export async function GET() {
     // Check DB connection
     await prisma.$queryRaw`SELECT 1`;
     const providerStatus = getProviderStatus();
-    const { storageProvider, ocrMode } = providerStatus;
+    const { storageProvider, ocr } = providerStatus;
     await storageProvider.checkConnection();
 
     return NextResponse.json({
       status: "ok",
       db: "connected",
       storage: storageProvider.name,
-      ocr: ocrMode,
+      ocr: ocr.mode,
       providers: {
         storage: storageProvider.name,
-        ocr: ocrMode,
+        ocr: {
+          name: ocr.name,
+          mode: ocr.mode,
+          supportsAutomaticExtraction: ocr.supportsAutomaticExtraction,
+        },
       },
       email: process.env.EMAIL_PROVIDER || "smtp",
       jobs: process.env.JOB_PROVIDER || "inline",

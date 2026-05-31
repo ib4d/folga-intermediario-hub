@@ -1,16 +1,18 @@
-import { isAutomaticOcrAvailable, isManualOcrMode } from "@/lib/providers/ocr";
+import { getOcrProviderStatus } from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
 
 export function getProviderStatus() {
   const storageProvider = getStorageProvider();
-  const manualOcrMode = isManualOcrMode();
+  const ocr = getOcrProviderStatus();
+  const manualOcrMode = ocr.mode === "manual";
 
   return {
     storageProvider,
     storageName: storageProvider.name,
     storageMode: storageProvider.name === "local" ? "local" : "supabase",
-    ocrMode: manualOcrMode ? "manual" : "automatic",
+    ocr,
+    ocrMode: ocr.mode,
     manualOcrMode,
-    automaticOcrAvailable: isAutomaticOcrAvailable(),
+    automaticOcrAvailable: ocr.supportsAutomaticExtraction,
   } as const;
 }

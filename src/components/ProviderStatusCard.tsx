@@ -3,8 +3,10 @@ type ProviderStatusCardProps = {
   description?: string;
   storageLabel: string;
   storageValue: string;
+  storageNote?: string;
   ocrLabel: string;
   ocrValue: string;
+  ocrNote?: string;
 };
 
 export default function ProviderStatusCard({
@@ -12,8 +14,10 @@ export default function ProviderStatusCard({
   description,
   storageLabel,
   storageValue,
+  storageNote,
   ocrLabel,
   ocrValue,
+  ocrNote,
 }: ProviderStatusCardProps) {
   return (
     <div className="card" style={{ marginBottom: "2rem", padding: "1.25rem 1.5rem" }}>
@@ -38,6 +42,11 @@ export default function ProviderStatusCard({
         >
           <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{storageLabel}</div>
           <div style={{ marginTop: "0.5rem", fontSize: "1.1rem", fontWeight: 900 }}>{storageValue}</div>
+          {storageNote ? (
+            <div style={{ marginTop: "0.35rem", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.45 }}>
+              {storageNote}
+            </div>
+          ) : null}
         </div>
         <div
           style={{
@@ -48,6 +57,11 @@ export default function ProviderStatusCard({
         >
           <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{ocrLabel}</div>
           <div style={{ marginTop: "0.5rem", fontSize: "1.1rem", fontWeight: 900 }}>{ocrValue}</div>
+          {ocrNote ? (
+            <div style={{ marginTop: "0.35rem", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.45 }}>
+              {ocrNote}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

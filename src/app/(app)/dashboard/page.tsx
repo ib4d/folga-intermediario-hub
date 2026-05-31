@@ -246,6 +246,7 @@ export default async function DashboardPage() {
         storageValue={storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
         ocrLabel={labels("dashboard.ocrLabel")}
         ocrValue={manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
+        ocrNote={manualOcrMode ? labels("dashboard.ocrManualNote") : labels("dashboard.ocrAutomaticNote")}
       />
 
       <DashboardOverview

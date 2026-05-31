@@ -226,6 +226,7 @@ export default async function AjustesPage() {
               storageValue={storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
               ocrLabel={labels("settings.ocrLabel")}
               ocrValue={manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
+              ocrNote={manualOcrMode ? labels("settings.ocrManualNote") : labels("settings.ocrAutomaticNote")}
             />
           </div>
 
