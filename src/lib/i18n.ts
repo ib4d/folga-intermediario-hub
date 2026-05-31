@@ -534,6 +534,7 @@ const translations = {
     "documents.integrityIssueLabel": "Incidencia",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "No se pudo completar la comprobacion de integridad documental.",
+    "documents.filteringCandidate": "Filtrando documentos de",
     "documents.activityTitle": "Actividad documental reciente",
     "documents.activityDescription":
       "Revisa las subidas, verificaciones, borrados y comprobaciones de integridad más recientes para mantener la trazabilidad del archivo documental.",
@@ -675,6 +676,7 @@ const translations = {
     "candidateDetail.documentRiskDescription": "Duplicados y vencimientos proximos que conviene revisar antes de continuar.",
     "candidateDetail.documentDuplicatesLabel": "Duplicados",
     "candidateDetail.documentExpiringSoonLabel": "Por vencer",
+    "candidateDetail.openDocuments": "Ver documentos del candidato",
     "candidateDetail.documentTotalLabel": "Total",
     "candidateDetail.documentVerifiedLabel": "Verificados",
     "candidateDetail.documentPendingReviewLabel": "Pendientes",
@@ -1246,6 +1248,7 @@ const translations = {
     "documents.integrityIssueLabel": "Issue",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Could not complete the document integrity check.",
+    "documents.filteringCandidate": "Filtering documents for",
     "documents.activityTitle": "Recent document activity",
     "documents.activityDescription":
       "Review the latest uploads, verifications, deletions, and integrity checks to keep the document trail traceable.",
@@ -1387,6 +1390,7 @@ const translations = {
     "candidateDetail.documentRiskDescription": "Duplicate groups and expiring documents to review before moving forward.",
     "candidateDetail.documentDuplicatesLabel": "Duplicates",
     "candidateDetail.documentExpiringSoonLabel": "Expiring soon",
+    "candidateDetail.openDocuments": "Open candidate documents",
     "candidateDetail.documentTotalLabel": "Total",
     "candidateDetail.documentVerifiedLabel": "Verified",
     "candidateDetail.documentPendingReviewLabel": "Pending review",
@@ -1958,6 +1962,7 @@ const translations = {
     "documents.integrityIssueLabel": "Problem",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Nie mozna bylo ukonczyc sprawdzania integralnosci dokumentow.",
+    "documents.filteringCandidate": "Filtrowanie dokumentow dla",
     "documents.activityTitle": "Najnowsza aktywnosc dokumentow",
     "documents.activityDescription":
       "Przegladaj najnowsze wysylki, weryfikacje, usuniecia i sprawdzenia integralnosci, aby zachowac pelna sciezke audytu dokumentow.",
@@ -2099,6 +2104,7 @@ const translations = {
     "candidateDetail.documentRiskDescription": "Duplikaty i dokumenty bliskie wygaśnięcia, które warto sprawdzić przed dalszym krokiem.",
     "candidateDetail.documentDuplicatesLabel": "Duplikaty",
     "candidateDetail.documentExpiringSoonLabel": "Wygasa wkrótce",
+    "candidateDetail.openDocuments": "Otwórz dokumenty kandydata",
     "candidateDetail.documentTotalLabel": "Lacznie",
     "candidateDetail.documentVerifiedLabel": "Zweryfikowane",
     "candidateDetail.documentPendingReviewLabel": "Do sprawdzenia",

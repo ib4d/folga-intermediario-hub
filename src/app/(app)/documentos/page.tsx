@@ -8,7 +8,7 @@ import { normalizeLanguage, t } from "@/lib/i18n";
 import { isManualOcrMode } from "@/lib/providers/ocr";
 import { canAccessModule, canReviewCandidateDocuments, canUploadCandidateDocuments } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { canAccessAllCandidates, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
+import { canAccessAllCandidates, candidateAccessWhere, candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { Prisma } from "@prisma/client";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -27,9 +27,9 @@ function isReviewQueueStatus(status?: string): boolean {
 export default async function DocumentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; candidateId?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, candidateId } = await searchParams;
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "documents")) redirect("/sin-permisos");
 
@@ -38,6 +38,12 @@ export default async function DocumentosPage({
   const labels = t.bind(null, language);
   const manualOcrMode = isManualOcrMode();
   const reviewQueueFilterActive = isReviewQueueStatus(status);
+  const candidateFilter = candidateId
+    ? await prisma.candidate.findFirst({
+        where: candidateAccessWhere(tenant, candidateId),
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : null;
 
   const documentWhere: Prisma.DocumentWhereInput = {
     organizationId: tenant.organizationId,
@@ -46,6 +52,7 @@ export default async function DocumentosPage({
       : status
         ? { ocrStatus: status }
         : {}),
+    ...(candidateFilter ? { candidateId: candidateFilter.id } : {}),
     ...(canAccessAllCandidates(tenant.role)
       ? {}
       : { candidate: { intermediaryId: tenant.userId } }),
@@ -119,6 +126,24 @@ export default async function DocumentosPage({
       >
         <h1 style={{ color: "var(--ghost-white)" }}>{labels("documents.title")}</h1>
         <p style={{ color: "var(--grey-olive)" }}>{labels("documents.description")}</p>
+        {candidateFilter ? (
+          <div
+            style={{
+              marginTop: "1rem",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.45rem 0.75rem",
+              border: "1px solid rgba(252, 186, 4, 0.35)",
+              background: "rgba(252, 186, 4, 0.12)",
+              color: "var(--ghost-white)",
+              fontSize: "0.85rem",
+              fontWeight: 800,
+            }}
+          >
+            {labels("documents.filteringCandidate")}: {candidateFilter.firstName} {candidateFilter.lastName}
+          </div>
+        ) : null}
       </div>
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>

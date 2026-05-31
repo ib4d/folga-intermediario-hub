@@ -972,6 +972,14 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       </div>
                     </div>
                   ) : null}
+                  <div className="mt-4">
+                    <Link
+                      href={`/documentos?candidateId=${candidate.id}`}
+                      className="button button-secondary inline-flex items-center gap-2"
+                    >
+                      {labels("candidateDetail.openDocuments")}
+                    </Link>
+                  </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
