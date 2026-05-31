@@ -534,6 +534,9 @@ const translations = {
     "documents.integrityIssueLabel": "Incidencia",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "No se pudo completar la comprobacion de integridad documental.",
+    "documents.activityTitle": "Actividad documental reciente",
+    "documents.activityDescription":
+      "Revisa las subidas, verificaciones, borrados y comprobaciones de integridad más recientes para mantener la trazabilidad del archivo documental.",
     "notifications.title": "Historial de Notificaciones",
     "notifications.description":
       "Seguimiento completo de eventos del sistema y cambios de estado.",
@@ -1222,6 +1225,9 @@ const translations = {
     "documents.integrityIssueLabel": "Issue",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Could not complete the document integrity check.",
+    "documents.activityTitle": "Recent document activity",
+    "documents.activityDescription":
+      "Review the latest uploads, verifications, deletions, and integrity checks to keep the document trail traceable.",
     "notifications.title": "Notification History",
     "notifications.description":
       "Full tracking of system events and status changes.",
@@ -1910,6 +1916,9 @@ const translations = {
     "documents.integrityIssueLabel": "Problem",
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Nie mozna bylo ukonczyc sprawdzania integralnosci dokumentow.",
+    "documents.activityTitle": "Najnowsza aktywnosc dokumentow",
+    "documents.activityDescription":
+      "Przegladaj najnowsze wysylki, weryfikacje, usuniecia i sprawdzenia integralnosci, aby zachowac pelna sciezke audytu dokumentow.",
     "notifications.title": "Historia Powiadomien",
     "notifications.description":
       "Pelny monitoring zdarzen systemowych i zmian statusow.",

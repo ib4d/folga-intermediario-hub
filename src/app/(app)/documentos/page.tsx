@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import AuditTimeline from "@/components/audit/AuditTimeline";
 import BatchUploadButton from "@/components/BatchUploadButton";
 import DocumentIntegrityCard from "@/components/DocumentIntegrityCard";
 import DocumentTable from "@/components/DocumentTable";
@@ -85,6 +86,30 @@ export default async function DocumentosPage({
     },
   });
 
+  const documentAuditLogs = await prisma.auditLog.findMany({
+    where: {
+      organizationId: tenant.organizationId,
+      entityType: "Document",
+      action: {
+        in: [
+          "DOCUMENT_UPLOADED",
+          "DOCUMENT_VERIFIED",
+          "DOCUMENT_DELETED",
+          "OCR_EXTRACTED_PENDING_REVIEW",
+          "OCR_FAILED",
+          "DOCUMENT_INTEGRITY_CHECKED",
+        ],
+      },
+    },
+    include: {
+      User: {
+        select: { name: true, role: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
+
   return (
     <>
       <div
@@ -151,6 +176,19 @@ export default async function DocumentosPage({
           error: labels("documents.integrityError"),
         }}
       />
+
+      <div className="card" style={{ marginBottom: "2rem", padding: "1.25rem 1.5rem" }}>
+        <div className="card-header" style={{ marginBottom: "1rem" }}>
+          <div>
+            <h2 style={{ marginBottom: "0.35rem" }}>{labels("documents.activityTitle")}</h2>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.875rem", maxWidth: "760px" }}>
+              {labels("documents.activityDescription")}
+            </p>
+          </div>
+        </div>
+
+        <AuditTimeline logs={documentAuditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
+      </div>
 
       <div className="card" style={{ marginBottom: "2rem" }}>
         <div
