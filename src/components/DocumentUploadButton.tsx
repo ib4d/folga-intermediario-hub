@@ -25,9 +25,11 @@ function normalizeUploadErrorMessage(error: unknown) {
 export default function DocumentUploadButton({
   candidateId,
   ocrMode = "automatic",
+  ocrDescription,
 }: {
   candidateId: string;
   ocrMode?: "manual" | "automatic";
+  ocrDescription?: string;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +132,12 @@ export default function DocumentUploadButton({
             </button>
 
             <h2 style={{ marginBottom: "1.5rem", paddingRight: "3rem" }}>Subir Nuevo Documento</h2>
+
+            {ocrDescription ? (
+              <div className="form-message-warning" style={{ marginBottom: "1rem" }}>
+                {ocrDescription}
+              </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="compact-stack">
               <div className="input-group" style={{ marginBottom: 0 }}>

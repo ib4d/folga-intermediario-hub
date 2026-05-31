@@ -561,6 +561,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <DocumentUploadButton
                   candidateId={candidate.id}
                   ocrMode={isManualOcrMode() ? "manual" : "automatic"}
+                  ocrDescription={
+                    isManualOcrMode()
+                      ? labels("documents.ocrManualNote")
+                      : labels("documents.ocrAutomaticNote")
+                  }
                 />
               ) : null}
             </div>

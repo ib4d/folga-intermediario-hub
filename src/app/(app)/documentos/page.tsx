@@ -183,6 +183,11 @@ export default async function DocumentosPage({
         description={labels("documents.providersDescription")}
         storageLabel={labels("documents.storageProvider")}
         storageValue={storageProvider.name === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
+        storageNote={
+          storageProvider.name === "local"
+            ? labels("documents.storageLocalNote")
+            : labels("documents.storageSupabaseNote")
+        }
         ocrLabel={labels("documents.ocrProvider")}
         ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
@@ -268,6 +273,11 @@ export default async function DocumentosPage({
             <BatchUploadButton
               candidates={formattedCandidates}
               ocrMode={manualOcrMode ? "manual" : "automatic"}
+              ocrDescription={
+                manualOcrMode
+                  ? labels("documents.ocrManualNote")
+                  : labels("documents.ocrAutomaticNote")
+              }
             />
           ) : (
             <span style={{ color: "var(--muted)", fontWeight: 800, fontSize: "0.85rem" }}>

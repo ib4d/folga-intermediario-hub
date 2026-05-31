@@ -35,9 +35,11 @@ const DOC_TYPES = [
 export default function BatchUploadButton({
   candidates,
   ocrMode,
+  ocrDescription,
 }: {
   candidates: { id: string; name: string }[];
   ocrMode: "manual" | "automatic";
+  ocrDescription?: string;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -196,6 +198,12 @@ export default function BatchUploadButton({
             <p style={{ color: "var(--muted)", marginBottom: "1.5rem", fontSize: "0.875rem" }}>
               Selecciona el modo de carga para procesar multiples archivos.
             </p>
+
+            {ocrDescription ? (
+              <div className="form-message-warning" style={{ marginBottom: "1rem" }}>
+                {ocrDescription}
+              </div>
+            ) : null}
 
             <div
               style={{

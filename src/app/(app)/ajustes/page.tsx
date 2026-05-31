@@ -224,6 +224,11 @@ export default async function AjustesPage() {
               title={labels("settings.providersTitle")}
               storageLabel={labels("settings.storageLabel")}
               storageValue={storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
+              storageNote={
+                storageProvider.name === "local"
+                  ? labels("settings.storageLocalNote")
+                  : labels("settings.storageSupabaseNote")
+              }
               ocrLabel={labels("settings.ocrLabel")}
               ocrValue={manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
               ocrNote={manualOcrMode ? labels("settings.ocrManualNote") : labels("settings.ocrAutomaticNote")}

@@ -244,6 +244,11 @@ export default async function DashboardPage() {
         title={labels("dashboard.providersTitle")}
         storageLabel={labels("dashboard.storageLabel")}
         storageValue={storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
+        storageNote={
+          storageProvider.name === "local"
+            ? labels("dashboard.storageLocalNote")
+            : labels("dashboard.storageSupabaseNote")
+        }
         ocrLabel={labels("dashboard.ocrLabel")}
         ocrValue={manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("dashboard.ocrManualNote") : labels("dashboard.ocrAutomaticNote")}
