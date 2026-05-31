@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, CheckSquare, FileText, Loader2, Square, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteDocument } from "@/app/actions/documents";
 import DocumentReviewModal from "@/components/DocumentReviewModal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PaginatedList from "@/components/ui/PaginatedList";
@@ -16,6 +15,7 @@ import {
   getDocumentDisplayNumber,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
+import { deleteDocumentById } from "@/lib/document-client";
 
 type Document = {
   id: string;
@@ -193,7 +193,7 @@ export default function DocumentTable({
     setTableMessage(null);
     try {
       for (const id of ids) {
-        await deleteDocument(id);
+        await deleteDocumentById(id);
       }
       setSelectedIds([]);
       router.refresh();
@@ -215,7 +215,7 @@ export default function DocumentTable({
     setIsDeleting(true);
     setTableMessage(null);
     try {
-      await deleteDocument(id);
+      await deleteDocumentById(id);
       router.refresh();
       setTableMessage({ tone: "success", text: labels.deletedOneSuccess });
     } catch (error: unknown) {

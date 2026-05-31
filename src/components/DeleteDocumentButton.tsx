@@ -3,8 +3,8 @@
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteDocument } from "@/app/actions/documents";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { deleteDocumentById } from "@/lib/document-client";
 
 export default function DeleteDocumentButton({ documentId }: { documentId: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -17,7 +17,7 @@ export default function DeleteDocumentButton({ documentId }: { documentId: strin
     setIsDeleting(true);
     setErrorMessage("");
     try {
-      await deleteDocument(documentId);
+      await deleteDocumentById(documentId);
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
