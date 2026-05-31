@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import BatchUploadButton from "@/components/BatchUploadButton";
+import DocumentIntegrityCard from "@/components/DocumentIntegrityCard";
 import DocumentTable from "@/components/DocumentTable";
 import { DOCUMENT_REVIEW_PENDING_STATUSES } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
@@ -129,6 +130,27 @@ export default async function DocumentosPage({
           </p>
         </div>
       </div>
+
+      <DocumentIntegrityCard
+        labels={{
+          title: labels("documents.integrityTitle"),
+          description: labels("documents.integrityDescription"),
+          button: labels("documents.integrityButton"),
+          checking: labels("documents.integrityChecking"),
+          accessible: labels("documents.integrityAccessible"),
+          broken: labels("documents.integrityBroken"),
+          verified: labels("documents.integrityVerified"),
+          manual: labels("documents.integrityManual"),
+          pending: labels("documents.integrityPending"),
+          lastChecked: labels("documents.integrityLastChecked"),
+          emptyIssues: labels("documents.integrityEmptyIssues"),
+          issueLabel: labels("documents.integrityIssueLabel"),
+          candidateLabel: labels("documents.candidate"),
+          statusLabel: labels("documents.ocrStatus"),
+          urlLabel: labels("documents.integrityUrlLabel"),
+          error: labels("documents.integrityError"),
+        }}
+      />
 
       <div className="card" style={{ marginBottom: "2rem" }}>
         <div
