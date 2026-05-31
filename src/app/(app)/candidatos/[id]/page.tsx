@@ -51,7 +51,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import type { ComponentProps } from "react";
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -158,6 +157,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
       integrityChecks: 0,
     },
   );
+  const latestDocumentActivity = documentAuditLogs[0] ?? null;
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
@@ -844,6 +844,22 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <p className="mb-6 text-xs text-gray-500">
                   {labels("candidateDetail.documentActivityDescription")}
                 </p>
+                {latestDocumentActivity ? (
+                  <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+                    <span className="font-black uppercase tracking-widest text-slate-400">
+                      {labels("candidateDetail.latestDocumentActivityLabel")}
+                    </span>
+                    <div className="mt-1 font-semibold text-slate-900">
+                      {latestDocumentActivity.action.replace(/_/g, " ")}
+                    </div>
+                    <div className="mt-1 text-slate-500">
+                      {new Intl.DateTimeFormat(language === "en" ? "en-GB" : language === "pl" ? "pl-PL" : "es-ES", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(latestDocumentActivity.createdAt))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">

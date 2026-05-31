@@ -668,6 +668,7 @@ const translations = {
     "candidateDetail.documentActivityTitle": "Actividad documental",
     "candidateDetail.documentActivityDescription":
       "Resumen reciente de subidas, verificaciones, borrados e incidencias documentales de este candidato.",
+    "candidateDetail.latestDocumentActivityLabel": "Ultima actividad",
     "candidateDetail.documentUploadsLabel": "Subidas",
     "candidateDetail.documentVerificationsLabel": "Verificaciones",
     "candidateDetail.documentDeletionsLabel": "Borrados",
@@ -1368,6 +1369,7 @@ const translations = {
     "candidateDetail.documentActivityTitle": "Document activity",
     "candidateDetail.documentActivityDescription":
       "Recent uploads, verifications, deletions, and document incidents for this candidate.",
+    "candidateDetail.latestDocumentActivityLabel": "Latest activity",
     "candidateDetail.documentUploadsLabel": "Uploads",
     "candidateDetail.documentVerificationsLabel": "Verifications",
     "candidateDetail.documentDeletionsLabel": "Deletions",
@@ -2068,6 +2070,7 @@ const translations = {
     "candidateDetail.documentActivityTitle": "Aktywnosc dokumentow",
     "candidateDetail.documentActivityDescription":
       "Najnowsze wysylki, weryfikacje, usuniecia i incydenty dokumentow dla tego kandydata.",
+    "candidateDetail.latestDocumentActivityLabel": "Ostatnia aktywnosc",
     "candidateDetail.documentUploadsLabel": "Wysylki",
     "candidateDetail.documentVerificationsLabel": "Weryfikacje",
     "candidateDetail.documentDeletionsLabel": "Usuniecia",
