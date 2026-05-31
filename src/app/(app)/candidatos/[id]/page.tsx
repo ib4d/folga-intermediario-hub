@@ -941,6 +941,37 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       <div className="mt-1 text-2xl font-black text-amber-900">{checklist.stats.expiringSoonDocuments}</div>
                     </div>
                   </div>
+                  {checklist.duplicates.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-amber-100 bg-white/80 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                        {labels("candidateDetail.duplicateReviewTitle")}
+                      </div>
+                      <div className="mt-2 space-y-2">
+                        {checklist.duplicates.slice(0, 3).map((group) => (
+                          <div key={group.key} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                            <div className="font-semibold">
+                              {group.type}
+                              {group.number ? ` ${group.number}` : ""} x{group.count}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {checklist.warnings.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-amber-100 bg-white/80 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                        {labels("candidateDetail.warnings")}
+                      </div>
+                      <div className="mt-2 space-y-2">
+                        {checklist.warnings.slice(0, 3).map((warning, index) => (
+                          <div key={`${warning}-${index}`} className="rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs text-slate-700">
+                            {warning}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
