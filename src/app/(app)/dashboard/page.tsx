@@ -12,6 +12,8 @@ import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
+import { isManualOcrMode } from "@/lib/providers/ocr";
+import { getStorageProvider } from "@/lib/providers/storage";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 
 export default async function DashboardPage() {
@@ -19,6 +21,8 @@ export default async function DashboardPage() {
   if (!session) redirect("/login");
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
+  const storageProvider = getStorageProvider();
+  const manualOcrMode = isManualOcrMode();
 
   const tenant = await requireTenant();
   const whereClause = candidateVisibilityWhere(tenant);
@@ -234,6 +238,32 @@ export default async function DashboardPage() {
           </p>
         </div>
         <ExportButton />
+      </div>
+
+      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
+        <div className="card">
+          <div className="card-header">
+            <h3>{labels("dashboard.providersTitle")}</h3>
+          </div>
+          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            <div style={{ border: "1px solid rgba(0, 0, 0, 0.08)", padding: "0.95rem 1rem", background: "rgba(255,255,255,0.72)" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase" }}>
+                {labels("dashboard.storageLabel")}
+              </div>
+              <div style={{ marginTop: "0.45rem", fontSize: "1.05rem", fontWeight: 900 }}>
+                {storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
+              </div>
+            </div>
+            <div style={{ border: "1px solid rgba(0, 0, 0, 0.08)", padding: "0.95rem 1rem", background: "rgba(255,255,255,0.72)" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase" }}>
+                {labels("dashboard.ocrLabel")}
+              </div>
+              <div style={{ marginTop: "0.45rem", fontSize: "1.05rem", fontWeight: 900 }}>
+                {manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <DashboardOverview
