@@ -9,7 +9,7 @@ import UpdateNotes from "@/components/UpdateNotes";
 import UpdatePaymentStatus from "@/components/UpdatePaymentStatus";
 import ExpandableText from "@/components/ui/ExpandableText";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
-import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
+import { DOCUMENT_REVIEW_PENDING_STATUSES, getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import {
   formatDocumentDisplayDate,
   getDocumentDisplayExpiry,
@@ -158,6 +158,29 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
     },
   );
   const latestDocumentActivity = documentAuditLogs[0] ?? null;
+  const documentStateSummary = candidate.documents.reduce(
+    (summary, document) => {
+      summary.total += 1;
+      if (document.isVerified) {
+        summary.verified += 1;
+      } else if (document.ocrStatus === "FAILED") {
+        summary.failed += 1;
+      } else if (document.ocrStatus && DOCUMENT_REVIEW_PENDING_STATUSES.has(document.ocrStatus)) {
+        summary.pendingReview += 1;
+      } else {
+        summary.other += 1;
+      }
+
+      return summary;
+    },
+    {
+      total: 0,
+      verified: 0,
+      pendingReview: 0,
+      failed: 0,
+      other: 0,
+    },
+  );
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
@@ -860,6 +883,45 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     </div>
                   </div>
                 ) : null}
+                <div className="mb-6">
+                  <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {labels("candidateDetail.documentStateTitle")}
+                  </div>
+                  <p className="mb-4 text-xs text-slate-500">
+                    {labels("candidateDetail.documentStateDescription")}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        {labels("candidateDetail.documentTotalLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-slate-900">{documentStateSummary.total}</div>
+                    </div>
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                        {labels("candidateDetail.documentVerifiedLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-emerald-900">{documentStateSummary.verified}</div>
+                    </div>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                        {labels("candidateDetail.documentPendingReviewLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-amber-900">{documentStateSummary.pendingReview}</div>
+                    </div>
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-red-600">
+                        {labels("candidateDetail.documentFailedLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-red-900">{documentStateSummary.failed}</div>
+                    </div>
+                  </div>
+                  {documentStateSummary.other > 0 ? (
+                    <p className="mt-3 text-[11px] text-slate-500">
+                      {labels("candidateDetail.documentOtherStateLabel")}: {documentStateSummary.other}
+                    </p>
+                  ) : null}
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
