@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${DB_PUBLISHED_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-folga} -d ${DB_NAME:-folga_hub}"]
       interval: 10s
@@ -27,13 +27,17 @@ services:
       AUTH_SECRET: ${AUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-${AUTH_URL:-http://localhost:3000}}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET}}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-supabase}
+      LOCAL_STORAGE_DIR: ${LOCAL_STORAGE_DIR:-/app/public/uploads}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-}
+      OCR_PROVIDER: ${OCR_PROVIDER:-azure}
       AZURE_DI_ENDPOINT: ${AZURE_DI_ENDPOINT:-}
       AZURE_DI_KEY: ${AZURE_DI_KEY:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -42,9 +46,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ORI CRUIT HUB}
       SMTP_ALLOW_INSECURE: ${SMTP_ALLOW_INSECURE:-false}
+      JOB_PROVIDER: ${JOB_PROVIDER:-inline}
       CRON_SECRET: ${CRON_SECRET:-}
     ports:
-      - "3000:3000"
+      - "${WEB_PUBLISHED_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
