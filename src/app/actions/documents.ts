@@ -5,10 +5,9 @@ import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { revalidatePath } from "next/cache";
 import {
   analyzeIdentityDocument,
-  getOcrProviderName,
-  isManualOcrMode,
 } from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
+import { getProviderStatus } from "@/lib/provider-status";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
 import { writeAuditLog } from "@/lib/audit";
@@ -37,7 +36,8 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-const ACTIVE_OCR_SOURCE = getOcrProviderName().toUpperCase();
+const ACTIVE_PROVIDER_STATUS = getProviderStatus();
+const ACTIVE_OCR_SOURCE = ACTIVE_PROVIDER_STATUS.ocr.name.toUpperCase();
 
 function parseDateSafe(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -1376,7 +1376,7 @@ export async function uploadDocument(formData: FormData) {
           : null,
       expiryDate: typeof expiryDate === "string" ? parseDateSafe(expiryDate) : null,
       ocrStatus: isOcrSupported(docType)
-        ? isManualOcrMode()
+        ? ACTIVE_PROVIDER_STATUS.manualOcrMode
           ? "REVIEW_REQUIRED"
           : "PENDING"
         : null,
@@ -1388,7 +1388,7 @@ export async function uploadDocument(formData: FormData) {
   let ocrOutcome: "not_supported" | "skipped" | "captured" | "failed" =
     isOcrSupported(docType) ? "skipped" : "not_supported";
 
-  if (isOcrSupported(docType) && !skipOcr && !isManualOcrMode()) {
+  if (isOcrSupported(docType) && !skipOcr && ACTIVE_PROVIDER_STATUS.ocr.supportsAutomaticExtraction) {
     try {
       await assertWithinPlanLimit(tenant.organizationId!, "ocrPerMonth");
 
@@ -1533,7 +1533,7 @@ export async function uploadDocument(formData: FormData) {
   revalidatePath("/logistica");
   revalidatePath("/notificaciones");
 
-  const manualReviewMode = isOcrSupported(docType) && isManualOcrMode();
+  const manualReviewMode = isOcrSupported(docType) && ACTIVE_PROVIDER_STATUS.manualOcrMode;
   const reviewRequired = requiresManualDocumentReview({
     docType,
     manualReviewMode,
@@ -1948,7 +1948,7 @@ export async function smartBatchUpload(formData: FormData) {
       ? candidateIdValue
       : null;
 
-  if (isManualOcrMode()) {
+  if (ACTIVE_PROVIDER_STATUS.manualOcrMode) {
     return {
       success: false,
       message:
