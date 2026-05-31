@@ -3,6 +3,14 @@ import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type StorageProviderName = "supabase" | "local";
+export type StorageProviderMode = "supabase" | "local";
+
+export interface StorageProviderStatus {
+  readonly name: StorageProviderName;
+  readonly mode: StorageProviderMode;
+  readonly statusLabel: string;
+  readonly statusDescription: string;
+}
 
 export interface UploadObjectInput {
   path: string;
@@ -162,16 +170,47 @@ export class LocalDiskStorageProvider implements StorageProvider {
   }
 }
 
+type StorageProviderConfig = {
+  readonly provider: StorageProvider;
+  readonly status: StorageProviderStatus;
+};
+
+const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConfig> = {
+  supabase: {
+    provider: new SupabaseStorageProvider(),
+    status: {
+      name: "supabase",
+      mode: "supabase",
+      statusLabel: "Supabase Storage",
+      statusDescription: "Los archivos se guardan y sirven desde Supabase Storage.",
+    },
+  },
+  local: {
+    provider: new LocalDiskStorageProvider(),
+    status: {
+      name: "local",
+      mode: "local",
+      statusLabel: "Local disk",
+      statusDescription: "Los archivos se guardan en el disco persistente del VPS.",
+    },
+  },
+};
+
 export function getStorageProvider(): StorageProvider {
   const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
-
-  if (provider === "supabase") {
-    return new SupabaseStorageProvider();
-  }
-
-  if (provider === "local") {
-    return new LocalDiskStorageProvider();
+  if (provider === "supabase" || provider === "local") {
+    return STORAGE_PROVIDER_REGISTRY[provider].provider;
   }
 
   throw new Error(`Unsupported STORAGE_PROVIDER: ${provider}`);
+}
+
+export function getStorageProviderStatus(): StorageProviderStatus {
+  const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
+
+  if (provider === "supabase" || provider === "local") {
+    return STORAGE_PROVIDER_REGISTRY[provider].status;
+  }
+
+  return STORAGE_PROVIDER_REGISTRY.supabase.status;
 }

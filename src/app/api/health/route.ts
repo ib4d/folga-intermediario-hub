@@ -7,16 +7,19 @@ export async function GET() {
     // Check DB connection
     await prisma.$queryRaw`SELECT 1`;
     const providerStatus = getProviderStatus();
-    const { storageProvider, ocr } = providerStatus;
+    const { storageProvider, storage, ocr } = providerStatus;
     await storageProvider.checkConnection();
 
     return NextResponse.json({
       status: "ok",
       db: "connected",
-      storage: storageProvider.name,
+      storage: storage.name,
       ocr: ocr.mode,
       providers: {
-        storage: storageProvider.name,
+        storage: {
+          name: storage.name,
+          mode: storage.mode,
+        },
         ocr: {
           name: ocr.name,
           mode: ocr.mode,

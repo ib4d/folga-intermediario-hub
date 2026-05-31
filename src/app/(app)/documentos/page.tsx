@@ -38,7 +38,7 @@ export default async function DocumentosPage({
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storageProvider, manualOcrMode } = providerStatus;
+  const { storage, manualOcrMode } = providerStatus;
   const reviewQueueFilterActive = isReviewQueueStatus(status);
   const candidateFilter = candidateId
     ? await prisma.candidate.findFirst({
@@ -182,9 +182,9 @@ export default async function DocumentosPage({
         title={labels("documents.providersTitle")}
         description={labels("documents.providersDescription")}
         storageLabel={labels("documents.storageProvider")}
-        storageValue={storageProvider.name === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
+        storageValue={storage.mode === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
         storageNote={
-          storageProvider.name === "local"
+          storage.mode === "local"
             ? labels("documents.storageLocalNote")
             : labels("documents.storageSupabaseNote")
         }

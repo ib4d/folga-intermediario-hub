@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storageProvider, manualOcrMode } = providerStatus;
+  const { storage, manualOcrMode } = providerStatus;
 
   const tenant = await requireTenant();
   const whereClause = candidateVisibilityWhere(tenant);
@@ -243,9 +243,9 @@ export default async function DashboardPage() {
       <ProviderStatusCard
         title={labels("dashboard.providersTitle")}
         storageLabel={labels("dashboard.storageLabel")}
-        storageValue={storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
+        storageValue={storage.mode === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
         storageNote={
-          storageProvider.name === "local"
+          storage.mode === "local"
             ? labels("dashboard.storageLocalNote")
             : labels("dashboard.storageSupabaseNote")
         }

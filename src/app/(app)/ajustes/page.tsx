@@ -31,7 +31,7 @@ export default async function AjustesPage() {
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storageProvider, manualOcrMode } = providerStatus;
+  const { storage, manualOcrMode } = providerStatus;
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: tenant.organizationId },
@@ -223,9 +223,9 @@ export default async function AjustesPage() {
             <ProviderStatusCard
               title={labels("settings.providersTitle")}
               storageLabel={labels("settings.storageLabel")}
-              storageValue={storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
+              storageValue={storage.mode === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
               storageNote={
-                storageProvider.name === "local"
+                storage.mode === "local"
                   ? labels("settings.storageLocalNote")
                   : labels("settings.storageSupabaseNote")
               }
