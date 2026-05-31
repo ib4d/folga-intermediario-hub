@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import ExportButton from "@/components/ExportButton";
 import AjustesSettings from "@/components/AjustesSettings";
 import InviteUserModal from "@/components/InviteUserModal";
+import ProviderStatusCard from "@/components/ProviderStatusCard";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
@@ -219,29 +220,13 @@ export default async function AjustesPage() {
               </div>
             </div>
 
-            <div style={{ marginTop: "1.5rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
-                {labels("settings.providersTitle")}
-              </div>
-              <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-                <div style={{ border: "1px solid var(--grey-olive)", padding: "0.85rem 1rem", backgroundColor: "rgba(255,255,255,0.6)" }}>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
-                    {labels("settings.storageLabel")}
-                  </div>
-                  <div style={{ marginTop: "0.35rem", fontSize: "0.95rem", fontWeight: 800 }}>
-                    {storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
-                  </div>
-                </div>
-                <div style={{ border: "1px solid var(--grey-olive)", padding: "0.85rem 1rem", backgroundColor: "rgba(255,255,255,0.6)" }}>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
-                    {labels("settings.ocrLabel")}
-                  </div>
-                  <div style={{ marginTop: "0.35rem", fontSize: "0.95rem", fontWeight: 800 }}>
-                    {manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProviderStatusCard
+              title={labels("settings.providersTitle")}
+              storageLabel={labels("settings.storageLabel")}
+              storageValue={storageProvider.name === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
+              ocrLabel={labels("settings.ocrLabel")}
+              ocrValue={manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
+            />
           </div>
 
           <div className="card">

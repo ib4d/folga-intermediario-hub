@@ -7,6 +7,7 @@ import DashboardCharts from "@/components/DashboardCharts";
 import ExportButton from "@/components/ExportButton";
 import DashboardOverview from "@/components/DashboardOverview";
 import ExpandableText from "@/components/ui/ExpandableText";
+import ProviderStatusCard from "@/components/ProviderStatusCard";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { normalizeLanguage, t } from "@/lib/i18n";
@@ -239,31 +240,13 @@ export default async function DashboardPage() {
         <ExportButton />
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
-          <div className="card-header">
-            <h3>{labels("dashboard.providersTitle")}</h3>
-          </div>
-          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <div style={{ border: "1px solid rgba(0, 0, 0, 0.08)", padding: "0.95rem 1rem", background: "rgba(255,255,255,0.72)" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase" }}>
-                {labels("dashboard.storageLabel")}
-              </div>
-              <div style={{ marginTop: "0.45rem", fontSize: "1.05rem", fontWeight: 900 }}>
-                {storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
-              </div>
-            </div>
-            <div style={{ border: "1px solid rgba(0, 0, 0, 0.08)", padding: "0.95rem 1rem", background: "rgba(255,255,255,0.72)" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase" }}>
-                {labels("dashboard.ocrLabel")}
-              </div>
-              <div style={{ marginTop: "0.45rem", fontSize: "1.05rem", fontWeight: 900 }}>
-                {manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ProviderStatusCard
+        title={labels("dashboard.providersTitle")}
+        storageLabel={labels("dashboard.storageLabel")}
+        storageValue={storageProvider.name === "local" ? labels("dashboard.storageLocal") : labels("dashboard.storageSupabase")}
+        ocrLabel={labels("dashboard.ocrLabel")}
+        ocrValue={manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
+      />
 
       <DashboardOverview
         metrics={[
