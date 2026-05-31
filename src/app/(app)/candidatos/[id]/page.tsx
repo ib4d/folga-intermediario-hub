@@ -986,7 +986,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                         href={`/documentos?candidateId=${candidate.id}&status=REVIEW_REQUIRED`}
                         className="button inline-flex items-center gap-2"
                       >
-                        {labels("candidateDetail.openReviewQueue")}
+                        {labels("candidateDetail.openReviewQueue").replace(
+                          "{count}",
+                          String(checklist.stats.pendingReviewDocuments),
+                        )}
                       </Link>
                     </div>
                   ) : null}
