@@ -922,6 +922,26 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     </p>
                   ) : null}
                 </div>
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                    {labels("candidateDetail.documentRiskTitle")}
+                  </div>
+                  <p className="mt-1 text-xs text-amber-900/80">{labels("candidateDetail.documentRiskDescription")}</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-white/70 bg-white/80 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                        {labels("candidateDetail.documentDuplicatesLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-amber-900">{checklist.stats.duplicateGroups}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/70 bg-white/80 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                        {labels("candidateDetail.documentExpiringSoonLabel")}
+                      </div>
+                      <div className="mt-1 text-2xl font-black text-amber-900">{checklist.stats.expiringSoonDocuments}</div>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
