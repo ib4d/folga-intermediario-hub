@@ -1,5 +1,6 @@
 import { Truck } from "lucide-react";
 import { redirect } from "next/navigation";
+import type { ComponentProps } from "react";
 
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
@@ -103,8 +104,8 @@ export default async function LogisticaPage() {
 
       <LogisticsDashboard
         pendingCandidates={pendingCandidates}
-        weeklyEvents={weeklyEvents as React.ComponentProps<typeof LogisticsDashboard>["weeklyEvents"]}
-        recentActivity={recentActivity as React.ComponentProps<typeof LogisticsDashboard>["recentActivity"]}
+        weeklyEvents={weeklyEvents as ComponentProps<typeof LogisticsDashboard>["weeklyEvents"]}
+        recentActivity={recentActivity as ComponentProps<typeof LogisticsDashboard>["recentActivity"]}
         canViewActivityActors={canViewCandidateAudit(tenant.role)}
         language={language}
       />

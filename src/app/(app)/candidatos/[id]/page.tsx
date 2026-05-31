@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { ComponentProps } from "react";
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -785,7 +786,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
           {canViewAudit ? (
             <div className="candidate-section-card">
-              <AuditTimeline logs={auditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
+              <AuditTimeline logs={auditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
             </div>
           ) : null}
         </div>

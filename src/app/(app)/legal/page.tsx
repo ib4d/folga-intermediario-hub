@@ -9,6 +9,7 @@ import { normalizeLanguage, t } from "@/lib/i18n";
 import { canMakeLegalDecision } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
+import type { ComponentProps } from "react";
 
 export default async function LegalPage() {
   const session = await auth();
@@ -135,7 +136,7 @@ export default async function LegalPage() {
           <div style={{ flex: 1, height: "2px", backgroundColor: "var(--pitch-black)" }} />
         </div>
         <LegalReviewQueue
-          initialCandidates={candidates as React.ComponentProps<typeof LegalReviewQueue>["initialCandidates"]}
+          initialCandidates={candidates as ComponentProps<typeof LegalReviewQueue>["initialCandidates"]}
           viewerRole={tenant.role}
           language={language}
         />

@@ -13,6 +13,7 @@ import { Prisma } from "@prisma/client";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
 function toPlainData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -187,7 +188,7 @@ export default async function DocumentosPage({
           </div>
         </div>
 
-        <AuditTimeline logs={documentAuditLogs as React.ComponentProps<typeof AuditTimeline>["logs"]} />
+        <AuditTimeline logs={documentAuditLogs as ComponentProps<typeof AuditTimeline>["logs"]} />
       </div>
 
       <div className="card" style={{ marginBottom: "2rem" }}>
