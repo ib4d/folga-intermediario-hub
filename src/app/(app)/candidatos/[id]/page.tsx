@@ -980,6 +980,16 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       {labels("candidateDetail.openDocuments")}
                     </Link>
                   </div>
+                  {checklist.stats.pendingReviewDocuments > 0 ? (
+                    <div className="mt-3">
+                      <Link
+                        href={`/documentos?candidateId=${candidate.id}&status=REVIEW_REQUIRED`}
+                        className="button inline-flex items-center gap-2"
+                      >
+                        {labels("candidateDetail.openReviewQueue")}
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 mb-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
