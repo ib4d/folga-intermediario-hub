@@ -535,6 +535,7 @@ const translations = {
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "No se pudo completar la comprobacion de integridad documental.",
     "documents.filteringCandidate": "Filtrando documentos de",
+    "documents.clearCandidateFilter": "Quitar filtro",
     "documents.activityTitle": "Actividad documental reciente",
     "documents.activityDescription":
       "Revisa las subidas, verificaciones, borrados y comprobaciones de integridad más recientes para mantener la trazabilidad del archivo documental.",
@@ -1249,6 +1250,7 @@ const translations = {
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Could not complete the document integrity check.",
     "documents.filteringCandidate": "Filtering documents for",
+    "documents.clearCandidateFilter": "Clear filter",
     "documents.activityTitle": "Recent document activity",
     "documents.activityDescription":
       "Review the latest uploads, verifications, deletions, and integrity checks to keep the document trail traceable.",
@@ -1963,6 +1965,7 @@ const translations = {
     "documents.integrityUrlLabel": "URL",
     "documents.integrityError": "Nie mozna bylo ukonczyc sprawdzania integralnosci dokumentow.",
     "documents.filteringCandidate": "Filtrowanie dokumentow dla",
+    "documents.clearCandidateFilter": "Wyczysc filtr",
     "documents.activityTitle": "Najnowsza aktywnosc dokumentow",
     "documents.activityDescription":
       "Przegladaj najnowsze wysylki, weryfikacje, usuniecia i sprawdzenia integralnosci, aby zachowac pelna sciezke audytu dokumentow.",

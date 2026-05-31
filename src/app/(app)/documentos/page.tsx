@@ -142,6 +142,21 @@ export default async function DocumentosPage({
             }}
           >
             {labels("documents.filteringCandidate")}: {candidateFilter.firstName} {candidateFilter.lastName}
+            <Link
+              href="/documentos"
+              style={{
+                marginLeft: "0.5rem",
+                padding: "0.2rem 0.55rem",
+                borderRadius: "999px",
+                background: "rgba(255,255,255,0.14)",
+                color: "var(--ghost-white)",
+                textDecoration: "none",
+                fontSize: "0.78rem",
+                fontWeight: 800,
+              }}
+            >
+              {labels("documents.clearCandidateFilter")}
+            </Link>
           </div>
         ) : null}
       </div>
