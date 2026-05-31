@@ -28,6 +28,11 @@ export interface OcrProviderStatus {
   readonly statusDescription: string;
 }
 
+type OcrProviderConfig = {
+  readonly provider: OcrProvider;
+  readonly status: OcrProviderStatus;
+};
+
 class AzureOcrProvider implements OcrProvider {
   readonly name = "azure" as const;
 
@@ -49,9 +54,36 @@ class ManualOcrProvider implements OcrProvider {
   }
 }
 
+const OCR_PROVIDER_REGISTRY: Record<OcrProviderName, OcrProviderConfig> = {
+  azure: {
+    provider: new AzureOcrProvider(),
+    status: {
+      name: "azure",
+      mode: "automatic",
+      supportsAutomaticExtraction: true,
+      statusLabel: "Modo automatico",
+      statusDescription: "La lectura automatica esta activa y puede extraer datos de documentos compatibles.",
+    },
+  },
+  manual: {
+    provider: new ManualOcrProvider(),
+    status: {
+      name: "manual",
+      mode: "manual",
+      supportsAutomaticExtraction: false,
+      statusLabel: "Modo manual",
+      statusDescription: "La lectura automatica no esta activa; los documentos quedan listos para revision manual.",
+    },
+  },
+};
+
 export function getOcrProviderName(): OcrProviderName {
   const provider = process.env.OCR_PROVIDER?.trim().toLowerCase();
-  return provider === "manual" ? "manual" : "azure";
+  if (provider === "manual" || provider === "azure") {
+    return provider;
+  }
+
+  return "azure";
 }
 
 export function isManualOcrMode() {
@@ -64,38 +96,12 @@ export function isAutomaticOcrAvailable() {
 
 export function getOcrProviderStatus(): OcrProviderStatus {
   const name = getOcrProviderName();
-
-  if (name === "manual") {
-    return {
-      name,
-      mode: "manual",
-      supportsAutomaticExtraction: false,
-      statusLabel: "Modo manual",
-      statusDescription: "La lectura automatica no esta activa; los documentos quedan listos para revision manual.",
-    };
-  }
-
-  return {
-    name,
-    mode: "automatic",
-    supportsAutomaticExtraction: true,
-    statusLabel: "Modo automatico",
-    statusDescription: "La lectura automatica esta activa y puede extraer datos de documentos compatibles.",
-  };
+  return OCR_PROVIDER_REGISTRY[name].status;
 }
 
 export function getOcrProvider(): OcrProvider {
   const provider = getOcrProviderName();
-
-  if (provider === "azure") {
-    return new AzureOcrProvider();
-  }
-
-  if (provider === "manual") {
-    return new ManualOcrProvider();
-  }
-
-  throw new Error(`Unsupported OCR_PROVIDER: ${provider}`);
+  return OCR_PROVIDER_REGISTRY[provider].provider;
 }
 
 export async function analyzeIdentityDocument(fileBuffer: Buffer, mimeType: string) {
