@@ -179,6 +179,131 @@ function normalizeWhitespace(value: string | undefined): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function normalizeExtractedPersonName(value: string | undefined): string | undefined {
+  const normalized = normalizeWhitespace(value);
+  if (!normalized) return undefined;
+
+  const cleaned = normalized
+    .replace(/^[^A-ZÀ-ÖØ-Ý0-9]+/i, "")
+    .replace(/[^A-ZÀ-ÖØ-Ý0-9]+$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return undefined;
+
+  const alphaCount = cleaned.replace(/[^A-ZÀ-ÖØ-Ý]/gi, "").length;
+  if (alphaCount < 3) return undefined;
+  if (/\d/.test(cleaned) && alphaCount < 6) return undefined;
+
+  const compact = compactSearchText(cleaned);
+  const rejectedLabels = [
+    "PARENTSFORENAMES",
+    "GIVENNAME",
+    "GIVENNAMES",
+    "SURNAME",
+    "FIRSTNAME",
+    "LASTNAME",
+    "IMIONA",
+    "NATIONALITY",
+    "DATEOFBIRTH",
+    "PLACEOFBIRTH",
+    "ADDRESS",
+    "MIEJSCEI KRAJURODZENIA",
+    "RODZICOW",
+    "IMIONARODZICOW",
+    "DATEOF",
+    "FECHA",
+    "SIGNATURE",
+    "HOLDERSSIGNATURE",
+    "AUTHORITY",
+    "AUTORIDAD",
+    "NATIONALITY",
+    "NACIONALIDAD",
+    "SEX",
+    "PASSPORT",
+    "PERSONALNUMBER",
+    "DOCUMENTNUMBER",
+    "REPUBLICA",
+    "COLOMBIA",
+    "FIRMA",
+  ].map((item) => item.replace(/\s+/g, ""));
+  if (rejectedLabels.some((label) => compact.includes(label))) return undefined;
+
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  const shortTokenCount = tokens.filter((token) => token.length <= 2).length;
+  if (tokens.length > 4 && shortTokenCount >= 2) return undefined;
+
+  return cleaned.toUpperCase();
+}
+
+function scorePersonNameCandidate(value: string | undefined): number {
+  if (!value) return -1;
+  const alphaCount = value.replace(/[^A-ZÀ-ÖØ-Ý]/gi, "").length;
+  const wordCount = value.split(/\s+/).filter(Boolean).length;
+  const digitsPenalty = /\d/.test(value) ? 10 : 0;
+
+  return alphaCount + wordCount * 2 - digitsPenalty + Math.min(6, value.length / 4);
+}
+
+function pickBestPersonName(...values: Array<string | undefined>): string | undefined {
+  const candidates = values
+    .map((value) => normalizeExtractedPersonName(value))
+    .filter((value): value is string => Boolean(value));
+
+  if (candidates.length === 0) return undefined;
+  return candidates.sort((left, right) => scorePersonNameCandidate(right) - scorePersonNameCandidate(left))[0];
+}
+
+function stripLeadingLabelNoise(value: string): string {
+  const labelPatterns = [
+    /^(?:IMIE|IMI|IMIONA|GIVEN NAME|GIVEN NAMES|NOMBRE|NOMBRES|FIRST NAME|FIRST NAMES|SURNAME|LAST NAME|NAZWISKO|APELLIDO|APELLIDOS|PARENTS FORENAMES|PARENTS FORNAMES|MOTHER|FATHER|NAME|NATIONALITY|NACIONALIDAD|OBYWATELSTWO|SEX|DATE OF BIRTH|DATE OF ISSUE|DATE OF EXPIRY|PLACE OF BIRTH|PLACE AND COUNTRY OF BIRTH|ADDRESS OF REGISTRATION|ADRES ZAMELDOWANIA|TYPE OF PERMIT|RODZAJ ZEZWOLENIA|REMARKS|UWAGI|DOCUMENT NUMBER|PASSPORT NO|PASSPORT|PASAPORTE|PERSONAL NUMBER|NUMER PESEL|PESEL)\b[\s:./-]*/i,
+  ];
+
+  let current = value;
+  let previous = "";
+
+  while (current !== previous) {
+    previous = current;
+    for (const pattern of labelPatterns) {
+      current = current.replace(pattern, " ").trimStart();
+    }
+  }
+
+  return current;
+}
+
+function extractBestPersonValueNearLabels(
+  rawText: string | undefined,
+  labels: string[],
+  maxFollowingLines = 1
+): string | undefined {
+  if (!rawText) return undefined;
+
+  const lines = rawText.split(/\r?\n/);
+  const normalizedLabels = labels.map(normalizeSearchText);
+  const candidates: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const normalizedLine = normalizeSearchText(lines[index]);
+    const label = normalizedLabels.find((item) => normalizedLine.includes(item));
+    if (!label) continue;
+
+    const sameLineRemainder = normalizedLine.slice(normalizedLine.indexOf(label) + label.length);
+    const sameLineValue = cleanLabeledValue(sameLineRemainder);
+    if (sameLineValue) candidates.push(sameLineValue);
+
+    for (let offset = 1; offset <= maxFollowingLines; offset += 1) {
+      const nextLine = lines[index + offset];
+      if (!nextLine) continue;
+
+      const value = cleanLabeledValue(nextLine);
+      if (value) candidates.push(value);
+    }
+  }
+
+  return pickBestPersonName(...candidates);
+}
+
 function normalizeCountryCode(value: string | undefined): string | undefined {
   if (!value) return undefined;
 
@@ -239,13 +364,16 @@ function extractRegexGroup(
 function cleanLabeledValue(value: string | undefined): string | undefined {
   if (!value) return undefined;
 
-  const cleaned = normalizeSearchText(value)
-    .replace(/\/?\b(TYPE OF PERMIT|RODZAJ ZEZWOLENIA)\b/g, " ")
-    .replace(/\/?\b(PLACE AND COUNTRY OF BIRTH|PLACE OF BIRTH|MIEJSCE I KRAJ URODZENIA)\b/g, " ")
-    .replace(/\/?\b(ADDRESS OF REGISTRATION|ADRES ZAMELDOWANIA)\b/g, " ")
-    .replace(/\/?\b(DATE OF ISSUE AND ISSUING AUTHORITY|DATA WYDANIA I ORGAN WYDAJACY)\b/g, " ")
-    .replace(/\/?\b(UWAGI|REMARKS)\b/g, " ")
-    .replace(/^[:/\s-]+/, " ");
+  const cleaned = stripLeadingLabelNoise(
+    normalizeSearchText(value)
+      .replace(/\/?\b(IMIE|IMI\b|IMIONA|GIVEN NAME|GIVEN NAMES|NOMBRE|NOMBRES|SURNAME|LAST NAME|NAZWISKO|APELLIDOS)\b/g, " ")
+      .replace(/\/?\b(TYPE OF PERMIT|RODZAJ ZEZWOLENIA)\b/g, " ")
+      .replace(/\/?\b(PLACE AND COUNTRY OF BIRTH|PLACE OF BIRTH|MIEJSCE I KRAJ URODZENIA)\b/g, " ")
+      .replace(/\/?\b(ADDRESS OF REGISTRATION|ADRES ZAMELDOWANIA)\b/g, " ")
+      .replace(/\/?\b(DATE OF ISSUE AND ISSUING AUTHORITY|DATA WYDANIA I ORGAN WYDAJACY)\b/g, " ")
+      .replace(/\/?\b(UWAGI|REMARKS)\b/g, " ")
+      .replace(/^[:/\s-]+/, " ")
+  );
 
   return normalizeWhitespace(cleaned);
 }
@@ -284,26 +412,22 @@ function extractLineValueNearLabels(
 function extractNameNearLabels(rawText: string | undefined): Pick<OcrExtractedData, "firstName" | "lastName"> {
   if (!rawText) return {};
 
-  const firstName = normalizeWhitespace(
-    extractLineValueNearLabels(rawText, [
-      "FIRST NAME",
-      "GIVEN NAMES",
-      "GIVEN NAME",
-      "IMIONA",
-      "IMIE",
-      "NOMBRES",
-      "NOMBRE",
-    ])
-  );
-  const lastName = normalizeWhitespace(
-    extractLineValueNearLabels(rawText, [
-      "SURNAME",
-      "LAST NAME",
-      "NAZWISKO",
-      "APELLIDOS",
-      "APELLIDO",
-    ])
-  );
+  const firstName = extractBestPersonValueNearLabels(rawText, [
+    "FIRST NAME",
+    "GIVEN NAMES",
+    "GIVEN NAME",
+    "IMIONA",
+    "IMIE",
+    "NOMBRES",
+    "NOMBRE",
+  ]);
+  const lastName = extractBestPersonValueNearLabels(rawText, [
+    "SURNAME",
+    "LAST NAME",
+    "NAZWISKO",
+    "APELLIDOS",
+    "APELLIDO",
+  ]);
 
   return {
     firstName,
@@ -364,8 +488,8 @@ function parseMrzName(value: string | undefined): Pick<OcrExtractedData, "firstN
 
   const [lastNamePart, firstNamePart] = value.split("<<");
   return {
-    firstName: normalizeMrzPersonName(firstNamePart),
-    lastName: normalizeMrzPersonName(lastNamePart),
+    firstName: normalizeExtractedPersonName(normalizeMrzPersonName(firstNamePart)),
+    lastName: normalizeExtractedPersonName(normalizeMrzPersonName(lastNamePart)),
   };
 }
 
@@ -670,9 +794,23 @@ function mapAzureIdDocumentFields(
       ])
     );
 
+  const peselFirstName =
+    inferredDocumentType === "PESEL"
+      ? normalizeExtractedPersonName(
+          extractLineValueNearLabels(rawText, ["IMIE (IMIONA)", "IMIĘ (IMIONA)", "IMIE", "IMIG"], 0)
+        )
+      : undefined;
+
+  const peselLastName =
+    inferredDocumentType === "PESEL"
+      ? normalizeExtractedPersonName(extractLineValueNearLabels(rawText, ["NAZWISKO"], 0))
+      : undefined;
+
   return {
-    firstName: normalizeWhitespace(get("FirstName")) ?? mrzData.firstName ?? rawNameData.firstName,
-    lastName: normalizeWhitespace(get("LastName")) ?? mrzData.lastName ?? rawNameData.lastName,
+    firstName:
+      peselFirstName ?? pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName),
+    lastName:
+      peselLastName ?? pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName),
     documentNumber,
     personalNumber,
     dateOfBirth,
