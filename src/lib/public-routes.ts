@@ -4,6 +4,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/registro",
   "/api/auth",
   "/api/health",
+  "/api/providers",
   "/api/v1",
   "/api/v2/events",
   "/api/cron",
