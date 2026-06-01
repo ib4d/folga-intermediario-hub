@@ -878,7 +878,14 @@ async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise
         : await shrinkImageForAzure(fileBuffer, mimeType);
 
     const { createWorker } = await import("tesseract.js");
-    const worker = await createWorker("eng");
+    const workerOptions: Record<string, string> = {
+      cachePath: process.env.TESSERACT_CACHE_PATH?.trim() || "/tmp/tesseract-cache",
+    };
+
+    const langPath = process.env.TESSERACT_LANG_PATH?.trim();
+    if (langPath) workerOptions.langPath = langPath;
+
+    const worker = await createWorker("eng", 1, workerOptions);
 
     try {
       const result = await worker.recognize(inputBuffer);
