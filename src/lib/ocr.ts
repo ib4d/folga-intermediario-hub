@@ -281,6 +281,36 @@ function extractLineValueNearLabels(
   return undefined;
 }
 
+function extractNameNearLabels(rawText: string | undefined): Pick<OcrExtractedData, "firstName" | "lastName"> {
+  if (!rawText) return {};
+
+  const firstName = normalizeWhitespace(
+    extractLineValueNearLabels(rawText, [
+      "FIRST NAME",
+      "GIVEN NAMES",
+      "GIVEN NAME",
+      "IMIONA",
+      "IMIE",
+      "NOMBRES",
+      "NOMBRE",
+    ])
+  );
+  const lastName = normalizeWhitespace(
+    extractLineValueNearLabels(rawText, [
+      "SURNAME",
+      "LAST NAME",
+      "NAZWISKO",
+      "APELLIDOS",
+      "APELLIDO",
+    ])
+  );
+
+  return {
+    firstName,
+    lastName,
+  };
+}
+
 function extractDateNearLabels(rawText: string | undefined, labels: string[]): string | undefined {
   if (!rawText) return undefined;
 
@@ -488,6 +518,7 @@ function mapAzureIdDocumentFields(
   const normalizedRawText = rawText ? normalizeSearchText(rawText) : "";
   const mrzData = parseMrz(rawText);
   const inferredDocumentType = inferDocumentType(fields, rawText, mrzData);
+  const rawNameData = extractNameNearLabels(rawText);
 
   const personalNumber =
     get("PersonalNumber") ??
@@ -640,8 +671,8 @@ function mapAzureIdDocumentFields(
     );
 
   return {
-    firstName: normalizeWhitespace(get("FirstName")) ?? mrzData.firstName,
-    lastName: normalizeWhitespace(get("LastName")) ?? mrzData.lastName,
+    firstName: normalizeWhitespace(get("FirstName")) ?? mrzData.firstName ?? rawNameData.firstName,
+    lastName: normalizeWhitespace(get("LastName")) ?? mrzData.lastName ?? rawNameData.lastName,
     documentNumber,
     personalNumber,
     dateOfBirth,
@@ -666,6 +697,72 @@ function mapAzureIdDocumentFields(
     rawText,
     rawFields: fields as Record<string, unknown>,
   };
+}
+
+async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buffer | null> {
+  try {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createCanvas } = require("canvas") as typeof import("canvas");
+
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(fileBuffer),
+      disableWorker: true,
+      useWorkerFetch: false,
+    } as never);
+    const pdf = await loadingTask.promise;
+
+    try {
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext("2d");
+      await page.render({
+        canvasContext: context as never,
+        canvas: canvas as never,
+        viewport,
+      } as never).promise;
+      return canvas.toBuffer("image/png");
+    } finally {
+      await pdf.destroy();
+    }
+  } catch (error) {
+    console.error("[OCR] PDF render failed for local OCR:", error);
+    return null;
+  }
+}
+
+async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise<string | null> {
+  try {
+    const inputBuffer =
+      mimeType === "application/pdf"
+        ? (await renderPdfFirstPageToImageBuffer(fileBuffer)) ?? fileBuffer
+        : await shrinkImageForAzure(fileBuffer, mimeType);
+
+    const { createWorker } = await import("tesseract.js");
+    const worker = await createWorker("eng");
+
+    try {
+      const result = await worker.recognize(inputBuffer);
+      const text = result?.data?.text?.trim();
+      return text ? text : null;
+    } finally {
+      await worker.terminate();
+    }
+  } catch (error) {
+    console.error("[OCR] Local OCR error:", error);
+    return null;
+  }
+}
+
+export async function analyzeLocalDocument(
+  fileBuffer: Buffer,
+  mimeType: string
+): Promise<OcrExtractedData | null> {
+  const rawText = await recognizeLocalText(fileBuffer, mimeType);
+  if (!rawText) return null;
+
+  return mapAzureIdDocumentFields({}, rawText);
 }
 
 async function shrinkImageForAzure(fileBuffer: Buffer, mimeType: string): Promise<Buffer> {

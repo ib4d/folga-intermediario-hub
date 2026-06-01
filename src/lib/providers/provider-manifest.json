@@ -14,6 +14,10 @@
       "statusLabel": "Modo automatico",
       "statusDescription": "La lectura automatica esta activa y puede extraer datos de documentos compatibles."
     },
+    "tesseract": {
+      "statusLabel": "Tesseract local",
+      "statusDescription": "La lectura automatica usa Tesseract en el VPS y sigue disponible sin Azure."
+    },
     "manual": {
       "statusLabel": "Modo manual",
       "statusDescription": "La lectura automatica no esta activa; los documentos quedan listos para revision manual."

@@ -33,9 +33,11 @@ SUPABASE_STORAGE_BUCKET=documentos-candidatos
 # STORAGE_PROVIDER=local
 # LOCAL_STORAGE_DIR=/app/public/uploads
 
-OCR_PROVIDER=azure
+OCR_PROVIDER=tesseract
 AZURE_DI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
 AZURE_DI_KEY=your-azure-key
+
+# OCR_PROVIDER=tesseract does not require the Azure values above.
 
 EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp.your-provider.com

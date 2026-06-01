@@ -269,7 +269,7 @@ function getOperationalErrorMessage(error: unknown): string {
     message.toLowerCase().includes("input image is too large") ||
     innerMessage?.toLowerCase().includes("too large")
   ) {
-    return "El archivo fue guardado, pero Azure OCR no lo pudo procesar porque supera el limite del proveedor. Reduce peso/resolucion o sube una version comprimida.";
+    return "El archivo fue guardado, pero el OCR automatico no lo pudo procesar porque supera el limite del proveedor seleccionado. Reduce peso/resolucion o sube una version comprimida.";
   }
 
   if (

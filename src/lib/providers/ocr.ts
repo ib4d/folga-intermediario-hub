@@ -1,7 +1,11 @@
-import { analyzeDocument as analyzeAzureDocument, type OcrExtractedData } from "@/lib/ocr";
+import {
+  analyzeDocument as analyzeAzureDocument,
+  analyzeLocalDocument as analyzeTesseractDocument,
+  type OcrExtractedData,
+} from "@/lib/ocr";
 import providerManifest from "./provider-manifest.json";
 
-export type OcrProviderName = "azure" | "manual";
+export type OcrProviderName = "azure" | "tesseract" | "manual";
 
 export class OcrProviderUnavailableError extends Error {
   readonly code = "OCR_PROVIDER_UNAVAILABLE";
@@ -46,6 +50,14 @@ class AzureOcrProvider implements OcrProvider {
   }
 }
 
+class TesseractOcrProvider implements OcrProvider {
+  readonly name = "tesseract" as const;
+
+  analyzeIdentityDocument(fileBuffer: Buffer, mimeType: string) {
+    return analyzeTesseractDocument(fileBuffer, mimeType);
+  }
+}
+
 class ManualOcrProvider implements OcrProvider {
   readonly name = "manual" as const;
 
@@ -70,6 +82,16 @@ const OCR_PROVIDER_REGISTRY: Record<OcrProviderName, OcrProviderConfig> = {
       statusDescription: providerManifest.ocr.azure.statusDescription,
     },
   },
+  tesseract: {
+    provider: new TesseractOcrProvider(),
+    status: {
+      name: "tesseract",
+      mode: "automatic",
+      supportsAutomaticExtraction: true,
+      statusLabel: providerManifest.ocr.tesseract.statusLabel,
+      statusDescription: providerManifest.ocr.tesseract.statusDescription,
+    },
+  },
   manual: {
     provider: new ManualOcrProvider(),
     status: {
@@ -92,7 +114,7 @@ export function getOcrProviderName(): OcrProviderName {
     return provider;
   }
 
-  return "azure";
+  return "tesseract";
 }
 
 export function getOcrProviderStatus(): OcrProviderStatus {

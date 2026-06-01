@@ -68,9 +68,11 @@ const placeholderPatterns = [
   /example/i,
 ];
 
-const ocrProvider = (process.env.OCR_PROVIDER || "azure").trim();
+const ocrProvider = (process.env.OCR_PROVIDER || "tesseract").trim();
 if (ocrProvider === "azure") {
   required.push("AZURE_DI_ENDPOINT", "AZURE_DI_KEY");
+} else if (ocrProvider === "tesseract") {
+  warnings.push("OCR_PROVIDER=tesseract is active. Documents will use local OCR on the VPS and no Azure credentials are required.");
 } else if (ocrProvider === "manual") {
   warnings.push("OCR_PROVIDER=manual is active. Documents will upload, but OCR extraction will require manual review.");
 }

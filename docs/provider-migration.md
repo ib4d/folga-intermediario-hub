@@ -10,7 +10,7 @@ second, and only migrate when production value or cost justifies it.
 | --- | --- | --- | --- |
 | Candidate document storage | `StorageProvider` | Supabase Storage | Cloudflare R2 |
 | Transactional email | `EmailProvider` | SMTP Hostinger | Resend |
-| OCR/document intelligence | `OCRProvider` | Azure Document Intelligence or `manual` safe mode | Google Document AI or hybrid fallback |
+| OCR/document intelligence | `OCRProvider` | Tesseract local or `manual` safe mode | Google Document AI or hybrid fallback |
 | Async/background jobs | `JobProvider` | Inline execution | PostgreSQL outbox, then Redis/BullMQ |
 
 The first production release keeps the current providers. Redis, n8n, Grafana,
@@ -22,8 +22,8 @@ OpenClaw, and self-hosted Supabase stay out of production v1.
   deletion, and rollback are tested through `StorageProvider`.
 - Do not replace SMTP with Resend/Brevo until invitations and transactional
   delivery are tested through `EmailProvider`.
-- Do not replace Azure OCR until the alternative extracts passport, PESEL, and
-  Karta Pobytu fields with equal or better reliability.
+- Do not retire the legacy Azure OCR path until the local replacement extracts
+  passport, PESEL, and Karta Pobytu fields with equal or better reliability.
 - If Azure becomes unavailable before the replacement is ready, switch to
   `OCR_PROVIDER=manual` so the app keeps accepting uploads and routes them to
   manual review without breaking the document workflow.
@@ -45,23 +45,26 @@ OpenClaw, and self-hosted Supabase stay out of production v1.
 
 There are now two safe OCR runtime modes for production:
 
-- `OCR_PROVIDER=azure`
-  - Full automatic OCR flow.
-  - Requires `AZURE_DI_ENDPOINT` and `AZURE_DI_KEY`.
+- `OCR_PROVIDER=tesseract`
+  - Full automatic OCR flow running locally on the VPS.
+  - Uses the shared OCR contract, without Azure subscription dependency.
 - `OCR_PROVIDER=manual`
   - Documents still upload and persist.
   - OCR extraction is skipped intentionally.
   - The app must show manual review messaging instead of pretending OCR worked.
 
+The legacy `OCR_PROVIDER=azure` path still exists for rollback scenarios, but it
+should not be the default for new deployments.
+
 Use `manual` mode when:
 
-- Azure subscription or quota expired.
+- Local OCR is unavailable or we intentionally want a manual review queue.
 - The provider is temporarily unavailable.
 - We are preparing the next OCR provider and need the app to stay operational.
 
 The next migration step should be:
 
-1. keep the app alive on `manual`,
+1. keep the app alive on `tesseract` or `manual`,
 2. introduce `GoogleDocumentAIProvider` behind `OCRProvider`,
 3. switch production only after field extraction for passport, PESEL, and
    Karta Pobytu is validated end to end.
