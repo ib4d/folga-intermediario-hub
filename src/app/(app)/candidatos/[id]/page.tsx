@@ -18,9 +18,9 @@ import {
   getDocumentDisplayNumber,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
-import { isManualOcrMode } from "@/lib/providers/ocr";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
+import { getProviderStatus } from "@/lib/provider-status";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { normalizeLanguage, t } from "@/lib/i18n";
@@ -57,6 +57,8 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   if (!session) redirect("/login");
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
+  const providerStatus = getProviderStatus();
+  const { manualOcrMode } = providerStatus;
 
   const tenant = await requireTenant();
   const resolvedParams = await params;
@@ -560,9 +562,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               {canManageDocuments ? (
                 <DocumentUploadButton
                   candidateId={candidate.id}
-                  ocrMode={isManualOcrMode() ? "manual" : "automatic"}
+                  ocrMode={manualOcrMode ? "manual" : "automatic"}
                   ocrDescription={
-                    isManualOcrMode()
+                    manualOcrMode
                       ? labels("documents.ocrManualNote")
                       : labels("documents.ocrAutomaticNote")
                   }
