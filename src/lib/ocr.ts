@@ -376,7 +376,15 @@ function cleanLabeledValue(value: string | undefined): string | undefined {
       .replace(/^[:/\s-]+/, " ")
   );
 
-  return normalizeWhitespace(cleaned);
+  const normalized = normalizeWhitespace(cleaned);
+  if (!normalized) return undefined;
+
+  const stripped = normalized
+    .replace(/^[^A-Z0-9]+/i, "")
+    .replace(/[^A-Z0-9]+$/i, "")
+    .trim();
+
+  return stripped.length > 0 ? stripped : undefined;
 }
 
 function extractLineValueNearLabels(
