@@ -418,6 +418,21 @@ function extractLineValueNearLabels(
   return undefined;
 }
 
+function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
+  const normalized = cleanLabeledValue(value);
+  if (!normalized) return undefined;
+
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 1) {
+    return tokens[0].length >= 3 ? tokens[0] : undefined;
+  }
+
+  const firstTwo = tokens.slice(0, 2);
+  if (firstTwo.every((token) => token.length <= 2)) return undefined;
+
+  return firstTwo.join(" ");
+}
+
 function extractKartaPobytuType(rawText: string | undefined): string | undefined {
   if (!rawText) return undefined;
 
@@ -816,12 +831,15 @@ function mapAzureIdDocumentFields(
 
   const placeOfBirth =
     normalizeWhitespace(get("PlaceOfBirth")) ??
-    extractLineValueNearLabels(rawText, [
-      "PLACE AND COUNTRY OF BIRTH",
-      "PLACE OF BIRTH",
-      "LUGAR DE NACIMIENTO",
-      "MIEJSCE I KRAJ URODZENIA",
-    ]);
+    cleanPlaceOfBirthValue(
+      extractLineValueNearLabels(rawText, [
+        "PLACE AND COUNTRY OF BIRTH",
+        "PLACE OF BIRTH",
+        "LUGAR DE NACIMIENTO",
+        "MIEJSCE I KRAJ URODZENIA",
+      ])
+    ) ??
+    undefined;
 
   const heightCm =
     parseHeightCm(get("Height")) ??
