@@ -191,6 +191,28 @@ function isFilledReviewValue(value: string | boolean | null | undefined): boolea
   return Boolean(normalizeFallbackText(value));
 }
 
+function scoreTextCandidate(value: string | null | undefined): number {
+  const normalized = normalizeFallbackText(value);
+  if (!normalized) return -1;
+
+  const compact = normalized.replace(/[^A-Z0-9]/gi, "");
+  const tokenCount = normalized.split(/\s+/).filter(Boolean).length;
+  const alphaCount = compact.replace(/\d/g, "").length;
+  const digitPenalty = /\d/.test(normalized) ? 8 : 0;
+
+  return alphaCount + tokenCount * 4 + Math.min(10, compact.length / 3) - digitPenalty;
+}
+
+function pickBestTextCandidate(...values: Array<string | null | undefined>): string {
+  const candidates = values
+    .map((value) => normalizeFallbackText(value))
+    .filter((value): value is string => Boolean(value));
+
+  if (candidates.length === 0) return "";
+
+  return candidates.sort((left, right) => scoreTextCandidate(right) - scoreTextCandidate(left))[0];
+}
+
 function asBoolean(value: unknown): boolean {
   return value === true;
 }
@@ -566,41 +588,47 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       toDateInputValue(candidateDefaults?.kartaPobytuIssueDate) ||
       rawTextFallback.issueDate ||
       asString(extracted.dateOfIssue),
-    firstName:
-      asString(extracted.firstName) ||
-      rawTextFallback.firstName ||
-      normalizeFallbackText(candidateDefaults?.firstName) ||
-      inferredNameParts?.firstName ||
-      "",
-    lastName:
-      asString(extracted.lastName) ||
-      rawTextFallback.lastName ||
-      normalizeFallbackText(candidateDefaults?.lastName) ||
-      inferredNameParts?.lastName ||
-      "",
-    nationality:
-      asString(extracted.nationality) ||
-      rawTextFallback.nationality ||
+    firstName: pickBestTextCandidate(
+      asString(extracted.firstName),
+      rawTextFallback.firstName,
+      normalizeFallbackText(candidateDefaults?.firstName),
+      inferredNameParts?.firstName,
+    ),
+    lastName: pickBestTextCandidate(
+      asString(extracted.lastName),
+      rawTextFallback.lastName,
+      normalizeFallbackText(candidateDefaults?.lastName),
+      inferredNameParts?.lastName,
+    ),
+    nationality: pickBestTextCandidate(
+      asString(extracted.nationality),
+      rawTextFallback.nationality,
       normalizeFallbackText(candidateDefaults?.nationality),
-    issuingCountry:
-      asString(extracted.issuingCountry) ||
-      rawTextFallback.issuingCountry ||
+    ),
+    issuingCountry: pickBestTextCandidate(
+      asString(extracted.issuingCountry),
+      rawTextFallback.issuingCountry,
       normalizeFallbackText(candidateDefaults?.citizenship),
+    ),
     dateOfBirth:
       asString(extracted.dateOfBirth) ||
       rawTextFallback.dateOfBirth ||
       toDateInputValue(candidateDefaults?.dateOfBirth),
     sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
     placeOfBirth:
-      asString(extracted.placeOfBirth) ||
+      pickBestTextCandidate(
+      asString(extracted.placeOfBirth),
       rawTextFallback.placeOfBirth ||
       normalizeFallbackText(candidateDefaults?.birthPlace),
+      ),
     issuingAuthority: asString(extracted.issuingAuthority),
     passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
     kartaPobytuType:
-      asString(extracted.kartaPobytuType) ||
+      pickBestTextCandidate(
+      asString(extracted.kartaPobytuType),
       rawTextFallback.kartaPobytuType ||
       normalizeFallbackText(candidateDefaults?.kartaPobytuType),
+      ),
     remarks: asString(extracted.remarks),
     municipalityOffice: asString(extracted.municipalityOffice),
     addressOfRegistration: asString(extracted.addressOfRegistration) || normalizeFallbackText(candidateDefaults?.polishAddress),
