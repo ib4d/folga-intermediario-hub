@@ -1,5 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import providerManifest from "../src/lib/providers/provider-manifest.json" assert { type: "json" };
+
+const providerManifest = JSON.parse(
+  readFileSync(new URL("../src/lib/providers/provider-manifest.json", import.meta.url), "utf8")
+);
 
 function unquote(value) {
   const trimmed = value.trim();
