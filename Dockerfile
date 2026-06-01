@@ -65,6 +65,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-permissions.mjs ./s
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-smtp.mjs ./scripts/check-smtp.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/permissions.ts ./src/lib/permissions.ts
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/providers ./src/lib/providers
 
 # Set the correct permission for production prerender/cache output.
 RUN mkdir .next-prod
