@@ -177,7 +177,7 @@ type StorageProviderConfig = {
 };
 
 function isSupportedStorageProviderName(value: string): value is StorageProviderName {
-  return providerManifest.storage.includes(value as StorageProviderName);
+  return value in providerManifest.storage;
 }
 
 const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConfig> = {
@@ -186,8 +186,8 @@ const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConf
     status: {
       name: "supabase",
       mode: "supabase",
-      statusLabel: "Supabase Storage",
-      statusDescription: "Los archivos se guardan y sirven desde Supabase Storage.",
+      statusLabel: providerManifest.storage.supabase.statusLabel,
+      statusDescription: providerManifest.storage.supabase.statusDescription,
     },
   },
   local: {
@@ -195,8 +195,8 @@ const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConf
     status: {
       name: "local",
       mode: "local",
-      statusLabel: "Local disk",
-      statusDescription: "Los archivos se guardan en el disco persistente del VPS.",
+      statusLabel: providerManifest.storage.local.statusLabel,
+      statusDescription: providerManifest.storage.local.statusDescription,
     },
   },
 };

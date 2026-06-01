@@ -35,7 +35,7 @@ type OcrProviderConfig = {
 };
 
 function isSupportedOcrProviderName(value: string): value is OcrProviderName {
-  return providerManifest.ocr.includes(value as OcrProviderName);
+  return value in providerManifest.ocr;
 }
 
 class AzureOcrProvider implements OcrProvider {
@@ -66,8 +66,8 @@ const OCR_PROVIDER_REGISTRY: Record<OcrProviderName, OcrProviderConfig> = {
       name: "azure",
       mode: "automatic",
       supportsAutomaticExtraction: true,
-      statusLabel: "Modo automatico",
-      statusDescription: "La lectura automatica esta activa y puede extraer datos de documentos compatibles.",
+      statusLabel: providerManifest.ocr.azure.statusLabel,
+      statusDescription: providerManifest.ocr.azure.statusDescription,
     },
   },
   manual: {
@@ -76,8 +76,8 @@ const OCR_PROVIDER_REGISTRY: Record<OcrProviderName, OcrProviderConfig> = {
       name: "manual",
       mode: "manual",
       supportsAutomaticExtraction: false,
-      statusLabel: "Modo manual",
-      statusDescription: "La lectura automatica no esta activa; los documentos quedan listos para revision manual.",
+      statusLabel: providerManifest.ocr.manual.statusLabel,
+      statusDescription: providerManifest.ocr.manual.statusDescription,
     },
   },
 };

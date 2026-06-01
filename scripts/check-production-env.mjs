@@ -159,8 +159,8 @@ if (stripeKeys.length > 0 && stripeKeys.length < 3) {
 }
 
 const providerAllowlist = {
-  STORAGE_PROVIDER: providerManifest.storage,
-  OCR_PROVIDER: providerManifest.ocr,
+  STORAGE_PROVIDER: Object.keys(providerManifest.storage),
+  OCR_PROVIDER: Object.keys(providerManifest.ocr),
   EMAIL_PROVIDER: ["smtp"],
   JOB_PROVIDER: ["inline"],
 };
