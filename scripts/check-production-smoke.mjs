@@ -2,6 +2,7 @@ const baseUrl = normalizeBaseUrl(process.env.SMOKE_BASE_URL || process.env.AUTH_
 
 const checks = [
   { path: "/api/health", label: "Health API", allow: [200], mustContain: '"status":"ok"' },
+  { path: "/api/providers/status", label: "Providers status API", allow: [200], mustContain: '"current"' },
   { path: "/", label: "Marketing/onboarding entry", allow: [200, 302, 307, 308] },
   { path: "/marketing", label: "Marketing explicit entry", allow: [200] },
   { path: "/login", label: "Login", allow: [200] },
