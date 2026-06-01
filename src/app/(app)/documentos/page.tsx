@@ -189,12 +189,12 @@ export default async function DocumentosPage({
             : labels("documents.storageSupabaseNote")
         }
         storageAvailableLabel={labels("documents.providersAvailable")}
-        storageAvailableValue={availableStorage.map((provider) => provider.statusLabel).join(" / ")}
+        storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
         ocrLabel={labels("documents.ocrProvider")}
         ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
         ocrAvailableLabel={labels("documents.providersAvailable")}
-        ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel).join(" / ")}
+        ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>

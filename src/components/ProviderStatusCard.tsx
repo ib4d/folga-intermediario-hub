@@ -5,12 +5,12 @@ type ProviderStatusCardProps = {
   storageValue: string;
   storageNote?: string;
   storageAvailableLabel?: string;
-  storageAvailableValue?: string;
+  storageAvailableValue?: readonly string[];
   ocrLabel: string;
   ocrValue: string;
   ocrNote?: string;
   ocrAvailableLabel?: string;
-  ocrAvailableValue?: string;
+  ocrAvailableValue?: readonly string[];
 };
 
 export default function ProviderStatusCard({
@@ -55,9 +55,29 @@ export default function ProviderStatusCard({
               {storageNote}
             </div>
           ) : null}
-          {storageAvailableLabel && storageAvailableValue ? (
-            <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "var(--muted)", lineHeight: 1.45 }}>
-              <strong>{storageAvailableLabel}:</strong> {storageAvailableValue}
+          {storageAvailableLabel && storageAvailableValue?.length ? (
+            <div style={{ marginTop: "0.55rem" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase", color: "var(--muted)" }}>
+                {storageAvailableLabel}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.35rem" }}>
+                {storageAvailableValue.map((provider) => (
+                  <span
+                    key={provider}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      border: "1px solid rgba(0, 0, 0, 0.12)",
+                      background: "rgba(255, 255, 255, 0.9)",
+                      padding: "0.25rem 0.55rem",
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {provider}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -75,9 +95,29 @@ export default function ProviderStatusCard({
               {ocrNote}
             </div>
           ) : null}
-          {ocrAvailableLabel && ocrAvailableValue ? (
-            <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "var(--muted)", lineHeight: 1.45 }}>
-              <strong>{ocrAvailableLabel}:</strong> {ocrAvailableValue}
+          {ocrAvailableLabel && ocrAvailableValue?.length ? (
+            <div style={{ marginTop: "0.55rem" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase", color: "var(--muted)" }}>
+                {ocrAvailableLabel}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginTop: "0.35rem" }}>
+                {ocrAvailableValue.map((provider) => (
+                  <span
+                    key={provider}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      border: "1px solid rgba(0, 0, 0, 0.12)",
+                      background: "rgba(255, 255, 255, 0.9)",
+                      padding: "0.25rem 0.55rem",
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {provider}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>

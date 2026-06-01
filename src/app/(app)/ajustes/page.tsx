@@ -230,12 +230,12 @@ export default async function AjustesPage() {
                   : labels("settings.storageSupabaseNote")
               }
               storageAvailableLabel={labels("settings.providersAvailable")}
-              storageAvailableValue={availableStorage.map((provider) => provider.statusLabel).join(" / ")}
+              storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
               ocrLabel={labels("settings.ocrLabel")}
               ocrValue={manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
               ocrNote={manualOcrMode ? labels("settings.ocrManualNote") : labels("settings.ocrAutomaticNote")}
               ocrAvailableLabel={labels("settings.providersAvailable")}
-              ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel).join(" / ")}
+              ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
             />
           </div>
 

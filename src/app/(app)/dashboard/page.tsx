@@ -250,12 +250,12 @@ export default async function DashboardPage() {
             : labels("dashboard.storageSupabaseNote")
         }
         storageAvailableLabel={labels("dashboard.providersAvailable")}
-        storageAvailableValue={availableStorage.map((provider) => provider.statusLabel).join(" / ")}
+        storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
         ocrLabel={labels("dashboard.ocrLabel")}
         ocrValue={manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("dashboard.ocrManualNote") : labels("dashboard.ocrAutomaticNote")}
         ocrAvailableLabel={labels("dashboard.providersAvailable")}
-        ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel).join(" / ")}
+        ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
       />
 
       <DashboardOverview
