@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import providerManifest from "../src/lib/providers/provider-manifest.json" assert { type: "json" };
 
 function unquote(value) {
   const trimmed = value.trim();
@@ -158,8 +159,8 @@ if (stripeKeys.length > 0 && stripeKeys.length < 3) {
 }
 
 const providerAllowlist = {
-  STORAGE_PROVIDER: ["supabase", "local"],
-  OCR_PROVIDER: ["azure", "manual"],
+  STORAGE_PROVIDER: providerManifest.storage,
+  OCR_PROVIDER: providerManifest.ocr,
   EMAIL_PROVIDER: ["smtp"],
   JOB_PROVIDER: ["inline"],
 };

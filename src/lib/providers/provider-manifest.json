@@ -1,0 +1,4 @@
+{
+  "storage": ["supabase", "local"],
+  "ocr": ["azure", "manual"]
+}

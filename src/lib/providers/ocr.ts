@@ -1,4 +1,5 @@
 import { analyzeDocument as analyzeAzureDocument, type OcrExtractedData } from "@/lib/ocr";
+import providerManifest from "./provider-manifest.json";
 
 export type OcrProviderName = "azure" | "manual";
 
@@ -32,6 +33,10 @@ type OcrProviderConfig = {
   readonly provider: OcrProvider;
   readonly status: OcrProviderStatus;
 };
+
+function isSupportedOcrProviderName(value: string): value is OcrProviderName {
+  return providerManifest.ocr.includes(value as OcrProviderName);
+}
 
 class AzureOcrProvider implements OcrProvider {
   readonly name = "azure" as const;
@@ -83,7 +88,7 @@ export function getAvailableOcrProviders(): readonly OcrProviderStatus[] {
 
 export function getOcrProviderName(): OcrProviderName {
   const provider = process.env.OCR_PROVIDER?.trim().toLowerCase();
-  if (provider === "manual" || provider === "azure") {
+  if (provider && isSupportedOcrProviderName(provider)) {
     return provider;
   }
 

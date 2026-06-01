@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import providerManifest from "./provider-manifest.json";
 
 export type StorageProviderName = "supabase" | "local";
 export type StorageProviderMode = "supabase" | "local";
@@ -175,6 +176,10 @@ type StorageProviderConfig = {
   readonly status: StorageProviderStatus;
 };
 
+function isSupportedStorageProviderName(value: string): value is StorageProviderName {
+  return providerManifest.storage.includes(value as StorageProviderName);
+}
+
 const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConfig> = {
   supabase: {
     provider: new SupabaseStorageProvider(),
@@ -202,7 +207,7 @@ export function getAvailableStorageProviders(): readonly StorageProviderStatus[]
 
 export function getStorageProvider(): StorageProvider {
   const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
-  if (provider === "supabase" || provider === "local") {
+  if (isSupportedStorageProviderName(provider)) {
     return STORAGE_PROVIDER_REGISTRY[provider].provider;
   }
 
@@ -212,7 +217,7 @@ export function getStorageProvider(): StorageProvider {
 export function getStorageProviderStatus(): StorageProviderStatus {
   const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
 
-  if (provider === "supabase" || provider === "local") {
+  if (isSupportedStorageProviderName(provider)) {
     return STORAGE_PROVIDER_REGISTRY[provider].status;
   }
 
