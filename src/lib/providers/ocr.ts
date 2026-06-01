@@ -77,6 +77,10 @@ const OCR_PROVIDER_REGISTRY: Record<OcrProviderName, OcrProviderConfig> = {
   },
 };
 
+export function getAvailableOcrProviders(): readonly OcrProviderStatus[] {
+  return Object.values(OCR_PROVIDER_REGISTRY).map((entry) => entry.status);
+}
+
 export function getOcrProviderName(): OcrProviderName {
   const provider = process.env.OCR_PROVIDER?.trim().toLowerCase();
   if (provider === "manual" || provider === "azure") {

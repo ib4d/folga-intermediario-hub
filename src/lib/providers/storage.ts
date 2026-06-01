@@ -196,6 +196,10 @@ const STORAGE_PROVIDER_REGISTRY: Record<StorageProviderName, StorageProviderConf
   },
 };
 
+export function getAvailableStorageProviders(): readonly StorageProviderStatus[] {
+  return Object.values(STORAGE_PROVIDER_REGISTRY).map((entry) => entry.status);
+}
+
 export function getStorageProvider(): StorageProvider {
   const provider = (process.env.STORAGE_PROVIDER || "supabase").trim();
   if (provider === "supabase" || provider === "local") {
