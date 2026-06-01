@@ -19,6 +19,8 @@ export async function GET() {
         storage: {
           name: storage.name,
           mode: storage.mode,
+          statusLabel: storage.statusLabel,
+          statusDescription: storage.statusDescription,
         },
         ocr: {
           name: ocr.name,
