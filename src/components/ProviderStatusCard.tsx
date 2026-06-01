@@ -4,9 +4,13 @@ type ProviderStatusCardProps = {
   storageLabel: string;
   storageValue: string;
   storageNote?: string;
+  storageAvailableLabel?: string;
+  storageAvailableValue?: string;
   ocrLabel: string;
   ocrValue: string;
   ocrNote?: string;
+  ocrAvailableLabel?: string;
+  ocrAvailableValue?: string;
 };
 
 export default function ProviderStatusCard({
@@ -15,9 +19,13 @@ export default function ProviderStatusCard({
   storageLabel,
   storageValue,
   storageNote,
+  storageAvailableLabel,
+  storageAvailableValue,
   ocrLabel,
   ocrValue,
   ocrNote,
+  ocrAvailableLabel,
+  ocrAvailableValue,
 }: ProviderStatusCardProps) {
   return (
     <div className="card" style={{ marginBottom: "2rem", padding: "1.25rem 1.5rem" }}>
@@ -47,6 +55,11 @@ export default function ProviderStatusCard({
               {storageNote}
             </div>
           ) : null}
+          {storageAvailableLabel && storageAvailableValue ? (
+            <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "var(--muted)", lineHeight: 1.45 }}>
+              <strong>{storageAvailableLabel}:</strong> {storageAvailableValue}
+            </div>
+          ) : null}
         </div>
         <div
           style={{
@@ -60,6 +73,11 @@ export default function ProviderStatusCard({
           {ocrNote ? (
             <div style={{ marginTop: "0.35rem", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.45 }}>
               {ocrNote}
+            </div>
+          ) : null}
+          {ocrAvailableLabel && ocrAvailableValue ? (
+            <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "var(--muted)", lineHeight: 1.45 }}>
+              <strong>{ocrAvailableLabel}:</strong> {ocrAvailableValue}
             </div>
           ) : null}
         </div>

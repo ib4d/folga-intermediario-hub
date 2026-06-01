@@ -38,7 +38,7 @@ export default async function DocumentosPage({
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storage, manualOcrMode } = providerStatus;
+  const { storage, availableStorage, availableOcr, manualOcrMode } = providerStatus;
   const reviewQueueFilterActive = isReviewQueueStatus(status);
   const candidateFilter = candidateId
     ? await prisma.candidate.findFirst({
@@ -188,9 +188,13 @@ export default async function DocumentosPage({
             ? labels("documents.storageLocalNote")
             : labels("documents.storageSupabaseNote")
         }
+        storageAvailableLabel={labels("documents.providersAvailable")}
+        storageAvailableValue={availableStorage.map((provider) => provider.name).join(" / ")}
         ocrLabel={labels("documents.ocrProvider")}
         ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
+        ocrAvailableLabel={labels("documents.providersAvailable")}
+        ocrAvailableValue={availableOcr.map((provider) => provider.name).join(" / ")}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>

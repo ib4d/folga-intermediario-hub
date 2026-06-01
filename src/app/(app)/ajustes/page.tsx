@@ -31,7 +31,7 @@ export default async function AjustesPage() {
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storage, manualOcrMode } = providerStatus;
+  const { storage, availableStorage, availableOcr, manualOcrMode } = providerStatus;
 
   const memberships = await prisma.membership.findMany({
     where: { organizationId: tenant.organizationId },
@@ -229,9 +229,13 @@ export default async function AjustesPage() {
                   ? labels("settings.storageLocalNote")
                   : labels("settings.storageSupabaseNote")
               }
+              storageAvailableLabel={labels("settings.providersAvailable")}
+              storageAvailableValue={availableStorage.map((provider) => provider.name).join(" / ")}
               ocrLabel={labels("settings.ocrLabel")}
               ocrValue={manualOcrMode ? labels("settings.ocrManualMode") : labels("settings.ocrAutomaticMode")}
               ocrNote={manualOcrMode ? labels("settings.ocrManualNote") : labels("settings.ocrAutomaticNote")}
+              ocrAvailableLabel={labels("settings.providersAvailable")}
+              ocrAvailableValue={availableOcr.map((provider) => provider.name).join(" / ")}
             />
           </div>
 

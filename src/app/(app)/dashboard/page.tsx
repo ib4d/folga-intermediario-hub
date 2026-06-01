@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
-  const { storage, manualOcrMode } = providerStatus;
+  const { storage, availableStorage, availableOcr, manualOcrMode } = providerStatus;
 
   const tenant = await requireTenant();
   const whereClause = candidateVisibilityWhere(tenant);
@@ -249,9 +249,13 @@ export default async function DashboardPage() {
             ? labels("dashboard.storageLocalNote")
             : labels("dashboard.storageSupabaseNote")
         }
+        storageAvailableLabel={labels("dashboard.providersAvailable")}
+        storageAvailableValue={availableStorage.map((provider) => provider.name).join(" / ")}
         ocrLabel={labels("dashboard.ocrLabel")}
         ocrValue={manualOcrMode ? labels("dashboard.ocrManualMode") : labels("dashboard.ocrAutomaticMode")}
         ocrNote={manualOcrMode ? labels("dashboard.ocrManualNote") : labels("dashboard.ocrAutomaticNote")}
+        ocrAvailableLabel={labels("dashboard.providersAvailable")}
+        ocrAvailableValue={availableOcr.map((provider) => provider.name).join(" / ")}
       />
 
       <DashboardOverview
