@@ -371,6 +371,7 @@ function cleanLabeledValue(value: string | undefined): string | undefined {
       .replace(/\/?\b(PLACE AND COUNTRY OF BIRTH|PLACE OF BIRTH|MIEJSCE I KRAJ URODZENIA)\b/g, " ")
       .replace(/\/?\b(ADDRESS OF REGISTRATION|ADRES ZAMELDOWANIA)\b/g, " ")
       .replace(/\/?\b(DATE OF ISSUE AND ISSUING AUTHORITY|DATA WYDANIA I ORGAN WYDAJACY)\b/g, " ")
+      .replace(/\/?\b(DATE OF EXPIRY|DATA WAZNOSCI)\b/g, " ")
       .replace(/\/?\b(UWAGI|REMARKS)\b/g, " ")
       .replace(/^[:/\s-]+/, " ")
   );
@@ -403,6 +404,49 @@ function extractLineValueNearLabels(
 
       const value = cleanLabeledValue(nextLine);
       if (value) return value;
+    }
+  }
+
+  return undefined;
+}
+
+function extractKartaPobytuType(rawText: string | undefined): string | undefined {
+  if (!rawText) return undefined;
+
+  const lines = rawText.split(/\r?\n/);
+  const labelPatterns = ["RODZAJ ZEZWOLENIA", "TYPE OF PERMIT"];
+  const permitKinds = [
+    /\b(CZASOWY)\b/i,
+    /\b(STA[ŁL]Y)\b/i,
+    /\b(REZYDENT[A-Z ]*UE)\b/i,
+    /\b(REZYDENT[A-Z ]*DLUGOTERMINOWEGO)\b/i,
+    /\b(TEMPORARY)\b/i,
+    /\b(PERMANENT)\b/i,
+    /\b(LONG[- ]TERM RESIDENT)\b/i,
+    /\b(EU RESIDENT)\b/i,
+  ];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const normalizedLine = normalizeSearchText(lines[index]);
+    if (!labelPatterns.some((label) => normalizedLine.includes(label))) continue;
+
+    const sameLineRemainder = normalizeSearchText(
+      normalizedLine.replace(/.*?(RODZAJ ZEZWOLENIA|TYPE OF PERMIT)\b[\s:./-]*/i, " ")
+    );
+
+    const candidateBlock = [
+      sameLineRemainder,
+      ...lines.slice(index + 1, index + 4).map(normalizeSearchText),
+    ].join(" ");
+
+    for (const pattern of permitKinds) {
+      const match = candidateBlock.match(pattern);
+      if (match?.[1]) {
+        const permitKind = match[1].replace(/\s+/g, " ").trim();
+        return normalizedLine.includes("TYPE OF PERMIT")
+          ? `RESIDENCE PERMIT ${permitKind}`
+          : `ZEZWOLENIE NA POBYT ${permitKind}`;
+      }
     }
   }
 
@@ -744,7 +788,7 @@ function mapAzureIdDocumentFields(
   const kartaPobytuType =
     inferredDocumentType === "KARTA_POBYTU"
       ? normalizeWhitespace(get("Category")) ??
-        extractLineValueNearLabels(rawText, ["RODZAJ ZEZWOLENIA", "TYPE OF PERMIT"])
+        extractKartaPobytuType(rawText)
       : undefined;
 
   const remarks =
