@@ -68,12 +68,31 @@ type ReviewChecklistItem = {
   missing: boolean;
 };
 
+type RawTextFallback = {
+  documentNumber?: string;
+  personalNumber?: string;
+  expiryDate?: string;
+  issueDate?: string;
+  firstName?: string;
+  lastName?: string;
+  nationality?: string;
+  issuingCountry?: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  kartaPobytuType?: string;
+};
+
 function getExtractedData(value: unknown): Record<string, unknown> {
   if (!value || Array.isArray(value) || typeof value !== "object") {
     return {};
   }
 
   return value as Record<string, unknown>;
+}
+
+function getRawText(value: Record<string, unknown>): string {
+  const rawText = value.rawText;
+  return typeof rawText === "string" ? rawText : "";
 }
 
 function buildDuplicateContext(doc: ReviewableDocument, allDocuments: ReviewableDocument[]): DuplicateContext | null {
@@ -272,6 +291,105 @@ function inferDocumentNumberFromFileName(fileName: string): string {
   return "";
 }
 
+function normalizeRawText(rawText: string): string {
+  return rawText
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+function normalizeMrzLine(line: string): string {
+  return normalizeRawText(line).replace(/\s+/g, "");
+}
+
+function parseMrzDate(value: string): string | undefined {
+  const compact = value.replace(/\s+/g, "").replace(/</g, "");
+  if (compact.length !== 6 || !/^\d{6}$/.test(compact)) return undefined;
+
+  const year = Number.parseInt(compact.slice(0, 2), 10);
+  const month = Number.parseInt(compact.slice(2, 4), 10);
+  const day = Number.parseInt(compact.slice(4, 6), 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return undefined;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
+
+  const fullYear = year >= 50 ? 1900 + year : 2000 + year;
+  return `${fullYear.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function inferFromRawText(rawText: string, docType: string): RawTextFallback {
+  if (!rawText) return {};
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => normalizeMrzLine(line))
+    .filter(Boolean);
+
+  const fallback: RawTextFallback = {};
+
+  const passportMrzIndex = lines.findIndex((line) => line.startsWith("P<"));
+  if (passportMrzIndex >= 0 && lines[passportMrzIndex + 1]?.length >= 27) {
+    const mrzLine1 = lines[passportMrzIndex];
+    const mrzLine2 = lines[passportMrzIndex + 1];
+    const mrzNames = mrzLine1.slice(5).split("<<");
+    const lastName = mrzNames[0]?.replace(/</g, " ").trim();
+    const firstName = mrzNames.slice(1).join(" ").replace(/</g, " ").trim();
+
+    fallback.documentNumber = mrzLine2.slice(0, 9).replace(/</g, "") || undefined;
+    fallback.dateOfBirth = parseMrzDate(mrzLine2.slice(13, 19));
+    fallback.expiryDate = parseMrzDate(mrzLine2.slice(21, 27));
+    fallback.nationality = mrzLine2.slice(10, 13).replace(/</g, "").trim() || undefined;
+    fallback.issuingCountry = mrzLine1.slice(2, 5).replace(/</g, "").trim() || undefined;
+    fallback.firstName = firstName || undefined;
+    fallback.lastName = lastName || undefined;
+    return fallback;
+  }
+
+  const kartaMrzIndex = lines.findIndex((line) => /^I[A-Z<]?POL/.test(line));
+  if (kartaMrzIndex >= 0 && lines[kartaMrzIndex + 2]) {
+    const mrzLine1 = lines[kartaMrzIndex];
+    const mrzLine2 = lines[kartaMrzIndex + 1] ?? "";
+    const mrzLine3 = lines[kartaMrzIndex + 2];
+
+    const documentNumberMatch =
+      mrzLine1.match(/^I[A-Z<]?POL([A-Z]{1,3}\d{6,10})/)?.[1] ??
+      mrzLine1.match(/([A-Z]{1,3}\d{6,10})/)?.[1];
+    const dateMatch = mrzLine2.match(/^(\d{6})\d?([MF<])(\d{6})\d?([A-Z]{3})/);
+    const nameParts = mrzLine3.split("<<");
+    const lastName = nameParts[0]?.replace(/</g, " ").trim();
+    const firstName = nameParts.slice(1).join(" ").replace(/</g, " ").trim();
+
+    fallback.documentNumber = documentNumberMatch || undefined;
+    fallback.dateOfBirth = parseMrzDate(dateMatch?.[1] ?? "");
+    fallback.expiryDate = parseMrzDate(dateMatch?.[3] ?? "");
+    fallback.nationality = dateMatch?.[4] || undefined;
+    fallback.issuingCountry = "POL";
+    fallback.firstName = firstName || undefined;
+    fallback.lastName = lastName || undefined;
+    return fallback;
+  }
+
+  if (docType === "PESEL") {
+    const normalized = normalizeRawText(rawText);
+    const peselMatch = normalized.match(/\b(\d{11})\b/);
+    if (peselMatch) fallback.personalNumber = peselMatch[1];
+
+    const labelValue = (labelPatterns: string[]) => {
+      for (const line of lines) {
+        if (!labelPatterns.some((pattern) => line.includes(pattern))) continue;
+        const value = line.replace(new RegExp(`^.*?(?:${labelPatterns.join("|")})\\b[:\\s-]*`), "").trim();
+        if (value) return value.replace(/</g, " ").trim();
+      }
+      return undefined;
+    };
+
+    fallback.firstName = labelValue(["IMIE", "IMIONA"]);
+    fallback.lastName = labelValue(["NAZWISKO"]);
+    fallback.dateOfBirth = labelValue(["DATA URODZENIA"])?.replace(/\./g, "-");
+  }
+
+  return fallback;
+}
+
 function inferNamePartsFromFileName(fileName: string): InferredNameParts | null {
   const normalized = normalizeFileStem(fileName).toLowerCase();
   const tokens = normalized
@@ -408,6 +526,7 @@ function buildManualReviewChecklist(form: {
 
 function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults) {
   const extracted = getExtractedData(doc.extractedData);
+  const rawTextFallback = inferFromRawText(getRawText(extracted), doc.type);
   const fileName = getReviewableDocumentName(doc);
   const inferredType = inferDocumentTypeFromFileName(fileName);
   const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
@@ -428,39 +547,60 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       asString(extracted.documentNumber) ||
       doc.number ||
       fallbackDocumentNumber ||
+      rawTextFallback.documentNumber ||
       inferredDocumentNumber,
     personalNumber:
       asString(extracted.personalNumber) ||
+      rawTextFallback.personalNumber ||
       normalizeFallbackText(candidateDefaults?.peselNumber) ||
       (initialType === "PESEL" && /^\d{11}$/.test(inferredDocumentNumber) ? inferredDocumentNumber : ""),
     expiryDate:
       toDateInputValue(doc.expiryDate) ||
       toDateInputValue(candidateDefaults?.passportExpiry) ||
       toDateInputValue(candidateDefaults?.kartaPobytuExpiry) ||
+      rawTextFallback.expiryDate ||
       asString(extracted.dateOfExpiry),
     issueDate:
       toDateInputValue(doc.issueDate) ||
       toDateInputValue(candidateDefaults?.passportIssueDate) ||
       toDateInputValue(candidateDefaults?.kartaPobytuIssueDate) ||
+      rawTextFallback.issueDate ||
       asString(extracted.dateOfIssue),
     firstName:
       asString(extracted.firstName) ||
+      rawTextFallback.firstName ||
       normalizeFallbackText(candidateDefaults?.firstName) ||
       inferredNameParts?.firstName ||
       "",
     lastName:
       asString(extracted.lastName) ||
+      rawTextFallback.lastName ||
       normalizeFallbackText(candidateDefaults?.lastName) ||
       inferredNameParts?.lastName ||
       "",
-    nationality: asString(extracted.nationality) || normalizeFallbackText(candidateDefaults?.nationality),
-    issuingCountry: asString(extracted.issuingCountry) || normalizeFallbackText(candidateDefaults?.citizenship),
-    dateOfBirth: asString(extracted.dateOfBirth) || toDateInputValue(candidateDefaults?.dateOfBirth),
+    nationality:
+      asString(extracted.nationality) ||
+      rawTextFallback.nationality ||
+      normalizeFallbackText(candidateDefaults?.nationality),
+    issuingCountry:
+      asString(extracted.issuingCountry) ||
+      rawTextFallback.issuingCountry ||
+      normalizeFallbackText(candidateDefaults?.citizenship),
+    dateOfBirth:
+      asString(extracted.dateOfBirth) ||
+      rawTextFallback.dateOfBirth ||
+      toDateInputValue(candidateDefaults?.dateOfBirth),
     sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
-    placeOfBirth: asString(extracted.placeOfBirth) || normalizeFallbackText(candidateDefaults?.birthPlace),
+    placeOfBirth:
+      asString(extracted.placeOfBirth) ||
+      rawTextFallback.placeOfBirth ||
+      normalizeFallbackText(candidateDefaults?.birthPlace),
     issuingAuthority: asString(extracted.issuingAuthority),
     passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
-    kartaPobytuType: asString(extracted.kartaPobytuType) || normalizeFallbackText(candidateDefaults?.kartaPobytuType),
+    kartaPobytuType:
+      asString(extracted.kartaPobytuType) ||
+      rawTextFallback.kartaPobytuType ||
+      normalizeFallbackText(candidateDefaults?.kartaPobytuType),
     remarks: asString(extracted.remarks),
     municipalityOffice: asString(extracted.municipalityOffice),
     addressOfRegistration: asString(extracted.addressOfRegistration) || normalizeFallbackText(candidateDefaults?.polishAddress),
