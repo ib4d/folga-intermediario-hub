@@ -61,11 +61,66 @@ type InferredNameParts = {
   lastName: string;
 };
 
+type FieldSource = "OCR" | "MRZ" | "CANDIDATE" | "FILE" | "RECORD" | "MANUAL";
+
+type ReviewFieldKey =
+  | "type"
+  | "documentDisposition"
+  | "documentNumber"
+  | "personalNumber"
+  | "expiryDate"
+  | "issueDate"
+  | "firstName"
+  | "lastName"
+  | "nationality"
+  | "issuingCountry"
+  | "dateOfBirth"
+  | "sex"
+  | "placeOfBirth"
+  | "issuingAuthority"
+  | "passportBiometric"
+  | "kartaPobytuType"
+  | "remarks"
+  | "municipalityOffice"
+  | "addressOfRegistration"
+  | "heightCm"
+  | "ocrError"
+  | "markVerified";
+
+type ManualReviewState = {
+  form: {
+    type: string;
+    documentDisposition: string;
+    documentNumber: string;
+    personalNumber: string;
+    expiryDate: string;
+    issueDate: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    issuingCountry: string;
+    dateOfBirth: string;
+    sex: string;
+    placeOfBirth: string;
+    issuingAuthority: string;
+    passportBiometric: boolean;
+    kartaPobytuType: string;
+    remarks: string;
+    municipalityOffice: string;
+    addressOfRegistration: string;
+    heightCm: string;
+    ocrError: string;
+    markVerified: boolean;
+  };
+  fieldSources: Record<ReviewFieldKey, FieldSource>;
+};
+
 type ReviewChecklistItem = {
   label: string;
   value: string;
   required: boolean;
   missing: boolean;
+  source?: FieldSource;
 };
 
 type RawTextFallback = {
@@ -80,6 +135,11 @@ type RawTextFallback = {
   dateOfBirth?: string;
   placeOfBirth?: string;
   kartaPobytuType?: string;
+};
+
+type RawTextFallbackResult = {
+  values: RawTextFallback;
+  sources: Partial<Record<keyof RawTextFallback, FieldSource>>;
 };
 
 function getExtractedData(value: unknown): Record<string, unknown> {
@@ -203,14 +263,51 @@ function scoreTextCandidate(value: string | null | undefined): number {
   return alphaCount + tokenCount * 4 + Math.min(10, compact.length / 3) - digitPenalty;
 }
 
-function pickBestTextCandidate(...values: Array<string | null | undefined>): string {
-  const candidates = values
-    .map((value) => normalizeFallbackText(value))
-    .filter((value): value is string => Boolean(value));
+function pickBestTextCandidateWithSource(
+  ...candidates: Array<{ value: string | null | undefined; source: FieldSource }>
+): { value: string; source?: FieldSource } {
+  const scoredCandidates = candidates
+    .map((candidate) => {
+      const normalized = normalizeFallbackText(candidate.value);
+      if (!normalized) {
+        return null;
+      }
 
-  if (candidates.length === 0) return "";
+      return {
+        ...candidate,
+        value: normalized,
+        score: scoreTextCandidate(normalized),
+      };
+    })
+    .filter((candidate): candidate is { value: string; source: FieldSource; score: number } => Boolean(candidate));
 
-  return candidates.sort((left, right) => scoreTextCandidate(right) - scoreTextCandidate(left))[0];
+  if (scoredCandidates.length === 0) {
+    return { value: "" };
+  }
+
+  const bestCandidate = scoredCandidates.sort((left, right) => right.score - left.score)[0];
+  return { value: bestCandidate.value, source: bestCandidate.source };
+}
+
+function getSourceLabel(source?: FieldSource): string {
+  if (!source) return "";
+
+  switch (source) {
+    case "OCR":
+      return "OCR";
+    case "MRZ":
+      return "MRZ";
+    case "CANDIDATE":
+      return "Candidato";
+    case "FILE":
+      return "Archivo";
+    case "RECORD":
+      return "Registro";
+    case "MANUAL":
+      return "Manual";
+    default:
+      return "";
+  }
 }
 
 function asBoolean(value: unknown): boolean {
@@ -338,8 +435,10 @@ function parseMrzDate(value: string): string | undefined {
   return `${fullYear.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
-function inferFromRawText(rawText: string, docType: string): RawTextFallback {
-  if (!rawText) return {};
+function inferFromRawText(rawText: string, docType: string): RawTextFallbackResult {
+  if (!rawText) {
+    return { values: {}, sources: {} };
+  }
 
   const lines = rawText
     .split(/\r?\n/)
@@ -347,6 +446,7 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallback {
     .filter(Boolean);
 
   const fallback: RawTextFallback = {};
+  const sources: RawTextFallbackResult["sources"] = {};
 
   const passportMrzIndex = lines.findIndex((line) => line.startsWith("P<"));
   if (passportMrzIndex >= 0 && lines[passportMrzIndex + 1]?.length >= 27) {
@@ -363,7 +463,14 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallback {
     fallback.issuingCountry = mrzLine1.slice(2, 5).replace(/</g, "").trim() || undefined;
     fallback.firstName = firstName || undefined;
     fallback.lastName = lastName || undefined;
-    return fallback;
+    sources.documentNumber = "MRZ";
+    sources.dateOfBirth = "MRZ";
+    sources.expiryDate = "MRZ";
+    sources.nationality = "MRZ";
+    sources.issuingCountry = "MRZ";
+    sources.firstName = "MRZ";
+    sources.lastName = "MRZ";
+    return { values: fallback, sources };
   }
 
   const kartaMrzIndex = lines.findIndex((line) => /^I[A-Z<]?POL/.test(line));
@@ -387,13 +494,23 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallback {
     fallback.issuingCountry = "POL";
     fallback.firstName = firstName || undefined;
     fallback.lastName = lastName || undefined;
-    return fallback;
+    sources.documentNumber = "MRZ";
+    sources.dateOfBirth = "MRZ";
+    sources.expiryDate = "MRZ";
+    sources.nationality = "MRZ";
+    sources.issuingCountry = "MRZ";
+    sources.firstName = "MRZ";
+    sources.lastName = "MRZ";
+    return { values: fallback, sources };
   }
 
   if (docType === "PESEL") {
     const normalized = normalizeRawText(rawText);
     const peselMatch = normalized.match(/\b(\d{11})\b/);
-    if (peselMatch) fallback.personalNumber = peselMatch[1];
+    if (peselMatch) {
+      fallback.personalNumber = peselMatch[1];
+      sources.personalNumber = "OCR";
+    }
 
     const labelValue = (labelPatterns: string[]) => {
       for (const line of lines) {
@@ -404,12 +521,25 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallback {
       return undefined;
     };
 
-    fallback.firstName = labelValue(["IMIE", "IMIONA"]);
-    fallback.lastName = labelValue(["NAZWISKO"]);
-    fallback.dateOfBirth = labelValue(["DATA URODZENIA"])?.replace(/\./g, "-");
+    const firstName = labelValue(["IMIE", "IMIONA"]);
+    const lastName = labelValue(["NAZWISKO"]);
+    const dateOfBirth = labelValue(["DATA URODZENIA"])?.replace(/\./g, "-");
+
+    if (firstName) {
+      fallback.firstName = firstName;
+      sources.firstName = "OCR";
+    }
+    if (lastName) {
+      fallback.lastName = lastName;
+      sources.lastName = "OCR";
+    }
+    if (dateOfBirth) {
+      fallback.dateOfBirth = dateOfBirth;
+      sources.dateOfBirth = "OCR";
+    }
   }
 
-  return fallback;
+  return { values: fallback, sources };
 }
 
 function inferNamePartsFromFileName(fileName: string): InferredNameParts | null {
@@ -473,57 +603,144 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
   };
 }
 
-function buildManualReviewChecklist(form: {
-  type: string;
-  documentNumber: string;
-  personalNumber: string;
-  expiryDate: string;
-  issueDate: string;
-  firstName: string;
-  lastName: string;
-  nationality: string;
-  issuingCountry: string;
-  dateOfBirth: string;
-  kartaPobytuType: string;
-  passportBiometric: boolean;
-}) {
+function buildManualReviewChecklist(
+  form: {
+    type: string;
+    documentNumber: string;
+    personalNumber: string;
+    expiryDate: string;
+    issueDate: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    issuingCountry: string;
+    dateOfBirth: string;
+    kartaPobytuType: string;
+    passportBiometric: boolean;
+  },
+  sources: Partial<Record<ReviewFieldKey, FieldSource>>,
+) {
   const passportChecklist: ReviewChecklistItem[] = [
-    { label: "Numero de documento", value: form.documentNumber, required: true, missing: !isFilledReviewValue(form.documentNumber) },
-    { label: "Fecha de expiracion", value: form.expiryDate, required: true, missing: !isFilledReviewValue(form.expiryDate) },
-    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
-    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
-    { label: "Nacionalidad", value: form.nationality, required: true, missing: !isFilledReviewValue(form.nationality) },
-    { label: "Pais emisor", value: form.issuingCountry, required: true, missing: !isFilledReviewValue(form.issuingCountry) },
-    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
-    { label: "Pasaporte biometrico", value: form.passportBiometric ? "Si" : "", required: false, missing: !form.passportBiometric },
+    {
+      label: "Numero de documento",
+      value: form.documentNumber,
+      required: true,
+      missing: !isFilledReviewValue(form.documentNumber),
+      source: sources.documentNumber,
+    },
+    {
+      label: "Fecha de expiracion",
+      value: form.expiryDate,
+      required: true,
+      missing: !isFilledReviewValue(form.expiryDate),
+      source: sources.expiryDate,
+    },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName), source: sources.firstName },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName), source: sources.lastName },
+    {
+      label: "Nacionalidad",
+      value: form.nationality,
+      required: true,
+      missing: !isFilledReviewValue(form.nationality),
+      source: sources.nationality,
+    },
+    {
+      label: "Pais emisor",
+      value: form.issuingCountry,
+      required: true,
+      missing: !isFilledReviewValue(form.issuingCountry),
+      source: sources.issuingCountry,
+    },
+    {
+      label: "Fecha de nacimiento",
+      value: form.dateOfBirth,
+      required: true,
+      missing: !isFilledReviewValue(form.dateOfBirth),
+      source: sources.dateOfBirth,
+    },
+    {
+      label: "Pasaporte biometrico",
+      value: form.passportBiometric ? "Si" : "",
+      required: false,
+      missing: !form.passportBiometric,
+      source: sources.passportBiometric,
+    },
   ];
 
   const kartaChecklist: ReviewChecklistItem[] = [
-    { label: "Numero de tarjeta", value: form.documentNumber, required: true, missing: !isFilledReviewValue(form.documentNumber) },
-    { label: "Fecha de expiracion", value: form.expiryDate, required: true, missing: !isFilledReviewValue(form.expiryDate) },
-    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
-    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
-    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber) },
-    { label: "Tipo de karta", value: form.kartaPobytuType, required: true, missing: !isFilledReviewValue(form.kartaPobytuType) },
-    { label: "Nacionalidad", value: form.nationality, required: true, missing: !isFilledReviewValue(form.nationality) },
-    { label: "Pais emisor", value: form.issuingCountry, required: true, missing: !isFilledReviewValue(form.issuingCountry) },
-    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
+    {
+      label: "Numero de tarjeta",
+      value: form.documentNumber,
+      required: true,
+      missing: !isFilledReviewValue(form.documentNumber),
+      source: sources.documentNumber,
+    },
+    {
+      label: "Fecha de expiracion",
+      value: form.expiryDate,
+      required: true,
+      missing: !isFilledReviewValue(form.expiryDate),
+      source: sources.expiryDate,
+    },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName), source: sources.firstName },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName), source: sources.lastName },
+    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber), source: sources.personalNumber },
+    {
+      label: "Tipo de karta",
+      value: form.kartaPobytuType,
+      required: true,
+      missing: !isFilledReviewValue(form.kartaPobytuType),
+      source: sources.kartaPobytuType,
+    },
+    {
+      label: "Nacionalidad",
+      value: form.nationality,
+      required: true,
+      missing: !isFilledReviewValue(form.nationality),
+      source: sources.nationality,
+    },
+    {
+      label: "Pais emisor",
+      value: form.issuingCountry,
+      required: true,
+      missing: !isFilledReviewValue(form.issuingCountry),
+      source: sources.issuingCountry,
+    },
+    {
+      label: "Fecha de nacimiento",
+      value: form.dateOfBirth,
+      required: true,
+      missing: !isFilledReviewValue(form.dateOfBirth),
+      source: sources.dateOfBirth,
+    },
   ];
 
   const peselChecklist: ReviewChecklistItem[] = [
-    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber) },
-    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName) },
-    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName) },
-    { label: "Fecha de nacimiento", value: form.dateOfBirth, required: true, missing: !isFilledReviewValue(form.dateOfBirth) },
-    { label: "Nacionalidad", value: form.nationality, required: false, missing: !isFilledReviewValue(form.nationality) },
+    { label: "PESEL", value: form.personalNumber, required: true, missing: !isFilledReviewValue(form.personalNumber), source: sources.personalNumber },
+    { label: "Nombre", value: form.firstName, required: true, missing: !isFilledReviewValue(form.firstName), source: sources.firstName },
+    { label: "Apellido", value: form.lastName, required: true, missing: !isFilledReviewValue(form.lastName), source: sources.lastName },
+    {
+      label: "Fecha de nacimiento",
+      value: form.dateOfBirth,
+      required: true,
+      missing: !isFilledReviewValue(form.dateOfBirth),
+      source: sources.dateOfBirth,
+    },
+    { label: "Nacionalidad", value: form.nationality, required: false, missing: !isFilledReviewValue(form.nationality), source: sources.nationality },
   ];
 
   const decisionChecklist: ReviewChecklistItem[] = [
-    { label: "Numero de documento", value: form.documentNumber, required: false, missing: !isFilledReviewValue(form.documentNumber) },
-    { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName) },
-    { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName) },
-    { label: "Fecha de expedicion", value: form.issueDate, required: false, missing: !isFilledReviewValue(form.issueDate) },
-    { label: "Fecha de expiracion", value: form.expiryDate, required: false, missing: !isFilledReviewValue(form.expiryDate) },
+    {
+      label: "Numero de documento",
+      value: form.documentNumber,
+      required: false,
+      missing: !isFilledReviewValue(form.documentNumber),
+      source: sources.documentNumber,
+    },
+    { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName), source: sources.firstName },
+    { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName), source: sources.lastName },
+    { label: "Fecha de expedicion", value: form.issueDate, required: false, missing: !isFilledReviewValue(form.issueDate), source: sources.issueDate },
+    { label: "Fecha de expiracion", value: form.expiryDate, required: false, missing: !isFilledReviewValue(form.expiryDate), source: sources.expiryDate },
   ];
 
   let items: ReviewChecklistItem[] = [];
@@ -533,9 +750,15 @@ function buildManualReviewChecklist(form: {
   else if (form.type === "DECYZJA_WOJEWODY") items = decisionChecklist;
   else {
     items = [
-      { label: "Numero de documento", value: form.documentNumber, required: false, missing: !isFilledReviewValue(form.documentNumber) },
-      { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName) },
-      { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName) },
+      {
+        label: "Numero de documento",
+        value: form.documentNumber,
+        required: false,
+        missing: !isFilledReviewValue(form.documentNumber),
+        source: sources.documentNumber,
+      },
+      { label: "Nombre", value: form.firstName, required: false, missing: !isFilledReviewValue(form.firstName), source: sources.firstName },
+      { label: "Apellido", value: form.lastName, required: false, missing: !isFilledReviewValue(form.lastName), source: sources.lastName },
     ];
   }
 
@@ -546,9 +769,11 @@ function buildManualReviewChecklist(form: {
   };
 }
 
-function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults) {
+function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults): ManualReviewState {
   const extracted = getExtractedData(doc.extractedData);
-  const rawTextFallback = inferFromRawText(getRawText(extracted), doc.type);
+  const rawTextFallbackResult = inferFromRawText(getRawText(extracted), doc.type);
+  const rawTextFallback = rawTextFallbackResult.values;
+  const rawTextSources = rawTextFallbackResult.sources;
   const fileName = getReviewableDocumentName(doc);
   const inferredType = inferDocumentTypeFromFileName(fileName);
   const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
@@ -562,79 +787,138 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const initialType =
     doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType;
 
+  const documentNumberCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.documentNumber), source: "OCR" },
+    { value: doc.number, source: "RECORD" },
+    { value: fallbackDocumentNumber, source: "CANDIDATE" },
+    { value: rawTextFallback.documentNumber, source: rawTextSources.documentNumber ?? "OCR" },
+    { value: inferredDocumentNumber, source: "FILE" },
+  );
+
+  const personalNumberCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.personalNumber), source: "OCR" },
+    { value: rawTextFallback.personalNumber, source: rawTextSources.personalNumber ?? "OCR" },
+    { value: normalizeFallbackText(candidateDefaults?.peselNumber), source: "CANDIDATE" },
+    {
+      value: initialType === "PESEL" && /^\d{11}$/.test(inferredDocumentNumber) ? inferredDocumentNumber : "",
+      source: "FILE",
+    },
+  );
+
+  const firstNameCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.firstName), source: "OCR" },
+    { value: rawTextFallback.firstName, source: rawTextSources.firstName ?? "OCR" },
+    { value: normalizeFallbackText(candidateDefaults?.firstName), source: "CANDIDATE" },
+    { value: inferredNameParts?.firstName ?? "", source: "FILE" },
+  );
+
+  const lastNameCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.lastName), source: "OCR" },
+    { value: rawTextFallback.lastName, source: rawTextSources.lastName ?? "OCR" },
+    { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" },
+    { value: inferredNameParts?.lastName ?? "", source: "FILE" },
+  );
+
+  const nationalityCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.nationality), source: "OCR" },
+    { value: rawTextFallback.nationality, source: rawTextSources.nationality ?? "MRZ" },
+    { value: normalizeFallbackText(candidateDefaults?.nationality), source: "CANDIDATE" },
+  );
+
+  const issuingCountryCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.issuingCountry), source: "OCR" },
+    { value: rawTextFallback.issuingCountry, source: rawTextSources.issuingCountry ?? "MRZ" },
+    { value: normalizeFallbackText(candidateDefaults?.citizenship), source: "CANDIDATE" },
+  );
+
+  const dateOfBirthCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.dateOfBirth), source: "OCR" },
+    { value: rawTextFallback.dateOfBirth, source: rawTextSources.dateOfBirth ?? "MRZ" },
+    { value: toDateInputValue(candidateDefaults?.dateOfBirth), source: "CANDIDATE" },
+  );
+
+  const issueDateCandidate = pickBestTextCandidateWithSource(
+    { value: toDateInputValue(doc.issueDate), source: "RECORD" },
+    { value: toDateInputValue(candidateDefaults?.passportIssueDate), source: "CANDIDATE" },
+    { value: toDateInputValue(candidateDefaults?.kartaPobytuIssueDate), source: "CANDIDATE" },
+    { value: rawTextFallback.issueDate, source: rawTextSources.issueDate ?? "OCR" },
+    { value: asString(extracted.dateOfIssue), source: "OCR" },
+  );
+
+  const expiryDateCandidate = pickBestTextCandidateWithSource(
+    { value: toDateInputValue(doc.expiryDate), source: "RECORD" },
+    { value: toDateInputValue(candidateDefaults?.passportExpiry), source: "CANDIDATE" },
+    { value: toDateInputValue(candidateDefaults?.kartaPobytuExpiry), source: "CANDIDATE" },
+    { value: rawTextFallback.expiryDate, source: rawTextSources.expiryDate ?? "MRZ" },
+    { value: asString(extracted.dateOfExpiry), source: "OCR" },
+  );
+
+  const placeOfBirthCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.placeOfBirth), source: "OCR" },
+    { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
+    { value: normalizeFallbackText(candidateDefaults?.birthPlace), source: "CANDIDATE" },
+  );
+
+  const kartaPobytuTypeCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.kartaPobytuType), source: "OCR" },
+    { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+    { value: normalizeFallbackText(candidateDefaults?.kartaPobytuType), source: "CANDIDATE" },
+  );
+
+  const addressCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.addressOfRegistration), source: "OCR" },
+    { value: normalizeFallbackText(candidateDefaults?.polishAddress), source: "CANDIDATE" },
+  );
+
   return {
-    type: initialType,
-    documentDisposition: asString(extracted.documentDisposition) || "PRIMARY",
-    documentNumber:
-      asString(extracted.documentNumber) ||
-      doc.number ||
-      fallbackDocumentNumber ||
-      rawTextFallback.documentNumber ||
-      inferredDocumentNumber,
-    personalNumber:
-      asString(extracted.personalNumber) ||
-      rawTextFallback.personalNumber ||
-      normalizeFallbackText(candidateDefaults?.peselNumber) ||
-      (initialType === "PESEL" && /^\d{11}$/.test(inferredDocumentNumber) ? inferredDocumentNumber : ""),
-    expiryDate:
-      toDateInputValue(doc.expiryDate) ||
-      toDateInputValue(candidateDefaults?.passportExpiry) ||
-      toDateInputValue(candidateDefaults?.kartaPobytuExpiry) ||
-      rawTextFallback.expiryDate ||
-      asString(extracted.dateOfExpiry),
-    issueDate:
-      toDateInputValue(doc.issueDate) ||
-      toDateInputValue(candidateDefaults?.passportIssueDate) ||
-      toDateInputValue(candidateDefaults?.kartaPobytuIssueDate) ||
-      rawTextFallback.issueDate ||
-      asString(extracted.dateOfIssue),
-    firstName: pickBestTextCandidate(
-      asString(extracted.firstName),
-      rawTextFallback.firstName,
-      normalizeFallbackText(candidateDefaults?.firstName),
-      inferredNameParts?.firstName,
-    ),
-    lastName: pickBestTextCandidate(
-      asString(extracted.lastName),
-      rawTextFallback.lastName,
-      normalizeFallbackText(candidateDefaults?.lastName),
-      inferredNameParts?.lastName,
-    ),
-    nationality: pickBestTextCandidate(
-      asString(extracted.nationality),
-      rawTextFallback.nationality,
-      normalizeFallbackText(candidateDefaults?.nationality),
-    ),
-    issuingCountry: pickBestTextCandidate(
-      asString(extracted.issuingCountry),
-      rawTextFallback.issuingCountry,
-      normalizeFallbackText(candidateDefaults?.citizenship),
-    ),
-    dateOfBirth:
-      asString(extracted.dateOfBirth) ||
-      rawTextFallback.dateOfBirth ||
-      toDateInputValue(candidateDefaults?.dateOfBirth),
-    sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
-    placeOfBirth:
-      pickBestTextCandidate(
-      asString(extracted.placeOfBirth),
-      rawTextFallback.placeOfBirth ||
-      normalizeFallbackText(candidateDefaults?.birthPlace),
-      ),
-    issuingAuthority: asString(extracted.issuingAuthority),
-    passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
-    kartaPobytuType:
-      pickBestTextCandidate(
-      asString(extracted.kartaPobytuType),
-      rawTextFallback.kartaPobytuType ||
-      normalizeFallbackText(candidateDefaults?.kartaPobytuType),
-      ),
-    remarks: asString(extracted.remarks),
-    municipalityOffice: asString(extracted.municipalityOffice),
-    addressOfRegistration: asString(extracted.addressOfRegistration) || normalizeFallbackText(candidateDefaults?.polishAddress),
-    heightCm: asNumber(extracted.heightCm),
-    ocrError: asString(extracted.ocrError),
-    markVerified: false,
+    form: {
+      type: initialType,
+      documentDisposition: asString(extracted.documentDisposition) || "PRIMARY",
+      documentNumber: documentNumberCandidate.value,
+      personalNumber: personalNumberCandidate.value,
+      expiryDate: expiryDateCandidate.value,
+      issueDate: issueDateCandidate.value,
+      firstName: firstNameCandidate.value,
+      lastName: lastNameCandidate.value,
+      nationality: nationalityCandidate.value,
+      issuingCountry: issuingCountryCandidate.value,
+      dateOfBirth: dateOfBirthCandidate.value,
+      sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
+      placeOfBirth: placeOfBirthCandidate.value,
+      issuingAuthority: asString(extracted.issuingAuthority),
+      passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
+      kartaPobytuType: kartaPobytuTypeCandidate.value,
+      remarks: asString(extracted.remarks),
+      municipalityOffice: asString(extracted.municipalityOffice),
+      addressOfRegistration: addressCandidate.value,
+      heightCm: asNumber(extracted.heightCm),
+      ocrError: asString(extracted.ocrError),
+      markVerified: false,
+    },
+    fieldSources: {
+      type: extractedDocumentType ? "OCR" : inferredType !== "OTHER" ? "FILE" : "RECORD",
+      documentDisposition: extracted.documentDisposition ? "OCR" : "MANUAL",
+      documentNumber: documentNumberCandidate.source || "RECORD",
+      personalNumber: personalNumberCandidate.source || "OCR",
+      expiryDate: expiryDateCandidate.source || "RECORD",
+      issueDate: issueDateCandidate.source || "RECORD",
+      firstName: firstNameCandidate.source || "OCR",
+      lastName: lastNameCandidate.source || "OCR",
+      nationality: nationalityCandidate.source || "OCR",
+      issuingCountry: issuingCountryCandidate.source || "OCR",
+      dateOfBirth: dateOfBirthCandidate.source || "OCR",
+      sex: extracted.sex ? "OCR" : "CANDIDATE",
+      placeOfBirth: placeOfBirthCandidate.source || "OCR",
+      issuingAuthority: extracted.issuingAuthority ? "OCR" : "RECORD",
+      passportBiometric: extracted.passportBiometric ? "OCR" : "CANDIDATE",
+      kartaPobytuType: kartaPobytuTypeCandidate.source || "OCR",
+      remarks: extracted.remarks ? "OCR" : "RECORD",
+      municipalityOffice: extracted.municipalityOffice ? "OCR" : "RECORD",
+      addressOfRegistration: addressCandidate.source || "CANDIDATE",
+      heightCm: extracted.heightCm ? "OCR" : "RECORD",
+      ocrError: extracted.ocrError ? "OCR" : "RECORD",
+      markVerified: "MANUAL",
+    },
   };
 }
 
@@ -656,10 +940,11 @@ export default function DocumentReviewModal({
     () => getSuggestedDispositionOptions(duplicateContext),
     [duplicateContext],
   );
-  const [form, setForm] = useState(initialState);
+  const [form, setForm] = useState(initialState.form);
+  const [fieldSources, setFieldSources] = useState(initialState.fieldSources);
   const [errorMessage, setErrorMessage] = useState("");
   const isManualReviewDocument = doc.ocrStatus === "FAILED" || isManualReviewOcrStatus(doc.ocrStatus);
-  const reviewChecklist = useMemo(() => buildManualReviewChecklist(form), [form]);
+  const reviewChecklist = useMemo(() => buildManualReviewChecklist(form, fieldSources), [fieldSources, form]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -672,6 +957,7 @@ export default function DocumentReviewModal({
 
   const setField = (key: keyof typeof form, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldSources((prev) => ({ ...prev, [key]: "MANUAL" as FieldSource }));
   };
 
   const handleSubmit = () => {
@@ -736,7 +1022,8 @@ export default function DocumentReviewModal({
         className="button button-outline"
         style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
         onClick={() => {
-          setForm(initialState);
+          setForm(initialState.form);
+          setFieldSources(initialState.fieldSources);
           setErrorMessage("");
           setIsOpen(true);
         }}
@@ -915,6 +1202,7 @@ export default function DocumentReviewModal({
                       ) : (
                         <span style={{ fontSize: "0.64rem", fontWeight: 900, color: "#6b7280" }}>OPCIONAL</span>
                       )}
+                      {item.source ? <SourceBadge source={item.source} /> : null}
                     </div>
                     <span style={{ fontSize: "0.75rem", fontWeight: 800, color: item.missing ? "#b45309" : "#15803d" }}>
                       {item.missing ? "Pendiente" : item.value || "OK"}
@@ -952,22 +1240,22 @@ export default function DocumentReviewModal({
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
-                <Field label="Numero de documento" value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
-                <Field label="Numero personal / PESEL" value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
-                <Field label="Fecha de expedicion" type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
-                <Field label="Fecha de vencimiento" type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
-                <Field label="Nombres" value={form.firstName} onChange={(value) => setField("firstName", value)} />
-                <Field label="Apellidos" value={form.lastName} onChange={(value) => setField("lastName", value)} />
-                <Field label="Nacionalidad" value={form.nationality} onChange={(value) => setField("nationality", value)} />
-                <Field label="Codigo pais / emisor" value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
-                <Field label="Fecha de nacimiento" type="date" value={form.dateOfBirth} onChange={(value) => setField("dateOfBirth", value)} />
-                <Field label="Sexo" value={form.sex} onChange={(value) => setField("sex", value)} />
-                <Field label="Lugar de nacimiento" value={form.placeOfBirth} onChange={(value) => setField("placeOfBirth", value)} />
-                <Field label="Autoridad emisora" value={form.issuingAuthority} onChange={(value) => setField("issuingAuthority", value)} />
-                <Field label="Tipo de permiso" value={form.kartaPobytuType} onChange={(value) => setField("kartaPobytuType", value)} />
-                <Field label="Estatura (cm)" type="number" value={form.heightCm} onChange={(value) => setField("heightCm", value)} />
-                <Field label="Oficina / Urzad Gminy" value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
-                <Field label="Observaciones" value={form.remarks} onChange={(value) => setField("remarks", value)} />
+                <Field label="Numero de documento" source={getSourceLabel(fieldSources.documentNumber)} value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
+                <Field label="Numero personal / PESEL" source={getSourceLabel(fieldSources.personalNumber)} value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
+                <Field label="Fecha de expedicion" source={getSourceLabel(fieldSources.issueDate)} type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
+                <Field label="Fecha de vencimiento" source={getSourceLabel(fieldSources.expiryDate)} type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
+                <Field label="Nombres" source={getSourceLabel(fieldSources.firstName)} value={form.firstName} onChange={(value) => setField("firstName", value)} />
+                <Field label="Apellidos" source={getSourceLabel(fieldSources.lastName)} value={form.lastName} onChange={(value) => setField("lastName", value)} />
+                <Field label="Nacionalidad" source={getSourceLabel(fieldSources.nationality)} value={form.nationality} onChange={(value) => setField("nationality", value)} />
+                <Field label="Codigo pais / emisor" source={getSourceLabel(fieldSources.issuingCountry)} value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
+                <Field label="Fecha de nacimiento" source={getSourceLabel(fieldSources.dateOfBirth)} type="date" value={form.dateOfBirth} onChange={(value) => setField("dateOfBirth", value)} />
+                <Field label="Sexo" source={getSourceLabel(fieldSources.sex)} value={form.sex} onChange={(value) => setField("sex", value)} />
+                <Field label="Lugar de nacimiento" source={getSourceLabel(fieldSources.placeOfBirth)} value={form.placeOfBirth} onChange={(value) => setField("placeOfBirth", value)} />
+                <Field label="Autoridad emisora" source={getSourceLabel(fieldSources.issuingAuthority)} value={form.issuingAuthority} onChange={(value) => setField("issuingAuthority", value)} />
+                <Field label="Tipo de permiso" source={getSourceLabel(fieldSources.kartaPobytuType)} value={form.kartaPobytuType} onChange={(value) => setField("kartaPobytuType", value)} />
+                <Field label="Estatura (cm)" source={getSourceLabel(fieldSources.heightCm)} type="number" value={form.heightCm} onChange={(value) => setField("heightCm", value)} />
+                <Field label="Oficina / Urzad Gminy" source={getSourceLabel(fieldSources.municipalityOffice)} value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
+                <Field label="Observaciones" source={getSourceLabel(fieldSources.remarks)} value={form.remarks} onChange={(value) => setField("remarks", value)} />
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
@@ -1018,19 +1306,66 @@ export default function DocumentReviewModal({
 
 function Field({
   label,
+  source,
   value,
   onChange,
   type = "text",
 }: {
   label: string;
+  source?: string;
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "date" | "number";
 }) {
   return (
     <div className="input-group" style={{ marginBottom: 0 }}>
-      <label className="label">{label}</label>
+      <label className="label" style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+        <span>{label}</span>
+        {source ? <SourceBadge source={source as FieldSource} /> : null}
+      </label>
       <input className="input" type={type} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
+  );
+}
+
+function SourceBadge({ source }: { source: FieldSource }) {
+  const labels: Record<FieldSource, string> = {
+    OCR: "OCR",
+    MRZ: "MRZ",
+    CANDIDATE: "Candidato",
+    FILE: "Archivo",
+    RECORD: "Registro",
+    MANUAL: "Manual",
+  };
+
+  const colors: Record<FieldSource, { background: string; color: string; border: string }> = {
+    OCR: { background: "#e0f2fe", color: "#075985", border: "#7dd3fc" },
+    MRZ: { background: "#ede9fe", color: "#5b21b6", border: "#c4b5fd" },
+    CANDIDATE: { background: "#fef3c7", color: "#92400e", border: "#fbbf24" },
+    FILE: { background: "#f3f4f6", color: "#374151", border: "#d1d5db" },
+    RECORD: { background: "#ecfdf5", color: "#166534", border: "#86efac" },
+    MANUAL: { background: "#fff7ed", color: "#c2410c", border: "#fdba74" },
+  };
+
+  const style = colors[source];
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "0.12rem 0.4rem",
+        borderRadius: "999px",
+        border: `1px solid ${style.border}`,
+        background: style.background,
+        color: style.color,
+        fontSize: "0.62rem",
+        fontWeight: 900,
+        letterSpacing: "0.02em",
+        textTransform: "uppercase",
+      }}
+    >
+      {labels[source]}
+    </span>
   );
 }
