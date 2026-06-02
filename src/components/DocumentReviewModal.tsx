@@ -1226,6 +1226,42 @@ export default function DocumentReviewModal({
                   Los campos clave ya tienen valor. Puedes guardar la revision con mayor confianza.
                 </p>
               )}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.28rem 0.55rem",
+                    borderRadius: "999px",
+                    border: "1px solid #86efac",
+                    background: "#ecfdf5",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    color: "#166534",
+                  }}
+                >
+                  Clave completos
+                  <span style={{ fontWeight: 900 }}>{reviewChecklist.filledRequired.length}</span>
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.28rem 0.55rem",
+                    borderRadius: "999px",
+                    border: "1px solid #fbbf24",
+                    background: "#fffbeb",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    color: "#92400e",
+                  }}
+                >
+                  Clave pendientes
+                  <span style={{ fontWeight: 900 }}>{reviewChecklist.missingRequired.length}</span>
+                </div>
+              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
                 <SourceBadge source="OCR" />
                 <SourceBadge source="MRZ" />
