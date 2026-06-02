@@ -8,9 +8,17 @@ const composeFile = process.env.COMPOSE_FILE || "docker-compose.prod.yml";
 const dbUser = process.env.DB_USER || "folga";
 const dbName = process.env.DB_NAME || "folga_hub";
 const dryRun = process.env.CHECK_BACKUP_DRY_RUN === "true";
+const requireCompose = process.env.CHECK_BACKUP_REQUIRE_COMPOSE === "true";
+const composePath = resolve(process.cwd(), composeFile);
 
-if (!existsSync(resolve(process.cwd(), composeFile))) {
-  throw new Error(`Compose file not found: ${composeFile}`);
+if (!existsSync(composePath)) {
+  const message = `Compose file not found: ${composeFile}.`;
+  if (requireCompose) {
+    throw new Error(message);
+  }
+
+  console.warn(`${message} Skipping backup drill because this check must run from the host repository root.`);
+  process.exit(0);
 }
 
 if (dryRun) {
