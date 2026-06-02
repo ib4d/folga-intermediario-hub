@@ -8,6 +8,7 @@
     "start": "next start",
     "start:prod": "next start -p 3000",
     "lint": "eslint .",
+    "check:hardening": "npm run check:prod-env && npm run check:permissions && npx prisma validate && npm run check:smoke",
     "check:prod-env": "node scripts/check-production-env.mjs",
     "check:permissions": "node scripts/check-permissions.mjs",
     "check:smoke": "node scripts/check-production-smoke.mjs",
