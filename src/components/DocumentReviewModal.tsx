@@ -1332,6 +1332,30 @@ export default function DocumentReviewModal({
                       : "Todavia necesita bastante ajuste"}
                 </span>
               </div>
+              <div
+                style={{
+                  marginBottom: "0.85rem",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "10px",
+                  background: manualCount > 0 || reviewChecklist.missingRequired.length > 0 ? "#fff7ed" : "#ecfdf5",
+                  border: "1px solid",
+                  borderColor: manualCount > 0 || reviewChecklist.missingRequired.length > 0 ? "#fdba74" : "#86efac",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#374151" }}>
+                  Siguiente paso
+                </span>
+                <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
+                  {manualCount > 0 || reviewChecklist.missingRequired.length > 0
+                    ? "Completa primero los campos pendientes o manuales."
+                    : "Puedes guardar la revision ahora mismo."}
+                </span>
+              </div>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
                 {manualCount > 0
                   ? `${manualCount} campos siguen dependiendo de ajuste manual.`
