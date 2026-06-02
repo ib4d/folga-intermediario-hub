@@ -1244,6 +1244,33 @@ export default function DocumentReviewModal({
                   {autofillCoverage}% · {coverageLabel}
                 </span>
               </div>
+              <div
+                style={{
+                  marginBottom: "0.85rem",
+                  padding: "0.55rem 0.75rem",
+                  borderRadius: "10px",
+                  background:
+                    autofillCoverage >= 80 ? "#f0fdf4" : autofillCoverage >= 50 ? "#fffbeb" : "#fff7ed",
+                  border: "1px solid",
+                  borderColor: autofillCoverage >= 80 ? "#86efac" : autofillCoverage >= 50 ? "#fbbf24" : "#fdba74",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#374151" }}>
+                  Estado de revision
+                </span>
+                <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
+                  {autofillCoverage >= 80
+                    ? "Casi lista para guardar"
+                    : autofillCoverage >= 50
+                      ? "Requiere un repaso corto"
+                      : "Todavia necesita bastante ajuste"}
+                </span>
+              </div>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
                 {manualCount > 0
                   ? `${manualCount} campos siguen dependiendo de ajuste manual.`
