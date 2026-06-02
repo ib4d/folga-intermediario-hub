@@ -966,6 +966,10 @@ export default function DocumentReviewModal({
   const autoFilledCount =
     sourceSummary.OCR + sourceSummary.MRZ + sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
   const manualCount = sourceSummary.MANUAL;
+  const totalTrackedFields = autoFilledCount + manualCount;
+  const autofillCoverage = totalTrackedFields > 0 ? Math.round((autoFilledCount / totalTrackedFields) * 100) : 0;
+  const coverageLabel =
+    autofillCoverage >= 80 ? "Alta" : autofillCoverage >= 50 ? "Media" : autofillCoverage > 0 ? "Baja" : "Sin datos";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1218,6 +1222,28 @@ export default function DocumentReviewModal({
                   ? `${manualCount} campos ya fueron tocados manualmente.`
                   : "Todavia no has modificado campos en este formulario."}
               </p>
+              <div
+                style={{
+                  marginBottom: "0.85rem",
+                  padding: "0.55rem 0.75rem",
+                  borderRadius: "10px",
+                  background: autofillCoverage >= 80 ? "#ecfdf5" : autofillCoverage >= 50 ? "#fffbeb" : "#fff7ed",
+                  border: "1px solid",
+                  borderColor: autofillCoverage >= 80 ? "#86efac" : autofillCoverage >= 50 ? "#fbbf24" : "#fdba74",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#374151" }}>
+                  Cobertura automatica
+                </span>
+                <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
+                  {autofillCoverage}% · {coverageLabel}
+                </span>
+              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.85rem" }}>
                 {Object.entries(sourceSummary).map(([source, count]) => {
                   if (count === 0) return null;
