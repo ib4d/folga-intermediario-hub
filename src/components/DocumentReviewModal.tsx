@@ -1181,6 +1181,14 @@ export default function DocumentReviewModal({
                   Los campos clave ya tienen valor. Puedes guardar la revision con mayor confianza.
                 </p>
               )}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
+                <SourceBadge source="OCR" />
+                <SourceBadge source="MRZ" />
+                <SourceBadge source="CANDIDATE" />
+                <SourceBadge source="FILE" />
+                <SourceBadge source="RECORD" />
+                <SourceBadge source="MANUAL" />
+              </div>
               <div style={{ display: "grid", gap: "0.5rem" }}>
                 {reviewChecklist.items.map((item) => (
                   <div
