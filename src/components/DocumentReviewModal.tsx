@@ -945,6 +945,12 @@ export default function DocumentReviewModal({
   const [errorMessage, setErrorMessage] = useState("");
   const isManualReviewDocument = doc.ocrStatus === "FAILED" || isManualReviewOcrStatus(doc.ocrStatus);
   const reviewChecklist = useMemo(() => buildManualReviewChecklist(form, fieldSources), [fieldSources, form]);
+  const reviewSignalSources = useMemo(() => {
+    const excludedKeys = new Set(["type", "documentDisposition", "markVerified", "ocrError"]);
+    return Object.fromEntries(
+      Object.entries(fieldSources).filter(([key]) => !excludedKeys.has(key)),
+    ) as Partial<Record<ReviewFieldKey, FieldSource>>;
+  }, [fieldSources]);
   const sourceSummary = useMemo(() => {
     const counts: Record<FieldSource, number> = {
       OCR: 0,
@@ -955,14 +961,14 @@ export default function DocumentReviewModal({
       MANUAL: 0,
     };
 
-    for (const value of Object.values(fieldSources)) {
+    for (const value of Object.values(reviewSignalSources)) {
       if (value in counts) {
         counts[value as FieldSource] += 1;
       }
     }
 
     return counts;
-  }, [fieldSources]);
+  }, [reviewSignalSources]);
   const autoFilledCount =
     sourceSummary.OCR + sourceSummary.MRZ + sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
   const manualCount = sourceSummary.MANUAL;
