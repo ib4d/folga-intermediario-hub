@@ -1377,6 +1377,13 @@ export default function DocumentReviewModal({
                   Auto {autoFilledCount} · Manual {manualCount} · Pendientes clave {reviewChecklist.missingRequired.length}
                 </span>
               </div>
+              <p style={{ margin: "0 0 0.85rem", color: "#374151", fontSize: "0.78rem", fontWeight: 700 }}>
+                {reviewChecklist.missingRequired.length > 0
+                  ? `Todavia faltan ${reviewChecklist.missingRequired.length} campos clave.`
+                  : manualCount > 0
+                    ? "La base ya esta completa y solo quedan ajustes manuales finos."
+                    : "La revision ya esta lista para guardar."}
+              </p>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
                 {manualCount > 0
                   ? `${manualCount} campos ya quedaron ajustados manualmente.`
