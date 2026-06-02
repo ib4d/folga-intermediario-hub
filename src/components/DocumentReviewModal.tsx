@@ -1380,13 +1380,26 @@ function Field({
   onChange: (value: string) => void;
   type?: "text" | "date" | "number";
 }) {
+  const sourceStyle =
+    source === "MANUAL"
+      ? { backgroundColor: "#fff7ed", borderColor: "#fdba74" }
+      : source
+        ? { backgroundColor: "#f8fafc", borderColor: "#dbe4ee" }
+        : undefined;
+
   return (
     <div className="input-group" style={{ marginBottom: 0 }}>
       <label className="label" style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
         <span>{label}</span>
         {source ? <SourceBadge source={source as FieldSource} /> : null}
       </label>
-      <input className="input" type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+      <input
+        className="input"
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={sourceStyle}
+      />
     </div>
   );
 }
