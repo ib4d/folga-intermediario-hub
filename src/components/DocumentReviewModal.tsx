@@ -1352,13 +1352,13 @@ export default function DocumentReviewModal({
                 </span>
                 <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
                   {manualCount > 0 || reviewChecklist.missingRequired.length > 0
-                    ? "Completa primero los campos pendientes o manuales."
+                    ? "Completa primero los campos pendientes y revisa con cuidado los ya tocados manualmente."
                     : "Puedes guardar la revision ahora mismo."}
                 </span>
               </div>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
                 {manualCount > 0
-                  ? `${manualCount} campos siguen dependiendo de ajuste manual.`
+                  ? `${manualCount} campos ya quedaron ajustados manualmente.`
                   : "No quedan campos marcados como manual en esta revision."}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.85rem" }}>
