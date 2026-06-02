@@ -945,6 +945,24 @@ export default function DocumentReviewModal({
   const [errorMessage, setErrorMessage] = useState("");
   const isManualReviewDocument = doc.ocrStatus === "FAILED" || isManualReviewOcrStatus(doc.ocrStatus);
   const reviewChecklist = useMemo(() => buildManualReviewChecklist(form, fieldSources), [fieldSources, form]);
+  const sourceSummary = useMemo(() => {
+    const counts: Record<FieldSource, number> = {
+      OCR: 0,
+      MRZ: 0,
+      CANDIDATE: 0,
+      FILE: 0,
+      RECORD: 0,
+      MANUAL: 0,
+    };
+
+    for (const value of Object.values(fieldSources)) {
+      if (value in counts) {
+        counts[value as FieldSource] += 1;
+      }
+    }
+
+    return counts;
+  }, [fieldSources]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1188,6 +1206,32 @@ export default function DocumentReviewModal({
                 <SourceBadge source="FILE" />
                 <SourceBadge source="RECORD" />
                 <SourceBadge source="MANUAL" />
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.85rem" }}>
+                {Object.entries(sourceSummary).map(([source, count]) => {
+                  if (count === 0) return null;
+
+                  return (
+                    <div
+                      key={source}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        padding: "0.22rem 0.5rem",
+                        borderRadius: "999px",
+                        background: "white",
+                        border: "1px solid #e5e7eb",
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                        color: "#374151",
+                      }}
+                    >
+                      <SourceBadge source={source as FieldSource} />
+                      <span>{count}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div style={{ display: "grid", gap: "0.5rem" }}>
                 {reviewChecklist.items.map((item) => (
