@@ -1356,6 +1356,27 @@ export default function DocumentReviewModal({
                     : "Puedes guardar la revision ahora mismo."}
                 </span>
               </div>
+              <div
+                style={{
+                  marginBottom: "0.85rem",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "10px",
+                  background: "#f8fafc",
+                  border: "1px solid #e5e7eb",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#374151" }}>
+                  Resumen rapido
+                </span>
+                <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#374151" }}>
+                  Auto {autoFilledCount} · Manual {manualCount} · Pendientes clave {reviewChecklist.missingRequired.length}
+                </span>
+              </div>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
                 {manualCount > 0
                   ? `${manualCount} campos ya quedaron ajustados manualmente.`
