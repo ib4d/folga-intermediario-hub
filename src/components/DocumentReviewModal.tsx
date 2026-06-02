@@ -961,14 +961,28 @@ export default function DocumentReviewModal({
       MANUAL: 0,
     };
 
-    for (const value of Object.values(reviewSignalSources)) {
-      if (value in counts) {
-        counts[value as FieldSource] += 1;
+    const hasMeaningfulValue = (key: ReviewFieldKey) => {
+      const value = form[key];
+      if (typeof value === "boolean") {
+        return value;
       }
+      return isFilledReviewValue(value);
+    };
+
+    for (const [key, value] of Object.entries(reviewSignalSources) as Array<[ReviewFieldKey, FieldSource]>) {
+      if (!(value in counts)) {
+        continue;
+      }
+
+      if (!hasMeaningfulValue(key)) {
+        continue;
+      }
+
+      counts[value] += 1;
     }
 
     return counts;
-  }, [reviewSignalSources]);
+  }, [form, reviewSignalSources]);
   const autoFilledCount =
     sourceSummary.OCR + sourceSummary.MRZ + sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
   const manualCount = sourceSummary.MANUAL;
