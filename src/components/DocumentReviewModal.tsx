@@ -963,6 +963,9 @@ export default function DocumentReviewModal({
 
     return counts;
   }, [fieldSources]);
+  const autoFilledCount =
+    sourceSummary.OCR + sourceSummary.MRZ + sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
+  const manualCount = sourceSummary.MANUAL;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1207,6 +1210,14 @@ export default function DocumentReviewModal({
                 <SourceBadge source="RECORD" />
                 <SourceBadge source="MANUAL" />
               </div>
+              <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.8rem", fontWeight: 700 }}>
+                {autoFilledCount > 0
+                  ? `Auto completados: ${autoFilledCount}.`
+                  : "La revision llega sin autocompletado visible."}{" "}
+                {manualCount > 0
+                  ? `${manualCount} campos ya fueron tocados manualmente.`
+                  : "Todavia no has modificado campos en este formulario."}
+              </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.85rem" }}>
                 {Object.entries(sourceSummary).map(([source, count]) => {
                   if (count === 0) return null;
