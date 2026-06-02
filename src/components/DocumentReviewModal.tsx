@@ -1270,6 +1270,11 @@ export default function DocumentReviewModal({
                 <SourceBadge source="RECORD" />
                 <SourceBadge source="MANUAL" />
               </div>
+              <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
+                {manualCount > 0 || reviewChecklist.missingRequired.length > 0
+                  ? "Empieza por los campos manuales y pendientes para cerrar la revision mas rapido."
+                  : "La revision ya viene muy completa y deberia cerrarse sin mucho esfuerzo."}
+              </p>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.8rem", fontWeight: 700 }}>
                 {autoFilledCount > 0
                   ? `Auto completados: ${autoFilledCount}.`
