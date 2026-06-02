@@ -1244,6 +1244,11 @@ export default function DocumentReviewModal({
                   {autofillCoverage}% · {coverageLabel}
                 </span>
               </div>
+              <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.78rem", fontWeight: 700 }}>
+                {manualCount > 0
+                  ? `${manualCount} campos siguen dependiendo de ajuste manual.`
+                  : "No quedan campos marcados como manual en esta revision."}
+              </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginBottom: "0.85rem" }}>
                 {Object.entries(sourceSummary).map(([source, count]) => {
                   if (count === 0) return null;
