@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 function runStep(label, command, args, options = {}) {
   console.log(`\n==> ${label}`);
@@ -41,7 +43,7 @@ function runNpmStep(label, args, options = {}) {
 
 runNpmStep("Production environment check", ["run", "check:prod-env"]);
 runNpmStep("Permission policy source check", ["run", "check:permissions"]);
-runStep("Prisma validate", "npx", ["prisma", "validate"]);
+runPrismaValidate();
 
 const smtpRecipient = process.env.SMTP_TEST_RECIPIENT?.trim();
 if (smtpRecipient) {
@@ -63,3 +65,35 @@ if (process.env.CHECK_HARDENING_RUN_BACKUP === "true") {
 }
 
 console.log("\nProduction hardening check passed.");
+
+function runPrismaValidate() {
+  const localPrisma = resolve(
+    process.cwd(),
+    process.platform === "win32" ? "node_modules/.bin/prisma.cmd" : "node_modules/.bin/prisma",
+  );
+
+  if (existsSync(localPrisma)) {
+    runStep("Prisma validate", localPrisma, ["validate"]);
+    return;
+  }
+
+  const composeFile = process.env.COMPOSE_FILE || "docker-compose.prod.yml";
+  const composePath = resolve(process.cwd(), composeFile);
+  if (!existsSync(composePath)) {
+    throw new Error(
+      `Prisma validate could not find a local binary and compose file is missing: ${composeFile}.`,
+    );
+  }
+
+  runStep("Prisma validate (container)", "docker", [
+    "compose",
+    "-f",
+    composeFile,
+    "exec",
+    "-T",
+    "web",
+    "npx",
+    "prisma",
+    "validate",
+  ]);
+}
