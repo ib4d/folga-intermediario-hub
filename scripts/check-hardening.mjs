@@ -56,4 +56,10 @@ if (process.env.CHECK_HARDENING_SKIP_SMOKE === "true") {
   runNpmStep("Production smoke check", ["run", "check:smoke"]);
 }
 
+if (process.env.CHECK_HARDENING_RUN_BACKUP === "true") {
+  runNpmStep("Backup drill", ["run", "check:backup"]);
+} else {
+  console.warn("CHECK_HARDENING_RUN_BACKUP=true is not set. Skipping backup drill.");
+}
+
 console.log("\nProduction hardening check passed.");
