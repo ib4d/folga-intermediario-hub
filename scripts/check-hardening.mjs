@@ -64,6 +64,12 @@ if (process.env.CHECK_HARDENING_RUN_BACKUP === "true") {
   console.warn("CHECK_HARDENING_RUN_BACKUP=true is not set. Skipping backup drill.");
 }
 
+if (process.env.CHECK_HARDENING_RUN_RESTORE === "true") {
+  runNpmStep("Restore drill", ["run", "check:restore"]);
+} else {
+  console.warn("CHECK_HARDENING_RUN_RESTORE=true is not set. Skipping restore drill.");
+}
+
 console.log("\nProduction hardening check passed.");
 
 function runPrismaValidate() {

@@ -55,6 +55,26 @@ The restore script stops the web container, asks for explicit `RESTORE`
 confirmation, restores through the Docker Postgres container, and starts the web
 container again.
 
+### Restore Validation
+
+You can also run a non-destructive restore drill against a temporary database
+from the repository root on the VPS:
+
+```bash
+CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz \
+CHECK_RESTORE_DRY_RUN=false \
+./scripts/check-restore.mjs
+```
+
+If you want to include the drill in the production hardening gate, run:
+
+```bash
+CHECK_HARDENING_RUN_RESTORE=true CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz npm run check:hardening
+```
+
+Use this on the VPS host, not inside `docker compose exec`. The helper needs
+access to the host-side `docker-compose.prod.yml` file.
+
 ## Supabase Storage
 
 Document files remain in Supabase Storage for v1. For production:

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "check:hardening": "node scripts/check-hardening.mjs",
     "check:backup": "node scripts/check-backup.mjs",
+    "check:restore": "node scripts/check-restore.mjs",
     "check:prod-env": "node scripts/check-production-env.mjs",
     "check:permissions": "node scripts/check-permissions.mjs",
     "check:smoke": "node scripts/check-production-smoke.mjs",
