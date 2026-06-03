@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
+import PlatformReadinessCard from "@/components/PlatformReadinessCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { getProviderStatus } from "@/lib/provider-status";
@@ -127,10 +128,28 @@ export default async function PlatformAdminPage() {
           id: notification.id,
           title: notification.title,
           href: "/notificaciones",
-          subtitle: `${notification.organization.name}${notification.candidate ? ` · ${notification.candidate.firstName} ${notification.candidate.lastName}` : ""}`,
+          subtitle: `${notification.organization.name}${notification.candidate ? ` - ${notification.candidate.firstName} ${notification.candidate.lastName}` : ""}`,
         }))}
         openNotificationsLabel={labels("platform.operationalPulseOpenNotifications")}
         openDashboardLabel={labels("platform.operationalPulseOpenDashboard")}
+      />
+
+      <PlatformReadinessCard
+        title={labels("platform.readinessTitle")}
+        description={labels("platform.readinessDescription")}
+        doneLabel={labels("platform.readinessDone")}
+        nextLabel={labels("platform.readinessNext")}
+        doneItems={[
+          labels("platform.readinessSystemHardening"),
+          labels("platform.readinessBackupRestore"),
+          labels("platform.readinessOperationalVisibility"),
+        ]}
+        nextItems={[
+          labels("platform.readinessPublicMarketing"),
+          labels("platform.readinessDemoTenant"),
+          labels("platform.readinessBilling"),
+          labels("platform.readinessOnboarding"),
+        ]}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
