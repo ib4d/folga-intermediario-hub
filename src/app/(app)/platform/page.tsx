@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
+import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { getProviderStatus } from "@/lib/provider-status";
+import { TRACKED_OPERATIONAL_ALERT_TYPES } from "@/lib/operational-alerts-shared";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity, Building2, FileText, Users } from "lucide-react";
@@ -30,6 +32,33 @@ export default async function PlatformAdminPage() {
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
+  const unreadOperationalAlerts = await prisma.notification.count({
+    where: {
+      type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
+      isRead: false,
+    },
+  });
+  const recentOperationalAlerts = await prisma.notification.findMany({
+    where: {
+      type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
+    },
+    include: {
+      candidate: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      organization: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 4,
+  });
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -46,9 +75,25 @@ export default async function PlatformAdminPage() {
         healthLabel={labels("platform.systemStatusHealth")}
         healthValue="OK"
         providersLabel={labels("platform.systemStatusProviders")}
-        providersValue={`${storage.statusLabel} · ${ocr.statusLabel}`}
+        providersValue={`${storage.statusLabel} | ${ocr.statusLabel}`}
         openHealthLabel={labels("platform.systemStatusOpenHealth")}
         openProvidersLabel={labels("platform.systemStatusOpenProviders")}
+      />
+
+      <PlatformOperationalPulseCard
+        title={labels("platform.operationalPulseTitle")}
+        description={labels("platform.operationalPulseDescription")}
+        unreadLabel={labels("platform.operationalPulseUnread")}
+        unreadValue={unreadOperationalAlerts.toString()}
+        recentLabel={labels("platform.operationalPulseRecent")}
+        recentItems={recentOperationalAlerts.map((notification) => ({
+          id: notification.id,
+          title: notification.title,
+          href: "/notificaciones",
+          subtitle: `${notification.organization.name}${notification.candidate ? ` · ${notification.candidate.firstName} ${notification.candidate.lastName}` : ""}`,
+        }))}
+        openNotificationsLabel={labels("platform.operationalPulseOpenNotifications")}
+        openDashboardLabel={labels("platform.operationalPulseOpenDashboard")}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
