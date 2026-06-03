@@ -1,6 +1,8 @@
 const PUBLIC_ROUTE_PREFIXES = [
   "/login",
   "/demo",
+  "/security",
+  "/pricing",
   "/marketing",
   "/registro",
   "/api/auth",

@@ -156,6 +156,8 @@ export default async function LandingPage({
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang);
   const labels = t.bind(null, language);
+  const securityHref = localizedHref("/security", language);
+  const pricingHref = localizedHref("/pricing", language);
   const demoHref = localizedHref("/demo", language);
   const loginHref = localizedHref("/login", language);
 
@@ -200,10 +202,10 @@ export default async function LandingPage({
           <Link href={demoHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.demo")}
           </Link>
-          <Link href="#security" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={securityHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.security")}
           </Link>
-          <Link href="#pricing" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={pricingHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.pricing")}
           </Link>
           <LanguageSwitcher currentLanguage={language} />
@@ -512,10 +514,10 @@ export default async function LandingPage({
             <Link href={demoHref} style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.demo")}
             </Link>
-            <Link href="#security" style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={securityHref} style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.security")}
             </Link>
-            <Link href="#pricing" style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={pricingHref} style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.pricing")}
             </Link>
             <Link href={loginHref} style={{ color: "inherit", textDecoration: "none" }}>
