@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   FileText,
   Globe2,
+  LockKeyhole,
+  PlayCircle,
   ShieldCheck,
   Users,
   Zap,
@@ -63,6 +65,47 @@ const featureCards = [
     text: "public.features.saasText",
   },
 ] as const satisfies readonly { icon: typeof Zap; title: TranslationKey; text: TranslationKey }[];
+
+const demoSteps = [
+  {
+    icon: PlayCircle,
+    title: "public.demo.step1Title",
+    text: "public.demo.step1Text",
+  },
+  {
+    icon: FileText,
+    title: "public.demo.step2Title",
+    text: "public.demo.step2Text",
+  },
+  {
+    icon: Globe2,
+    title: "public.demo.step3Title",
+    text: "public.demo.step3Text",
+  },
+] as const satisfies readonly { icon: typeof PlayCircle; title: TranslationKey; text: TranslationKey }[];
+
+const trustCards = [
+  {
+    icon: LockKeyhole,
+    title: "public.security.dataTitle",
+    text: "public.security.dataText",
+  },
+  {
+    icon: ShieldCheck,
+    title: "public.security.gdprTitle",
+    text: "public.security.gdprText",
+  },
+  {
+    icon: BarChart3,
+    title: "public.security.auditTitle",
+    text: "public.security.auditText",
+  },
+  {
+    icon: CalendarDays,
+    title: "public.security.backupTitle",
+    text: "public.security.backupText",
+  },
+] as const satisfies readonly { icon: typeof LockKeyhole; title: TranslationKey; text: TranslationKey }[];
 
 type PricingPlan = {
   badge: TranslationKey;
@@ -255,6 +298,94 @@ export default async function LandingPage({
                   <Icon size={32} style={{ color: "var(--amber-flame)", marginBottom: "1.5rem" }} />
                   <h3 style={{ color: "var(--amber-flame)" }}>{labels(card.title)}</h3>
                   <p>{labels(card.text)}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="demo"
+        style={{
+          padding: "7rem 2rem",
+          backgroundColor: "#0f0f0f",
+          borderBlock: "4px solid var(--amber-flame)",
+        }}
+      >
+        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
+            <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+              {labels("public.demo.title")}
+            </h2>
+            <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto", opacity: 0.9 }}>
+              {labels("public.demo.description")}
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem" }}>
+            {demoSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className="card"
+                  style={{
+                    backgroundColor: "#151515",
+                    border: "2px solid rgba(255, 255, 255, 0.14)",
+                    minHeight: "220px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+                    <span
+                      className="status-badge active"
+                      style={{
+                        backgroundColor: "var(--amber-flame)",
+                        color: "var(--pitch-black)",
+                        paddingInline: "0.65rem",
+                      }}
+                    >
+                      0{index + 1}
+                    </span>
+                    <Icon size={28} style={{ color: "var(--amber-flame)" }} />
+                  </div>
+                  <h3 style={{ color: "var(--ghost-white)", marginBottom: "0.75rem" }}>{labels(step.title)}</h3>
+                  <p style={{ opacity: 0.78, margin: 0 }}>{labels(step.text)}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="security"
+        style={{ padding: "7rem 2rem", backgroundColor: "var(--ghost-white)", color: "var(--pitch-black)" }}
+      >
+        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
+            <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+              {labels("public.security.title")}
+            </h2>
+            <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto" }}>{labels("public.security.description")}</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
+            {trustCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.title}
+                  className="card"
+                  style={{
+                    backgroundColor: "white",
+                    border: "1px solid rgba(0, 0, 0, 0.08)",
+                    minHeight: "200px",
+                  }}
+                >
+                  <Icon size={30} style={{ color: "var(--amber-flame)", marginBottom: "1rem" }} />
+                  <h3 style={{ marginBottom: "0.75rem" }}>{labels(card.title)}</h3>
+                  <p style={{ margin: 0, opacity: 0.8 }}>{labels(card.text)}</p>
                 </div>
               );
             })}

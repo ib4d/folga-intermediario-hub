@@ -307,6 +307,33 @@ const translations = {
     "public.features.saasTitle": "Multi-Inquilino (SaaS)",
     "public.features.saasText":
       "Aislamiento total de datos. Tu informacion es solo tuya, protegida y segura.",
+    "public.demo.title": "Demo guiada y comercial",
+    "public.demo.description":
+      "La demo muestra como un candidato entra, deja su documentacion y pasa a legal y logistica sin perder trazabilidad.",
+    "public.demo.step1Title": "Arranque comercial",
+    "public.demo.step1Text":
+      "Abre el espacio de trabajo, registra el candidato y conecta el flujo con la organizacion correcta.",
+    "public.demo.step2Title": "OCR y validacion",
+    "public.demo.step2Text":
+      "Carga el documento, extrae datos y revisa los campos con una vista clara de origen y cobertura.",
+    "public.demo.step3Title": "Legal y logistica",
+    "public.demo.step3Text":
+      "El caso pasa al circuito legal y de llegada con seguimiento completo y sin hojas sueltas.",
+    "public.security.title": "Confianza y cumplimiento",
+    "public.security.description":
+      "La capa publica ya prepara la venta con seguridad, privacidad y trazabilidad como mensajes centrales.",
+    "public.security.dataTitle": "Datos aislados por tenant",
+    "public.security.dataText":
+      "Cada organizacion trabaja en su propio espacio con permisos y datos separados.",
+    "public.security.gdprTitle": "GDPR y privacidad",
+    "public.security.gdprText":
+      "La propuesta comercial ya contempla exportacion, borrado y retencion responsable.",
+    "public.security.auditTitle": "Auditoria operativa",
+    "public.security.auditText":
+      "Los eventos, notificaciones y decisiones criticas quedan trazados para revision interna.",
+    "public.security.backupTitle": "Backup y restore",
+    "public.security.backupText":
+      "Las rutinas de backup y restore drill ya estan cerradas para un arranque mas serio.",
     "public.pricing.title": "Planes hechos para crecer",
     "public.pricing.description":
       "Elige el plan que mejor se adapte al volumen de tu agencia.",
@@ -1093,6 +1120,33 @@ const translations = {
     "public.features.saasTitle": "Multi-Tenant SaaS",
     "public.features.saasText":
       "Full data isolation. Your information stays yours, protected and secure.",
+    "public.demo.title": "Guided commercial demo",
+    "public.demo.description":
+      "The demo shows how a candidate enters, submits documents, and flows through legal and logistics without losing traceability.",
+    "public.demo.step1Title": "Commercial kickoff",
+    "public.demo.step1Text":
+      "Open the workspace, register the candidate, and connect the flow to the right organization.",
+    "public.demo.step2Title": "OCR and validation",
+    "public.demo.step2Text":
+      "Upload the document, extract data, and review fields with a clear view of source and coverage.",
+    "public.demo.step3Title": "Legal and logistics",
+    "public.demo.step3Text":
+      "The case moves into legal and arrival workflows with full tracking and no loose sheets.",
+    "public.security.title": "Trust and compliance",
+    "public.security.description":
+      "The public layer already frames the product around security, privacy, and traceability.",
+    "public.security.dataTitle": "Tenant-isolated data",
+    "public.security.dataText":
+      "Each organization works in its own space with separated permissions and data.",
+    "public.security.gdprTitle": "GDPR and privacy",
+    "public.security.gdprText":
+      "The commercial story already includes export, deletion, and responsible retention.",
+    "public.security.auditTitle": "Operational audit trail",
+    "public.security.auditText":
+      "Events, notifications, and critical decisions remain traceable for internal review.",
+    "public.security.backupTitle": "Backup and restore",
+    "public.security.backupText":
+      "Backup routines and restore drills are already closed for a more serious launch.",
     "public.pricing.title": "Plans built to scale",
     "public.pricing.description":
       "Choose the plan that fits your agency volume.",
@@ -1879,6 +1933,33 @@ const translations = {
     "public.features.saasTitle": "SaaS multi-tenant",
     "public.features.saasText":
       "Pelna izolacja danych. Twoje informacje pozostaja Twoje, chronione i bezpieczne.",
+    "public.demo.title": "Prowadzona demo handlowe",
+    "public.demo.description":
+      "Demo pokazuje, jak kandydat wchodzi, oddaje dokumenty i przechodzi przez legal i logistyke bez utraty sledzenia.",
+    "public.demo.step1Title": "Start handlowy",
+    "public.demo.step1Text":
+      "Otworz przestrzen robocza, zarejestruj kandydata i podlacz przeplyw do wlasciwej organizacji.",
+    "public.demo.step2Title": "OCR i walidacja",
+    "public.demo.step2Text":
+      "Wgraj dokument, wyciagnij dane i przejrzyj pola z jasnym widokiem zrodla i pokrycia.",
+    "public.demo.step3Title": "Legal i logistyka",
+    "public.demo.step3Text":
+      "Sprawa przechodzi do legal i przyjazdu z pelnym sledzeniem i bez luznych kartek.",
+    "public.security.title": "Zaufanie i zgodnosc",
+    "public.security.description":
+      "Warstwa publiczna juz ustawia produkt wokol bezpieczenstwa, prywatnosci i sledzenia decyzji.",
+    "public.security.dataTitle": "Dane izolowane per tenant",
+    "public.security.dataText":
+      "Kazda organizacja pracuje we wlasnej przestrzeni z osobnymi uprawnieniami i danymi.",
+    "public.security.gdprTitle": "RODO i prywatnosc",
+    "public.security.gdprText":
+      "Historia handlowa juz obejmuje eksport, usuwanie i odpowiedzialna retencje.",
+    "public.security.auditTitle": "Slad audytowy operacji",
+    "public.security.auditText":
+      "Zdarzenia, powiadomienia i krytyczne decyzje pozostaja do przejrzenia wewnetrznie.",
+    "public.security.backupTitle": "Backup i restore",
+    "public.security.backupText":
+      "Rutyny backupu i restore drill sa juz domkniete dla powazniejszego startu.",
     "public.pricing.title": "Plany stworzone do skalowania",
     "public.pricing.description":
       "Wybierz plan dopasowany do wolumenu Twojej agencji.",
