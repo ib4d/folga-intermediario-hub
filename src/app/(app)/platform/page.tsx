@@ -149,6 +149,11 @@ export default async function PlatformAdminPage() {
           labels("platform.readinessDemoTenant"),
           labels("platform.readinessBilling"),
           labels("platform.readinessOnboarding"),
+          labels("platform.readinessMultilanguage"),
+          labels("platform.readinessMonitoring"),
+          labels("platform.readinessRateLimiting"),
+          labels("platform.readinessGdpr"),
+          labels("platform.readinessWhiteLabel"),
         ]}
       />
 

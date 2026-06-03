@@ -36,7 +36,12 @@ export default function PlatformReadinessCard({
             padding: "1rem 1.1rem",
           }}
         >
-          <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{doneLabel}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{doneLabel}</div>
+            <span className="status-badge active" style={{ paddingInline: "0.45rem", fontSize: "0.68rem" }}>
+              {doneItems.length}
+            </span>
+          </div>
           <ul style={{ margin: "0.7rem 0 0", paddingLeft: "1.1rem", display: "grid", gap: "0.45rem" }}>
             {doneItems.map((item) => (
               <li key={item} style={{ fontSize: "0.88rem", fontWeight: 800, lineHeight: 1.45 }}>
@@ -53,7 +58,12 @@ export default function PlatformReadinessCard({
             padding: "1rem 1.1rem",
           }}
         >
-          <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{nextLabel}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{nextLabel}</div>
+            <span className="status-badge active" style={{ paddingInline: "0.45rem", fontSize: "0.68rem" }}>
+              {nextItems.length}
+            </span>
+          </div>
           <ul style={{ margin: "0.7rem 0 0", paddingLeft: "1.1rem", display: "grid", gap: "0.45rem" }}>
             {nextItems.map((item) => (
               <li key={item} style={{ fontSize: "0.88rem", fontWeight: 800, lineHeight: 1.45 }}>
