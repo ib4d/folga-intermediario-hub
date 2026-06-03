@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
+import PlatformStatusCard from "@/components/PlatformStatusCard";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import { getProviderStatus } from "@/lib/provider-status";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity, Building2, FileText, Users } from "lucide-react";
@@ -9,6 +11,8 @@ export default async function PlatformAdminPage() {
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const providerStatus = getProviderStatus();
+  const { storage, ocr } = providerStatus;
 
   const [orgs, stats] = await Promise.all([
     prisma.organization.findMany({
@@ -33,6 +37,19 @@ export default async function PlatformAdminPage() {
         <h1>{labels("platform.title")}</h1>
         <p>{labels("platform.description")}</p>
       </div>
+
+      <PlatformStatusCard
+        title={labels("platform.systemStatusTitle")}
+        description={labels("platform.systemStatusDescription")}
+        databaseLabel={labels("platform.systemStatusDatabase")}
+        databaseValue="OK"
+        healthLabel={labels("platform.systemStatusHealth")}
+        healthValue="OK"
+        providersLabel={labels("platform.systemStatusProviders")}
+        providersValue={`${storage.statusLabel} · ${ocr.statusLabel}`}
+        openHealthLabel={labels("platform.systemStatusOpenHealth")}
+        openProvidersLabel={labels("platform.systemStatusOpenProviders")}
+      />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
         <div className="card">
