@@ -34,6 +34,11 @@ export default async function OnboardingPage() {
       badge="Primer acceso"
       title="Activa tu espacio operativo"
       description="Configura la organizacion inicial y deja listo el entorno para candidatos, documentos, legal y logistica."
+      footer={
+        <span>
+          La configuracion inicial solo toma unos minutos y deja el espacio preparado para el flujo comercial y operativo.
+        </span>
+      }
     >
       <OnboardingForm />
     </AuthShell>

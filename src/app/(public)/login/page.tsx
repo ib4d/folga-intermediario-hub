@@ -56,6 +56,17 @@ export default function LoginPage() {
       }
     >
       <div style={{ display: "grid", gap: "1.25rem" }}>
+        <div
+          style={{
+            border: "1px solid rgba(11, 5, 0, 0.12)",
+            background: "rgba(255, 255, 255, 0.72)",
+            padding: "0.95rem 1rem",
+            fontSize: "0.9rem",
+            lineHeight: 1.55,
+          }}
+        >
+          {labels("login.context")}
+        </div>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <LanguageSwitcher currentLanguage={language} />
         </div>
