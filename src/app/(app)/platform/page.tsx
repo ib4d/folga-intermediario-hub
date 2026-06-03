@@ -1,12 +1,33 @@
 import { auth } from "@/auth";
 import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
-import { normalizeLanguage, t } from "@/lib/i18n";
+import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { getProviderStatus } from "@/lib/provider-status";
 import { TRACKED_OPERATIONAL_ALERT_TYPES } from "@/lib/operational-alerts-shared";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity, Building2, FileText, Users } from "lucide-react";
+
+function getOperationalAlertTypeLabel(type: string, labels: (key: TranslationKey) => string) {
+  switch (type) {
+    case "LOGISTICS_MISSING_TRANSPORT":
+      return labels("notifications.type.transport");
+    case "LOGISTICS_MISSING_PICKUP":
+      return labels("notifications.type.pickup");
+    case "LOGISTICS_MISSING_ACCOMMODATION":
+      return labels("notifications.type.accommodation");
+    case "LOGISTICS_LEGAL_BLOCKER":
+      return labels("notifications.type.legalBlock");
+    case "LOGISTICS_DOCUMENT_BLOCKER":
+      return labels("notifications.type.documentBlock");
+    case "LOGISTICS_ARRIVAL_OVERDUE":
+      return labels("notifications.type.arrivalOverdue");
+    case "LOGISTICS_ARRIVAL_TODAY":
+      return labels("notifications.type.arrivalToday");
+    default:
+      return type.replace(/_/g, " ");
+  }
+}
 
 export default async function PlatformAdminPage() {
   await requirePlatformAdmin();
@@ -37,6 +58,14 @@ export default async function PlatformAdminPage() {
       type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
       isRead: false,
     },
+  });
+  const operationalAlertBreakdown = await prisma.notification.groupBy({
+    by: ["type"],
+    where: {
+      type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
+      isRead: false,
+    },
+    _count: { _all: true },
   });
   const recentOperationalAlerts = await prisma.notification.findMany({
     where: {
@@ -85,6 +114,14 @@ export default async function PlatformAdminPage() {
         description={labels("platform.operationalPulseDescription")}
         unreadLabel={labels("platform.operationalPulseUnread")}
         unreadValue={unreadOperationalAlerts.toString()}
+        breakdownLabel={labels("platform.operationalPulseBreakdown")}
+        breakdownItems={operationalAlertBreakdown
+          .sort((a, b) => b._count._all - a._count._all)
+          .map((item) => ({
+            id: item.type,
+            label: getOperationalAlertTypeLabel(item.type, labels),
+            value: item._count._all.toString(),
+          }))}
         recentLabel={labels("platform.operationalPulseRecent")}
         recentItems={recentOperationalAlerts.map((notification) => ({
           id: notification.id,

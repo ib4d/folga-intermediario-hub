@@ -5,6 +5,12 @@ type PlatformOperationalPulseCardProps = {
   description?: string;
   unreadLabel: string;
   unreadValue: string;
+  breakdownLabel: string;
+  breakdownItems: Array<{
+    id: string;
+    label: string;
+    value: string;
+  }>;
   recentLabel: string;
   recentItems: Array<{
     id: string;
@@ -21,6 +27,8 @@ export default function PlatformOperationalPulseCard({
   description,
   unreadLabel,
   unreadValue,
+  breakdownLabel,
+  breakdownItems,
   recentLabel,
   recentItems,
   openNotificationsLabel,
@@ -78,6 +86,42 @@ export default function PlatformOperationalPulseCard({
                     ) : null}
                   </div>
                 </Link>
+              ))
+            ) : (
+              <div style={{ fontSize: "0.9rem", color: "var(--muted)", fontWeight: 700 }}>-</div>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            background: "rgba(255, 255, 255, 0.72)",
+            padding: "1rem 1.1rem",
+          }}
+        >
+          <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{breakdownLabel}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem", marginTop: "0.55rem" }}>
+            {breakdownItems.length > 0 ? (
+              breakdownItems.map((item) => (
+                <span
+                  key={item.id}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    border: "1px solid rgba(0, 0, 0, 0.12)",
+                    background: "rgba(255, 255, 255, 0.9)",
+                    padding: "0.3rem 0.55rem",
+                    fontSize: "0.78rem",
+                    fontWeight: 800,
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <span className="status-badge active" style={{ paddingInline: "0.45rem", fontSize: "0.68rem" }}>
+                    {item.value}
+                  </span>
+                </span>
               ))
             ) : (
               <div style={{ fontSize: "0.9rem", color: "var(--muted)", fontWeight: 700 }}>-</div>

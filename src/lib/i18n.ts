@@ -197,6 +197,7 @@ const translations = {
     "platform.operationalPulseDescription":
       "Seguimiento rapido de alertas activas y eventos operativos recientes.",
     "platform.operationalPulseUnread": "Alertas sin leer",
+    "platform.operationalPulseBreakdown": "Distribucion de alertas",
     "platform.operationalPulseRecent": "Eventos recientes",
     "platform.operationalPulseOpenNotifications": "Abrir notificaciones",
     "platform.operationalPulseOpenDashboard": "Abrir dashboard",
@@ -965,6 +966,7 @@ const translations = {
     "platform.operationalPulseDescription":
       "Quick tracking of active alerts and recent operational events.",
     "platform.operationalPulseUnread": "Unread alerts",
+    "platform.operationalPulseBreakdown": "Alert breakdown",
     "platform.operationalPulseRecent": "Recent events",
     "platform.operationalPulseOpenNotifications": "Open notifications",
     "platform.operationalPulseOpenDashboard": "Open dashboard",
@@ -1733,6 +1735,7 @@ const translations = {
     "platform.operationalPulseDescription":
       "Szybki podglad aktywnych alertow i ostatnich zdarzen operacyjnych.",
     "platform.operationalPulseUnread": "Nieprzeczytane alerty",
+    "platform.operationalPulseBreakdown": "Rozklad alertow",
     "platform.operationalPulseRecent": "Ostatnie zdarzenia",
     "platform.operationalPulseOpenNotifications": "Otworz powiadomienia",
     "platform.operationalPulseOpenDashboard": "Otworz dashboard",
