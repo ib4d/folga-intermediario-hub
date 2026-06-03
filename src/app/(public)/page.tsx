@@ -156,6 +156,7 @@ export default async function LandingPage({
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang);
   const labels = t.bind(null, language);
+  const demoHref = localizedHref("/demo", language);
   const loginHref = localizedHref("/login", language);
 
   return (
@@ -196,7 +197,7 @@ export default async function LandingPage({
           <Link href="#features" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.features")}
           </Link>
-          <Link href="#demo" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={demoHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.demo")}
           </Link>
           <Link href="#security" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
@@ -241,7 +242,7 @@ export default async function LandingPage({
             {labels("public.hero.primaryCta")} <ArrowRight size={22} style={{ marginLeft: "0.5rem" }} />
           </Link>
           <Link
-            href="#demo"
+            href={demoHref}
             className="button button-secondary"
             style={{
               padding: "1.1rem 2rem",
@@ -471,7 +472,7 @@ export default async function LandingPage({
             {labels("public.finalCta.description")}
           </p>
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="#demo" className="button" style={{ padding: "1rem 1.75rem", fontSize: "1rem" }}>
+            <Link href={demoHref} className="button" style={{ padding: "1rem 1.75rem", fontSize: "1rem" }}>
               {labels("public.finalCta.primary")} <ArrowRight size={20} style={{ marginLeft: "0.5rem" }} />
             </Link>
             <Link
@@ -508,7 +509,7 @@ export default async function LandingPage({
             <Link href="#features" style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.features")}
             </Link>
-            <Link href="#demo" style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={demoHref} style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.demo")}
             </Link>
             <Link href="#security" style={{ color: "inherit", textDecoration: "none" }}>

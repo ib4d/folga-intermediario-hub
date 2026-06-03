@@ -309,6 +309,22 @@ const translations = {
     "public.features.saasTitle": "Multi-Inquilino (SaaS)",
     "public.features.saasText":
       "Aislamiento total de datos. Tu informacion es solo tuya, protegida y segura.",
+    "public.demo.badge": "Demo guiada",
+    "public.demo.pageTitle": "Ver la plataforma en accion",
+    "public.demo.pageDescription":
+      "La demo recorre el flujo comercial, la captura documental y el traspaso a legal y logistica con una estructura lista para enseñar.",
+    "public.demo.guard1Title": "Espacio seguro para mostrar",
+    "public.demo.guard1Text":
+      "La demo esta pensada para enseñar sin mezclar datos reales y manteniendo una historia comercial limpia.",
+    "public.demo.guard2Title": "Preparada para sandbox",
+    "public.demo.guard2Text":
+      "Puedes usarla como base para un tenant de pruebas, una reunion comercial o una referencia guiada para tu equipo.",
+    "public.demo.getStarted": "Comenzar demo",
+    "public.demo.nextTitle": "Despues de la demo",
+    "public.demo.nextDescription":
+      "Si la demo encaja con tu flujo, entra al sistema o prepara tu espacio de trabajo para empezar a operar.",
+    "public.demo.signIn": "Entrar al sistema",
+    "public.demo.startWorkspace": "Crear espacio",
     "public.demo.title": "Demo guiada y comercial",
     "public.demo.description":
       "La demo muestra como un candidato entra, deja su documentacion y pasa a legal y logistica sin perder trazabilidad.",
@@ -1153,6 +1169,22 @@ const translations = {
     "public.features.saasTitle": "Multi-Tenant SaaS",
     "public.features.saasText":
       "Full data isolation. Your information stays yours, protected and secure.",
+    "public.demo.badge": "Guided demo",
+    "public.demo.pageTitle": "See the platform in action",
+    "public.demo.pageDescription":
+      "The demo walks through the commercial flow, document capture, and the handoff to legal and logistics with a structure ready to show.",
+    "public.demo.guard1Title": "Safe space to present",
+    "public.demo.guard1Text":
+      "The demo is designed to showcase the product without mixing real data and while keeping a clean commercial story.",
+    "public.demo.guard2Title": "Sandbox ready",
+    "public.demo.guard2Text":
+      "You can use it as the base for a test tenant, a sales meeting, or a guided reference for your team.",
+    "public.demo.getStarted": "Start demo",
+    "public.demo.nextTitle": "After the demo",
+    "public.demo.nextDescription":
+      "If the demo matches your flow, sign in or set up your workspace to start operating.",
+    "public.demo.signIn": "Enter the system",
+    "public.demo.startWorkspace": "Create workspace",
     "public.demo.title": "Guided commercial demo",
     "public.demo.description":
       "The demo shows how a candidate enters, submits documents, and flows through legal and logistics without losing traceability.",
@@ -1997,7 +2029,23 @@ const translations = {
     "public.features.saasTitle": "SaaS multi-tenant",
     "public.features.saasText":
       "Pelna izolacja danych. Twoje informacje pozostaja Twoje, chronione i bezpieczne.",
-    "public.demo.title": "Prowadzona demo handlowe",
+    "public.demo.badge": "Demo prowadzone",
+    "public.demo.pageTitle": "Zobacz platforme w akcji",
+    "public.demo.pageDescription":
+      "Demo prowadzi przez przeplyw handlowy, przechwytywanie dokumentow i przekazanie do legal i logistyki w strukturze gotowej do pokazania.",
+    "public.demo.guard1Title": "Bezpieczna przestrzen do prezentacji",
+    "public.demo.guard1Text":
+      "Demo jest zaprojektowane tak, aby pokazywac produkt bez mieszania prawdziwych danych i z czysta historia handlowa.",
+    "public.demo.guard2Title": "Gotowe na sandbox",
+    "public.demo.guard2Text":
+      "Mozesz uzyc go jako podstawy dla tenant testowego, spotkania sprzedazowego lub prowadzonej referencji dla zespolu.",
+    "public.demo.getStarted": "Rozpocznij demo",
+    "public.demo.nextTitle": "Po demie",
+    "public.demo.nextDescription":
+      "Jesli demo pasuje do Twojego przeplywu, zaloguj sie lub przygotuj przestrzen robocza do startu.",
+    "public.demo.signIn": "Wejdz do systemu",
+    "public.demo.startWorkspace": "Utworz przestrzen",
+    "public.demo.title": "Prowadzone demo handlowe",
     "public.demo.description":
       "Demo pokazuje, jak kandydat wchodzi, oddaje dokumenty i przechodzi przez legal i logistyke bez utraty sledzenia.",
     "public.demo.step1Title": "Start handlowy",
