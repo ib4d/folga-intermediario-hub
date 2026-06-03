@@ -268,6 +268,8 @@ const translations = {
     "invite.submitting": "Enviando...",
     "invite.submit": "Crear usuario e invitar",
     "public.nav.features": "Funcionalidades",
+    "public.nav.demo": "Demo",
+    "public.nav.security": "Seguridad",
     "public.nav.pricing": "Precios",
     "public.nav.login": "Iniciar sesion",
     "public.hero.titleA": "De WhatsApp y Excel al",
@@ -334,6 +336,11 @@ const translations = {
     "public.security.backupTitle": "Backup y restore",
     "public.security.backupText":
       "Las rutinas de backup y restore drill ya estan cerradas para un arranque mas serio.",
+    "public.finalCta.title": "Haz que tu operacion se vea y se sienta lista",
+    "public.finalCta.description":
+      "Pasa de la demo a una plataforma con trazabilidad, control y una historia comercial clara para tu equipo y tus clientes.",
+    "public.finalCta.primary": "Ver la demo",
+    "public.finalCta.secondary": "Entrar al sistema",
     "public.pricing.title": "Planes hechos para crecer",
     "public.pricing.description":
       "Elige el plan que mejor se adapte al volumen de tu agencia.",
@@ -1081,6 +1088,8 @@ const translations = {
     "invite.submitting": "Sending...",
     "invite.submit": "Create user and invite",
     "public.nav.features": "Features",
+    "public.nav.demo": "Demo",
+    "public.nav.security": "Security",
     "public.nav.pricing": "Pricing",
     "public.nav.login": "Sign in",
     "public.hero.titleA": "From WhatsApp and Excel to",
@@ -1147,6 +1156,11 @@ const translations = {
     "public.security.backupTitle": "Backup and restore",
     "public.security.backupText":
       "Backup routines and restore drills are already closed for a more serious launch.",
+    "public.finalCta.title": "Make your operation look and feel ready",
+    "public.finalCta.description":
+      "Move from the demo to a platform with traceability, control, and a clear commercial story for your team and clients.",
+    "public.finalCta.primary": "See the demo",
+    "public.finalCta.secondary": "Enter the system",
     "public.pricing.title": "Plans built to scale",
     "public.pricing.description":
       "Choose the plan that fits your agency volume.",
@@ -1894,6 +1908,8 @@ const translations = {
     "invite.submitting": "Wysylanie...",
     "invite.submit": "Utworz uzytkownika i zapros",
     "public.nav.features": "Funkcje",
+    "public.nav.demo": "Demo",
+    "public.nav.security": "Bezpieczenstwo",
     "public.nav.pricing": "Cennik",
     "public.nav.login": "Logowanie",
     "public.hero.titleA": "Od WhatsAppa i Excela do",
@@ -1960,6 +1976,11 @@ const translations = {
     "public.security.backupTitle": "Backup i restore",
     "public.security.backupText":
       "Rutyny backupu i restore drill sa juz domkniete dla powazniejszego startu.",
+    "public.finalCta.title": "Spraw, by Twoja operacja wygladala i czula sie gotowa",
+    "public.finalCta.description":
+      "Przejdz od demo do platformy z sledzeniem, kontrola i jasna historia handlowa dla Twojego zespolu i klientow.",
+    "public.finalCta.primary": "Zobacz demo",
+    "public.finalCta.secondary": "Wejdz do systemu",
     "public.pricing.title": "Plany stworzone do skalowania",
     "public.pricing.description":
       "Wybierz plan dopasowany do wolumenu Twojej agencji.",

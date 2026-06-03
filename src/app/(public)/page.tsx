@@ -196,6 +196,12 @@ export default async function LandingPage({
           <Link href="#features" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.features")}
           </Link>
+          <Link href="#demo" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+            {labels("public.nav.demo")}
+          </Link>
+          <Link href="#security" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+            {labels("public.nav.security")}
+          </Link>
           <Link href="#pricing" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
             {labels("public.nav.pricing")}
           </Link>
@@ -448,6 +454,43 @@ export default async function LandingPage({
         </div>
       </section>
 
+      <section
+        id="cta"
+        style={{
+          padding: "6.5rem 2rem",
+          backgroundColor: "#0f0f0f",
+          borderTop: "4px solid var(--amber-flame)",
+          borderBottom: "4px solid var(--amber-flame)",
+        }}
+      >
+        <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+            {labels("public.finalCta.title")}
+          </h2>
+          <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto 2.5rem", opacity: 0.9 }}>
+            {labels("public.finalCta.description")}
+          </p>
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="#demo" className="button" style={{ padding: "1rem 1.75rem", fontSize: "1rem" }}>
+              {labels("public.finalCta.primary")} <ArrowRight size={20} style={{ marginLeft: "0.5rem" }} />
+            </Link>
+            <Link
+              href={loginHref}
+              className="button button-secondary"
+              style={{
+                padding: "1rem 1.75rem",
+                fontSize: "1rem",
+                backgroundColor: "transparent",
+                border: "2px solid var(--ghost-white)",
+                color: "var(--ghost-white)",
+              }}
+            >
+              {labels("public.finalCta.secondary")}
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <footer
         style={{
           padding: "5rem 2rem",
@@ -464,6 +507,12 @@ export default async function LandingPage({
           <div style={{ display: "flex", justifyContent: "center", gap: "2rem", marginBottom: "3rem", flexWrap: "wrap" }}>
             <Link href="#features" style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.features")}
+            </Link>
+            <Link href="#demo" style={{ color: "inherit", textDecoration: "none" }}>
+              {labels("public.nav.demo")}
+            </Link>
+            <Link href="#security" style={{ color: "inherit", textDecoration: "none" }}>
+              {labels("public.nav.security")}
             </Link>
             <Link href="#pricing" style={{ color: "inherit", textDecoration: "none" }}>
               {labels("public.nav.pricing")}
