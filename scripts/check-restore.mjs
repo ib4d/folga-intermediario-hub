@@ -1,32 +1,37 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 
 const composeFile = process.env.COMPOSE_FILE || "docker-compose.prod.yml";
 const dbUser = process.env.DB_USER || "folga";
 const dbName = process.env.DB_NAME || "folga_hub";
-const backupFile = process.env.CHECK_RESTORE_BACKUP_FILE?.trim();
+const backupFile = resolveBackupFile();
 const dryRun = process.env.CHECK_RESTORE_DRY_RUN === "true";
-
-if (!backupFile) {
-  console.warn("CHECK_RESTORE_BACKUP_FILE is not set. Skipping restore drill.");
-  process.exit(0);
-}
 
 const composePath = resolve(process.cwd(), composeFile);
 if (!existsSync(composePath)) {
   throw new Error(`Compose file not found: ${composeFile}`);
 }
 
+if (dryRun) {
+  if (!backupFile) {
+    console.warn("CHECK_RESTORE_BACKUP_FILE is not set and no backup was discovered. Skipping restore drill.");
+    process.exit(0);
+  }
+
+  console.log("Restore drill dry run passed. Backup file and compose file are present.");
+  process.exit(0);
+}
+
+if (!backupFile) {
+  console.warn("No backup file found. Skipping restore drill.");
+  process.exit(0);
+}
+
 const backupPath = resolve(process.cwd(), backupFile);
 if (!existsSync(backupPath)) {
   throw new Error(`Backup file not found: ${backupFile}`);
-}
-
-if (dryRun) {
-  console.log("Restore drill dry run passed. Backup file and compose file are present.");
-  process.exit(0);
 }
 
 const tempDbName = `${dbName}_restore_drill_${Date.now()}`;
@@ -164,4 +169,28 @@ function runCapture(label, command, args, options = {}) {
 
 function sanitize(value) {
   return value.replace(/\r?\n/g, " ").trim().slice(0, 300);
+}
+
+function resolveBackupFile() {
+  const explicit = process.env.CHECK_RESTORE_BACKUP_FILE?.trim();
+  if (explicit) return explicit;
+
+  for (const candidateDir of ["./backups", "/var/backups/ori-cruit-hub"]) {
+    const absDir = resolve(process.cwd(), candidateDir);
+    if (!existsSync(absDir)) continue;
+
+    const candidates = readdirSync(absDir)
+      .filter((entry) => entry.endsWith(".sql") || entry.endsWith(".sql.gz"))
+      .map((entry) => {
+        const fullPath = resolve(absDir, entry);
+        return { fullPath, mtimeMs: statSync(fullPath).mtimeMs };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    if (candidates.length > 0) {
+      return candidates[0].fullPath;
+    }
+  }
+
+  return "";
 }

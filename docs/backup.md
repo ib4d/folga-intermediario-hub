@@ -58,18 +58,18 @@ container again.
 ### Restore Validation
 
 You can also run a non-destructive restore drill against a temporary database
-from the repository root on the VPS:
+from the repository root on the VPS. The helper will automatically pick the
+latest `.sql` or `.sql.gz` backup from `./backups` or
+`/var/backups/ori-cruit-hub` unless you provide an explicit file:
 
 ```bash
-CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz \
-CHECK_RESTORE_DRY_RUN=false \
 ./scripts/check-restore.mjs
 ```
 
 If you want to include the drill in the production hardening gate, run:
 
 ```bash
-CHECK_HARDENING_RUN_RESTORE=true CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz npm run check:hardening
+CHECK_HARDENING_RUN_RESTORE=true npm run check:hardening
 ```
 
 Use this on the VPS host, not inside `docker compose exec`. The helper needs

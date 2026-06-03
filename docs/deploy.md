@@ -236,13 +236,13 @@ chmod +x scripts/restore-db.sh
 To verify recovery safely against a temporary database on the VPS host:
 
 ```bash
-CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz ./scripts/check-restore.mjs
+./scripts/check-restore.mjs
 ```
 
 To include the restore drill in the hardening gate:
 
 ```bash
-CHECK_HARDENING_RUN_RESTORE=true CHECK_RESTORE_BACKUP_FILE=/var/backups/ori-cruit-hub/oricruithub-folga_hub-YYYYMMDD-HHMMSS.sql.gz npm run check:hardening
+CHECK_HARDENING_RUN_RESTORE=true npm run check:hardening
 ```
 
 ## Cron for expiring documents
