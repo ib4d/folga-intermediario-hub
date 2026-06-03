@@ -3,11 +3,33 @@
 import { useActionState } from "react";
 import { createOrganizationAction } from "@/app/actions/organization";
 
+type OnboardingFormProps = {
+  title: string;
+  description: string;
+  stepsLabel: string;
+  steps: readonly string[];
+  nameLabel: string;
+  namePlaceholder: string;
+  submitLabel: string;
+  submittingLabel: string;
+  footerText: string;
+};
+
 const initialOrganizationState = {
   error: "",
 };
 
-export default function OnboardingForm() {
+export default function OnboardingForm({
+  title,
+  description,
+  stepsLabel,
+  steps,
+  nameLabel,
+  namePlaceholder,
+  submitLabel,
+  submittingLabel,
+  footerText,
+}: OnboardingFormProps) {
   const [state, formAction, isPending] = useActionState(
     createOrganizationAction,
     initialOrganizationState
@@ -16,10 +38,29 @@ export default function OnboardingForm() {
   return (
     <form action={formAction} style={{ display: "grid", gap: "1.25rem" }}>
       <div style={{ display: "grid", gap: "0.5rem" }}>
-        <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>Crea tu organizacion</div>
+        <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>{title}</div>
         <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
-          Define el espacio de trabajo inicial para empezar a operar en ORI CRUIT HUB.
+          {description}
         </p>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid rgba(11, 5, 0, 0.12)",
+          background: "rgba(255, 255, 255, 0.72)",
+          padding: "0.95rem 1rem",
+          display: "grid",
+          gap: "0.6rem",
+        }}
+      >
+        <div style={{ fontWeight: 900, fontSize: "0.92rem" }}>{stepsLabel}</div>
+        <ul style={{ margin: 0, paddingLeft: "1.1rem", display: "grid", gap: "0.35rem", lineHeight: 1.5 }}>
+          {steps.map((step) => (
+            <li key={step} style={{ fontSize: "0.9rem" }}>
+              {step}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {state.error ? (
@@ -39,14 +80,14 @@ export default function OnboardingForm() {
 
       <div className="input-group" style={{ marginBottom: 0 }}>
         <label className="label" htmlFor="name">
-          Nombre de la empresa o agencia
+          {nameLabel}
         </label>
         <input
           id="name"
           name="name"
           type="text"
           className="input"
-          placeholder="Ej: Folga Recruitment"
+          placeholder={namePlaceholder}
           required
           disabled={isPending}
         />
@@ -58,12 +99,11 @@ export default function OnboardingForm() {
         style={{ width: "100%", marginTop: "0.5rem" }}
         disabled={isPending}
       >
-        {isPending ? "Creando organizacion..." : "Crear organizacion"}
+        {isPending ? submittingLabel : submitLabel}
       </button>
 
       <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.6 }}>
-        Al crear una organizacion aceptas los terminos del servicio y la politica de
-        privacidad de la plataforma.
+        {footerText}
       </p>
     </form>
   );

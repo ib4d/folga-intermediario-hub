@@ -389,6 +389,28 @@ const translations = {
     "login.clearSession": "Limpiar sesion antigua",
     "login.invalidCredentials": "Correo o contrasena incorrectos.",
     "login.genericError": "Error al iniciar sesion.",
+    "onboarding.badge": "Primer acceso",
+    "onboarding.title": "Activa tu espacio operativo",
+    "onboarding.description":
+      "Configura la organizacion inicial y deja listo el entorno para candidatos, documentos, legal y logistica.",
+    "onboarding.footer":
+      "La configuracion inicial solo toma unos minutos y deja el espacio preparado para el flujo comercial y operativo.",
+    "onboarding.formTitle": "Crea tu organizacion",
+    "onboarding.formDescription":
+      "Define el espacio de trabajo inicial para empezar a operar en ORI CRUIT HUB.",
+    "onboarding.stepsLabel": "Lo que queda listo al crearla",
+    "onboarding.step1":
+      "Se habilita la mesa de trabajo para candidatos, documentos, legal y logistica.",
+    "onboarding.step2":
+      "La organizacion queda lista para que el equipo empiece a operar con trazabilidad.",
+    "onboarding.step3":
+      "La base queda preparada para ampliarse con branding, billing y limites de plan.",
+    "onboarding.nameLabel": "Nombre de la empresa o agencia",
+    "onboarding.namePlaceholder": "Ej: Folga Recruitment",
+    "onboarding.submit": "Crear organizacion",
+    "onboarding.submitting": "Creando organizacion...",
+    "onboarding.terms":
+      "Al crear una organizacion aceptas los terminos del servicio y la politica de privacidad de la plataforma.",
     "billing.title": "Suscripcion y Facturacion",
     "billing.description":
       "Gestiona el plan, limites operativos y estado de pagos de la organizacion.",
@@ -1211,6 +1233,28 @@ const translations = {
     "login.clearSession": "Clear old session",
     "login.invalidCredentials": "Incorrect email or password.",
     "login.genericError": "Could not sign in.",
+    "onboarding.badge": "First access",
+    "onboarding.title": "Activate your workspace",
+    "onboarding.description":
+      "Set up the initial organization and leave the environment ready for candidates, documents, legal, and logistics.",
+    "onboarding.footer":
+      "The initial setup only takes a few minutes and leaves the workspace ready for commercial and operational work.",
+    "onboarding.formTitle": "Create your organization",
+    "onboarding.formDescription":
+      "Define the initial workspace to start operating in ORI CRUIT HUB.",
+    "onboarding.stepsLabel": "What becomes ready when you create it",
+    "onboarding.step1":
+      "The workspace is enabled for candidates, documents, legal, and logistics.",
+    "onboarding.step2":
+      "The organization is ready for the team to start operating with traceability.",
+    "onboarding.step3":
+      "The base is prepared for branding, billing, and plan limits later on.",
+    "onboarding.nameLabel": "Company or agency name",
+    "onboarding.namePlaceholder": "e.g. Folga Recruitment",
+    "onboarding.submit": "Create organization",
+    "onboarding.submitting": "Creating organization...",
+    "onboarding.terms":
+      "By creating an organization you accept the platform's terms of service and privacy policy.",
     "billing.title": "Subscription and Billing",
     "billing.description":
       "Manage the plan, operational limits, and organization payment status.",
@@ -2033,6 +2077,28 @@ const translations = {
     "login.clearSession": "Wyczysc stara sesje",
     "login.invalidCredentials": "Nieprawidlowy e-mail lub haslo.",
     "login.genericError": "Nie udalo sie zalogowac.",
+    "onboarding.badge": "Pierwszy dostep",
+    "onboarding.title": "Aktywuj swoja przestrzen operacyjna",
+    "onboarding.description":
+      "Skonfiguruj organizacje startowa i przygotuj srodowisko dla kandydatow, dokumentow, legal i logistyki.",
+    "onboarding.footer":
+      "Poczatkowa konfiguracja zajmuje tylko kilka minut i przygotowuje przestrzen do pracy handlowej i operacyjnej.",
+    "onboarding.formTitle": "Utworz organizacje",
+    "onboarding.formDescription":
+      "Okresl poczatkowa przestrzen robocza, aby zaczac pracowac w ORI CRUIT HUB.",
+    "onboarding.stepsLabel": "Co bedzie gotowe po utworzeniu",
+    "onboarding.step1":
+      "Przestrzen zostaje wlaczona dla kandydatow, dokumentow, legal i logistyki.",
+    "onboarding.step2":
+      "Organizacja jest gotowa, aby zespol mogl zaczac dzialac ze sledzeniem.",
+    "onboarding.step3":
+      "Baza jest przygotowana pod branding, billing i limity planu w dalszym kroku.",
+    "onboarding.nameLabel": "Nazwa firmy lub agencji",
+    "onboarding.namePlaceholder": "np. Folga Recruitment",
+    "onboarding.submit": "Utworz organizacje",
+    "onboarding.submitting": "Tworzenie organizacji...",
+    "onboarding.terms":
+      "Tworzac organizacje akceptujesz regulamin uslugi i polityke prywatnosci platformy.",
     "billing.title": "Subskrypcja i Rozliczenia",
     "billing.description":
       "Zarzadzaj planem, limitami operacyjnymi i statusem platnosci organizacji.",
