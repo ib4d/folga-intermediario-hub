@@ -15,8 +15,8 @@ chmod +x scripts/backup-db.sh
 ```
 
 The script uses `docker compose -f docker-compose.prod.yml exec -T db pg_dump`,
-writes to `./backups`, compresses the SQL dump, and removes backups older than
-30 days.
+writes to `/var/backups/ori-cruit-hub` by default, compresses the SQL dump, and
+removes backups older than 30 days.
 
 Optional environment overrides:
 
@@ -39,7 +39,7 @@ crontab -e
 ```
 
 ```cron
-0 2 * * * cd /path/to/folga-intermediario-hub && BACKUP_DIR=/var/backups/ori-cruit-hub ./scripts/backup-db.sh >> /var/log/ori-cruit-hub-backup.log 2>&1
+0 2 * * * cd /opt/folga-intermediario-hub && ./scripts/backup-db.sh >> /var/log/ori-cruit-hub-backup.log 2>&1
 ```
 
 ## Restore Drill

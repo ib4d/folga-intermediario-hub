@@ -226,6 +226,8 @@ chmod +x scripts/backup-db.sh
 ./scripts/backup-db.sh
 ```
 
+By default the backup lands in `/var/backups/ori-cruit-hub` on the VPS.
+
 Restore into the same database only during a planned recovery window:
 
 ```bash

@@ -7,7 +7,7 @@ set -euo pipefail
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 DB_USER="${DB_USER:-folga}"
 DB_NAME="${DB_NAME:-folga_hub}"
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/ori-cruit-hub}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 TIMESTAMP="$(date +"%Y%m%d-%H%M%S")"
 BACKUP_FILE="${BACKUP_DIR}/oricruithub-${DB_NAME}-${TIMESTAMP}.sql"
