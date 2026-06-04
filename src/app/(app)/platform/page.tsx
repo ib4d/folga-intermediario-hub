@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getPlanLimits } from "@/lib/billing/limits";
 import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
 import PlatformReadinessCard from "@/components/PlatformReadinessCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
@@ -49,6 +50,12 @@ function getBillingAttentionStatusLabel(status: string, labels: (key: Translatio
   }
 }
 
+function usageRatio(used: number, limit: number) {
+  if (limit === Infinity) return 0;
+  if (limit <= 0) return 0;
+  return used / limit;
+}
+
 export default async function PlatformAdminPage() {
   await requirePlatformAdmin();
   const session = await auth();
@@ -86,6 +93,26 @@ export default async function PlatformAdminPage() {
     const status = org.subscription?.status?.toLowerCase() ?? "missing";
     return !["active", "trialing"].includes(status);
   });
+
+  const planPressureOrgs = orgs
+    .map((org) => {
+      const limits = getPlanLimits(org.plan);
+      const candidateRatio = usageRatio(org._count.candidates, limits.candidates);
+      const userRatio = usageRatio(org._count.memberships, limits.users);
+      const maxRatio = Math.max(candidateRatio, userRatio);
+
+      return {
+        org,
+        maxRatio,
+        pressureLabel:
+          candidateRatio >= userRatio
+            ? `Candidatos ${org._count.candidates}/${limits.candidates === Infinity ? "∞" : limits.candidates}`
+            : `Usuarios ${org._count.memberships}/${limits.users === Infinity ? "∞" : limits.users}`,
+        pressureType: candidateRatio >= userRatio ? "candidates" : "users",
+      };
+    })
+    .filter(({ org, maxRatio }) => org.plan !== "ENTERPRISE" && maxRatio >= 0.8)
+    .sort((a, b) => b.maxRatio - a.maxRatio);
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
@@ -311,6 +338,75 @@ export default async function PlatformAdminPage() {
           <Link href="/billing/plans" className="button button-secondary" style={{ textDecoration: "none" }}>
             {labels("platform.billingAttentionOpenPlans")}
           </Link>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div className="card-header">
+          <h2>{labels("platform.planPressureTitle")}</h2>
+          <Activity size={20} />
+        </div>
+        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.planPressureDescription")}</p>
+        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{planPressureOrgs.length}</div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.planPressureCount")}</div>
+          </div>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "0.45rem" }}>
+              {planPressureOrgs.length > 0 ? labels("platform.planPressureTenant") : labels("platform.planPressureNone")}
+            </div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700, lineHeight: 1.45 }}>
+              {planPressureOrgs.length > 0 ? labels("platform.planPressureDescription") : labels("platform.planPressureNone")}
+            </div>
+          </div>
+        </div>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{labels("platform.organization")}</th>
+                <th>{labels("platform.plan")}</th>
+                <th>{labels("platform.planPressureUsage")}</th>
+                <th>{labels("platform.planPressureRatio")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {planPressureOrgs.length > 0 ? (
+                planPressureOrgs.slice(0, 6).map(({ org, maxRatio, pressureLabel, pressureType }) => (
+                  <tr key={org.id}>
+                    <td style={{ fontWeight: "bold" }}>
+                      {org.name}
+                      <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
+                    </td>
+                    <td>
+                      <span
+                        className="status-badge active"
+                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
+                      >
+                        {org.plan}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className="status-badge"
+                        style={{ backgroundColor: pressureType === "users" ? "rgba(59, 130, 246, 0.12)" : "rgba(245, 158, 11, 0.14)", color: "var(--pitch-black)" }}
+                      >
+                        {pressureLabel}
+                      </span>
+                    </td>
+                    <td>{Math.round(maxRatio * 100)}%</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} style={{ color: "var(--muted-foreground)" }}>
+                    {labels("platform.planPressureNone")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

@@ -214,6 +214,14 @@ const translations = {
     "platform.billingAttentionPeriodEnd": "Fin de periodo",
     "platform.billingAttentionOpenBilling": "Abrir billing",
     "platform.billingAttentionOpenPlans": "Abrir planes",
+    "platform.planPressureTitle": "Presion por plan",
+    "platform.planPressureDescription":
+      "Tenants que ya estan cerca del limite y pueden necesitar ampliacion de plan.",
+    "platform.planPressureCount": "Tenants bajo presion",
+    "platform.planPressureTenant": "Tenant a revisar",
+    "platform.planPressureNone": "No hay tenants cerca del limite del plan.",
+    "platform.planPressureUsage": "Uso que presiona",
+    "platform.planPressureRatio": "Cercania",
     "platform.subscriptionStatus": "Estado de suscripcion",
     "platform.readinessTitle": "Readiness de distribucion",
     "platform.readinessDescription":
@@ -1131,6 +1139,14 @@ const translations = {
     "platform.billingAttentionPeriodEnd": "Period end",
     "platform.billingAttentionOpenBilling": "Open billing",
     "platform.billingAttentionOpenPlans": "Open plans",
+    "platform.planPressureTitle": "Plan pressure",
+    "platform.planPressureDescription":
+      "Tenants that are already close to their limit and may need a plan upgrade.",
+    "platform.planPressureCount": "Tenants under pressure",
+    "platform.planPressureTenant": "Tenant to review",
+    "platform.planPressureNone": "No tenants are close to the plan limit.",
+    "platform.planPressureUsage": "Pressuring usage",
+    "platform.planPressureRatio": "Closeness",
     "platform.subscriptionStatus": "Subscription status",
     "platform.readinessTitle": "Distribution readiness",
     "platform.readinessDescription":
@@ -2048,6 +2064,14 @@ const translations = {
     "platform.billingAttentionPeriodEnd": "Koniec okresu",
     "platform.billingAttentionOpenBilling": "Otworz billing",
     "platform.billingAttentionOpenPlans": "Otworz plany",
+    "platform.planPressureTitle": "Presja planu",
+    "platform.planPressureDescription":
+      "Tenenty, ktore sa juz blisko limitu i moga potrzebowac zmiany planu.",
+    "platform.planPressureCount": "Tenenty pod presja",
+    "platform.planPressureTenant": "Tenant do sprawdzenia",
+    "platform.planPressureNone": "Brak tenantow blisko limitu planu.",
+    "platform.planPressureUsage": "Zuzycie naciskajace na limit",
+    "platform.planPressureRatio": "Bliskosc limitu",
     "platform.subscriptionStatus": "Status subskrypcji",
     "platform.readinessTitle": "Gotowosc do dystrybucji",
     "platform.readinessDescription":
