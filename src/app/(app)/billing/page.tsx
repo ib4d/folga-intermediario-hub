@@ -28,6 +28,24 @@ function formatBillingDate(value: Date | null | undefined, language: AppLanguage
   }).format(value);
 }
 
+function getBillingAttentionStatusLabel(status: string, language: AppLanguage) {
+  switch (status) {
+    case "missing":
+      return t(language, "billing.subscriptionAttentionStatusMissing");
+    case "past_due":
+      return t(language, "billing.subscriptionAttentionStatusPastDue");
+    case "canceled":
+      return t(language, "billing.subscriptionAttentionStatusCanceled");
+    case "unpaid":
+      return t(language, "billing.subscriptionAttentionStatusUnpaid");
+    case "incomplete":
+    case "incomplete_expired":
+      return t(language, "billing.subscriptionAttentionStatusIncomplete");
+    default:
+      return t(language, "billing.subscriptionAttentionStatusUnknown");
+  }
+}
+
 export default async function BillingPage() {
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
@@ -45,6 +63,20 @@ export default async function BillingPage() {
   if (!organization) return null;
 
   const limits = getPlanLimits(organization.plan);
+  const billingAttention =
+    organization.plan === "FREE"
+      ? null
+      : (() => {
+          const status = organization.subscription?.status?.toLowerCase() ?? "missing";
+          if (["active", "trialing"].includes(status)) {
+            return null;
+          }
+
+          return {
+            status,
+            currentPeriodEnd: organization.subscription?.currentPeriodEnd ?? null,
+          };
+        })();
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -68,6 +100,51 @@ export default async function BillingPage() {
         <h1>{labels("billing.title")}</h1>
         <p>{labels("billing.description")}</p>
       </section>
+
+      {billingAttention ? (
+        <div
+          className="card"
+          style={{
+            marginBottom: "2rem",
+            border: "1px solid rgba(185, 28, 28, 0.18)",
+            background: "linear-gradient(90deg, rgba(254, 242, 242, 0.96), rgba(255, 247, 237, 0.96))",
+          }}
+        >
+          <div className="card-header" style={{ marginBottom: "0.75rem" }}>
+            <h3 style={{ color: "#991b1b" }}>{labels("billing.subscriptionAttentionTitle")}</h3>
+          </div>
+          <p style={{ marginTop: 0, marginBottom: "0.5rem", fontWeight: 700 }}>
+            {labels("billing.subscriptionAttentionMessage")}
+          </p>
+          <div style={{ display: "grid", gap: "0.35rem", marginBottom: "1rem", color: "rgba(0,0,0,0.75)" }}>
+            <div>
+              {labels("billing.subscriptionAttentionStatus").replace(
+                "{status}",
+                getBillingAttentionStatusLabel(billingAttention.status, language),
+              )}
+            </div>
+            <div>
+              {labels("billing.subscriptionAttentionPeriodEnd").replace(
+                "{date}",
+                billingAttention.currentPeriodEnd
+                  ? formatBillingDate(billingAttention.currentPeriodEnd, language) ?? labels("billing.notAvailable")
+                  : labels("billing.notAvailable"),
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+            {portalUrl ? (
+              <a className="button" href={portalUrl} target="_blank" rel="noreferrer">
+                <ExternalLink size={16} />
+                {labels("billing.manageStripe")}
+              </a>
+            ) : null}
+            <Link href="/billing/plans" className="button button-secondary">
+              {labels("billing.changePlan")}
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
         <div className="card">
