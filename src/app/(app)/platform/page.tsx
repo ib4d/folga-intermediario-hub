@@ -62,6 +62,10 @@ export default async function PlatformAdminPage() {
     by: ["plan"],
     _count: { _all: true },
   });
+  const billingByStatus = await prisma.subscription.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
   const unreadOperationalAlerts = await prisma.notification.count({
     where: {
       type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
@@ -224,6 +228,31 @@ export default async function PlatformAdminPage() {
                         style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
                       >
                         {item.plan}
+                      </span>
+                    </td>
+                    <td>{item._count._all}</td>
+                  </tr>
+                ))}
+            </tbody>
+              </table>
+        </div>
+        <div style={{ height: "1rem" }} />
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{labels("platform.subscriptionStatus")}</th>
+                <th>{labels("platform.count")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingByStatus
+                .sort((a, b) => b._count._all - a._count._all)
+                .map((item) => (
+                  <tr key={item.status}>
+                    <td>
+                      <span className="status-badge" style={{ backgroundColor: "rgba(0,0,0,0.06)", color: "var(--pitch-black)" }}>
+                        {item.status.toUpperCase()}
                       </span>
                     </td>
                     <td>{item._count._all}</td>

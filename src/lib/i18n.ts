@@ -205,6 +205,7 @@ const translations = {
     "platform.billingPulseDescription": "Resumen rapido de suscripciones y distribucion por plan.",
     "platform.billingSubscriptions": "Suscripciones",
     "platform.billingActiveSubscriptions": "Activas",
+    "platform.subscriptionStatus": "Estado de suscripcion",
     "platform.readinessTitle": "Readiness de distribucion",
     "platform.readinessDescription":
       "Resumen breve de lo que ya esta listo y de lo que aun falta para salir al mercado.",
@@ -1101,6 +1102,7 @@ const translations = {
     "platform.billingPulseDescription": "Quick summary of subscriptions and plan distribution.",
     "platform.billingSubscriptions": "Subscriptions",
     "platform.billingActiveSubscriptions": "Active",
+    "platform.subscriptionStatus": "Subscription status",
     "platform.readinessTitle": "Distribution readiness",
     "platform.readinessDescription":
       "Short summary of what is already ready and what still remains before market launch.",
@@ -1997,6 +1999,7 @@ const translations = {
     "platform.billingPulseDescription": "Szybkie podsumowanie subskrypcji i rozkladu planow.",
     "platform.billingSubscriptions": "Subskrypcje",
     "platform.billingActiveSubscriptions": "Aktywne",
+    "platform.subscriptionStatus": "Status subskrypcji",
     "platform.readinessTitle": "Gotowosc do dystrybucji",
     "platform.readinessDescription":
       "Krotkie podsumowanie tego, co jest juz gotowe, i tego, co jeszcze zostalo przed wyjsciem na rynek.",
