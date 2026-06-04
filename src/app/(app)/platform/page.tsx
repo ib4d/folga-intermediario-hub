@@ -30,6 +30,24 @@ function getOperationalAlertTypeLabel(type: string, labels: (key: TranslationKey
   }
 }
 
+function getBillingAttentionStatusLabel(status: string, labels: (key: TranslationKey) => string) {
+  switch (status) {
+    case "missing":
+      return labels("billing.subscriptionAttentionStatusMissing");
+    case "past_due":
+      return labels("billing.subscriptionAttentionStatusPastDue");
+    case "canceled":
+      return labels("billing.subscriptionAttentionStatusCanceled");
+    case "unpaid":
+      return labels("billing.subscriptionAttentionStatusUnpaid");
+    case "incomplete":
+    case "incomplete_expired":
+      return labels("billing.subscriptionAttentionStatusIncomplete");
+    default:
+      return labels("billing.subscriptionAttentionStatusUnknown");
+  }
+}
+
 export default async function PlatformAdminPage() {
   await requirePlatformAdmin();
   const session = await auth();
@@ -37,10 +55,17 @@ export default async function PlatformAdminPage() {
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
   const { storage, ocr } = providerStatus;
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
 
   const [orgs, stats] = await Promise.all([
     prisma.organization.findMany({
       include: {
+        subscription: {
+          select: {
+            status: true,
+            currentPeriodEnd: true,
+          },
+        },
         _count: {
           select: { memberships: true, candidates: true, documents: true },
         },
@@ -51,6 +76,15 @@ export default async function PlatformAdminPage() {
       _count: { _all: true },
     }),
   ]);
+
+  const billingAttentionOrgs = orgs.filter((org) => {
+    if (org.plan === "FREE") {
+      return false;
+    }
+
+    const status = org.subscription?.status?.toLowerCase() ?? "missing";
+    return !["active", "trialing"].includes(status);
+  });
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
@@ -190,6 +224,84 @@ export default async function PlatformAdminPage() {
             <FileText size={24} />
           </div>
           <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalCandidates}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div className="card-header">
+          <h2>{labels("platform.billingAttentionTitle")}</h2>
+          <Activity size={20} />
+        </div>
+        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.billingAttentionDescription")}</p>
+        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{billingAttentionOrgs.length}</div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingAttentionCount")}</div>
+          </div>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "0.45rem" }}>
+              {billingAttentionOrgs.length > 0 ? labels("platform.billingAttentionTenant") : labels("platform.billingAttentionNone")}
+            </div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700, lineHeight: 1.45 }}>
+              {billingAttentionOrgs.length > 0
+                ? labels("platform.billingAttentionDescription")
+                : labels("platform.billingAttentionNone")}
+            </div>
+          </div>
+        </div>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{labels("platform.organization")}</th>
+                <th>{labels("platform.plan")}</th>
+                <th>{labels("platform.subscriptionStatus")}</th>
+                <th>{labels("platform.billingAttentionPeriodEnd")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingAttentionOrgs.length > 0 ? (
+                billingAttentionOrgs.slice(0, 6).map((org) => {
+                  const status = org.subscription?.status?.toLowerCase() ?? "missing";
+                  return (
+                    <tr key={org.id}>
+                      <td style={{ fontWeight: "bold" }}>
+                        {org.name}
+                        <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
+                      </td>
+                      <td>
+                        <span
+                          className="status-badge active"
+                          style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
+                        >
+                          {org.plan}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className="status-badge"
+                          style={{ backgroundColor: "rgba(185, 28, 28, 0.1)", color: "#991b1b" }}
+                        >
+                          {getBillingAttentionStatusLabel(status, labels)}
+                        </span>
+                      </td>
+                      <td>
+                        {org.subscription?.currentPeriodEnd
+                          ? org.subscription.currentPeriodEnd.toLocaleDateString(locale)
+                          : labels("billing.notAvailable")}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} style={{ color: "var(--muted-foreground)" }}>
+                    {labels("platform.billingAttentionNone")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

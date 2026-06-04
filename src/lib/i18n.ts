@@ -205,6 +205,13 @@ const translations = {
     "platform.billingPulseDescription": "Resumen rapido de suscripciones y distribucion por plan.",
     "platform.billingSubscriptions": "Suscripciones",
     "platform.billingActiveSubscriptions": "Activas",
+    "platform.billingAttentionTitle": "Atencion de Billing",
+    "platform.billingAttentionDescription":
+      "Tenants de pago que necesitan revision porque su suscripcion no esta sana.",
+    "platform.billingAttentionCount": "Tenants con seguimiento",
+    "platform.billingAttentionTenant": "Tenant a revisar",
+    "platform.billingAttentionNone": "No hay tenants con billing pendiente de revision.",
+    "platform.billingAttentionPeriodEnd": "Fin de periodo",
     "platform.subscriptionStatus": "Estado de suscripcion",
     "platform.readinessTitle": "Readiness de distribucion",
     "platform.readinessDescription":
@@ -1113,6 +1120,13 @@ const translations = {
     "platform.billingPulseDescription": "Quick summary of subscriptions and plan distribution.",
     "platform.billingSubscriptions": "Subscriptions",
     "platform.billingActiveSubscriptions": "Active",
+    "platform.billingAttentionTitle": "Billing attention",
+    "platform.billingAttentionDescription":
+      "Paying tenants that need review because their subscription is not healthy.",
+    "platform.billingAttentionCount": "Tenants to follow up",
+    "platform.billingAttentionTenant": "Tenant to review",
+    "platform.billingAttentionNone": "No tenants have billing pending review.",
+    "platform.billingAttentionPeriodEnd": "Period end",
     "platform.subscriptionStatus": "Subscription status",
     "platform.readinessTitle": "Distribution readiness",
     "platform.readinessDescription":
@@ -2021,6 +2035,13 @@ const translations = {
     "platform.billingPulseDescription": "Szybkie podsumowanie subskrypcji i rozkladu planow.",
     "platform.billingSubscriptions": "Subskrypcje",
     "platform.billingActiveSubscriptions": "Aktywne",
+    "platform.billingAttentionTitle": "Uwagi billingowe",
+    "platform.billingAttentionDescription":
+      "Platne tenenty wymagajace weryfikacji, poniewaz ich subskrypcja nie jest zdrowa.",
+    "platform.billingAttentionCount": "Tenenty do obslugi",
+    "platform.billingAttentionTenant": "Tenant do sprawdzenia",
+    "platform.billingAttentionNone": "Brak tenantow z billingiem wymagajacym weryfikacji.",
+    "platform.billingAttentionPeriodEnd": "Koniec okresu",
     "platform.subscriptionStatus": "Status subskrypcji",
     "platform.readinessTitle": "Gotowosc do dystrybucji",
     "platform.readinessDescription":
