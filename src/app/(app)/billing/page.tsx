@@ -1,6 +1,6 @@
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { CreditCard, ExternalLink, Zap } from "lucide-react";
+import { CalendarClock, CreditCard, ExternalLink, Zap } from "lucide-react";
 import Link from "next/link";
 import { getPlanLimits } from "@/lib/billing/limits";
 import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
@@ -17,6 +17,15 @@ function formatLimit(value: number, language: AppLanguage) {
 function usagePercent(used: number, limit: number) {
   if (limit === Infinity) return 0;
   return Math.min((used / limit) * 100, 100);
+}
+
+function formatBillingDate(value: Date | null | undefined, language: AppLanguage) {
+  if (!value) return null;
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
 }
 
 export default async function BillingPage() {
@@ -97,6 +106,39 @@ export default async function BillingPage() {
             </button>
           )}
         </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3>{labels("billing.subscriptionDetails")}</h3>
+            <CalendarClock size={24} />
+          </div>
+
+          {organization.subscription ? (
+            <div style={{ display: "grid", gap: "0.85rem" }}>
+              <BillingDetailRow label={labels("billing.subscriptionStatus")} value={organization.subscription.status.toUpperCase()} />
+              <BillingDetailRow
+                label={labels("billing.periodStart")}
+                value={formatBillingDate(organization.subscription.currentPeriodStart, language) ?? labels("billing.notAvailable")}
+              />
+              <BillingDetailRow
+                label={labels("billing.periodEnd")}
+                value={formatBillingDate(organization.subscription.currentPeriodEnd, language) ?? labels("billing.notAvailable")}
+              />
+              <BillingDetailRow
+                label={labels("billing.providerCustomerId")}
+                value={organization.subscription.providerCustomerId ?? labels("billing.notAvailable")}
+              />
+              <BillingDetailRow
+                label={labels("billing.providerSubscriptionId")}
+                value={organization.subscription.providerSubscriptionId ?? labels("billing.notAvailable")}
+              />
+            </div>
+          ) : (
+            <p style={{ color: "var(--muted-foreground)", margin: 0 }}>
+              {labels("billing.noSubscriptionRecord")}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="card">
@@ -133,6 +175,17 @@ function UsageBar({ language, label, used, limit }: { language: AppLanguage; lab
           }}
         />
       </div>
+    </div>
+  );
+}
+
+function BillingDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "grid", gap: "0.25rem" }}>
+      <span style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+        {label}
+      </span>
+      <span style={{ fontWeight: 700, wordBreak: "break-word" }}>{value}</span>
     </div>
   );
 }
