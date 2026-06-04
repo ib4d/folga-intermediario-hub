@@ -324,7 +324,7 @@ const translations = {
     "public.demo.nextDescription":
       "Si la demo encaja con tu flujo, entra al sistema o prepara tu espacio de trabajo para empezar a operar.",
     "public.demo.signIn": "Entrar al sistema",
-    "public.demo.startWorkspace": "Crear espacio",
+    "public.demo.startWorkspace": "Crear sandbox",
     "public.demo.title": "Demo guiada y comercial",
     "public.demo.description":
       "La demo muestra como un candidato entra, deja su documentacion y pasa a legal y logistica sin perder trazabilidad.",
@@ -430,6 +430,26 @@ const translations = {
     "onboarding.submitting": "Creando organizacion...",
     "onboarding.terms":
       "Al crear una organizacion aceptas los terminos del servicio y la politica de privacidad de la plataforma.",
+    "onboarding.demoBadge": "Sandbox guiado",
+    "onboarding.demoTitle": "Activa tu sandbox comercial",
+    "onboarding.demoDescription":
+      "Crea un espacio de demostracion con candidatos, alertas y actividad inicial para enseñar el flujo sin empezar en blanco.",
+    "onboarding.demoFooter":
+      "El sandbox incluye datos de ejemplo para mostrar el recorrido comercial, legal y logistico de forma inmediata.",
+    "onboarding.demoFormTitle": "Crear sandbox demo",
+    "onboarding.demoFormDescription":
+      "Tu espacio quedara listo con datos de muestra para que puedas enseñar la plataforma desde el primer minuto.",
+    "onboarding.demoStepsLabel": "Lo que queda listo en el sandbox",
+    "onboarding.demoStep1":
+      "Se crean candidatos de ejemplo para mostrar el recorrido operativo sin tocar datos reales.",
+    "onboarding.demoStep2":
+      "Se generan alertas y estados iniciales para enseñar legal y logistica con contexto.",
+    "onboarding.demoStep3":
+      "El espacio queda aislado y preparado para una demo comercial o un piloto interno.",
+    "onboarding.demoSubmit": "Crear sandbox demo",
+    "onboarding.demoSubmitting": "Creando sandbox...",
+    "onboarding.demoTerms":
+      "El sandbox se crea como una organizacion separada con datos de ejemplo y puede eliminarse o sustituirse luego por un espacio real.",
     "billing.title": "Suscripcion y Facturacion",
     "billing.description":
       "Gestiona el plan, limites operativos y estado de pagos de la organizacion.",
@@ -1187,7 +1207,7 @@ const translations = {
     "public.demo.nextDescription":
       "If the demo matches your flow, sign in or set up your workspace to start operating.",
     "public.demo.signIn": "Enter the system",
-    "public.demo.startWorkspace": "Create workspace",
+    "public.demo.startWorkspace": "Create sandbox",
     "public.demo.title": "Guided commercial demo",
     "public.demo.description":
       "The demo shows how a candidate enters, submits documents, and flows through legal and logistics without losing traceability.",
@@ -1293,6 +1313,26 @@ const translations = {
     "onboarding.submitting": "Creating organization...",
     "onboarding.terms":
       "By creating an organization you accept the platform's terms of service and privacy policy.",
+    "onboarding.demoBadge": "Guided sandbox",
+    "onboarding.demoTitle": "Activate your commercial sandbox",
+    "onboarding.demoDescription":
+      "Create a demo workspace with candidates, alerts, and starter activity to show the flow without starting from empty.",
+    "onboarding.demoFooter":
+      "The sandbox includes sample data so you can present the commercial, legal, and logistics journey right away.",
+    "onboarding.demoFormTitle": "Create demo sandbox",
+    "onboarding.demoFormDescription":
+      "Your workspace will be ready with sample data so you can show the platform from minute one.",
+    "onboarding.demoStepsLabel": "What becomes ready in the sandbox",
+    "onboarding.demoStep1":
+      "Sample candidates are created so you can show the operational journey without touching real data.",
+    "onboarding.demoStep2":
+      "Initial alerts and statuses are generated so legal and logistics can be shown with context.",
+    "onboarding.demoStep3":
+      "The workspace stays isolated and ready for a commercial demo or an internal pilot.",
+    "onboarding.demoSubmit": "Create demo sandbox",
+    "onboarding.demoSubmitting": "Creating sandbox...",
+    "onboarding.demoTerms":
+      "The sandbox is created as a separate organization with sample data and can later be removed or replaced with a real workspace.",
     "billing.title": "Subscription and Billing",
     "billing.description":
       "Manage the plan, operational limits, and organization payment status.",
@@ -2050,7 +2090,7 @@ const translations = {
     "public.demo.nextDescription":
       "Jesli demo pasuje do Twojego przeplywu, zaloguj sie lub przygotuj przestrzen robocza do startu.",
     "public.demo.signIn": "Wejdz do systemu",
-    "public.demo.startWorkspace": "Utworz przestrzen",
+    "public.demo.startWorkspace": "Utworz sandbox",
     "public.demo.title": "Prowadzone demo handlowe",
     "public.demo.description":
       "Demo pokazuje, jak kandydat wchodzi, oddaje dokumenty i przechodzi przez legal i logistyke bez utraty sledzenia.",
@@ -2156,6 +2196,26 @@ const translations = {
     "onboarding.submitting": "Tworzenie organizacji...",
     "onboarding.terms":
       "Tworzac organizacje akceptujesz regulamin uslugi i polityke prywatnosci platformy.",
+    "onboarding.demoBadge": "Sandbox prowadzony",
+    "onboarding.demoTitle": "Aktywuj swoj sandbox handlowy",
+    "onboarding.demoDescription":
+      "Utworz przestrzen demo z kandydatami, alertami i poczatkowa aktywnoscia, aby pokazac przeplyw bez startu od zera.",
+    "onboarding.demoFooter":
+      "Sandbox zawiera przykladowe dane, aby od razu pokazac sciezke handlowa, prawna i logistyczna.",
+    "onboarding.demoFormTitle": "Utworz sandbox demo",
+    "onboarding.demoFormDescription":
+      "Twoja przestrzen bedzie gotowa z danymi przykladowymi, aby pokazac platforme od pierwszej minuty.",
+    "onboarding.demoStepsLabel": "Co bedzie gotowe w sandboxie",
+    "onboarding.demoStep1":
+      "Tworzone sa przykladowi kandydaci, aby pokazac przeplyw operacyjny bez dotykania prawdziwych danych.",
+    "onboarding.demoStep2":
+      "Generowane sa poczatkowe alerty i statusy, aby legal i logistyke pokazac w kontekscie.",
+    "onboarding.demoStep3":
+      "Przestrzen pozostaje odizolowana i gotowa na demo handlowe lub pilota wewnetrznego.",
+    "onboarding.demoSubmit": "Utworz sandbox demo",
+    "onboarding.demoSubmitting": "Tworzenie sandboxu...",
+    "onboarding.demoTerms":
+      "Sandbox jest tworzony jako osobna organizacja z danymi przykladowymi i moze pozniej zostac usuniety lub zastapiony prawdziwa przestrzenia.",
     "billing.title": "Subskrypcja i Rozliczenia",
     "billing.description":
       "Zarzadzaj planem, limitami operacyjnymi i statusem platnosci organizacji.",

@@ -44,7 +44,7 @@ export default async function DemoPage({
   const language = normalizeLanguage(lang ?? session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const loginHref = localizedHref("/login", language);
-  const onboardingHref = localizedHref("/onboarding", language);
+  const onboardingHref = localizedHref("/onboarding?mode=demo", language);
 
   return (
     <div

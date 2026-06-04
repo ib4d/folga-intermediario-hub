@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { createOrganizationAction } from "@/app/actions/organization";
 
 type OnboardingFormProps = {
+  mode: "standard" | "demo";
   title: string;
   description: string;
   stepsLabel: string;
@@ -20,6 +21,7 @@ const initialOrganizationState = {
 };
 
 export default function OnboardingForm({
+  mode,
   title,
   description,
   stepsLabel,
@@ -37,6 +39,7 @@ export default function OnboardingForm({
 
   return (
     <form action={formAction} style={{ display: "grid", gap: "1.25rem" }}>
+      <input type="hidden" name="mode" value={mode} />
       <div style={{ display: "grid", gap: "0.5rem" }}>
         <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>{title}</div>
         <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>

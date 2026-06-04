@@ -5,11 +5,17 @@ import OnboardingForm from "@/components/public/OnboardingForm";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string; lang?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
+  const { mode: workspaceModeParam } = await searchParams;
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
+  const workspaceMode = workspaceModeParam === "demo" ? "demo" : "standard";
 
   const persistedUser = await prisma.user.findFirst({
     where: {
@@ -34,25 +40,32 @@ export default async function OnboardingPage() {
 
   return (
     <AuthShell
-      badge={labels("onboarding.badge")}
-      title={labels("onboarding.title")}
-      description={labels("onboarding.description")}
-      footer={<span>{labels("onboarding.footer")}</span>}
+      badge={workspaceMode === "demo" ? labels("onboarding.demoBadge") : labels("onboarding.badge")}
+      title={workspaceMode === "demo" ? labels("onboarding.demoTitle") : labels("onboarding.title")}
+      description={
+        workspaceMode === "demo" ? labels("onboarding.demoDescription") : labels("onboarding.description")
+      }
+      footer={
+        <span>{workspaceMode === "demo" ? labels("onboarding.demoFooter") : labels("onboarding.footer")}</span>
+      }
     >
       <OnboardingForm
-        title={labels("onboarding.formTitle")}
-        description={labels("onboarding.formDescription")}
-        stepsLabel={labels("onboarding.stepsLabel")}
-        steps={[
-          labels("onboarding.step1"),
-          labels("onboarding.step2"),
-          labels("onboarding.step3"),
-        ]}
+        mode={workspaceMode}
+        title={workspaceMode === "demo" ? labels("onboarding.demoFormTitle") : labels("onboarding.formTitle")}
+        description={
+          workspaceMode === "demo" ? labels("onboarding.demoFormDescription") : labels("onboarding.formDescription")
+        }
+        stepsLabel={workspaceMode === "demo" ? labels("onboarding.demoStepsLabel") : labels("onboarding.stepsLabel")}
+        steps={
+          workspaceMode === "demo"
+            ? [labels("onboarding.demoStep1"), labels("onboarding.demoStep2"), labels("onboarding.demoStep3")]
+            : [labels("onboarding.step1"), labels("onboarding.step2"), labels("onboarding.step3")]
+        }
         nameLabel={labels("onboarding.nameLabel")}
         namePlaceholder={labels("onboarding.namePlaceholder")}
-        submitLabel={labels("onboarding.submit")}
-        submittingLabel={labels("onboarding.submitting")}
-        footerText={labels("onboarding.terms")}
+        submitLabel={workspaceMode === "demo" ? labels("onboarding.demoSubmit") : labels("onboarding.submit")}
+        submittingLabel={workspaceMode === "demo" ? labels("onboarding.demoSubmitting") : labels("onboarding.submitting")}
+        footerText={workspaceMode === "demo" ? labels("onboarding.demoTerms") : labels("onboarding.terms")}
       />
     </AuthShell>
   );
