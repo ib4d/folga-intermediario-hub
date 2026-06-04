@@ -542,6 +542,11 @@ const translations = {
     "billing.subscriptionAttentionStatusIncomplete": "incompleta",
     "billing.subscriptionAttentionStatusUnknown": "estado desconocido",
     "billing.subscriptionAttentionPeriodEnd": "Periodo actual hasta {date}",
+    "billing.usagePressureTitle": "Presion de uso",
+    "billing.usagePressureMessage":
+      "Tu espacio se esta acercando al limite del plan y conviene revisarlo a tiempo.",
+    "billing.usagePressureCurrent": "Uso que presiona: {usage}",
+    "billing.usagePressureAction": "Puedes ampliar el plan antes de que se bloquee el crecimiento operativo.",
     "logistics.department": "Departamento Logistica",
     "logistics.title": "Gestion de Llegadas",
     "logistics.description":
@@ -1467,6 +1472,11 @@ const translations = {
     "billing.subscriptionAttentionStatusIncomplete": "incomplete",
     "billing.subscriptionAttentionStatusUnknown": "unknown status",
     "billing.subscriptionAttentionPeriodEnd": "Current period ends {date}",
+    "billing.usagePressureTitle": "Usage pressure",
+    "billing.usagePressureMessage":
+      "Your workspace is approaching the plan limit, so it is worth reviewing it in time.",
+    "billing.usagePressureCurrent": "Pressuring usage: {usage}",
+    "billing.usagePressureAction": "You can upgrade the plan before operational growth gets blocked.",
     "logistics.department": "Logistics Department",
     "logistics.title": "Arrival Management",
     "logistics.description":
@@ -2392,6 +2402,11 @@ const translations = {
     "billing.subscriptionAttentionStatusIncomplete": "niekompletna",
     "billing.subscriptionAttentionStatusUnknown": "nieznany status",
     "billing.subscriptionAttentionPeriodEnd": "Biezacy okres konczy sie {date}",
+    "billing.usagePressureTitle": "Presja zuzycia",
+    "billing.usagePressureMessage":
+      "Twoja przestrzen zbliza sie do limitu planu, wiec warto to sprawdzic na czas.",
+    "billing.usagePressureCurrent": "Zuzycie naciskajace: {usage}",
+    "billing.usagePressureAction": "Mozesz podniesc plan, zanim wzrost operacyjny zostanie zablokowany.",
     "logistics.department": "Dzial Logistyki",
     "logistics.title": "Zarzadzanie Przyjazdami",
     "logistics.description":

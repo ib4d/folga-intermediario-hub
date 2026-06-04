@@ -6,7 +6,7 @@ import { getPlanLimits } from "@/lib/billing/limits";
 import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
 import { canAccessModule } from "@/lib/permissions";
 import { redirect } from "next/navigation";
-import { normalizeLanguage, t, type AppLanguage } from "@/lib/i18n";
+import { normalizeLanguage, t, type AppLanguage, type TranslationKey } from "@/lib/i18n";
 import { auth } from "@/auth";
 
 function formatLimit(value: number, language: AppLanguage) {
@@ -52,6 +52,7 @@ export default async function BillingPage() {
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
   const stripeConfigured = isStripeConfigured();
   const portalUrl = getStripePortalUrl();
 
@@ -93,6 +94,24 @@ export default async function BillingPage() {
       },
     }),
   ]);
+
+  const usagePressureCandidates = [
+    { key: "billing.candidates" as TranslationKey, used: candidateUsage, limit: limits.candidates },
+    { key: "billing.users" as TranslationKey, used: userUsage, limit: limits.users },
+    { key: "billing.documentsCycle" as TranslationKey, used: documentUsage, limit: limits.documentsPerMonth },
+    { key: "billing.ocrCycle" as TranslationKey, used: ocrUsage, limit: limits.ocrPerMonth },
+  ]
+    .filter((item) => item.limit !== Infinity)
+    .map((item) => ({
+      ...item,
+      ratio: usagePercent(item.used, item.limit),
+    }))
+    .sort((a, b) => b.ratio - a.ratio);
+
+  const usagePressure =
+    usagePressureCandidates.length > 0 && usagePressureCandidates[0].ratio >= 80
+      ? usagePressureCandidates[0]
+      : null;
 
   return (
     <div className="content-shell">
@@ -140,6 +159,38 @@ export default async function BillingPage() {
               </a>
             ) : null}
             <Link href="/billing/plans" className="button button-secondary">
+              {labels("billing.changePlan")}
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {usagePressure ? (
+        <div
+          className="card"
+          style={{
+            marginBottom: "2rem",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
+            background: "linear-gradient(90deg, rgba(255, 251, 235, 0.96), rgba(254, 243, 199, 0.7))",
+          }}
+        >
+          <div className="card-header" style={{ marginBottom: "0.75rem" }}>
+            <h3 style={{ color: "#92400e" }}>{labels("billing.usagePressureTitle")}</h3>
+          </div>
+          <p style={{ marginTop: 0, marginBottom: "0.5rem", fontWeight: 700 }}>
+            {labels("billing.usagePressureMessage")}
+          </p>
+          <div style={{ display: "grid", gap: "0.35rem", marginBottom: "1rem", color: "rgba(0,0,0,0.75)" }}>
+            <div>
+              {labels("billing.usagePressureCurrent").replace(
+                "{usage}",
+                `${labels(usagePressure.key)} ${usagePressure.used.toLocaleString(locale)} / ${formatLimit(usagePressure.limit, language)}`,
+              )}
+            </div>
+            <div>{labels("billing.usagePressureAction")}</div>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+            <Link href="/billing/plans" className="button">
               {labels("billing.changePlan")}
             </Link>
           </div>
