@@ -54,6 +54,14 @@ export default async function PlatformAdminPage() {
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
+  const totalSubscriptions = await prisma.subscription.count();
+  const activeSubscriptions = await prisma.subscription.count({
+    where: { status: { in: ["active", "trialing"] } },
+  });
+  const billingByPlan = await prisma.subscription.groupBy({
+    by: ["plan"],
+    _count: { _all: true },
+  });
   const unreadOperationalAlerts = await prisma.notification.count({
     where: {
       type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
@@ -178,6 +186,51 @@ export default async function PlatformAdminPage() {
             <FileText size={24} />
           </div>
           <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalCandidates}</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div className="card-header">
+          <h2>{labels("platform.billingPulseTitle")}</h2>
+          <Activity size={20} />
+        </div>
+        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.billingPulseDescription")}</p>
+        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalSubscriptions}</div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingSubscriptions")}</div>
+          </div>
+          <div className="card" style={{ marginBottom: 0 }}>
+            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{activeSubscriptions}</div>
+            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingActiveSubscriptions")}</div>
+          </div>
+        </div>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{labels("platform.plan")}</th>
+                <th>{labels("platform.count")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billingByPlan
+                .sort((a, b) => b._count._all - a._count._all)
+                .map((item) => (
+                  <tr key={item.plan}>
+                    <td>
+                      <span
+                        className="status-badge active"
+                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
+                      >
+                        {item.plan}
+                      </span>
+                    </td>
+                    <td>{item._count._all}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
