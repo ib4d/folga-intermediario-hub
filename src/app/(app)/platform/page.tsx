@@ -8,6 +8,7 @@ import { TRACKED_OPERATIONAL_ALERT_TYPES } from "@/lib/operational-alerts-shared
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity, Building2, FileText, Users } from "lucide-react";
+import Link from "next/link";
 
 function getOperationalAlertTypeLabel(type: string, labels: (key: TranslationKey) => string) {
   switch (type) {
@@ -302,6 +303,14 @@ export default async function PlatformAdminPage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "1rem" }}>
+          <Link href="/billing" className="button button-secondary" style={{ textDecoration: "none" }}>
+            {labels("platform.billingAttentionOpenBilling")}
+          </Link>
+          <Link href="/billing/plans" className="button button-secondary" style={{ textDecoration: "none" }}>
+            {labels("platform.billingAttentionOpenPlans")}
+          </Link>
         </div>
       </div>
 

@@ -212,6 +212,8 @@ const translations = {
     "platform.billingAttentionTenant": "Tenant a revisar",
     "platform.billingAttentionNone": "No hay tenants con billing pendiente de revision.",
     "platform.billingAttentionPeriodEnd": "Fin de periodo",
+    "platform.billingAttentionOpenBilling": "Abrir billing",
+    "platform.billingAttentionOpenPlans": "Abrir planes",
     "platform.subscriptionStatus": "Estado de suscripcion",
     "platform.readinessTitle": "Readiness de distribucion",
     "platform.readinessDescription":
@@ -1127,6 +1129,8 @@ const translations = {
     "platform.billingAttentionTenant": "Tenant to review",
     "platform.billingAttentionNone": "No tenants have billing pending review.",
     "platform.billingAttentionPeriodEnd": "Period end",
+    "platform.billingAttentionOpenBilling": "Open billing",
+    "platform.billingAttentionOpenPlans": "Open plans",
     "platform.subscriptionStatus": "Subscription status",
     "platform.readinessTitle": "Distribution readiness",
     "platform.readinessDescription":
@@ -2042,6 +2046,8 @@ const translations = {
     "platform.billingAttentionTenant": "Tenant do sprawdzenia",
     "platform.billingAttentionNone": "Brak tenantow z billingiem wymagajacym weryfikacji.",
     "platform.billingAttentionPeriodEnd": "Koniec okresu",
+    "platform.billingAttentionOpenBilling": "Otworz billing",
+    "platform.billingAttentionOpenPlans": "Otworz plany",
     "platform.subscriptionStatus": "Status subskrypcji",
     "platform.readinessTitle": "Gotowosc do dystrybucji",
     "platform.readinessDescription":
