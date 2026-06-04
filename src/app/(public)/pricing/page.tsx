@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
+import { Plan } from "@prisma/client";
 import LanguageSwitcher from "@/components/public/LanguageSwitcher";
 import { localizedHref, normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
+import { getStripePaymentLink } from "@/lib/billing/stripe";
 
 type PricingPlan = {
+  plan: Plan;
   badge: TranslationKey;
-  price?: `EUR ${number}`;
+  price?: string;
   suffix?: TranslationKey;
   items: readonly TranslationKey[];
   featured: boolean;
@@ -13,12 +16,14 @@ type PricingPlan = {
 
 const pricingPlans: readonly PricingPlan[] = [
   {
+    plan: Plan.FREE,
     badge: "public.pricing.basic",
     price: "EUR 0",
     items: ["public.pricing.candidates25", "public.pricing.users2", "public.pricing.ocrLimited", "public.pricing.brandingOri"],
     featured: false,
   },
   {
+    plan: Plan.STARTER,
     badge: "public.pricing.popular",
     price: "EUR 49",
     suffix: "public.pricing.perMonth",
@@ -26,6 +31,7 @@ const pricingPlans: readonly PricingPlan[] = [
     featured: true,
   },
   {
+    plan: Plan.PRO,
     badge: "public.pricing.professional",
     price: "EUR 149",
     suffix: "public.pricing.perMonth",
@@ -33,13 +39,38 @@ const pricingPlans: readonly PricingPlan[] = [
     featured: false,
   },
   {
+    plan: Plan.BUSINESS,
     badge: "public.pricing.company",
     price: "EUR 349",
     suffix: "public.pricing.perMonth",
     items: ["public.pricing.candidates10000", "public.pricing.users50", "public.pricing.apiIntegration", "public.pricing.customBranding"],
     featured: false,
   },
+  {
+    plan: Plan.ENTERPRISE,
+    badge: "public.pricing.enterprise",
+    price: "billing.price.enterprise",
+    items: ["public.pricing.candidates10000", "public.pricing.users50", "public.pricing.apiIntegration", "public.pricing.customBranding"],
+    featured: false,
+  },
 ] as const;
+
+function getPlanAction(plan: PricingPlan, language: Parameters<typeof t>[0], demoHref: string, loginHref: string, onboardingHref: string) {
+  const paymentLink = plan.plan === Plan.FREE ? null : getStripePaymentLink(plan.plan);
+  const href =
+    plan.plan === Plan.FREE
+      ? onboardingHref
+      : paymentLink ?? (plan.plan === Plan.ENTERPRISE ? demoHref : loginHref);
+
+  const label =
+    plan.plan === Plan.FREE
+      ? t(language, "public.pricing.startFree")
+      : plan.plan === Plan.ENTERPRISE
+        ? t(language, "public.pricing.requestDemo")
+        : t(language, "public.pricing.selectPlan");
+
+  return { href, label, paymentLink };
+}
 
 export default async function PricingPage({
   searchParams,
@@ -52,6 +83,7 @@ export default async function PricingPage({
   const demoHref = localizedHref("/demo", language);
   const securityHref = localizedHref("/security", language);
   const loginHref = localizedHref("/login", language);
+  const onboardingHref = localizedHref("/onboarding", language);
 
   return (
     <div
@@ -107,7 +139,10 @@ export default async function PricingPage({
       <section style={{ padding: "2rem 2rem 6rem" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.25rem" }}>
-            {pricingPlans.map((plan) => (
+            {pricingPlans.map((plan) => {
+              const { href, label, paymentLink } = getPlanAction(plan, language, demoHref, loginHref, onboardingHref);
+
+              return (
               <div
                 key={plan.badge}
                 className="card"
@@ -133,7 +168,7 @@ export default async function PricingPage({
                   </div>
                   {plan.price ? (
                     <div style={{ fontSize: "2.35rem", fontWeight: 900 }}>
-                      {plan.price}
+                      {plan.price.startsWith("billing.") ? labels(plan.price as Parameters<typeof labels>[0]) : plan.price}
                       <span style={{ fontSize: "1rem" }}>{plan.suffix ? labels(plan.suffix) : ""}</span>
                     </div>
                   ) : (
@@ -158,11 +193,17 @@ export default async function PricingPage({
                   </li>
                 </ul>
 
-                <Link href={loginHref} className="button" style={{ width: "100%", marginTop: "1.5rem", textDecoration: "none" }}>
-                  {plan.featured ? labels("public.hero.secondaryCta") : labels("public.nav.login")}
+                <Link
+                  href={href}
+                  className="button"
+                  style={{ width: "100%", marginTop: "1.5rem", textDecoration: "none" }}
+                  {...(paymentLink ? { target: "_blank", rel: "noreferrer" } : {})}
+                >
+                  {label}
                 </Link>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
