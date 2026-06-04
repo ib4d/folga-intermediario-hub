@@ -8,6 +8,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/api/auth",
   "/api/health",
   "/api/providers",
+  "/api/billing/stripe",
   "/api/v1",
   "/api/v2/events",
   "/api/cron",
