@@ -140,10 +140,23 @@ export default async function PlatformAutomationActivityPage() {
                       {activity.user.name ?? activity.user.email ?? labels("billing.notAvailable")}
                     </td>
                     <td>
-                      {activity.candidate
-                        ? getDisplayCandidateName(activity.candidate.firstName, activity.candidate.lastName) ||
-                          labels("billing.notAvailable")
-                        : labels("billing.notAvailable")}
+                      {activity.candidate && activity.candidateId ? (
+                        <div style={{ display: "grid", gap: "0.35rem" }}>
+                          <Link href={`/candidatos/${activity.candidateId}`} style={{ fontWeight: 700, textDecoration: "none" }}>
+                            {getDisplayCandidateName(activity.candidate.firstName, activity.candidate.lastName) ||
+                              labels("billing.notAvailable")}
+                          </Link>
+                          <Link
+                            href={`/candidatos/${activity.candidateId}`}
+                            className="button button-secondary"
+                            style={{ textDecoration: "none", width: "fit-content", paddingInline: "0.8rem", paddingBlock: "0.45rem" }}
+                          >
+                            {labels("documents.openCandidate")}
+                          </Link>
+                        </div>
+                      ) : (
+                        labels("billing.notAvailable")
+                      )}
                     </td>
                     <td>
                       <span className={`status-badge ${activity.isRead ? "" : "active"}`}>

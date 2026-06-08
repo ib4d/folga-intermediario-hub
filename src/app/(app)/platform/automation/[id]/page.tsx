@@ -199,22 +199,36 @@ export default async function AutomationWorkflowDetailPage({ params }: Automatio
                   padding: "1rem 1.1rem",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{notification.type}</div>
-                    <div style={{ marginTop: "0.35rem", color: "var(--muted-foreground)", fontWeight: 700 }}>
-                      {notification.message}
-                    </div>
-                    {notification.candidate ? (
-                      <div style={{ marginTop: "0.35rem", fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
-                        {notification.candidate.firstName} {notification.candidate.lastName}
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                      <div>
+                        <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{notification.type}</div>
+                        <div style={{ marginTop: "0.35rem", color: "var(--muted-foreground)", fontWeight: 700 }}>
+                          {notification.message}
+                        </div>
+                        {notification.candidate && notification.candidateId ? (
+                          <div style={{ marginTop: "0.35rem", display: "grid", gap: "0.35rem" }}>
+                            <Link href={`/candidatos/${notification.candidateId}`} style={{ fontSize: "0.8rem", fontWeight: 700, textDecoration: "none" }}>
+                              {notification.candidate.firstName} {notification.candidate.lastName}
+                            </Link>
+                            <Link
+                              href={`/candidatos/${notification.candidateId}`}
+                              className="button button-secondary"
+                              style={{
+                                textDecoration: "none",
+                                width: "fit-content",
+                                paddingInline: "0.8rem",
+                                paddingBlock: "0.45rem",
+                              }}
+                            >
+                              {labels("documents.openCandidate")}
+                            </Link>
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                  <span className={`status-badge ${notification.isRead ? "" : "active"}`}>
-                    {notification.isRead ? labels("platform.inactive") : labels("platform.active")}
-                  </span>
-                </div>
+                      <span className={`status-badge ${notification.isRead ? "" : "active"}`}>
+                        {notification.isRead ? labels("platform.inactive") : labels("platform.active")}
+                      </span>
+                    </div>
               </div>
             ))
           ) : (
