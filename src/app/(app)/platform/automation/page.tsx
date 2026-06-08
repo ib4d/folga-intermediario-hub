@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+﻿import { auth } from "@/auth";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
@@ -148,6 +148,24 @@ export default async function PlatformAutomationPage({
     acc[item.type] = item._count._all;
     return acc;
   }, {});
+  const recentActivityLast = await prisma.notification.groupBy({
+    by: ["type"],
+    where: {
+      createdAt: { gte: recentActivityStart },
+      type: {
+        in: [
+          "DOC_EXPIRING",
+          "BILLING_SUBSCRIPTION_ATTENTION",
+          "BILLING_USAGE_PRESSURE",
+        ],
+      },
+    },
+    _max: { createdAt: true },
+  });
+  const recentActivityLastByType = recentActivityLast.reduce<Record<string, Date | null>>((acc, item) => {
+    acc[item.type] = item._max.createdAt;
+    return acc;
+  }, {});
 
   function getRecentActivityCount(triggerType: string) {
     switch (triggerType) {
@@ -160,6 +178,19 @@ export default async function PlatformAutomationPage({
       default:
         return 0;
     }
+  }
+
+  function getRecentActivityLastDate(triggerType: string) {
+    const date =
+      triggerType === "DOC_EXPIRING_DETECTED"
+        ? recentActivityLastByType.DOC_EXPIRING
+        : triggerType === "BILLING_ATTENTION_DETECTED"
+          ? recentActivityLastByType.BILLING_SUBSCRIPTION_ATTENTION
+          : triggerType === "PLAN_PRESSURE_DETECTED"
+            ? recentActivityLastByType.BILLING_USAGE_PRESSURE
+            : null;
+
+    return date ? date.toLocaleDateString(locale) : labels("billing.notAvailable");
   }
 
   return (
@@ -234,6 +265,7 @@ export default async function PlatformAutomationPage({
                 <th>{labels("platform.automationPageTrigger")}</th>
                 <th>{labels("platform.automationPageSteps")}</th>
                 <th>{labels("platform.automationDetailActivityTitle")}</th>
+                <th>{labels("platform.automationPageLastActivity")}</th>
                 <th>{labels("platform.automationPageUpdated")}</th>
               </tr>
             </thead>
@@ -293,12 +325,13 @@ export default async function PlatformAutomationPage({
                     </td>
                     <td>{workflow.steps.length}</td>
                     <td>{getRecentActivityCount(workflow.triggerType)}</td>
+                    <td>{getRecentActivityLastDate(workflow.triggerType)}</td>
                     <td>{workflow.updatedAt.toLocaleDateString(locale)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={8} style={{ color: "var(--muted-foreground)" }}>
                     {labels("platform.automationPageNoWorkflows")}
                   </td>
                 </tr>
@@ -310,3 +343,5 @@ export default async function PlatformAutomationPage({
     </div>
   );
 }
+
+
