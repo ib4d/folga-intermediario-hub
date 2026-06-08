@@ -45,6 +45,19 @@ function buildFilterHref(filter: AutomationActivityFilter) {
   return filter === "all" ? "/platform/automation/activity" : `/platform/automation/activity?type=${filter}`;
 }
 
+function buildWorkflowHrefFromActivityType(type: string) {
+  switch (type) {
+    case "DOC_EXPIRING":
+      return "/platform/automation?trigger=doc-expiring";
+    case "BILLING_SUBSCRIPTION_ATTENTION":
+      return "/platform/automation?trigger=billing-attention";
+    case "BILLING_USAGE_PRESSURE":
+      return "/platform/automation?trigger=plan-pressure";
+    default:
+      return "/platform/automation";
+  }
+}
+
 export default async function PlatformAutomationActivityPage({
   searchParams,
 }: {
@@ -211,9 +224,13 @@ export default async function PlatformAutomationActivityPage({
                       <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{activity.message}</div>
                     </td>
                     <td>
-                      <span className="status-badge active" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
+                      <Link
+                        href={buildWorkflowHrefFromActivityType(activity.type)}
+                        className="status-badge active"
+                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)", textDecoration: "none" }}
+                      >
                         {getActivityTriggerLabel(activity.type, labels)}
-                      </span>
+                      </Link>
                     </td>
                     <td>
                       {activity.organization.name}

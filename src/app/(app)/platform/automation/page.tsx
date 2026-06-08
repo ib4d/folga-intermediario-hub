@@ -9,6 +9,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+type AutomationWorkflowFilter = "all" | "doc-expiring" | "billing-attention" | "plan-pressure";
+
 function getWorkflowTriggerLabel(triggerType: string, labels: (key: TranslationKey) => string) {
   switch (triggerType) {
     case "DOC_EXPIRING_DETECTED":
@@ -20,6 +22,23 @@ function getWorkflowTriggerLabel(triggerType: string, labels: (key: TranslationK
     default:
       return triggerType.replace(/_/g, " ");
   }
+}
+
+function getWorkflowFilterLabel(filter: AutomationWorkflowFilter, labels: (key: TranslationKey) => string) {
+  switch (filter) {
+    case "doc-expiring":
+      return labels("platform.automationTriggerDocExpiring");
+    case "billing-attention":
+      return labels("platform.automationTriggerBillingAttention");
+    case "plan-pressure":
+      return labels("platform.automationTriggerPlanPressure");
+    default:
+      return labels("platform.automationWorkflowFilterAll");
+  }
+}
+
+function buildWorkflowFilterHref(filter: AutomationWorkflowFilter) {
+  return filter === "all" ? "/platform/automation" : `/platform/automation?trigger=${filter}`;
 }
 
 function getWorkflowStepLabel(type: string, labels: (key: TranslationKey) => string) {
@@ -68,14 +87,29 @@ function summarizeWorkflowStep(type: string, config: unknown) {
   }
 }
 
-export default async function PlatformAutomationPage() {
+export default async function PlatformAutomationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ trigger?: string }>;
+}) {
   await requirePlatformAdmin();
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  const { trigger } = await searchParams;
+  const selectedFilter: AutomationWorkflowFilter =
+    trigger === "doc-expiring" || trigger === "billing-attention" || trigger === "plan-pressure" ? trigger : "all";
 
   const workflows = await prisma.workflow.findMany({
+    where:
+      selectedFilter === "doc-expiring"
+        ? { triggerType: "DOC_EXPIRING_DETECTED" }
+        : selectedFilter === "billing-attention"
+          ? { triggerType: "BILLING_ATTENTION_DETECTED" }
+          : selectedFilter === "plan-pressure"
+            ? { triggerType: "PLAN_PRESSURE_DETECTED" }
+            : undefined,
     include: {
       organization: {
         select: {
@@ -135,6 +169,18 @@ export default async function PlatformAutomationPage() {
           <div>
             <h1>{labels("platform.automationPageTitle")}</h1>
             <p>{labels("platform.automationPageDescription")}</p>
+            <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {(["all", "doc-expiring", "billing-attention", "plan-pressure"] as AutomationWorkflowFilter[]).map((filter) => (
+                <Link
+                  key={filter}
+                  href={buildWorkflowFilterHref(filter)}
+                  className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  {getWorkflowFilterLabel(filter, labels)}
+                </Link>
+              ))}
+            </div>
           </div>
           <Link href="/platform" className="button button-secondary" style={{ textDecoration: "none", alignSelf: "start" }}>
             {labels("platform.automationBackToPlatform")}
@@ -229,7 +275,20 @@ export default async function PlatformAutomationPage() {
                     </td>
                     <td>
                       <span className="status-badge active" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
-                        {getWorkflowTriggerLabel(workflow.triggerType, labels)}
+                        <Link
+                          href={buildWorkflowFilterHref(
+                            workflow.triggerType === "DOC_EXPIRING_DETECTED"
+                              ? "doc-expiring"
+                              : workflow.triggerType === "BILLING_ATTENTION_DETECTED"
+                                ? "billing-attention"
+                                : workflow.triggerType === "PLAN_PRESSURE_DETECTED"
+                                  ? "plan-pressure"
+                                  : "all",
+                          )}
+                          style={{ textDecoration: "none", color: "inherit" }}
+                        >
+                          {getWorkflowTriggerLabel(workflow.triggerType, labels)}
+                        </Link>
                       </span>
                     </td>
                     <td>{workflow.steps.length}</td>

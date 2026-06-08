@@ -257,6 +257,7 @@ const translations = {
     "platform.automationPageTitle": "Workflows de automatizacion",
     "platform.automationPageDescription":
       "Listado operativo de los workflows activos, sus triggers y el estado de la cola de automatizacion.",
+    "platform.automationWorkflowFilterAll": "Todos los workflows",
     "platform.automationPageTotal": "Workflows totales",
     "platform.automationPageActive": "Workflows activos",
     "platform.automationPageWorkflow": "Workflow",
@@ -1253,6 +1254,7 @@ const translations = {
     "platform.automationPageTitle": "Automation workflows",
     "platform.automationPageDescription":
       "Operational list of active workflows, their triggers, and the automation queue status.",
+    "platform.automationWorkflowFilterAll": "All workflows",
     "platform.automationPageTotal": "Total workflows",
     "platform.automationPageActive": "Active workflows",
     "platform.automationPageWorkflow": "Workflow",
@@ -2249,6 +2251,7 @@ const translations = {
     "platform.automationPageTitle": "Workflowy automatyzacji",
     "platform.automationPageDescription":
       "Operacyjna lista aktywnych workflowow, ich triggerow i stanu kolejki automatyzacji.",
+    "platform.automationWorkflowFilterAll": "Wszystkie workflowy",
     "platform.automationPageTotal": "Lacznie workflowow",
     "platform.automationPageActive": "Aktywne workflowy",
     "platform.automationPageWorkflow": "Workflow",
