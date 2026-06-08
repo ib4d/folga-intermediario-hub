@@ -45,6 +45,19 @@ function buildFilterHref(filter: AutomationActivityFilter) {
   return filter === "all" ? "/platform/automation/activity" : `/platform/automation/activity?type=${filter}`;
 }
 
+function buildNotificationsHref(filter: AutomationActivityFilter) {
+  switch (filter) {
+    case "doc-expiring":
+      return "/notificaciones?type=doc-expiring";
+    case "billing-attention":
+      return "/notificaciones?type=billing-attention";
+    case "plan-pressure":
+      return "/notificaciones?type=billing-pressure";
+    default:
+      return "/notificaciones";
+  }
+}
+
 function buildWorkflowHrefFromActivityType(type: string) {
   switch (type) {
     case "DOC_EXPIRING":
@@ -150,9 +163,14 @@ export default async function PlatformAutomationActivityPage({
               ))}
             </div>
           </div>
-          <Link href="/platform/automation" className="button button-secondary" style={{ textDecoration: "none", alignSelf: "start" }}>
-            {labels("platform.automationBackToPlatform")}
-          </Link>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignSelf: "start" }}>
+            <Link href="/platform/automation" className="button button-secondary" style={{ textDecoration: "none" }}>
+              {labels("platform.automationBackToPlatform")}
+            </Link>
+            <Link href={buildNotificationsHref(selectedFilter)} className="button button-secondary" style={{ textDecoration: "none" }}>
+              {labels("platform.automationOpenNotifications")}
+            </Link>
+          </div>
         </div>
       </div>
 

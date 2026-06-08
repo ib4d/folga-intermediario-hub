@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { normalizeLanguage, t } from "@/lib/i18n";
+import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -7,18 +7,53 @@ import { AlertTriangle, Bell, Clock, CreditCard, FileText, Truck, UserPlus } fro
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function NotificationsPage() {
+type NotificationFilter = "all" | "doc-expiring" | "billing-attention" | "billing-pressure";
+
+function getNotificationFilterLabel(filter: NotificationFilter, labels: (key: TranslationKey) => string) {
+  switch (filter) {
+    case "doc-expiring":
+      return labels("notifications.filterDocExpiring");
+    case "billing-attention":
+      return labels("notifications.filterBillingAttention");
+    case "billing-pressure":
+      return labels("notifications.filterBillingPressure");
+    default:
+      return labels("notifications.filterAll");
+  }
+}
+
+function buildNotificationFilterHref(filter: NotificationFilter) {
+  return filter === "all" ? "/notificaciones" : `/notificaciones?type=${filter}`;
+}
+
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
 
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
   const tenant = await requireTenant();
+  const { type } = await searchParams;
+  const selectedFilter: NotificationFilter =
+    type === "doc-expiring" || type === "billing-attention" || type === "billing-pressure" ? type : "all";
+  const selectedTypes =
+    selectedFilter === "doc-expiring"
+      ? ["DOC_EXPIRING"]
+      : selectedFilter === "billing-attention"
+        ? ["BILLING_SUBSCRIPTION_ATTENTION"]
+        : selectedFilter === "billing-pressure"
+          ? ["BILLING_USAGE_PRESSURE"]
+          : undefined;
 
   const notifications = await prisma.notification.findMany({
     where: {
       userId: tenant.userId,
       organizationId: tenant.organizationId,
+      ...(selectedTypes ? { type: { in: selectedTypes } } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: { candidate: true },
@@ -94,6 +129,18 @@ export default async function NotificationsPage() {
       <div className="hero-section" style={{ padding: "2rem", marginBottom: "2rem" }}>
         <h1>{labels("notifications.title")}</h1>
         <p>{labels("notifications.description")}</p>
+        <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {(["all", "doc-expiring", "billing-attention", "billing-pressure"] as NotificationFilter[]).map((filter) => (
+            <Link
+              key={filter}
+              href={buildNotificationFilterHref(filter)}
+              className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              {getNotificationFilterLabel(filter, labels)}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="card">
