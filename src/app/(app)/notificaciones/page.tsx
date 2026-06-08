@@ -49,16 +49,30 @@ export default async function NotificationsPage({
           ? ["BILLING_USAGE_PRESSURE"]
           : undefined;
 
-  const notifications = await prisma.notification.findMany({
+  const allNotifications = await prisma.notification.findMany({
     where: {
       userId: tenant.userId,
       organizationId: tenant.organizationId,
-      ...(selectedTypes ? { type: { in: selectedTypes } } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: { candidate: true },
     take: 50,
   });
+
+  const notifications = selectedTypes
+    ? allNotifications.filter((notification) => selectedTypes.includes(notification.type))
+    : allNotifications;
+
+  const filterCounts: Record<NotificationFilter, number> = {
+    all: allNotifications.length,
+    "doc-expiring": allNotifications.filter((notification) => notification.type === "DOC_EXPIRING").length,
+    "billing-attention": allNotifications.filter(
+      (notification) => notification.type === "BILLING_SUBSCRIPTION_ATTENTION",
+    ).length,
+    "billing-pressure": allNotifications.filter(
+      (notification) => notification.type === "BILLING_USAGE_PRESSURE",
+    ).length,
+  };
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -137,7 +151,7 @@ export default async function NotificationsPage({
               className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
               style={{ textDecoration: "none" }}
             >
-              {getNotificationFilterLabel(filter, labels)}
+              {getNotificationFilterLabel(filter, labels)} ({filterCounts[filter]})
             </Link>
           ))}
         </div>
