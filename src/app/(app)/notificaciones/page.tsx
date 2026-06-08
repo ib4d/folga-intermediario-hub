@@ -73,6 +73,8 @@ export default async function NotificationsPage({
       (notification) => notification.type === "BILLING_USAGE_PRESSURE",
     ).length,
   };
+  const unreadCount = allNotifications.filter((notification) => !notification.isRead).length;
+  const readCount = allNotifications.length - unreadCount;
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -155,6 +157,71 @@ export default async function NotificationsPage({
             </Link>
           ))}
         </div>
+      </div>
+
+      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
+        <Link href="/notificaciones" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+          <div className="card-header">
+            <h3>{labels("notifications.summaryTotal")}</h3>
+            <Bell size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{allNotifications.length}</div>
+        </Link>
+        <Link
+          href="/notificaciones"
+          className="card"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div className="card-header">
+            <h3>{labels("notifications.summaryUnread")}</h3>
+            <AlertTriangle size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{unreadCount}</div>
+        </Link>
+        <Link
+          href="/notificaciones"
+          className="card"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div className="card-header">
+            <h3>{labels("notifications.summaryRead")}</h3>
+            <Bell size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{readCount}</div>
+        </Link>
+        <Link
+          href="/notificaciones?type=doc-expiring"
+          className="card"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div className="card-header">
+            <h3>{labels("notifications.summaryDocExpiring")}</h3>
+            <Clock size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{filterCounts["doc-expiring"]}</div>
+        </Link>
+        <Link
+          href="/notificaciones?type=billing-attention"
+          className="card"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div className="card-header">
+            <h3>{labels("notifications.summaryBillingAttention")}</h3>
+            <CreditCard size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{filterCounts["billing-attention"]}</div>
+        </Link>
+        <Link
+          href="/notificaciones?type=billing-pressure"
+          className="card"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div className="card-header">
+            <h3>{labels("notifications.summaryBillingPressure")}</h3>
+            <AlertTriangle size={24} />
+          </div>
+          <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{filterCounts["billing-pressure"]}</div>
+        </Link>
       </div>
 
       <div className="card">
