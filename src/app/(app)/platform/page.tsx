@@ -267,8 +267,9 @@ export default async function PlatformAdminPage() {
             id: item.triggerType,
             label: getAutomationTriggerLabel(item.triggerType, labels),
             value: item._count._all.toString(),
-          }))}
+        }))}
         openAutomationLabel={labels("platform.automationOpenWorkflows")}
+        openActivityLabel={labels("platform.automationOpenActivity")}
         openNotificationsLabel={labels("platform.automationOpenNotifications")}
         openDashboardLabel={labels("platform.automationOpenDashboard")}
       />

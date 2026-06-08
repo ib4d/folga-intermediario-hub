@@ -13,6 +13,7 @@ type PlatformAutomationCardProps = {
     label: string;
     value: string;
   }>;
+  openActivityLabel: string;
   openNotificationsLabel: string;
   openDashboardLabel: string;
   openAutomationLabel: string;
@@ -27,6 +28,7 @@ export default function PlatformAutomationCard({
   activeWorkflowsValue,
   triggersLabel,
   triggerItems,
+  openActivityLabel,
   openNotificationsLabel,
   openDashboardLabel,
   openAutomationLabel,
@@ -107,6 +109,9 @@ export default function PlatformAutomationCard({
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "1rem" }}>
         <Link href="/platform/automation" className="button button-secondary" style={{ textDecoration: "none" }}>
           {openAutomationLabel}
+        </Link>
+        <Link href="/platform/automation/activity" className="button button-secondary" style={{ textDecoration: "none" }}>
+          {openActivityLabel}
         </Link>
         <Link href="/notificaciones" className="button button-secondary" style={{ textDecoration: "none" }}>
           {openNotificationsLabel}
