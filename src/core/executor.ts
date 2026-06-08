@@ -19,7 +19,8 @@ export function initPlatform() {
       "OCR_COMPLETED", 
       "STATUS_CHANGED", 
       "LOGISTICS_CREATED",
-      "DAILY_SUMMARY"
+      "DAILY_SUMMARY",
+      "DOC_EXPIRING_DETECTED"
     ];
     
     if (triggerTypes.includes(event.type)) {
