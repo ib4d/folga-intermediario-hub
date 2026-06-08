@@ -387,17 +387,22 @@ export async function syncBillingAutomationNotifications() {
       await prisma.$transaction(updateOperations);
     }
 
-    await emitBillingSignalEvent(
-      "BILLING_ATTENTION_DETECTED",
-      organization.id,
-      {
-        organizationId: organization.id,
-        organizationName: organization.name,
-        billingAttention,
-        usagePressure,
-      },
-      recipients[0]?.userId
-    );
+    if (billingAttention) {
+      await emitBillingSignalEvent(
+        "BILLING_ATTENTION_DETECTED",
+        organization.id,
+        {
+          organizationId: organization.id,
+          organizationName: organization.name,
+          plan: organization.plan,
+          subscriptionStatus: billingAttention.status,
+          subscriptionPeriodEnd: billingAttention.currentPeriodEnd?.toISOString() ?? null,
+          billingAttention,
+          usagePressure,
+        },
+        recipients[0]?.userId
+      );
+    }
 
     if (usagePressure) {
       await emitBillingSignalEvent(
@@ -406,6 +411,11 @@ export async function syncBillingAutomationNotifications() {
         {
           organizationId: organization.id,
           organizationName: organization.name,
+          plan: organization.plan,
+          pressureType: usagePressure.label,
+          pressurePercent: Math.round(usagePressure.ratio * 100),
+          pressureUsed: usagePressure.used,
+          pressureLimit: usagePressure.limit,
           usagePressure,
           billingAttention,
         },

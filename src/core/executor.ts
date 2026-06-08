@@ -20,7 +20,9 @@ export function initPlatform() {
       "STATUS_CHANGED", 
       "LOGISTICS_CREATED",
       "DAILY_SUMMARY",
-      "DOC_EXPIRING_DETECTED"
+      "DOC_EXPIRING_DETECTED",
+      "BILLING_ATTENTION_DETECTED",
+      "PLAN_PRESSURE_DETECTED"
     ];
     
     if (triggerTypes.includes(event.type)) {

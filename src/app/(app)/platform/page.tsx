@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPlanLimits } from "@/lib/billing/limits";
+import PlatformAutomationCard from "@/components/PlatformAutomationCard";
 import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
 import PlatformReadinessCard from "@/components/PlatformReadinessCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
@@ -47,6 +48,19 @@ function getBillingAttentionStatusLabel(status: string, labels: (key: Translatio
       return labels("billing.subscriptionAttentionStatusIncomplete");
     default:
       return labels("billing.subscriptionAttentionStatusUnknown");
+  }
+}
+
+function getAutomationTriggerLabel(triggerType: string, labels: (key: TranslationKey) => string) {
+  switch (triggerType) {
+    case "DOC_EXPIRING_DETECTED":
+      return labels("platform.automationTriggerDocExpiring");
+    case "BILLING_ATTENTION_DETECTED":
+      return labels("platform.automationTriggerBillingAttention");
+    case "PLAN_PRESSURE_DETECTED":
+      return labels("platform.automationTriggerPlanPressure");
+    default:
+      return triggerType.replace(/_/g, " ");
   }
 }
 
@@ -119,6 +133,14 @@ export default async function PlatformAdminPage() {
   const totalSubscriptions = await prisma.subscription.count();
   const activeSubscriptions = await prisma.subscription.count({
     where: { status: { in: ["active", "trialing"] } },
+  });
+  const totalWorkflows = await prisma.workflow.count();
+  const activeWorkflows = await prisma.workflow.count({
+    where: { isActive: true },
+  });
+  const workflowByTrigger = await prisma.workflow.groupBy({
+    by: ["triggerType"],
+    _count: { _all: true },
   });
   const billingByPlan = await prisma.subscription.groupBy({
     by: ["plan"],
@@ -229,6 +251,25 @@ export default async function PlatformAdminPage() {
           labels("platform.readinessGdpr"),
           labels("platform.readinessWhiteLabel"),
         ]}
+      />
+
+      <PlatformAutomationCard
+        title={labels("platform.automationTitle")}
+        description={labels("platform.automationDescription")}
+        workflowsLabel={labels("platform.automationWorkflows")}
+        workflowsValue={totalWorkflows.toString()}
+        activeWorkflowsLabel={labels("platform.automationActiveWorkflows")}
+        activeWorkflowsValue={activeWorkflows.toString()}
+        triggersLabel={labels("platform.automationTriggers")}
+        triggerItems={workflowByTrigger
+          .sort((a, b) => b._count._all - a._count._all)
+          .map((item) => ({
+            id: item.triggerType,
+            label: getAutomationTriggerLabel(item.triggerType, labels),
+            value: item._count._all.toString(),
+          }))}
+        openNotificationsLabel={labels("platform.automationOpenNotifications")}
+        openDashboardLabel={labels("platform.automationOpenDashboard")}
       />
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>

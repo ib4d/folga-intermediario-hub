@@ -1,7 +1,48 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+async function upsertWorkflowWithSteps(input: {
+  id: string;
+  organizationId: string;
+  name: string;
+  triggerType: string;
+  steps: Array<{
+    type: string;
+    config: Prisma.InputJsonValue;
+  }>;
+}) {
+  const workflow = await prisma.workflow.upsert({
+    where: { id: input.id },
+    update: {
+      organizationId: input.organizationId,
+      name: input.name,
+      triggerType: input.triggerType,
+      isActive: true,
+    },
+    create: {
+      id: input.id,
+      organizationId: input.organizationId,
+      name: input.name,
+      triggerType: input.triggerType,
+      isActive: true,
+    },
+  });
+
+  await prisma.workflowStep.deleteMany({
+    where: { workflowId: workflow.id },
+  });
+
+  await prisma.workflowStep.createMany({
+    data: input.steps.map((step, index) => ({
+      workflowId: workflow.id,
+      type: step.type,
+      config: step.config,
+      order: index + 1,
+    })),
+  });
+}
 
 async function main() {
   const isProduction = process.env.NODE_ENV === "production";
@@ -133,6 +174,73 @@ async function main() {
       title: "Documentacion requerida",
       message: "Abad Bolanos necesita subir su pasaporte para continuar.",
     },
+  });
+
+  await upsertWorkflowWithSteps({
+    id: "workflow-doc-expiring-legal-escalation",
+    organizationId: org.id,
+    name: "Expiring docs -> legal escalation",
+    triggerType: "DOC_EXPIRING_DETECTED",
+    steps: [
+      {
+        type: "SEND_NOTIFICATION",
+        config: {
+          userId: legal.id,
+          type: "DOC_EXPIRING",
+          title: "Documento por expirar",
+          message:
+            "El documento {documentType} de {candidateFirstName} {candidateLastName} expira el {expiryDate}.",
+        },
+      },
+      {
+        type: "SEND_NOTIFICATION",
+        config: {
+          userId: admin.id,
+          type: "DOC_EXPIRING",
+          title: "Seguimiento documental requerido",
+          message:
+            "Se detecto un documento por expirar para {candidateFirstName} {candidateLastName} y requiere seguimiento.",
+        },
+      },
+    ],
+  });
+
+  await upsertWorkflowWithSteps({
+    id: "workflow-billing-attention-escalation",
+    organizationId: org.id,
+    name: "Billing attention -> superadmin",
+    triggerType: "BILLING_ATTENTION_DETECTED",
+    steps: [
+      {
+        type: "SEND_NOTIFICATION",
+        config: {
+          userId: admin.id,
+          type: "BILLING_ATTENTION",
+          title: "Billing necesita revision",
+          message:
+            "La organizacion {organizationName} necesita revision de billing ({subscriptionStatus}).",
+        },
+      },
+    ],
+  });
+
+  await upsertWorkflowWithSteps({
+    id: "workflow-plan-pressure-escalation",
+    organizationId: org.id,
+    name: "Plan pressure -> superadmin",
+    triggerType: "PLAN_PRESSURE_DETECTED",
+    steps: [
+      {
+        type: "SEND_NOTIFICATION",
+        config: {
+          userId: admin.id,
+          type: "BILLING_USAGE_PRESSURE",
+          title: "Presion de plan detectada",
+          message:
+            "{organizationName} esta cerca del limite en {pressureType} ({pressurePercent}%).",
+        },
+      },
+    ],
   });
 
   console.log("Seed ejecutado.");

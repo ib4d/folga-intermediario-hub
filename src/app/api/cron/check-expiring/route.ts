@@ -1,6 +1,6 @@
+import { emitEvent } from "@/core/events";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { emitEvent } from "@/core/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,14 +15,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // Buscar documentos que expiren en exactamente 30 días
   const today = new Date();
   const targetDate = new Date();
   targetDate.setDate(today.getDate() + 30);
-  
-  // Rango del día para la búsqueda
-  const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
 
   const expiringDocs = await prisma.document.findMany({
     where: {
@@ -33,22 +33,33 @@ export async function GET(request: Request) {
     },
     include: {
       candidate: {
-        select: { id: true, firstName: true, lastName: true, intermediaryId: true, organizationId: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          intermediaryId: true,
+          organizationId: true,
+        },
       },
     },
   });
 
-  const notifications = expiringDocs
+  const docsWithRecipients = expiringDocs
     .filter((doc) => doc.candidate.intermediaryId)
     .map((doc) => ({
-      documentId: doc.id,
+      document: doc,
       userId: doc.candidate.intermediaryId!,
-      organizationId: doc.candidate.organizationId,
-      candidateId: doc.candidate.id,
-      type: "DOC_EXPIRING",
-      title: "Documento por expirar",
-      message: `El documento ${doc.type} de ${doc.candidate.firstName} ${doc.candidate.lastName} expira en 30 días.`,
     }));
+
+  const notifications = docsWithRecipients.map(({ document, userId }) => ({
+    documentId: document.id,
+    userId,
+    organizationId: document.candidate.organizationId,
+    candidateId: document.candidate.id,
+    type: "DOC_EXPIRING",
+    title: "Documento por expirar",
+    message: `El documento ${document.type} de ${document.candidate.firstName} ${document.candidate.lastName} expira en 30 dias.`,
+  }));
 
   if (notifications.length > 0) {
     await prisma.notification.createMany({ data: notifications });
@@ -62,8 +73,10 @@ export async function GET(request: Request) {
             documentId: notification.documentId,
             candidateId: notification.candidateId,
             intermediaryId: notification.userId,
-            documentType: expiringDocs[index]?.type,
-            expiryDate: expiringDocs[index]?.expiryDate?.toISOString?.() ?? null,
+            candidateFirstName: docsWithRecipients[index]?.document.candidate.firstName,
+            candidateLastName: docsWithRecipients[index]?.document.candidate.lastName,
+            documentType: docsWithRecipients[index]?.document.type,
+            expiryDate: docsWithRecipients[index]?.document.expiryDate?.toISOString() ?? null,
             daysUntilExpiry: 30,
             notificationType: notification.type,
             title: notification.title,
