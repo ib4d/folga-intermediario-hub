@@ -162,7 +162,9 @@ export default async function PlatformAutomationPage() {
                 workflows.map((workflow) => (
                   <tr key={workflow.id}>
                     <td style={{ fontWeight: "bold" }}>
-                      {workflow.name}
+                      <Link href={`/platform/automation/${workflow.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        {workflow.name}
+                      </Link>
                       <div style={{ marginTop: "0.4rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                         {workflow.steps.map((step) => {
                           const summary = summarizeWorkflowStep(step.type, step.config);
