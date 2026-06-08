@@ -5,6 +5,8 @@ import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity } from "lucide-react";
 import Link from "next/link";
 
+type AutomationActivityFilter = "all" | "doc-expiring" | "billing-attention" | "plan-pressure";
+
 function getActivityTriggerLabel(type: string, labels: (key: TranslationKey) => string) {
   switch (type) {
     case "DOC_EXPIRING":
@@ -26,12 +28,44 @@ function getDisplayCandidateName(firstName?: string | null, lastName?: string | 
   return `${firstName ?? ""} ${lastName ?? ""}`.trim();
 }
 
-export default async function PlatformAutomationActivityPage() {
+function getActivityFilterLabel(filter: AutomationActivityFilter, labels: (key: TranslationKey) => string) {
+  switch (filter) {
+    case "doc-expiring":
+      return labels("platform.automationActivityFilterDocExpiring");
+    case "billing-attention":
+      return labels("platform.automationActivityFilterBillingAttention");
+    case "plan-pressure":
+      return labels("platform.automationActivityFilterPlanPressure");
+    default:
+      return labels("platform.automationActivityFilterAll");
+  }
+}
+
+function buildFilterHref(filter: AutomationActivityFilter) {
+  return filter === "all" ? "/platform/automation/activity" : `/platform/automation/activity?type=${filter}`;
+}
+
+export default async function PlatformAutomationActivityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   await requirePlatformAdmin();
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  const { type } = await searchParams;
+  const selectedFilter: AutomationActivityFilter =
+    type === "doc-expiring" || type === "billing-attention" || type === "plan-pressure" ? type : "all";
+  const selectedActivityTypes =
+    selectedFilter === "doc-expiring"
+      ? ["DOC_EXPIRING"]
+      : selectedFilter === "billing-attention"
+        ? ["BILLING_SUBSCRIPTION_ATTENTION"]
+        : selectedFilter === "plan-pressure"
+          ? ["BILLING_USAGE_PRESSURE"]
+          : ["DOC_EXPIRING", "BILLING_SUBSCRIPTION_ATTENTION", "BILLING_USAGE_PRESSURE"];
 
   const recentActivityStart = new Date();
   recentActivityStart.setDate(recentActivityStart.getDate() - 30);
@@ -40,7 +74,7 @@ export default async function PlatformAutomationActivityPage() {
     where: {
       createdAt: { gte: recentActivityStart },
       type: {
-        in: ["DOC_EXPIRING", "BILLING_SUBSCRIPTION_ATTENTION", "BILLING_USAGE_PRESSURE"],
+        in: selectedActivityTypes,
       },
     },
     include: {
@@ -81,6 +115,18 @@ export default async function PlatformAutomationActivityPage() {
           <div>
             <h1>{labels("platform.automationActivityTitle")}</h1>
             <p>{labels("platform.automationActivityDescription")}</p>
+            <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {(["all", "doc-expiring", "billing-attention", "plan-pressure"] as AutomationActivityFilter[]).map((filter) => (
+                <Link
+                  key={filter}
+                  href={buildFilterHref(filter)}
+                  className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  {getActivityFilterLabel(filter, labels)}
+                </Link>
+              ))}
+            </div>
           </div>
           <Link href="/platform/automation" className="button button-secondary" style={{ textDecoration: "none", alignSelf: "start" }}>
             {labels("platform.automationBackToPlatform")}

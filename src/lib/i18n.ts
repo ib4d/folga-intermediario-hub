@@ -284,6 +284,10 @@ const translations = {
     "platform.automationActivityDescription":
       "Registro reciente de eventos que han generado notificaciones o acciones de workflows.",
     "platform.automationActivityTotal": "Eventos recientes",
+    "platform.automationActivityFilterAll": "Todas",
+    "platform.automationActivityFilterDocExpiring": "Expiracion docs",
+    "platform.automationActivityFilterBillingAttention": "Revision billing",
+    "platform.automationActivityFilterPlanPressure": "Presion de plan",
     "platform.automationActivityType": "Tipo",
     "platform.automationActivityTrigger": "Trigger",
     "platform.automationActivityRecipient": "Destinatario",
@@ -1276,6 +1280,10 @@ const translations = {
     "platform.automationActivityDescription":
       "Recent events that created notifications or workflow actions.",
     "platform.automationActivityTotal": "Recent events",
+    "platform.automationActivityFilterAll": "All",
+    "platform.automationActivityFilterDocExpiring": "Doc expiring",
+    "platform.automationActivityFilterBillingAttention": "Billing review",
+    "platform.automationActivityFilterPlanPressure": "Plan pressure",
     "platform.automationActivityType": "Type",
     "platform.automationActivityTrigger": "Trigger",
     "platform.automationActivityRecipient": "Recipient",
@@ -2268,6 +2276,10 @@ const translations = {
     "platform.automationActivityDescription":
       "Najnowsze zdarzenia, ktore generuja powiadomienia lub akcje workflowow.",
     "platform.automationActivityTotal": "Ostatnie zdarzenia",
+    "platform.automationActivityFilterAll": "Wszystkie",
+    "platform.automationActivityFilterDocExpiring": "Wygasanie dokumentow",
+    "platform.automationActivityFilterBillingAttention": "Przeglad billingowy",
+    "platform.automationActivityFilterPlanPressure": "Presja planu",
     "platform.automationActivityType": "Typ",
     "platform.automationActivityTrigger": "Trigger",
     "platform.automationActivityRecipient": "Odbiorca",
