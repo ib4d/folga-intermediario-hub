@@ -266,6 +266,26 @@ Check it manually:
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-domain.example/api/cron/check-expiring
 ```
 
+## Cron for billing automation
+
+The billing cron syncs subscription attention and plan pressure into
+notifications, and it also emits billing automation events for workflows.
+Keep it on the same secret-protected pattern:
+
+```bash
+crontab -e
+```
+
+```cron
+30 7 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-domain.example/api/cron/check-billing >/dev/null
+```
+
+Check it manually:
+
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-domain.example/api/cron/check-billing
+```
+
 ## Hostinger firewall
 
 In hPanel, keep the VPS firewall narrow for the v1 deployment:

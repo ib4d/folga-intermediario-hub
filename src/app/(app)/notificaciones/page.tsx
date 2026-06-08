@@ -3,7 +3,7 @@ import { normalizeLanguage, t } from "@/lib/i18n";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
-import { AlertTriangle, Bell, Clock, FileText, Truck, UserPlus } from "lucide-react";
+import { AlertTriangle, Bell, Clock, CreditCard, FileText, Truck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -29,6 +29,8 @@ export default async function NotificationsPage() {
     switch (type) {
       case "DOCUMENT_UPLOADED":
         return <FileText size={20} />;
+      case "DOC_EXPIRING":
+        return <Clock size={20} />;
       case "STATUS_CHANGED":
         return <Clock size={20} />;
       case "CANDIDATE_CREATED":
@@ -42,6 +44,10 @@ export default async function NotificationsPage() {
       case "LOGISTICS_MISSING_ACCOMMODATION":
       case "LOGISTICS_ARRIVAL_TODAY":
         return <Truck size={20} />;
+      case "BILLING_SUBSCRIPTION_ATTENTION":
+        return <CreditCard size={20} />;
+      case "BILLING_USAGE_PRESSURE":
+        return <AlertTriangle size={20} />;
       default:
         return <Bell size={20} />;
     }
@@ -58,6 +64,8 @@ export default async function NotificationsPage() {
         return labels("notifications.type.newCandidate");
       case "DOCUMENT_UPLOADED":
         return labels("notifications.type.document");
+      case "DOC_EXPIRING":
+        return labels("notifications.type.documentExpiring");
       case "LOGISTICS_MISSING_TRANSPORT":
         return labels("notifications.type.transport");
       case "LOGISTICS_MISSING_PICKUP":
@@ -72,6 +80,10 @@ export default async function NotificationsPage() {
         return labels("notifications.type.arrivalOverdue");
       case "LOGISTICS_ARRIVAL_TODAY":
         return labels("notifications.type.arrivalToday");
+      case "BILLING_SUBSCRIPTION_ATTENTION":
+        return labels("notifications.type.billingAttention");
+      case "BILLING_USAGE_PRESSURE":
+        return labels("notifications.type.billingPressure");
       default:
         return type.replace(/_/g, " ");
     }

@@ -8,7 +8,9 @@ export type TriggerType =
   | "OCR_COMPLETED"
   | "STATUS_CHANGED"
   | "LOGISTICS_CREATED"
-  | "DAILY_SUMMARY";
+  | "DAILY_SUMMARY"
+  | "BILLING_ATTENTION_DETECTED"
+  | "PLAN_PRESSURE_DETECTED";
 
 type WorkflowPayload = Record<string, unknown> & {
   organizationId: string;

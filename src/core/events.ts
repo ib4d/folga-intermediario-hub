@@ -56,6 +56,8 @@ const workflowTriggerTypes: TriggerType[] = [
   "STATUS_CHANGED",
   "LOGISTICS_CREATED",
   "DAILY_SUMMARY",
+  "BILLING_ATTENTION_DETECTED",
+  "PLAN_PRESSURE_DETECTED",
 ];
 
 let platformHandlersRegistered = false;
