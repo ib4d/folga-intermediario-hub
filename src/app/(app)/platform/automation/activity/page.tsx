@@ -69,6 +69,10 @@ export default async function PlatformAutomationActivityPage() {
 
   const totalActivities = activities.length;
   const unreadActivities = activities.filter((activity) => !activity.isRead).length;
+  const activitiesByType = activities.reduce<Record<string, number>>((acc, activity) => {
+    acc[activity.type] = (acc[activity.type] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -98,6 +102,30 @@ export default async function PlatformAutomationActivityPage() {
             <Activity size={24} />
           </div>
           <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{unreadActivities}</div>
+        </div>
+      </div>
+
+      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
+        <div className="card">
+          <div className="card-header">
+            <h3>{labels("platform.automationTriggerDocExpiring")}</h3>
+            <Activity size={20} />
+          </div>
+          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.DOC_EXPIRING ?? 0}</div>
+        </div>
+        <div className="card">
+          <div className="card-header">
+            <h3>{labels("platform.automationTriggerBillingAttention")}</h3>
+            <Activity size={20} />
+          </div>
+          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.BILLING_SUBSCRIPTION_ATTENTION ?? 0}</div>
+        </div>
+        <div className="card">
+          <div className="card-header">
+            <h3>{labels("platform.automationTriggerPlanPressure")}</h3>
+            <Activity size={20} />
+          </div>
+          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.BILLING_USAGE_PRESSURE ?? 0}</div>
         </div>
       </div>
 
