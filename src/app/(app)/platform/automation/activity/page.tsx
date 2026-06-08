@@ -124,6 +124,15 @@ export default async function PlatformAutomationActivityPage({
                   style={{ textDecoration: "none" }}
                 >
                   {getActivityFilterLabel(filter, labels)}
+                  <span style={{ marginLeft: "0.45rem", fontWeight: 900 }}>
+                    {filter === "all"
+                      ? totalActivities
+                      : filter === "doc-expiring"
+                        ? activitiesByType.DOC_EXPIRING ?? 0
+                        : filter === "billing-attention"
+                          ? activitiesByType.BILLING_SUBSCRIPTION_ATTENTION ?? 0
+                          : activitiesByType.BILLING_USAGE_PRESSURE ?? 0}
+                  </span>
                 </Link>
               ))}
             </div>
