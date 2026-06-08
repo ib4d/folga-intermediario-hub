@@ -44,6 +44,19 @@ function getWorkflowStepLabel(type: string, labels: (key: TranslationKey) => str
   }
 }
 
+function getRelatedNotificationTypes(triggerType: string) {
+  switch (triggerType) {
+    case "DOC_EXPIRING_DETECTED":
+      return ["DOC_EXPIRING"];
+    case "BILLING_ATTENTION_DETECTED":
+      return ["BILLING_SUBSCRIPTION_ATTENTION"];
+    case "PLAN_PRESSURE_DETECTED":
+      return ["BILLING_USAGE_PRESSURE"];
+    default:
+      return [];
+  }
+}
+
 function summarizeWorkflowStep(type: string, config: unknown) {
   if (typeof config !== "object" || config === null || Array.isArray(config)) return "";
   const record = config as Record<string, unknown>;
@@ -92,6 +105,26 @@ export default async function AutomationWorkflowDetailPage({ params }: Automatio
   if (!workflow) {
     notFound();
   }
+
+  const relatedNotificationTypes = getRelatedNotificationTypes(workflow.triggerType);
+  const recentActivity = relatedNotificationTypes.length
+    ? await prisma.notification.findMany({
+        where: {
+          organizationId: workflow.organizationId,
+          type: { in: relatedNotificationTypes },
+        },
+        include: {
+          candidate: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      })
+    : [];
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -146,6 +179,47 @@ export default async function AutomationWorkflowDetailPage({ params }: Automatio
             <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.automationDetailUpdated")}</div>
             <div style={{ fontSize: "1.15rem", fontWeight: 900 }}>{workflow.updatedAt.toLocaleDateString(locale)}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <div className="card-header">
+          <h2>{labels("platform.automationDetailActivityTitle")}</h2>
+          <Activity size={20} />
+        </div>
+        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.automationDetailActivityDescription")}</p>
+        <div style={{ display: "grid", gap: "0.75rem" }}>
+          {recentActivity.length > 0 ? (
+            recentActivity.map((notification) => (
+              <div
+                key={notification.id}
+                style={{
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  background: "rgba(255,255,255,0.72)",
+                  padding: "1rem 1.1rem",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase" }}>{notification.type}</div>
+                    <div style={{ marginTop: "0.35rem", color: "var(--muted-foreground)", fontWeight: 700 }}>
+                      {notification.message}
+                    </div>
+                    {notification.candidate ? (
+                      <div style={{ marginTop: "0.35rem", fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
+                        {notification.candidate.firstName} {notification.candidate.lastName}
+                      </div>
+                    ) : null}
+                  </div>
+                  <span className={`status-badge ${notification.isRead ? "" : "active"}`}>
+                    {notification.isRead ? labels("platform.inactive") : labels("platform.active")}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ color: "var(--muted-foreground)" }}>{labels("platform.automationDetailActivityEmpty")}</div>
+          )}
         </div>
       </div>
 

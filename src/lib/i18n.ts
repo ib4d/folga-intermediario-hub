@@ -274,6 +274,10 @@ const translations = {
     "platform.automationDetailSteps": "Pasos",
     "platform.automationDetailOrganization": "Organizacion",
     "platform.automationDetailUpdated": "Actualizado",
+    "platform.automationDetailActivityTitle": "Actividad reciente",
+    "platform.automationDetailActivityDescription":
+      "Notificaciones asociadas al trigger de este workflow en los ultimos eventos procesados.",
+    "platform.automationDetailActivityEmpty": "No hay actividad reciente para este workflow.",
     "platform.workflowStepSendNotification": "Enviar notificacion",
     "platform.workflowStepUpdateCandidate": "Actualizar candidato",
     "platform.workflowStepCondition": "Condicion",
@@ -1249,6 +1253,10 @@ const translations = {
     "platform.automationDetailSteps": "Steps",
     "platform.automationDetailOrganization": "Organization",
     "platform.automationDetailUpdated": "Updated",
+    "platform.automationDetailActivityTitle": "Recent activity",
+    "platform.automationDetailActivityDescription":
+      "Notifications linked to this workflow trigger from the most recently processed events.",
+    "platform.automationDetailActivityEmpty": "No recent activity for this workflow yet.",
     "platform.workflowStepSendNotification": "Send notification",
     "platform.workflowStepUpdateCandidate": "Update candidate",
     "platform.workflowStepCondition": "Condition",
@@ -2224,6 +2232,10 @@ const translations = {
     "platform.automationDetailSteps": "Kroki",
     "platform.automationDetailOrganization": "Organizacja",
     "platform.automationDetailUpdated": "Zaktualizowano",
+    "platform.automationDetailActivityTitle": "Ostatnia aktywnosc",
+    "platform.automationDetailActivityDescription":
+      "Powiadomienia powiazane z triggerem tego workflow z ostatnio przetworzonych zdarzen.",
+    "platform.automationDetailActivityEmpty": "Brak ostatniej aktywnosci dla tego workflow.",
     "platform.workflowStepSendNotification": "Wyslij powiadomienie",
     "platform.workflowStepUpdateCandidate": "Zaktualizuj kandydata",
     "platform.workflowStepCondition": "Warunek",
