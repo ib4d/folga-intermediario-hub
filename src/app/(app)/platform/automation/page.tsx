@@ -94,6 +94,39 @@ export default async function PlatformAutomationPage() {
   const activeWorkflows = workflows.filter((workflow) => workflow.isActive).length;
   const totalTriggers = new Set(workflows.map((workflow) => workflow.triggerType)).size;
   const totalSteps = workflows.reduce((sum, workflow) => sum + workflow.steps.length, 0);
+  const recentActivityStart = new Date();
+  recentActivityStart.setDate(recentActivityStart.getDate() - 30);
+  const recentActivityCounts = await prisma.notification.groupBy({
+    by: ["type"],
+    where: {
+      createdAt: { gte: recentActivityStart },
+      type: {
+        in: [
+          "DOC_EXPIRING",
+          "BILLING_SUBSCRIPTION_ATTENTION",
+          "BILLING_USAGE_PRESSURE",
+        ],
+      },
+    },
+    _count: { _all: true },
+  });
+  const recentActivityByType = recentActivityCounts.reduce<Record<string, number>>((acc, item) => {
+    acc[item.type] = item._count._all;
+    return acc;
+  }, {});
+
+  function getRecentActivityCount(triggerType: string) {
+    switch (triggerType) {
+      case "DOC_EXPIRING_DETECTED":
+        return recentActivityByType.DOC_EXPIRING ?? 0;
+      case "BILLING_ATTENTION_DETECTED":
+        return recentActivityByType.BILLING_SUBSCRIPTION_ATTENTION ?? 0;
+      case "PLAN_PRESSURE_DETECTED":
+        return recentActivityByType.BILLING_USAGE_PRESSURE ?? 0;
+      default:
+        return 0;
+    }
+  }
 
   return (
     <div style={{ padding: "2rem" }}>
@@ -154,6 +187,7 @@ export default async function PlatformAutomationPage() {
                 <th>{labels("platform.automationPageStatus")}</th>
                 <th>{labels("platform.automationPageTrigger")}</th>
                 <th>{labels("platform.automationPageSteps")}</th>
+                <th>{labels("platform.automationDetailActivityTitle")}</th>
                 <th>{labels("platform.automationPageUpdated")}</th>
               </tr>
             </thead>
@@ -199,12 +233,13 @@ export default async function PlatformAutomationPage() {
                       </span>
                     </td>
                     <td>{workflow.steps.length}</td>
+                    <td>{getRecentActivityCount(workflow.triggerType)}</td>
                     <td>{workflow.updatedAt.toLocaleDateString(locale)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={7} style={{ color: "var(--muted-foreground)" }}>
                     {labels("platform.automationPageNoWorkflows")}
                   </td>
                 </tr>
