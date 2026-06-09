@@ -123,6 +123,12 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
     setUnreadCount((count) => Math.max(0, count - 1));
   };
 
+  const markAllAsRead = async () => {
+    await fetch("/api/notifications/read", { method: "POST" });
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
+    setUnreadCount(0);
+  };
+
   return (
     <div style={{ position: "relative" }}>
       <button
@@ -183,7 +189,27 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
               alignItems: "center",
             }}
           >
-            <h3 style={{ margin: 0 }}>{t(language, "notifications.title")}</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+              <h3 style={{ margin: 0 }}>{t(language, "notifications.title")}</h3>
+              {unreadCount > 0 ? (
+                <button
+                  onClick={markAllAsRead}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "var(--pitch-black)",
+                    textAlign: "left",
+                  }}
+                  type="button"
+                >
+                  {t(language, "notifications.markAllRead")} ({unreadCount})
+                </button>
+              ) : null}
+            </div>
             <button
               onClick={() => setIsOpen(false)}
               style={{ background: "none", border: "none", cursor: "pointer" }}
