@@ -725,9 +725,9 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
-  // Verificar token de cron para seguridad
-  const { searchParams } = new URL(req.url);
-  if (searchParams.get("token") !== process.env.CRON_SECRET) {
+  // Verificar secret de cron por header Authorization
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -110,7 +110,8 @@ Security:
 - `AUTH_URL` and `NEXTAUTH_URL` must be the HTTPS production domain.
 - `AUTH_SECRET`, `NEXTAUTH_SECRET`, and `CRON_SECRET` must be long random values.
 - `SUPABASE_SERVICE_ROLE_KEY` must never be exposed with a `NEXT_PUBLIC_` prefix.
-- `CRON_SECRET` protects `/api/cron/check-expiring`.
+- `CRON_SECRET` protects `/api/cron/check-expiring` and `/api/cron/check-billing`
+  through the `Authorization: Bearer ...` header.
 - Demo seed is blocked in production unless `ALLOW_DEMO_SEED=true` is set
   intentionally for a first bootstrap.
 
@@ -185,6 +186,8 @@ The app is ready for the first Hostinger public deployment when:
 - Document expiry values render without server errors.
 - The 400 PLN payment toggle persists.
 - Invitations either send through SMTP or show manual credentials honestly.
+- `npm run check:hardening` can exercise SMTP too when `SMTP_TEST_RECIPIENT` is
+  configured intentionally.
 
 ## Current Readiness
 
