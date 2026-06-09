@@ -18,6 +18,48 @@ type Notification = {
   } | null;
 };
 
+function getNotificationContextAction(type: string, candidateId?: string | null) {
+  if (candidateId) {
+    switch (type) {
+      case "CANDIDATE_APPROVED":
+      case "CANDIDATE_CREATED":
+      case "NEW_CANDIDATE":
+      case "DOC_EXPIRING":
+      case "DOCUMENT_UPLOADED":
+      case "STATUS_UPDATE":
+      case "LOGISTICS_LEGAL_BLOCKER":
+      case "LOGISTICS_DOCUMENT_BLOCKER":
+      case "LOGISTICS_MISSING_TRANSPORT":
+      case "LOGISTICS_MISSING_PICKUP":
+      case "LOGISTICS_MISSING_ACCOMMODATION":
+      case "LOGISTICS_ARRIVAL_OVERDUE":
+      case "LOGISTICS_ARRIVAL_TODAY":
+        return `/candidatos/${candidateId}`;
+    }
+  }
+
+  switch (type) {
+    case "DOC_EXPIRING":
+    case "DOCUMENT_UPLOADED":
+      return "/documentos";
+    case "STATUS_UPDATE":
+    case "LOGISTICS_LEGAL_BLOCKER":
+      return "/legal";
+    case "LOGISTICS_DOCUMENT_BLOCKER":
+    case "LOGISTICS_MISSING_TRANSPORT":
+    case "LOGISTICS_MISSING_PICKUP":
+    case "LOGISTICS_MISSING_ACCOMMODATION":
+    case "LOGISTICS_ARRIVAL_OVERDUE":
+    case "LOGISTICS_ARRIVAL_TODAY":
+      return "/logistica";
+    case "BILLING_SUBSCRIPTION_ATTENTION":
+    case "BILLING_USAGE_PRESSURE":
+      return "/billing";
+    default:
+      return null;
+  }
+}
+
 function getNotificationLabel(type: string, language: AppLanguage) {
   switch (type) {
     case "STATUS_UPDATE":
@@ -29,6 +71,8 @@ function getNotificationLabel(type: string, language: AppLanguage) {
       return t(language, "notifications.type.newCandidate");
     case "DOCUMENT_UPLOADED":
       return t(language, "notifications.type.document");
+    case "DOC_EXPIRING":
+      return t(language, "notifications.type.documentExpiring");
     case "LOGISTICS_MISSING_TRANSPORT":
       return t(language, "notifications.type.transport");
     case "LOGISTICS_MISSING_PICKUP":
@@ -43,6 +87,10 @@ function getNotificationLabel(type: string, language: AppLanguage) {
       return t(language, "notifications.type.arrivalOverdue");
     case "LOGISTICS_ARRIVAL_TODAY":
       return t(language, "notifications.type.arrivalToday");
+    case "BILLING_SUBSCRIPTION_ATTENTION":
+      return t(language, "notifications.type.billingAttention");
+    case "BILLING_USAGE_PRESSURE":
+      return t(language, "notifications.type.billingPressure");
     default:
       return type.replace(/_/g, " ");
   }
@@ -151,63 +199,89 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
                 {t(language, "notifications.empty")}
               </p>
             ) : (
-              notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  style={{
-                    width: "100%",
-                    padding: "0.75rem",
-                    border: "none",
-                    borderBottom: "1px solid #e5e7eb",
-                    backgroundColor: notification.isRead ? "transparent" : "var(--white-smoke)",
-                    cursor: notification.isRead ? "default" : "pointer",
-                    textAlign: "left",
-                  }}
-                  onClick={() => !notification.isRead && markAsRead(notification.id)}
-                  type="button"
-                >
+              notifications.map((notification) => {
+                const contextHref = getNotificationContextAction(notification.type, notification.candidateId);
+
+                return (
                   <div
+                    key={notification.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "0.25rem",
-                      gap: "0.75rem",
+                      padding: "0.75rem",
+                      borderBottom: "1px solid #e5e7eb",
+                      backgroundColor: notification.isRead ? "transparent" : "var(--white-smoke)",
                     }}
                   >
-                    <span
+                    <button
                       style={{
-                        fontSize: "0.75rem",
-                        fontWeight: "bold",
-                        color: "var(--pitch-black)",
+                        width: "100%",
+                        border: "none",
+                        background: "transparent",
+                        cursor: notification.isRead ? "default" : "pointer",
+                        textAlign: "left",
+                        padding: 0,
                       }}
+                      onClick={() => !notification.isRead && markAsRead(notification.id)}
+                      type="button"
                     >
-                      {getNotificationLabel(notification.type, language)}
-                    </span>
-                    <span style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>
-                      {new Date(notification.createdAt).toLocaleDateString()}
-                    </span>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: "0.25rem",
+                          gap: "0.75rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: "bold",
+                            color: "var(--pitch-black)",
+                          }}
+                        >
+                          {getNotificationLabel(notification.type, language)}
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--muted-foreground)" }}>
+                          {new Date(notification.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {notification.title ? (
+                        <div style={{ marginBottom: "0.2rem", fontSize: "0.78rem", fontWeight: 800, color: "var(--pitch-black)" }}>
+                          {notification.title}
+                        </div>
+                      ) : null}
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "0.875rem",
+                          fontWeight: notification.isRead ? "normal" : "bold",
+                        }}
+                      >
+                        {notification.message}
+                      </p>
+                      {notification.candidate ? (
+                        <div style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: "var(--muted-foreground)" }}>
+                          {notification.candidate.firstName} {notification.candidate.lastName}
+                        </div>
+                      ) : null}
+                    </button>
+                    {contextHref ? (
+                      <div style={{ marginTop: "0.5rem", textAlign: "right" }}>
+                        <a
+                          href={contextHref}
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            color: "var(--pitch-black)",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {t(language, "notifications.openContext")}
+                        </a>
+                      </div>
+                    ) : null}
                   </div>
-                  {notification.title ? (
-                    <div style={{ marginBottom: "0.2rem", fontSize: "0.78rem", fontWeight: 800, color: "var(--pitch-black)" }}>
-                      {notification.title}
-                    </div>
-                  ) : null}
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.875rem",
-                      fontWeight: notification.isRead ? "normal" : "bold",
-                    }}
-                  >
-                    {notification.message}
-                  </p>
-                  {notification.candidate ? (
-                    <div style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: "var(--muted-foreground)" }}>
-                      {notification.candidate.firstName} {notification.candidate.lastName}
-                    </div>
-                  ) : null}
-                </button>
-              ))
+                );
+              })
             )}
           </div>
           <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border-subtle)", textAlign: "center" }}>
