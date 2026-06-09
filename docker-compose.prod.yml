@@ -48,6 +48,7 @@ services:
       SMTP_ALLOW_INSECURE: ${SMTP_ALLOW_INSECURE:-false}
       JOB_PROVIDER: ${JOB_PROVIDER:-inline}
       CRON_SECRET: ${CRON_SECRET:?Set CRON_SECRET in the production .env}
+      APP_RELEASE: ${APP_RELEASE:-local}
       NODE_ENV: production
     ports:
       - "127.0.0.1:3000:3000"
