@@ -403,7 +403,7 @@ text
 - [ ] Ninguna Server Action ejecuta queries sin verificar sesión primero
 - [ ] Los intermediarios no pueden ver candidatos de otros intermediarios
 - [ ] El bucket de Supabase Storage tiene RLS configurado
-- [ ] El endpoint `/api/cron/*` requiere CRON_SECRET en query param
+- [ ] El endpoint `/api/cron/*` requiere `Authorization: Bearer <CRON_SECRET>` en el header
 - [ ] El token de `/registro/[token]` se invalida tras un uso exitoso
 
 #### Calidad de código:

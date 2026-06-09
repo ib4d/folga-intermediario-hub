@@ -760,7 +760,7 @@ export async function GET(req: Request) {
 Configurar en `vercel.json`:
 ```json
 {
-  "crons": [{ "path": "/api/cron/check-expiring?token=TU_CRON_SECRET", "schedule": "0 8 * * *" }]
+  "crons": [{ "path": "/api/cron/check-expiring", "headers": { "Authorization": "Bearer TU_CRON_SECRET" }, "schedule": "0 8 * * *" }]
 }
 ```
 
@@ -1232,4 +1232,3 @@ Verificar que el build pase sin errores TypeScript: `npx tsc --noEmit`
 4. **El schema de Zod del formulario de registro (Capa 4)** tiene los campos de la Página 1 extraídos directamente del Google Forms original. Las páginas 2-8 están inferidas del contexto del negocio — si hay campos adicionales en el formulario real, agregar los campos faltantes al schema manteniendo la misma estructura.
 
 5. **Las variables `.env` ya existen**, incluyendo `AZURE_DI_ENDPOINT` y `AZURE_DI_KEY` para OCR. No crear un `.env` desde cero, solo el `.env.example` de referencia.
-
