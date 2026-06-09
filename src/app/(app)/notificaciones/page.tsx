@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { markNotificationsAsRead } from "@/app/actions/notifications";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { prisma } from "@/lib/prisma";
@@ -96,6 +97,7 @@ export default async function NotificationsPage({
   };
   const unreadCount = allNotifications.filter((notification) => !notification.isRead).length;
   const readCount = allNotifications.length - unreadCount;
+  const selectedUnreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -164,8 +166,18 @@ export default async function NotificationsPage({
   return (
     <div className="container">
       <div className="hero-section" style={{ padding: "2rem", marginBottom: "2rem" }}>
-        <h1>{labels("notifications.title")}</h1>
-        <p>{labels("notifications.description")}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+          <div>
+            <h1>{labels("notifications.title")}</h1>
+            <p>{labels("notifications.description")}</p>
+          </div>
+          <form action={markNotificationsAsRead} style={{ alignSelf: "start" }}>
+            <input type="hidden" name="type" value={selectedFilter} />
+            <button className="button button-secondary" disabled={selectedUnreadCount === 0} type="submit">
+              {labels("notifications.markSelectedRead")} ({selectedUnreadCount})
+            </button>
+          </form>
+        </div>
         <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           {(["all", "doc-expiring", "billing-attention", "billing-pressure"] as NotificationFilter[]).map((filter) => (
             <Link
