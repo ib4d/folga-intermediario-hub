@@ -8,6 +8,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 type NotificationFilter = "all" | "doc-expiring" | "billing-attention" | "billing-pressure";
+type NotificationStatusFilter = "all" | "unread" | "read";
 
 function getNotificationFilterLabel(filter: NotificationFilter, labels: (key: TranslationKey) => string) {
   switch (filter) {
@@ -22,14 +23,29 @@ function getNotificationFilterLabel(filter: NotificationFilter, labels: (key: Tr
   }
 }
 
-function buildNotificationFilterHref(filter: NotificationFilter) {
-  return filter === "all" ? "/notificaciones" : `/notificaciones?type=${filter}`;
+function getNotificationStatusLabel(filter: NotificationStatusFilter, labels: (key: TranslationKey) => string) {
+  switch (filter) {
+    case "unread":
+      return labels("notifications.statusUnread");
+    case "read":
+      return labels("notifications.statusRead");
+    default:
+      return labels("notifications.statusAll");
+  }
+}
+
+function buildNotificationHref(typeFilter: NotificationFilter, statusFilter: NotificationStatusFilter = "all") {
+  const params = new URLSearchParams();
+  if (typeFilter !== "all") params.set("type", typeFilter);
+  if (statusFilter !== "all") params.set("status", statusFilter);
+  const query = params.toString();
+  return query ? `/notificaciones?${query}` : "/notificaciones";
 }
 
 export default async function NotificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ status?: string; type?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -37,9 +53,11 @@ export default async function NotificationsPage({
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
   const tenant = await requireTenant();
-  const { type } = await searchParams;
+  const { status, type } = await searchParams;
   const selectedFilter: NotificationFilter =
     type === "doc-expiring" || type === "billing-attention" || type === "billing-pressure" ? type : "all";
+  const selectedStatus: NotificationStatusFilter =
+    status === "unread" || status === "read" ? status : "all";
   const selectedTypes =
     selectedFilter === "doc-expiring"
       ? ["DOC_EXPIRING"]
@@ -59,9 +77,12 @@ export default async function NotificationsPage({
     take: 50,
   });
 
-  const notifications = selectedTypes
-    ? allNotifications.filter((notification) => selectedTypes.includes(notification.type))
-    : allNotifications;
+  const notifications = allNotifications.filter((notification) => {
+    const matchesType = selectedTypes ? selectedTypes.includes(notification.type) : true;
+    const matchesStatus =
+      selectedStatus === "unread" ? !notification.isRead : selectedStatus === "read" ? notification.isRead : true;
+    return matchesType && matchesStatus;
+  });
 
   const filterCounts: Record<NotificationFilter, number> = {
     all: allNotifications.length,
@@ -149,7 +170,7 @@ export default async function NotificationsPage({
           {(["all", "doc-expiring", "billing-attention", "billing-pressure"] as NotificationFilter[]).map((filter) => (
             <Link
               key={filter}
-              href={buildNotificationFilterHref(filter)}
+              href={buildNotificationHref(filter, selectedStatus)}
               className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
               style={{ textDecoration: "none" }}
             >
@@ -157,10 +178,22 @@ export default async function NotificationsPage({
             </Link>
           ))}
         </div>
+        <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {(["all", "unread", "read"] as NotificationStatusFilter[]).map((filter) => (
+            <Link
+              key={filter}
+              href={buildNotificationHref(selectedFilter, filter)}
+              className={`status-badge ${selectedStatus === filter ? "active" : ""}`}
+              style={{ textDecoration: "none" }}
+            >
+              {getNotificationStatusLabel(filter, labels)}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <Link href="/notificaciones" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href={buildNotificationHref("all")} className="card" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="card-header">
             <h3>{labels("notifications.summaryTotal")}</h3>
             <Bell size={24} />
@@ -168,7 +201,7 @@ export default async function NotificationsPage({
           <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{allNotifications.length}</div>
         </Link>
         <Link
-          href="/notificaciones"
+          href={buildNotificationHref(selectedFilter, "unread")}
           className="card"
           style={{ textDecoration: "none", color: "inherit" }}
         >
@@ -179,7 +212,7 @@ export default async function NotificationsPage({
           <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{unreadCount}</div>
         </Link>
         <Link
-          href="/notificaciones"
+          href={buildNotificationHref(selectedFilter, "read")}
           className="card"
           style={{ textDecoration: "none", color: "inherit" }}
         >
@@ -190,7 +223,7 @@ export default async function NotificationsPage({
           <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{readCount}</div>
         </Link>
         <Link
-          href="/notificaciones?type=doc-expiring"
+          href={buildNotificationHref("doc-expiring", selectedStatus)}
           className="card"
           style={{ textDecoration: "none", color: "inherit" }}
         >
@@ -201,7 +234,7 @@ export default async function NotificationsPage({
           <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{filterCounts["doc-expiring"]}</div>
         </Link>
         <Link
-          href="/notificaciones?type=billing-attention"
+          href={buildNotificationHref("billing-attention", selectedStatus)}
           className="card"
           style={{ textDecoration: "none", color: "inherit" }}
         >
@@ -212,7 +245,7 @@ export default async function NotificationsPage({
           <div style={{ fontSize: "2.25rem", fontWeight: 900 }}>{filterCounts["billing-attention"]}</div>
         </Link>
         <Link
-          href="/notificaciones?type=billing-pressure"
+          href={buildNotificationHref("billing-pressure", selectedStatus)}
           className="card"
           style={{ textDecoration: "none", color: "inherit" }}
         >
