@@ -148,11 +148,15 @@ Luego revisa en navegador:
 crontab -e
 ```
 
-Agrega esto:
+Agrega esto en el mismo archivo:
 
 ```cron
-15 7 * * * curl -fsS -H "Authorization: Bearer LYD1IA5vasXzwUt8u4KztV8yqIKxStL9rNS+JGfTvdc=" https://app.ori-craftlabs.com/api/cron/check-expiring >/dev/null
+15 7 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-expiring >/dev/null
+30 7 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-billing >/dev/null
 ```
+
+Sustituye `YOUR_CRON_SECRET` por el mismo valor real que tengas en `CRON_SECRET`
+dentro del `.env` del VPS. No lo guardes en el repositorio.
 
 ## 11. Firewall en Hostinger
 

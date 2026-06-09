@@ -37,6 +37,7 @@ yarn-error.log*
 .pnpm-debug.log*
 tmp-*.log
 tmp-*
+.tmp-dev-*.log
 *.tmp
 *.tgz
 

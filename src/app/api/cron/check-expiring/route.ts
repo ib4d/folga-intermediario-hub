@@ -7,6 +7,15 @@ export const dynamic = "force-dynamic";
 
 const DOC_EXPIRING_EVENT_TYPE = "DOC_EXPIRING_DETECTED";
 
+function buildExpiringNotificationKey(input: {
+  userId: string;
+  candidateId: string;
+  title: string;
+  message: string;
+}) {
+  return `${input.userId}:${input.candidateId}:${input.title}:${input.message}`;
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -51,7 +60,7 @@ export async function GET(request: Request) {
       userId: doc.candidate.intermediaryId!,
     }));
 
-  const notifications = docsWithRecipients.map(({ document, userId }) => ({
+  const pendingNotifications = docsWithRecipients.map(({ document, userId }) => ({
     documentId: document.id,
     userId,
     organizationId: document.candidate.organizationId,
@@ -61,32 +70,100 @@ export async function GET(request: Request) {
     message: `El documento ${document.type} de ${document.candidate.firstName} ${document.candidate.lastName} expira en 30 dias.`,
   }));
 
-  if (notifications.length > 0) {
-    await prisma.notification.createMany({ data: notifications });
+  const startOfRunDay = new Date();
+  startOfRunDay.setHours(0, 0, 0, 0);
+
+  const existingNotifications =
+    pendingNotifications.length > 0
+      ? await prisma.notification.findMany({
+          where: {
+            type: "DOC_EXPIRING",
+            userId: { in: [...new Set(pendingNotifications.map((notification) => notification.userId))] },
+            candidateId: {
+              in: [...new Set(pendingNotifications.map((notification) => notification.candidateId))],
+            },
+            createdAt: {
+              gte: startOfRunDay,
+            },
+          },
+          select: {
+            userId: true,
+            candidateId: true,
+            title: true,
+            message: true,
+          },
+        })
+      : [];
+
+  const existingKeys = new Set(
+    existingNotifications.map((notification) =>
+      buildExpiringNotificationKey({
+        userId: notification.userId,
+        candidateId: notification.candidateId ?? "",
+        title: notification.title,
+        message: notification.message,
+      })
+    )
+  );
+
+  const notificationsToCreate = pendingNotifications.filter((notification) => {
+    const notificationKey = buildExpiringNotificationKey({
+      userId: notification.userId,
+      candidateId: notification.candidateId,
+      title: notification.title,
+      message: notification.message,
+    });
+
+    if (existingKeys.has(notificationKey)) {
+      return false;
+    }
+
+    existingKeys.add(notificationKey);
+    return true;
+  });
+
+  if (notificationsToCreate.length > 0) {
+    const docById = new Map(docsWithRecipients.map((item) => [item.document.id, item.document] as const));
+
+    await prisma.notification.createMany({
+      data: notificationsToCreate.map((notification) => ({
+        userId: notification.userId,
+        organizationId: notification.organizationId,
+        candidateId: notification.candidateId,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+      })),
+    });
 
     await Promise.all(
-      notifications.map((notification, index) =>
-        emitEvent(
+      notificationsToCreate.map((notification) => {
+        const sourceDocument = docById.get(notification.documentId);
+
+        return emitEvent(
           DOC_EXPIRING_EVENT_TYPE,
           notification.organizationId,
           {
             documentId: notification.documentId,
             candidateId: notification.candidateId,
             intermediaryId: notification.userId,
-            candidateFirstName: docsWithRecipients[index]?.document.candidate.firstName,
-            candidateLastName: docsWithRecipients[index]?.document.candidate.lastName,
-            documentType: docsWithRecipients[index]?.document.type,
-            expiryDate: docsWithRecipients[index]?.document.expiryDate?.toISOString() ?? null,
+            candidateFirstName: sourceDocument?.candidate.firstName,
+            candidateLastName: sourceDocument?.candidate.lastName,
+            documentType: sourceDocument?.type,
+            expiryDate: sourceDocument?.expiryDate?.toISOString() ?? null,
             daysUntilExpiry: 30,
             notificationType: notification.type,
             title: notification.title,
             message: notification.message,
           },
           notification.userId
-        )
-      )
+        );
+      })
     );
   }
 
-  return NextResponse.json({ processed: notifications.length });
+  return NextResponse.json({
+    processed: notificationsToCreate.length,
+    skippedDuplicates: pendingNotifications.length - notificationsToCreate.length,
+  });
 }
