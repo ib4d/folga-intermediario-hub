@@ -115,6 +115,8 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
       .catch(console.error);
   }, []);
 
+  const effectiveFilter: DropdownFilter = unreadCount === 0 && activeFilter === "unread" ? "all" : activeFilter;
+
   const markAsRead = async (id: string) => {
     await fetch(`/api/notifications/${id}/read`, { method: "POST" });
     setNotifications((prev) =>
@@ -133,7 +135,8 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
   };
 
   const visibleNotifications =
-    activeFilter === "unread" ? notifications.filter((notification) => !notification.isRead) : notifications;
+    effectiveFilter === "unread" ? notifications.filter((notification) => !notification.isRead) : notifications;
+  const viewAllHref = effectiveFilter === "unread" ? "/notificaciones?status=unread" : "/notificaciones";
 
   return (
     <div style={{ position: "relative" }}>
@@ -232,7 +235,7 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
                 return (
                   <button
                     key={filter}
-                    className={`status-badge ${activeFilter === filter ? "active" : ""}`}
+                    className={`status-badge ${effectiveFilter === filter ? "active" : ""}`}
                     onClick={() => setActiveFilter(filter)}
                     style={{ cursor: "pointer" }}
                     type="button"
@@ -334,7 +337,7 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
           </div>
           <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border-subtle)", textAlign: "center" }}>
             <a
-              href="/notificaciones"
+              href={viewAllHref}
               style={{
                 fontSize: "0.875rem",
                 fontWeight: "bold",
