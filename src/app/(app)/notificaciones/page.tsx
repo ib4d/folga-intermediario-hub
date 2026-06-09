@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { markNotificationsAsRead } from "@/app/actions/notifications";
+import { markNotificationAsRead, markNotificationsAsRead } from "@/app/actions/notifications";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { parseStructuredLegalOutcome } from "@/lib/legal-outcome";
 import { prisma } from "@/lib/prisma";
@@ -369,15 +369,23 @@ export default async function NotificationsPage({
                   </div>
                 </div>
                 {!notification.isRead ? (
-                  <div
-                    style={{
-                      width: "10px",
-                      height: "10px",
-                      backgroundColor: "var(--amber-flame)",
-                      borderRadius: "50%",
-                      marginTop: "0.5rem",
-                    }}
-                  />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: "0.75rem" }}>
+                    <div
+                      style={{
+                        width: "10px",
+                        height: "10px",
+                        backgroundColor: "var(--amber-flame)",
+                        borderRadius: "50%",
+                        marginTop: "0.5rem",
+                      }}
+                    />
+                    <form action={markNotificationAsRead}>
+                      <input type="hidden" name="notificationId" value={notification.id} />
+                      <button className="button button-secondary" type="submit">
+                        {labels("notifications.markRead")}
+                      </button>
+                    </form>
+                  </div>
                 ) : null}
               </div>
             ))

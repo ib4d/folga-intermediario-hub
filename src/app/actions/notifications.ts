@@ -30,3 +30,24 @@ export async function markNotificationsAsRead(formData: FormData) {
 
   revalidatePath("/notificaciones");
 }
+
+export async function markNotificationAsRead(formData: FormData) {
+  const tenant = await requireTenant();
+  const notificationId = String(formData.get("notificationId") ?? "").trim();
+
+  if (!notificationId) {
+    return;
+  }
+
+  await prisma.notification.updateMany({
+    where: {
+      id: notificationId,
+      userId: tenant.userId,
+      organizationId: tenant.organizationId,
+      isRead: false,
+    },
+    data: { isRead: true },
+  });
+
+  revalidatePath("/notificaciones");
+}
