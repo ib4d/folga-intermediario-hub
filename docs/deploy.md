@@ -63,6 +63,9 @@ CRON_SECRET=use-a-long-random-secret
 JOB_PROVIDER=inline
 NODE_ENV=production
 
+# Optional but recommended for operational visibility in /api/health and /platform
+APP_RELEASE=main-2026-06-09
+
 # Only set this for an intentional first production bootstrap.
 ALLOW_DEMO_SEED=false
 SEED_ADMIN_EMAIL=admin@your-domain.example
@@ -193,6 +196,9 @@ docker compose -f docker-compose.prod.yml logs --tail=100 web
 docker compose -f docker-compose.prod.yml exec web npx prisma migrate status
 docker compose -f docker-compose.prod.yml ps
 ```
+
+If `APP_RELEASE` is set, `/api/health` and Platform Admin will expose it so you
+can confirm which release is actually live.
 
 Manual browser checks:
 

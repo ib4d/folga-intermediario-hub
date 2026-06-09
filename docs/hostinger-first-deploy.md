@@ -64,6 +64,13 @@ nano .env
 
 Pega el contenido, guarda con `Ctrl+O`, pulsa `Enter`, y sal con `Ctrl+X`.
 
+Si quieres que `/api/health` y Platform Admin muestren una release legible,
+agrega tambien una linea como esta dentro de `.env`:
+
+```bash
+APP_RELEASE=main-2026-06-09
+```
+
 ## 6. Levanta la app
 
 ```bash
