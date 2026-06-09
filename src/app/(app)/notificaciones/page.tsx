@@ -35,6 +35,55 @@ function getNotificationStatusLabel(filter: NotificationStatusFilter, labels: (k
   }
 }
 
+function getNotificationContextAction(
+  type: string,
+  candidateId: string | null,
+  labels: (key: TranslationKey) => string,
+) {
+  if (candidateId) {
+    switch (type) {
+      case "CANDIDATE_APPROVED":
+      case "CANDIDATE_CREATED":
+      case "NEW_CANDIDATE":
+      case "DOC_EXPIRING":
+      case "DOCUMENT_UPLOADED":
+      case "STATUS_UPDATE":
+      case "LOGISTICS_LEGAL_BLOCKER":
+      case "LOGISTICS_DOCUMENT_BLOCKER":
+      case "LOGISTICS_MISSING_TRANSPORT":
+      case "LOGISTICS_MISSING_PICKUP":
+      case "LOGISTICS_MISSING_ACCOMMODATION":
+      case "LOGISTICS_ARRIVAL_OVERDUE":
+      case "LOGISTICS_ARRIVAL_TODAY":
+        return {
+          href: `/candidatos/${candidateId}`,
+          label: labels("notifications.openCandidate"),
+        };
+    }
+  }
+
+  switch (type) {
+    case "DOC_EXPIRING":
+    case "DOCUMENT_UPLOADED":
+      return { href: "/documentos", label: labels("notifications.openDocuments") };
+    case "STATUS_UPDATE":
+    case "LOGISTICS_LEGAL_BLOCKER":
+      return { href: "/legal", label: labels("notifications.openLegal") };
+    case "LOGISTICS_DOCUMENT_BLOCKER":
+    case "LOGISTICS_MISSING_TRANSPORT":
+    case "LOGISTICS_MISSING_PICKUP":
+    case "LOGISTICS_MISSING_ACCOMMODATION":
+    case "LOGISTICS_ARRIVAL_OVERDUE":
+    case "LOGISTICS_ARRIVAL_TODAY":
+      return { href: "/logistica", label: labels("notifications.openLogistics") };
+    case "BILLING_SUBSCRIPTION_ATTENTION":
+    case "BILLING_USAGE_PRESSURE":
+      return { href: "/billing", label: labels("notifications.openBilling") };
+    default:
+      return null;
+  }
+}
+
 function buildNotificationHref(typeFilter: NotificationFilter, statusFilter: NotificationStatusFilter = "all") {
   const params = new URLSearchParams();
   if (typeFilter !== "all") params.set("type", typeFilter);
@@ -277,117 +326,134 @@ export default async function NotificationsPage({
             </div>
           ) : (
             notifications.map((notification) => (
-              <div
-                key={notification.id}
-                style={{
-                  display: "flex",
-                  gap: "1rem",
-                  padding: "1rem",
-                  borderBottom: "1px solid var(--muted)",
-                  backgroundColor: notification.isRead ? "transparent" : "rgba(252, 186, 4, 0.1)",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "var(--pitch-black)",
-                    color: "var(--amber-flame)",
-                    padding: "0.5rem",
-                    display: "flex",
-                  }}
-                >
-                  {getIcon(notification.type)}
-                </div>
-                <div style={{ flex: 1 }}>
+              (() => {
+                const contextAction = getNotificationContextAction(notification.type, notification.candidateId, labels);
+
+                return (
                   <div
+                    key={notification.id}
                     style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      color: "var(--muted)",
-                      marginBottom: "0.2rem",
+                      display: "flex",
+                      gap: "1rem",
+                      padding: "1rem",
+                      borderBottom: "1px solid var(--muted)",
+                      backgroundColor: notification.isRead ? "transparent" : "rgba(252, 186, 4, 0.1)",
+                      alignItems: "flex-start",
                     }}
                   >
-                    {getTypeLabel(notification.type)}
-                  </div>
-                  <div style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>{notification.message}</div>
-                  {notification.type === "STATUS_UPDATE"
-                    ? (() => {
-                        const parsed = parseStructuredLegalOutcome(
-                          notification.message.includes("Motivo:")
-                            ? notification.message.split("Motivo:").slice(1).join("Motivo:").trim()
-                            : null,
-                        );
-
-                        return parsed?.category ? (
-                          <div style={{ marginBottom: "0.4rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                            <span
-                              style={{
-                                padding: "0.15rem 0.45rem",
-                                borderRadius: "999px",
-                                backgroundColor: "#e0e7ff",
-                                color: "#3730a3",
-                                fontSize: "0.7rem",
-                                fontWeight: 900,
-                              }}
-                            >
-                              {parsed.category}
-                            </span>
-                            {parsed.followUpActions.slice(0, 2).map((action) => (
-                              <span
-                                key={action}
-                                style={{
-                                  padding: "0.15rem 0.45rem",
-                                  borderRadius: "999px",
-                                  backgroundColor: "#f8fafc",
-                                  border: "1px solid #cbd5e1",
-                                  color: "#334155",
-                                  fontSize: "0.7rem",
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {action}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null;
-                      })()
-                    : null}
-                  {notification.candidate ? (
-                    <div style={{ fontSize: "0.875rem", color: "var(--muted)" }}>
-                      {labels("notifications.candidate")}:{" "}
-                      <Link
-                        href={`/candidatos/${notification.candidateId}`}
-                        style={{ color: "var(--pitch-black)", fontWeight: "bold" }}
-                      >
-                        {notification.candidate.firstName} {notification.candidate.lastName}
-                      </Link>
-                    </div>
-                  ) : null}
-                  <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.25rem" }}>
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                {!notification.isRead ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: "0.75rem" }}>
                     <div
                       style={{
-                        width: "10px",
-                        height: "10px",
-                        backgroundColor: "var(--amber-flame)",
-                        borderRadius: "50%",
-                        marginTop: "0.5rem",
+                        backgroundColor: "var(--pitch-black)",
+                        color: "var(--amber-flame)",
+                        padding: "0.5rem",
+                        display: "flex",
                       }}
-                    />
-                    <form action={markNotificationAsRead}>
-                      <input type="hidden" name="notificationId" value={notification.id} />
-                      <button className="button button-secondary" type="submit">
-                        {labels("notifications.markRead")}
-                      </button>
-                    </form>
+                    >
+                      {getIcon(notification.type)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 900,
+                          textTransform: "uppercase",
+                          color: "var(--muted)",
+                          marginBottom: "0.2rem",
+                        }}
+                      >
+                        {getTypeLabel(notification.type)}
+                      </div>
+                      <div style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>{notification.message}</div>
+                      {notification.type === "STATUS_UPDATE"
+                        ? (() => {
+                            const parsed = parseStructuredLegalOutcome(
+                              notification.message.includes("Motivo:")
+                                ? notification.message.split("Motivo:").slice(1).join("Motivo:").trim()
+                                : null,
+                            );
+
+                            return parsed?.category ? (
+                              <div style={{ marginBottom: "0.4rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                                <span
+                                  style={{
+                                    padding: "0.15rem 0.45rem",
+                                    borderRadius: "999px",
+                                    backgroundColor: "#e0e7ff",
+                                    color: "#3730a3",
+                                    fontSize: "0.7rem",
+                                    fontWeight: 900,
+                                  }}
+                                >
+                                  {parsed.category}
+                                </span>
+                                {parsed.followUpActions.slice(0, 2).map((action) => (
+                                  <span
+                                    key={action}
+                                    style={{
+                                      padding: "0.15rem 0.45rem",
+                                      borderRadius: "999px",
+                                      backgroundColor: "#f8fafc",
+                                      border: "1px solid #cbd5e1",
+                                      color: "#334155",
+                                      fontSize: "0.7rem",
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {action}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null;
+                          })()
+                        : null}
+                      {notification.candidate ? (
+                        <div style={{ fontSize: "0.875rem", color: "var(--muted)" }}>
+                          {labels("notifications.candidate")}:{" "}
+                          <Link
+                            href={`/candidatos/${notification.candidateId}`}
+                            style={{ color: "var(--pitch-black)", fontWeight: "bold" }}
+                          >
+                            {notification.candidate.firstName} {notification.candidate.lastName}
+                          </Link>
+                        </div>
+                      ) : null}
+                      <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.25rem" }}>
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: "0.75rem" }}>
+                      {contextAction ? (
+                        <Link
+                          href={contextAction.href}
+                          className="button button-secondary"
+                          style={{ textDecoration: "none" }}
+                        >
+                          {contextAction.label}
+                        </Link>
+                      ) : null}
+                      {!notification.isRead ? (
+                        <>
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              backgroundColor: "var(--amber-flame)",
+                              borderRadius: "50%",
+                              marginTop: "0.5rem",
+                            }}
+                          />
+                          <form action={markNotificationAsRead}>
+                            <input type="hidden" name="notificationId" value={notification.id} />
+                            <button className="button button-secondary" type="submit">
+                              {labels("notifications.markRead")}
+                            </button>
+                          </form>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                ) : null}
-              </div>
+                );
+              })()
             ))
           )}
         </div>
