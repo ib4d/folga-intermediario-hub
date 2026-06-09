@@ -17,6 +17,7 @@ type Notification = {
     lastName: string | null;
   } | null;
 };
+type DropdownFilter = "all" | "unread";
 
 function getNotificationContextAction(type: string, candidateId?: string | null) {
   if (candidateId) {
@@ -100,6 +101,7 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<DropdownFilter>("unread");
 
   useEffect(() => {
     fetch("/api/notifications")
@@ -127,7 +129,11 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
     await fetch("/api/notifications/read", { method: "POST" });
     setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
     setUnreadCount(0);
+    setActiveFilter("all");
   };
+
+  const visibleNotifications =
+    activeFilter === "unread" ? notifications.filter((notification) => !notification.isRead) : notifications;
 
   return (
     <div style={{ position: "relative" }}>
@@ -220,12 +226,28 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
           </div>
 
           <div style={{ padding: "0.5rem" }}>
-            {notifications.length === 0 ? (
+            <div style={{ display: "flex", gap: "0.5rem", padding: "0.25rem 0.25rem 0.75rem" }}>
+              {(["unread", "all"] as DropdownFilter[]).map((filter) => {
+                const count = filter === "unread" ? unreadCount : notifications.length;
+                return (
+                  <button
+                    key={filter}
+                    className={`status-badge ${activeFilter === filter ? "active" : ""}`}
+                    onClick={() => setActiveFilter(filter)}
+                    style={{ cursor: "pointer" }}
+                    type="button"
+                  >
+                    {filter === "unread" ? t(language, "notifications.statusUnread") : t(language, "notifications.statusAll")} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            {visibleNotifications.length === 0 ? (
               <p style={{ textAlign: "center", color: "var(--muted-foreground)", padding: "1rem" }}>
                 {t(language, "notifications.empty")}
               </p>
             ) : (
-              notifications.map((notification) => {
+              visibleNotifications.map((notification) => {
                 const contextHref = getNotificationContextAction(notification.type, notification.candidateId);
 
                 return (
