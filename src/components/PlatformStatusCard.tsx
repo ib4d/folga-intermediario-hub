@@ -4,12 +4,11 @@ import type { CSSProperties } from "react";
 type PlatformStatusCardProps = {
   title: string;
   description?: string;
-  databaseLabel: string;
-  databaseValue: string;
-  healthLabel: string;
-  healthValue: string;
-  providersLabel: string;
-  providersValue: string;
+  items: Array<{
+    label: string;
+    value: string;
+    badge?: boolean;
+  }>;
   openHealthLabel: string;
   openProvidersLabel: string;
 };
@@ -17,12 +16,7 @@ type PlatformStatusCardProps = {
 export default function PlatformStatusCard({
   title,
   description,
-  databaseLabel,
-  databaseValue,
-  healthLabel,
-  healthValue,
-  providersLabel,
-  providersValue,
+  items,
   openHealthLabel,
   openProvidersLabel,
 }: PlatformStatusCardProps) {
@@ -58,30 +52,20 @@ export default function PlatformStatusCard({
       </div>
 
       <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-        <div style={panelStyle}>
-          <div style={labelStyle}>{databaseLabel}</div>
-          <div style={valueStyle}>
-            <span className="status-badge active" style={{ paddingInline: "0.75rem" }}>
-              {databaseValue}
-            </span>
+        {items.map((item) => (
+          <div key={item.label} style={panelStyle}>
+            <div style={labelStyle}>{item.label}</div>
+            <div style={item.badge ? valueStyle : { marginTop: "0.5rem", fontSize: "1.05rem", fontWeight: 900, lineHeight: 1.45 }}>
+              {item.badge ? (
+                <span className="status-badge active" style={{ paddingInline: "0.75rem" }}>
+                  {item.value}
+                </span>
+              ) : (
+                item.value
+              )}
+            </div>
           </div>
-        </div>
-
-        <div style={panelStyle}>
-          <div style={labelStyle}>{healthLabel}</div>
-          <div style={valueStyle}>
-            <span className="status-badge active" style={{ paddingInline: "0.75rem" }}>
-              {healthValue}
-            </span>
-          </div>
-        </div>
-
-        <div style={panelStyle}>
-          <div style={labelStyle}>{providersLabel}</div>
-          <div style={{ marginTop: "0.5rem", fontSize: "1.05rem", fontWeight: 900, lineHeight: 1.45 }}>
-            {providersValue}
-          </div>
-        </div>
+        ))}
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "1rem" }}>

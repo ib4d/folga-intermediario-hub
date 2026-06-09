@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getRuntimeMetadata } from "@/lib/operational-status";
 import { getProviderStatus } from "@/lib/provider-status";
 import { NextResponse } from "next/server";
 
@@ -7,6 +8,7 @@ export async function GET() {
     // Check DB connection
     await prisma.$queryRaw`SELECT 1`;
     const providerStatus = getProviderStatus();
+    const runtime = getRuntimeMetadata();
     const { storageProvider, storage, ocr } = providerStatus;
     await storageProvider.checkConnection();
 
@@ -28,10 +30,13 @@ export async function GET() {
           supportsAutomaticExtraction: ocr.supportsAutomaticExtraction,
         },
       },
-      email: process.env.EMAIL_PROVIDER || "smtp",
-      jobs: process.env.JOB_PROVIDER || "inline",
+      email: runtime.emailProvider,
+      jobs: runtime.jobProvider,
+      cronConfigured: runtime.cronConfigured,
+      smtpConfigured: runtime.smtpConfigured,
+      release: runtime.release,
       timestamp: new Date().toISOString(),
-      version: "1.0.0-p3"
+      version: runtime.version,
     });
   } catch (err: unknown) {
     return NextResponse.json({

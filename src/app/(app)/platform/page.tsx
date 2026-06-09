@@ -5,6 +5,7 @@ import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseC
 import PlatformReadinessCard from "@/components/PlatformReadinessCard";
 import PlatformStatusCard from "@/components/PlatformStatusCard";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
+import { getRuntimeMetadata } from "@/lib/operational-status";
 import { getProviderStatus } from "@/lib/provider-status";
 import { TRACKED_OPERATIONAL_ALERT_TYPES } from "@/lib/operational-alerts-shared";
 import { prisma } from "@/lib/prisma";
@@ -76,6 +77,7 @@ export default async function PlatformAdminPage() {
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
   const providerStatus = getProviderStatus();
+  const runtime = getRuntimeMetadata();
   const { storage, ocr } = providerStatus;
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
 
@@ -196,12 +198,23 @@ export default async function PlatformAdminPage() {
       <PlatformStatusCard
         title={labels("platform.systemStatusTitle")}
         description={labels("platform.systemStatusDescription")}
-        databaseLabel={labels("platform.systemStatusDatabase")}
-        databaseValue="OK"
-        healthLabel={labels("platform.systemStatusHealth")}
-        healthValue="OK"
-        providersLabel={labels("platform.systemStatusProviders")}
-        providersValue={`${storage.statusLabel} | ${ocr.statusLabel}`}
+        items={[
+          { label: labels("platform.systemStatusDatabase"), value: "OK", badge: true },
+          { label: labels("platform.systemStatusHealth"), value: "OK", badge: true },
+          { label: labels("platform.systemStatusProviders"), value: `${storage.statusLabel} | ${ocr.statusLabel}` },
+          {
+            label: labels("platform.systemStatusEmail"),
+            value: `${runtime.emailProvider} | ${runtime.smtpConfigured ? labels("platform.systemStatusConfigured") : labels("platform.systemStatusPending")}`,
+          },
+          {
+            label: labels("platform.systemStatusJobs"),
+            value: `${runtime.jobProvider} | ${runtime.cronConfigured ? labels("platform.systemStatusCronReady") : labels("platform.systemStatusCronMissing")}`,
+          },
+          {
+            label: labels("platform.systemStatusRelease"),
+            value: `${runtime.version} (${runtime.release.slice(0, 12)})`,
+          },
+        ]}
         openHealthLabel={labels("platform.systemStatusOpenHealth")}
         openProvidersLabel={labels("platform.systemStatusOpenProviders")}
       />
