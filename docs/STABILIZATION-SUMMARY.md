@@ -1,29 +1,62 @@
 # Project Stabilization Summary: Folga Intermediario Hub
 
-This document summarizes the results of the 18-phase stabilization plan executed to bring the platform to a production-ready state.
+This document captures the state reached after the stabilization and production
+hardening work executed across the app, the VPS deployment, and the operating
+playbooks.
 
-## 🛠️ Key Achievements
+## Key achievements
 
-### 1. Technical Infrastructure
-*   **Production Build**: Successfully fixed all TypeScript and ESLint blockers. `npm run build` is passing.
-*   **Strict Typing**: Eliminated `any` from core handlers. Implemented safe casting for Prisma enums and JSON fields.
-*   **Dev Stability**: Verified local development server functionality.
+### 1. Technical infrastructure
 
-### 2. Security & Multi-Tenancy
-*   **Tenant Isolation**: Every database interaction is now scoped via `organizationId`.
-*   **Auth Guards**: Verified middleware and layout-level protection.
-*   **Data Integrity**: Schema drift resolved; `Candidate.email` is no longer globally unique, supporting multi-tenant growth.
+- **Production deploy path**: the Docker production flow is working on the VPS
+  with `up -d --build`, `prisma migrate deploy`, and public smoke checks.
+- **Type and lint discipline**: the repository is kept passing on
+  `npm run lint` and `npx tsc --noEmit` while production fixes continue landing.
+- **Runtime visibility**: `/api/health` now reports live version/release and
+  operational metadata instead of a stale hard-coded release string.
 
-### 3. Business Modules
-*   **Dashboard**: Enhanced with empty states and proper role-based metrics.
-*   **Candidates**: Manual and public registration pipelines verified.
-*   **Legal/Logistics**: Decision modals and event-driven workflows audited.
-*   **Billing**: Usage limit enforcement (`assertWithinPlanLimit`) verified.
+### 2. Security and multi-tenancy
 
-## 🔗 Internal Documentation
-*   [Route Map](./route-map.md)
-*   [Migration Safety Plan](./migration-safe-plan.md)
+- **Tenant isolation**: core application queries are scoped for multi-tenant
+  operation.
+- **Auth and role guards**: protected modules keep layout and route-level
+  enforcement in place.
+- **Cron hardening**: cron endpoints are protected with
+  `Authorization: Bearer <CRON_SECRET>` and the billing/expiry automations are
+  active in production.
+
+### 3. Operations hardening
+
+- **Backups**: the VPS generates compressed PostgreSQL backups successfully.
+- **Restore drill**: a non-destructive restore drill succeeds against a
+  temporary database.
+- **SMTP delivery**: production SMTP delivery has been tested successfully from
+  inside the running `web` container.
+- **Automation stability**: the document-expiry cron is idempotent for the same
+  day, preventing duplicate notifications.
+- **Platform visibility**: Platform Admin reflects live provider, cron, email,
+  and release state.
+
+### 4. Business modules
+
+- **Dashboard and operational views**: role-oriented dashboards and operational
+  pulses are live.
+- **Candidates and documents**: manual review flows, OCR paths, and document
+  state handling have been exercised.
+- **Legal and logistics**: blocking conditions and readiness signals are wired
+  into notifications and platform visibility.
+- **Billing**: subscription-attention and plan-pressure automations are active
+  and visible.
+
+## Internal documentation
+
+- [Route Map](./route-map.md)
+- [Migration Safety Plan](./migration-safe-plan.md)
+- [Operations Hardening Checklist](./OPERATIONS-HARDENING-CHECKLIST.md)
+- [Deployment Guide](./deploy.md)
+- [Production Strategy](./production-strategy.md)
 
 ---
-**Status: STABLE / PRODUCTION READY**
-*Date: May 3, 2026*
+
+**Status: PRODUCTION HARDENING CLOSED / DISTRIBUTION READINESS IN PROGRESS**  
+*Date: June 9, 2026*
