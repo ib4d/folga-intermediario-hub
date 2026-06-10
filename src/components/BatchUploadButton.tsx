@@ -323,6 +323,9 @@ export default function BatchUploadButton({
                       {files.length} archivo(s) seleccionado(s)
                     </p>
                   ) : null}
+                  <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: "0.35rem" }}>
+                    Hasta 20 archivos por intento y 50MB totales. Cada archivo puede pesar hasta 10MB.
+                  </p>
                 </div>
 
                 <button

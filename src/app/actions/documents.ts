@@ -27,6 +27,8 @@ const ALLOWED_MIME_TYPES = [
   "image/webp",
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_BATCH_FILES = 20;
+const MAX_BATCH_TOTAL_SIZE = 50 * 1024 * 1024;
 
 const EXTENSION_TO_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -102,6 +104,21 @@ function normalizeMimeType(file: File): string {
   const normalizedName = file.name.toLowerCase();
   const extension = Object.keys(EXTENSION_TO_MIME).find((key) => normalizedName.endsWith(key));
   return extension ? EXTENSION_TO_MIME[extension] : rawMimeType ?? "application/octet-stream";
+}
+
+function validateBatchUpload(files: File[]) {
+  if (files.length === 0) {
+    throw new Error("Selecciona al menos un archivo.");
+  }
+
+  if (files.length > MAX_BATCH_FILES) {
+    throw new Error(`La subida por lotes admite hasta ${MAX_BATCH_FILES} archivos por intento.`);
+  }
+
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalSize > MAX_BATCH_TOTAL_SIZE) {
+    throw new Error("La subida por lotes excede el limite total de 50MB.");
+  }
 }
 
 function normalizePersonName(value: string | null | undefined): string | null {
@@ -1822,6 +1839,7 @@ export async function reviewDocumentOcr(input: {
 
 export async function batchUploadDocuments(candidateId: string, formData: FormData) {
   const files = formData.getAll("files") as File[];
+  validateBatchUpload(files);
   const requestedType = parseDocumentType((formData.get("docType") as string) || "OTHER");
   const results: Array<{
     filename: string;
@@ -1943,6 +1961,7 @@ export async function smartBatchUpload(formData: FormData) {
   }
   const candidateIdValue = formData.get("candidateId");
   const files = formData.getAll("files") as File[];
+  validateBatchUpload(files);
   const candidateId =
     typeof candidateIdValue === "string" && candidateIdValue.trim().length > 0
       ? candidateIdValue
