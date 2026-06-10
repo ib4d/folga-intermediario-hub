@@ -62,7 +62,8 @@ remain open for a cleaner public SaaS rollout:
 - [ ] Rotate any secret that may have been exposed during setup iterations.
 - [ ] Set `SMTP_TEST_RECIPIENT` in VPS `.env` for repeatable hardening checks.
 - [ ] Add lightweight monitoring or alerting beyond manual health checks.
-- [ ] Add rate limiting for public endpoints and uploads.
+- [x] Add basic rate limiting for public auth, registration, and operational
+      status endpoints.
 - [ ] Finish GDPR/export/delete operating procedures.
 - [ ] Prepare a clean demo or sandbox tenant.
 - [ ] Complete Stripe/customer portal rollout when commercial billing goes live.
