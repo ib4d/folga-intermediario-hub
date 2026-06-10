@@ -54,6 +54,7 @@ playbooks.
 - [Migration Safety Plan](./migration-safe-plan.md)
 - [Operations Hardening Checklist](./OPERATIONS-HARDENING-CHECKLIST.md)
 - [GDPR Export/Delete Operations](./gdpr-export-delete-operations.md)
+- [Demo Sandbox Tenant Playbook](./demo-sandbox-tenant-playbook.md)
 - [Deployment Guide](./deploy.md)
 - [Production Strategy](./production-strategy.md)
 
