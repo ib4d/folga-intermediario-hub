@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const language = normalizeLanguage(searchParams.get("lang"));
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const labels = t.bind(null, language);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +29,7 @@ export default function LoginPage() {
         redirect: false,
         email,
         password,
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
 
       if (result?.error) {
