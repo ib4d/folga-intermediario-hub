@@ -48,6 +48,7 @@ curl https://app.ori-craftlabs.com/api/health
 ## Recommended verification after deploy
 
 ```bash
+docker compose -f docker-compose.prod.yml exec web npm run check:monitoring
 curl -i -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-expiring
 curl -i -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-billing
 docker compose -f docker-compose.prod.yml exec web npm run check:smtp -- your-email@example.com

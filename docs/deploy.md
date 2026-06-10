@@ -192,6 +192,7 @@ Run these after deploy:
 ```bash
 curl https://your-domain.example/api/health
 docker compose -f docker-compose.prod.yml exec web npm run check:smoke
+docker compose -f docker-compose.prod.yml exec web npm run check:monitoring
 docker compose -f docker-compose.prod.yml logs --tail=100 web
 docker compose -f docker-compose.prod.yml exec web npx prisma migrate status
 docker compose -f docker-compose.prod.yml ps

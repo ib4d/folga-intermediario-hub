@@ -14,7 +14,8 @@
     "check:prod-env": "node scripts/check-production-env.mjs",
     "check:permissions": "node scripts/check-permissions.mjs",
     "check:smoke": "node scripts/check-production-smoke.mjs",
-    "check:smtp": "node scripts/check-smtp.mjs"
+    "check:smtp": "node scripts/check-smtp.mjs",
+    "check:monitoring": "node scripts/check-monitoring.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
