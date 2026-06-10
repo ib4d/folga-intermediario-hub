@@ -30,7 +30,7 @@ export default async function OnboardingPage({
     },
   });
 
-  if (persistedUser?.organizationId) {
+  if (persistedUser?.organizationId && workspaceMode !== "demo") {
     redirect("/dashboard");
   }
 
