@@ -53,6 +53,7 @@ playbooks.
 - [Route Map](./route-map.md)
 - [Migration Safety Plan](./migration-safe-plan.md)
 - [Operations Hardening Checklist](./OPERATIONS-HARDENING-CHECKLIST.md)
+- [GDPR Export/Delete Operations](./gdpr-export-delete-operations.md)
 - [Deployment Guide](./deploy.md)
 - [Production Strategy](./production-strategy.md)
 

@@ -64,7 +64,7 @@ remain open for a cleaner public SaaS rollout:
 - [ ] Add lightweight monitoring or alerting beyond manual health checks.
 - [x] Add basic rate limiting for public auth, registration, and operational
       status endpoints.
-- [ ] Finish GDPR/export/delete operating procedures.
+- [x] Finish GDPR/export/delete operating procedures.
 - [ ] Prepare a clean demo or sandbox tenant.
 - [ ] Complete Stripe/customer portal rollout when commercial billing goes live.
 - [ ] Finalize public launch copy and onboarding flow.
