@@ -62,6 +62,9 @@ remain open for a cleaner public SaaS rollout:
 - [ ] Rotate any secret that may have been exposed during setup iterations.
 - [ ] Set `SMTP_TEST_RECIPIENT` in VPS `.env` for repeatable hardening checks.
 - [ ] Add lightweight monitoring or alerting beyond manual health checks.
+- [ ] Finish OCR extraction fine-tuning for noisy passport scans. Upload, local
+      storage, review modal, and manual save path are stable in production, but
+      some fields on low-quality document images still need manual correction.
 - [x] Add basic rate limiting for public auth, registration, and operational
       status endpoints.
 - [x] Finish GDPR/export/delete operating procedures.
@@ -71,4 +74,4 @@ remain open for a cleaner public SaaS rollout:
 
 ## Suggested current stage label
 
-`Production hardening closed. Distribution readiness in progress.`
+`Production hardening closed. Distribution readiness in progress, with OCR field-quality tuning deferred as an extra stage.`

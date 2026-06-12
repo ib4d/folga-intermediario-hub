@@ -214,6 +214,20 @@ Manual browser checks:
 - Toggle 400 PLN payment on a candidate.
 - Invite a user and confirm SMTP behavior.
 
+## Current OCR note
+
+As of the current production track:
+
+- upload flow is stable in production
+- local VPS-backed storage is stable in production
+- document review and manual save path are stable in production
+- OCR field extraction on some noisy passport scans is still an active tuning
+  area
+
+This means the document pipeline is operational, but a public or high-stakes
+demo should still include manual review for OCR-populated passport fields until
+that tuning stage is explicitly closed.
+
 ## Update flow
 
 ```bash
