@@ -228,6 +228,24 @@ This means the document pipeline is operational, but a public or high-stakes
 demo should still include manual review for OCR-populated passport fields until
 that tuning stage is explicitly closed.
 
+For repeatable SMTP validation during operations, you can set:
+
+```bash
+SMTP_TEST_RECIPIENT=your-email@example.com
+```
+
+Then either run:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web npm run check:smtp
+```
+
+or continue passing an explicit recipient:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web npm run check:smtp -- your-email@example.com
+```
+
 ## Update flow
 
 ```bash

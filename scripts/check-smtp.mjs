@@ -36,9 +36,11 @@ function getConfig() {
 }
 
 function getRecipient() {
-  const recipient = process.argv[2]?.trim();
+  const recipient = process.argv[2]?.trim() || process.env.SMTP_TEST_RECIPIENT?.trim();
   if (!recipient) {
-    throw new Error("Usage: npm run check:smtp -- recipient@example.com");
+    throw new Error(
+      "Usage: npm run check:smtp -- recipient@example.com (or set SMTP_TEST_RECIPIENT)"
+    );
   }
   return recipient;
 }
