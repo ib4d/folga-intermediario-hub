@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     "@azure/ai-form-recognizer",
     "canvas",
     "tesseract.js",
+    "tesseract.js-core",
     "pdfjs-dist",
   ],
   webpack: (config, { isServer }) => {
