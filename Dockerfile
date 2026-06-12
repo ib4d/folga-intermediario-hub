@@ -60,8 +60,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bmp-js ./node_modules/bmp-js
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/is-url ./node_modules/is-url
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/node-fetch ./node_modules/node-fetch
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/regenerator-runtime ./node_modules/regenerator-runtime
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/tesseract.js ./node_modules/tesseract.js
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/tesseract.js-core ./node_modules/tesseract.js-core
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/wasm-feature-detect ./node_modules/wasm-feature-detect
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/zlibjs ./node_modules/zlibjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-env.mjs ./scripts/check-production-env.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-permissions.mjs ./scripts/check-permissions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs

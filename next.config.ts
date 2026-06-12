@@ -27,10 +27,16 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: [
     "@azure/ai-form-recognizer",
+    "bmp-js",
     "canvas",
+    "is-url",
+    "node-fetch",
+    "regenerator-runtime",
     "tesseract.js",
     "tesseract.js-core",
+    "wasm-feature-detect",
     "pdfjs-dist",
+    "zlibjs",
   ],
   webpack: (config, { isServer }) => {
     if (isServer) {
