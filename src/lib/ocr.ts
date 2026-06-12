@@ -151,6 +151,22 @@ function normalizeDocumentNumberForType(
   return normalized;
 }
 
+function normalizePersonalNumber(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9]/gi, "")
+    .toUpperCase();
+
+  if (!normalized) return undefined;
+  if (!/\d{6,}/.test(normalized)) return undefined;
+  if (/^[A-Z]{1,3}\d{6,10}$/.test(normalized)) return normalized;
+  if (/^\d{8,14}$/.test(normalized)) return normalized;
+
+  return undefined;
+}
+
 function normalizeWhitespace(value: string | undefined): string | undefined {
   if (!value) return undefined;
 
@@ -422,15 +438,60 @@ function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
   const normalized = cleanLabeledValue(value);
   if (!normalized) return undefined;
 
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  if (tokens.length === 1) {
-    return tokens[0].length >= 3 ? tokens[0] : undefined;
-  }
+  const tokens = normalized
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token) => !["PLACE", "BIRTH", "LUGAR", "NACIMIENTO"].includes(token));
 
-  const firstTwo = tokens.slice(0, 2);
-  if (firstTwo.every((token) => token.length <= 2)) return undefined;
+  if (tokens.length === 0) return undefined;
 
-  return firstTwo.join(" ");
+  const trimmedTokens =
+    tokens.length > 1 && /^[A-Z]{3}$/.test(tokens[tokens.length - 1]) ? tokens.slice(0, -1) : tokens;
+
+  if (trimmedTokens.length === 0) return undefined;
+  if (trimmedTokens.every((token) => token.length <= 2)) return undefined;
+
+  return trimmedTokens.join(" ");
+}
+
+function cleanIssuingAuthorityValue(value: string | undefined): string | undefined {
+  const normalized = cleanLabeledValue(value);
+  if (!normalized) return undefined;
+  if (normalizeHumanDate(normalized)) return undefined;
+  if (/^\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}$/i.test(normalized)) return undefined;
+
+  const compact = compactSearchText(normalized);
+  const rejectedLabels = [
+    "AUTHORITY",
+    "AUTORIDAD",
+    "DATEOFISSUE",
+    "DATEOFEXPIRY",
+    "FECHADEEXPEDICION",
+    "FECHADEVENCIMIENTO",
+    "HOLDERSSIGNATURE",
+    "FIRMADELTITULAR",
+  ];
+  if (rejectedLabels.some((label) => compact === label)) return undefined;
+
+  return normalized;
+}
+
+function extractPassportFieldValue(rawText: string | undefined, labels: string[], stopLabels: string[]): string | undefined {
+  if (!rawText) return undefined;
+
+  const labelPattern = labels
+    .map((label) => normalizeSearchText(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const stopPattern = stopLabels
+    .map((label) => normalizeSearchText(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const normalizedRawText = normalizeSearchText(rawText);
+
+  const match = normalizedRawText.match(
+    new RegExp(`(?:${labelPattern})[^A-Z0-9]{0,20}([A-Z0-9 .-]{3,120}?)(?=\\s+(?:${stopPattern})\\b|$)`, "i")
+  );
+
+  return cleanLabeledValue(match?.[1]);
 }
 
 function extractKartaPobytuType(rawText: string | undefined): string | undefined {
@@ -582,6 +643,7 @@ function parseMrz(rawText: string | undefined): OcrExtractedData {
     return {
       ...nameData,
       documentNumber: normalizeDocumentNumberForType(secondLine.slice(0, 9), "PASSPORT"),
+      personalNumber: normalizePersonalNumber(secondLine.slice(28, 42).replace(/</g, "")),
       dateOfBirth: parseMrzDate(secondLine.slice(13, 19), "birth"),
       dateOfExpiry: parseMrzDate(secondLine.slice(21, 27), "expiry"),
       sex: normalizeSex(secondLine[20]),
@@ -712,11 +774,12 @@ function mapAzureIdDocumentFields(
   const rawNameData = extractNameNearLabels(rawText);
 
   const personalNumber =
-    get("PersonalNumber") ??
+    normalizePersonalNumber(get("PersonalNumber")) ??
     extractRegexGroup(normalizedRawText, [
-      /(?:NUMER PESEL|PERSONAL NUMBER\s*\(?PESEL\)?)[^0-9]{0,40}([0-9]{11})/i,
+      /(?:PERSONAL\s*NO\.?|NUM\.?\s*PERSONAL|PERSONAL NUMBER\s*\(?PESEL\)?)[^A-Z0-9]{0,40}([A-Z]{0,3}\d{6,14})/i,
+      /(?:NUMER PESEL)[^0-9]{0,40}([0-9]{11})/i,
       /\b([0-9]{11})\b/,
-    ]) ??
+    ], normalizePersonalNumber) ??
     mrzData.personalNumber;
 
   let documentNumber =
@@ -801,8 +864,11 @@ function mapAzureIdDocumentFields(
     ]);
 
   const passportAuthority =
-    normalizeWhitespace(get("IssuingAuthority")) ??
-    cleanLabeledValue(
+    cleanIssuingAuthorityValue(get("IssuingAuthority")) ??
+    cleanIssuingAuthorityValue(
+      extractPassportFieldValue(rawText, ["AUTORIDAD", "AUTHORITY"], ["FIRMA DEL TITULAR", "HOLDER'S SIGNATURE", "HOLDERS SIGNATURE"])
+    ) ??
+    cleanIssuingAuthorityValue(
       extractRegexGroup(normalizedRawText, [
         /(?:AUTORIDAD|AUTHORITY)[^A-Z0-9]{0,20}([A-Z0-9 .-]{3,80})/i,
       ])
@@ -831,6 +897,13 @@ function mapAzureIdDocumentFields(
 
   const placeOfBirth =
     normalizeWhitespace(get("PlaceOfBirth")) ??
+    cleanPlaceOfBirthValue(
+      extractPassportFieldValue(
+        rawText,
+        ["LUGAR DE NACIMIENTO", "PLACE OF BIRTH", "PLACE AND COUNTRY OF BIRTH"],
+        ["FECHA DE EXPEDICION", "DATE OF ISSUE", "AUTORIDAD", "AUTHORITY", "FIRMA DEL TITULAR", "HOLDER'S SIGNATURE"]
+      )
+    ) ??
     cleanPlaceOfBirthValue(
       extractLineValueNearLabels(rawText, [
         "PLACE AND COUNTRY OF BIRTH",
@@ -878,9 +951,15 @@ function mapAzureIdDocumentFields(
 
   return {
     firstName:
-      peselFirstName ?? pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName),
+      peselFirstName ??
+      (inferredDocumentType === "PASSPORT"
+        ? pickBestPersonName(mrzData.firstName, get("FirstName"), rawNameData.firstName)
+        : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName)),
     lastName:
-      peselLastName ?? pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName),
+      peselLastName ??
+      (inferredDocumentType === "PASSPORT"
+        ? pickBestPersonName(mrzData.lastName, get("LastName"), rawNameData.lastName)
+        : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName)),
     documentNumber,
     personalNumber,
     dateOfBirth,
