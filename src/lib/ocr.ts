@@ -476,6 +476,84 @@ function cleanIssuingAuthorityValue(value: string | undefined): string | undefin
   return normalized;
 }
 
+function cleanPassportNameValue(value: string | undefined, mode: "first" | "last"): string | undefined {
+  const normalized = normalizeSearchText(value ?? "")
+    .replace(/[^A-Z\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return undefined;
+
+  const rawTokens = normalized.split(/\s+/).filter(Boolean);
+  const stopTokens = new Set([
+    "REPUBLICA",
+    "COLOMBIA",
+    "COLOMBIANA",
+    "NACIONALIDAD",
+    "NATIONALITY",
+    "DATE",
+    "BIRTH",
+    "PLACE",
+    "ISSUE",
+    "EXPIRY",
+    "AUTORIDAD",
+    "AUTHORITY",
+    "PERSONAL",
+    "NUMBER",
+    "PASSPORT",
+  ]);
+
+  const tokens: string[] = [];
+  for (const token of rawTokens) {
+    if (stopTokens.has(token)) break;
+    if (token.length === 1 && token !== "Y") break;
+    if (token.length === 2 && mode === "first") break;
+    tokens.push(token);
+  }
+
+  if (tokens.length === 0) return undefined;
+  return normalizeExtractedPersonName(tokens.join(" "));
+}
+
+function cleanPassportPlaceOfBirthValue(value: string | undefined): string | undefined {
+  const normalized = normalizeSearchText(value ?? "")
+    .replace(/[^A-Z\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return undefined;
+
+  const rawTokens = normalized.split(/\s+/).filter(Boolean);
+  const tokens = rawTokens.filter((token, index) => !(index === 0 && ["F", "M"].includes(token)));
+  while (tokens.length > 0) {
+    const last = tokens[tokens.length - 1];
+    if (/^[A-Z]{1,3}$/.test(last) || last === "ZOCL" || last === "ZOCI") {
+      tokens.pop();
+      continue;
+    }
+    break;
+  }
+
+  return cleanPlaceOfBirthValue(tokens.join(" "));
+}
+
+function extractPassportLabeledNextLine(rawText: string | undefined, labels: RegExp[]): string | undefined {
+  if (!rawText) return undefined;
+  const lines = rawText.split(/\r?\n/);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = normalizeSearchText(lines[index]);
+    if (!labels.some((label) => label.test(line))) continue;
+
+    for (let offset = 1; offset <= 2; offset += 1) {
+      const candidate = lines[index + offset];
+      if (!candidate) continue;
+      const cleaned = normalizeWhitespace(candidate);
+      if (cleaned) return cleaned;
+    }
+  }
+
+  return undefined;
+}
+
 function extractPassportFieldValue(rawText: string | undefined, labels: string[], stopLabels: string[]): string | undefined {
   if (!rawText) return undefined;
 
@@ -772,6 +850,14 @@ function mapAzureIdDocumentFields(
   const mrzData = parseMrz(rawText);
   const inferredDocumentType = inferDocumentType(fields, rawText, mrzData);
   const rawNameData = extractNameNearLabels(rawText);
+  const passportFrontFirstName = cleanPassportNameValue(
+    extractPassportLabeledNextLine(rawText, [/(?:NOMBRES|GIVEN NAMES?)/i]),
+    "first"
+  );
+  const passportFrontLastName = cleanPassportNameValue(
+    extractPassportLabeledNextLine(rawText, [/(?:APELLIDOS|SURNAME)/i]),
+    "last"
+  );
 
   const personalNumber =
     normalizePersonalNumber(get("PersonalNumber")) ??
@@ -866,6 +952,14 @@ function mapAzureIdDocumentFields(
   const passportAuthority =
     cleanIssuingAuthorityValue(get("IssuingAuthority")) ??
     cleanIssuingAuthorityValue(
+      normalizeWhitespace(
+        extractPassportLabeledNextLine(rawText, [/(?:AUT\w*DAD|AUTHORITY)/i])?.replace(
+          /^\s*\d{1,2}\s+[A-Z]{3}(?:\/[A-Z]{3})?\s+\d{4}\s*/i,
+          ""
+        )
+      )
+    ) ??
+    cleanIssuingAuthorityValue(
       extractPassportFieldValue(rawText, ["AUTORIDAD", "AUTHORITY"], ["FIRMA DEL TITULAR", "HOLDER'S SIGNATURE", "HOLDERS SIGNATURE"])
     ) ??
     cleanIssuingAuthorityValue(
@@ -897,6 +991,9 @@ function mapAzureIdDocumentFields(
 
   const placeOfBirth =
     normalizeWhitespace(get("PlaceOfBirth")) ??
+    cleanPassportPlaceOfBirthValue(
+      extractPassportLabeledNextLine(rawText, [/(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)/i])
+    ) ??
     cleanPlaceOfBirthValue(
       extractPassportFieldValue(
         rawText,
@@ -931,6 +1028,7 @@ function mapAzureIdDocumentFields(
 
   const passportType =
     normalizeWhitespace(get("DocumentType")) ??
+    (inferredDocumentType === "PASSPORT" ? mrzData.documentTypeCode : undefined) ??
     cleanLabeledValue(
       extractRegexGroup(normalizedRawText, [
         /(?:TIPO|TYPE)[^A-Z0-9]{0,20}([A-Z])/i,
@@ -953,12 +1051,16 @@ function mapAzureIdDocumentFields(
     firstName:
       peselFirstName ??
       (inferredDocumentType === "PASSPORT"
-        ? pickBestPersonName(mrzData.firstName, get("FirstName"), rawNameData.firstName)
+        ? passportFrontFirstName ??
+          mrzData.firstName ??
+          pickBestPersonName(get("FirstName"), rawNameData.firstName)
         : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName)),
     lastName:
       peselLastName ??
       (inferredDocumentType === "PASSPORT"
-        ? pickBestPersonName(mrzData.lastName, get("LastName"), rawNameData.lastName)
+        ? passportFrontLastName ??
+          mrzData.lastName ??
+          pickBestPersonName(get("LastName"), rawNameData.lastName)
         : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName)),
     documentNumber,
     personalNumber,
