@@ -23,6 +23,52 @@ function normalizeBatchUploadErrorMessage(error: unknown) {
   return `No se pudo completar la subida: ${message}`;
 }
 
+async function parseBatchUploadResponse(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return {} as {
+      success: boolean;
+      results?: {
+        filename: string;
+        success: boolean;
+        message?: string;
+        reviewRequired?: boolean;
+        ocrStatus?: string;
+      }[];
+      message?: string;
+    };
+  }
+
+  try {
+    return JSON.parse(raw) as {
+      success: boolean;
+      results?: {
+        filename: string;
+        success: boolean;
+        message?: string;
+        reviewRequired?: boolean;
+        ocrStatus?: string;
+      }[];
+      message?: string;
+    };
+  } catch {
+    if (response.ok) {
+      return {
+        success: true,
+        message:
+          "Los documentos probablemente se guardaron, pero el servidor devolvio una respuesta inesperada. Recarga la pagina para confirmar el resultado.",
+      };
+    }
+
+    throw new Error(
+      raw.startsWith("<")
+        ? "El servidor devolvio una pagina inesperada en lugar de JSON."
+        : raw,
+    );
+  }
+}
+
 const DOC_TYPES = [
   { value: "PASSPORT", label: "Pasaporte" },
   { value: "KARTA_POBYTU", label: "Karta Pobytu" },
@@ -94,17 +140,7 @@ export default function BatchUploadButton({
           method: "POST",
           body: formData,
         });
-        const res = (await response.json()) as {
-          success: boolean;
-          results?: {
-            filename: string;
-            success: boolean;
-            message?: string;
-            reviewRequired?: boolean;
-            ocrStatus?: string;
-          }[];
-          message?: string;
-        };
+        const res = await parseBatchUploadResponse(response);
 
         if (!response.ok) {
           throw new Error(

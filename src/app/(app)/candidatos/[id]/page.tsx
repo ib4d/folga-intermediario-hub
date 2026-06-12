@@ -661,7 +661,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                               />
                             ) : null}
                             <a
-                              href={doc.url}
+                              href={`/api/documents/${doc.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold transition-colors"

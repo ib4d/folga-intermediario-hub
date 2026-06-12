@@ -289,27 +289,6 @@ function pickBestTextCandidateWithSource(
   return { value: bestCandidate.value, source: bestCandidate.source };
 }
 
-function getSourceLabel(source?: FieldSource): string {
-  if (!source) return "";
-
-  switch (source) {
-    case "OCR":
-      return "OCR";
-    case "MRZ":
-      return "MRZ";
-    case "CANDIDATE":
-      return "Candidato";
-    case "FILE":
-      return "Archivo";
-    case "RECORD":
-      return "Registro";
-    case "MANUAL":
-      return "Manual";
-    default:
-      return "";
-  }
-}
-
 function asBoolean(value: unknown): boolean {
   return value === true;
 }
@@ -349,6 +328,24 @@ function normalizeReviewErrorMessage(error: unknown): string {
   }
 
   return message;
+}
+
+async function parseReviewResponse(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return {} as { success?: boolean; message?: string };
+  }
+
+  try {
+    return JSON.parse(raw) as { success?: boolean; message?: string };
+  } catch {
+    throw new Error(
+      raw.startsWith("<")
+        ? "El servidor devolvio una pagina inesperada en lugar de JSON."
+        : raw,
+    );
+  }
 }
 
 function normalizeFileStem(fileName: string): string {
@@ -1046,7 +1043,7 @@ export default function DocumentReviewModal({
           }),
         });
 
-        const result = (await response.json()) as { success?: boolean; message?: string };
+        const result = await parseReviewResponse(response);
 
         if (!response.ok || !result.success) {
           throw new Error(result.message || "Error al guardar la revision");
@@ -1474,22 +1471,22 @@ export default function DocumentReviewModal({
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
-                <Field label="Numero de documento" source={getSourceLabel(fieldSources.documentNumber)} value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
-                <Field label="Numero personal / PESEL" source={getSourceLabel(fieldSources.personalNumber)} value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
-                <Field label="Fecha de expedicion" source={getSourceLabel(fieldSources.issueDate)} type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
-                <Field label="Fecha de vencimiento" source={getSourceLabel(fieldSources.expiryDate)} type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
-                <Field label="Nombres" source={getSourceLabel(fieldSources.firstName)} value={form.firstName} onChange={(value) => setField("firstName", value)} />
-                <Field label="Apellidos" source={getSourceLabel(fieldSources.lastName)} value={form.lastName} onChange={(value) => setField("lastName", value)} />
-                <Field label="Nacionalidad" source={getSourceLabel(fieldSources.nationality)} value={form.nationality} onChange={(value) => setField("nationality", value)} />
-                <Field label="Codigo pais / emisor" source={getSourceLabel(fieldSources.issuingCountry)} value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
-                <Field label="Fecha de nacimiento" source={getSourceLabel(fieldSources.dateOfBirth)} type="date" value={form.dateOfBirth} onChange={(value) => setField("dateOfBirth", value)} />
-                <Field label="Sexo" source={getSourceLabel(fieldSources.sex)} value={form.sex} onChange={(value) => setField("sex", value)} />
-                <Field label="Lugar de nacimiento" source={getSourceLabel(fieldSources.placeOfBirth)} value={form.placeOfBirth} onChange={(value) => setField("placeOfBirth", value)} />
-                <Field label="Autoridad emisora" source={getSourceLabel(fieldSources.issuingAuthority)} value={form.issuingAuthority} onChange={(value) => setField("issuingAuthority", value)} />
-                <Field label="Tipo de permiso" source={getSourceLabel(fieldSources.kartaPobytuType)} value={form.kartaPobytuType} onChange={(value) => setField("kartaPobytuType", value)} />
-                <Field label="Estatura (cm)" source={getSourceLabel(fieldSources.heightCm)} type="number" value={form.heightCm} onChange={(value) => setField("heightCm", value)} />
-                <Field label="Oficina / Urzad Gminy" source={getSourceLabel(fieldSources.municipalityOffice)} value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
-                <Field label="Observaciones" source={getSourceLabel(fieldSources.remarks)} value={form.remarks} onChange={(value) => setField("remarks", value)} />
+                <Field label="Numero de documento" source={fieldSources.documentNumber} value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
+                <Field label="Numero personal / PESEL" source={fieldSources.personalNumber} value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
+                <Field label="Fecha de expedicion" source={fieldSources.issueDate} type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
+                <Field label="Fecha de vencimiento" source={fieldSources.expiryDate} type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
+                <Field label="Nombres" source={fieldSources.firstName} value={form.firstName} onChange={(value) => setField("firstName", value)} />
+                <Field label="Apellidos" source={fieldSources.lastName} value={form.lastName} onChange={(value) => setField("lastName", value)} />
+                <Field label="Nacionalidad" source={fieldSources.nationality} value={form.nationality} onChange={(value) => setField("nationality", value)} />
+                <Field label="Codigo pais / emisor" source={fieldSources.issuingCountry} value={form.issuingCountry} onChange={(value) => setField("issuingCountry", value)} />
+                <Field label="Fecha de nacimiento" source={fieldSources.dateOfBirth} type="date" value={form.dateOfBirth} onChange={(value) => setField("dateOfBirth", value)} />
+                <Field label="Sexo" source={fieldSources.sex} value={form.sex} onChange={(value) => setField("sex", value)} />
+                <Field label="Lugar de nacimiento" source={fieldSources.placeOfBirth} value={form.placeOfBirth} onChange={(value) => setField("placeOfBirth", value)} />
+                <Field label="Autoridad emisora" source={fieldSources.issuingAuthority} value={form.issuingAuthority} onChange={(value) => setField("issuingAuthority", value)} />
+                <Field label="Tipo de permiso" source={fieldSources.kartaPobytuType} value={form.kartaPobytuType} onChange={(value) => setField("kartaPobytuType", value)} />
+                <Field label="Estatura (cm)" source={fieldSources.heightCm} type="number" value={form.heightCm} onChange={(value) => setField("heightCm", value)} />
+                <Field label="Oficina / Urzad Gminy" source={fieldSources.municipalityOffice} value={form.municipalityOffice} onChange={(value) => setField("municipalityOffice", value)} />
+                <Field label="Observaciones" source={fieldSources.remarks} value={form.remarks} onChange={(value) => setField("remarks", value)} />
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
@@ -1546,7 +1543,7 @@ function Field({
   type = "text",
 }: {
   label: string;
-  source?: string;
+  source?: FieldSource;
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "date" | "number";
@@ -1562,7 +1559,7 @@ function Field({
     <div className="input-group" style={{ marginBottom: 0 }}>
       <label className="label" style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
         <span>{label}</span>
-        {source ? <SourceBadge source={source as FieldSource} /> : null}
+        {source ? <SourceBadge source={source} /> : null}
       </label>
       <input
         className="input"

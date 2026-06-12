@@ -22,6 +22,41 @@ function normalizeUploadErrorMessage(error: unknown) {
   return `No se pudo completar la subida: ${message}`;
 }
 
+async function parseUploadResponse(response: Response) {
+  const raw = await response.text();
+
+  if (!raw) {
+    return {} as {
+      success: boolean;
+      message?: string;
+      ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
+    };
+  }
+
+  try {
+    return JSON.parse(raw) as {
+      success: boolean;
+      message?: string;
+      ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
+    };
+  } catch {
+    if (response.ok) {
+      return {
+        success: true,
+        message:
+          "Documento guardado. El servidor devolvio una respuesta inesperada, pero la subida probablemente ya quedo registrada. Recarga la pagina para confirmarlo.",
+        ocrStatus: "manual_review",
+      };
+    }
+
+    throw new Error(
+      raw.startsWith("<")
+        ? "El servidor devolvio una pagina inesperada en lugar de JSON."
+        : raw,
+    );
+  }
+}
+
 export default function DocumentUploadButton({
   candidateId,
   ocrMode = "automatic",
@@ -63,11 +98,7 @@ export default function DocumentUploadButton({
           method: "POST",
           body: formData,
         });
-        const res = (await response.json()) as {
-          success: boolean;
-          message?: string;
-          ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
-        };
+        const res = await parseUploadResponse(response);
 
         if (!response.ok) {
           throw new Error(res.message || "Error al subir documento.");

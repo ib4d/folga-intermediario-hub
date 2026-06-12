@@ -44,6 +44,18 @@ function getLocalStorageDir() {
   return process.env.LOCAL_STORAGE_DIR || DEFAULT_LOCAL_STORAGE_DIR;
 }
 
+export function resolveLocalStorageAbsolutePath(relativePath: string) {
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const target = path.resolve(getLocalStorageDir(), normalized);
+  const base = path.resolve(getLocalStorageDir());
+
+  if (!target.startsWith(base)) {
+    throw new Error("Ruta de almacenamiento local invalida.");
+  }
+
+  return { normalized, target };
+}
+
 function getLocalPublicBaseUrl() {
   const authUrl = process.env.AUTH_URL?.trim() || process.env.NEXTAUTH_URL?.trim() || "http://localhost:3000";
   return authUrl.replace(/\/+$/, "");
@@ -128,15 +140,7 @@ export class LocalDiskStorageProvider implements StorageProvider {
   }
 
   private resolveTargetPath(relativePath: string) {
-    const normalized = relativePath.replace(/\\/g, "/").replace(/^\/+/, "");
-    const target = path.resolve(getLocalStorageDir(), normalized);
-    const base = path.resolve(getLocalStorageDir());
-
-    if (!target.startsWith(base)) {
-      throw new Error("Ruta de almacenamiento local invalida.");
-    }
-
-    return { normalized, target };
+    return resolveLocalStorageAbsolutePath(relativePath);
   }
 
   async uploadObject(input: UploadObjectInput): Promise<UploadObjectResult> {
