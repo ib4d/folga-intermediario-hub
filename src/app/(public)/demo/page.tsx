@@ -43,8 +43,11 @@ export default async function DemoPage({
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang ?? session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
-  const loginHref = localizedHref("/login", language);
   const onboardingHref = localizedHref("/onboarding?mode=demo", language);
+  const loginHref = `/login?${new URLSearchParams({
+    callbackUrl: onboardingHref,
+    lang: language,
+  }).toString()}`;
 
   return (
     <div

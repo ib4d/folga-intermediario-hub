@@ -159,6 +159,7 @@ export default async function LandingPage({
   const securityHref = localizedHref("/security", language);
   const pricingHref = localizedHref("/pricing", language);
   const demoHref = localizedHref("/demo", language);
+  const onboardingHref = localizedHref("/onboarding", language);
   const loginHref = localizedHref("/login", language);
 
   return (
@@ -240,7 +241,7 @@ export default async function LandingPage({
           {labels("public.hero.description")}
         </p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href={loginHref} className="button" style={{ padding: "1.1rem 2rem", fontSize: "1.1rem" }}>
+          <Link href={onboardingHref} className="button" style={{ padding: "1.1rem 2rem", fontSize: "1.1rem" }}>
             {labels("public.hero.primaryCta")} <ArrowRight size={22} style={{ marginLeft: "0.5rem" }} />
           </Link>
           <Link
@@ -412,47 +413,55 @@ export default async function LandingPage({
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "2rem" }}>
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.title ?? plan.price}
-                className="card"
-                style={{
-                  backgroundColor: "white",
-                  border: plan.featured ? "4px solid var(--pitch-black)" : undefined,
-                  transform: plan.featured ? "translateY(-10px)" : undefined,
-                  display: "flex",
-                  flexDirection: "column",
-                  minHeight: "430px",
-                }}
-              >
-                <div style={{ marginBottom: "2rem" }}>
-                  <div
-                    className={`status-badge ${plan.featured ? "active" : ""}`}
-                    style={{
-                      marginBottom: "1rem",
-                      backgroundColor: plan.darkBadge ? "var(--pitch-black)" : undefined,
-                      color: plan.darkBadge ? "white" : undefined,
-                    }}
-                  >
-                    {labels(plan.badge)}
+            {pricingPlans.map((plan) => {
+              const planHref = plan.title === "public.pricing.free" ? onboardingHref : pricingHref;
+              const planLabel =
+                plan.title === "public.pricing.free"
+                  ? labels("public.hero.primaryCta")
+                  : labels("public.pricing.selectPlan");
+
+              return (
+                <div
+                  key={plan.title ?? plan.price}
+                  className="card"
+                  style={{
+                    backgroundColor: "white",
+                    border: plan.featured ? "4px solid var(--pitch-black)" : undefined,
+                    transform: plan.featured ? "translateY(-10px)" : undefined,
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "430px",
+                  }}
+                >
+                  <div style={{ marginBottom: "2rem" }}>
+                    <div
+                      className={`status-badge ${plan.featured ? "active" : ""}`}
+                      style={{
+                        marginBottom: "1rem",
+                        backgroundColor: plan.darkBadge ? "var(--pitch-black)" : undefined,
+                        color: plan.darkBadge ? "white" : undefined,
+                      }}
+                    >
+                      {labels(plan.badge)}
+                    </div>
+                    <h3 style={{ fontSize: "2.35rem" }}>
+                      {plan.price ?? labels(plan.title ?? "public.pricing.free")}
+                      {plan.suffix ? <span style={{ fontSize: "1rem" }}>{labels(plan.suffix)}</span> : null}
+                    </h3>
                   </div>
-                  <h3 style={{ fontSize: "2.35rem" }}>
-                    {plan.price ?? labels(plan.title ?? "public.pricing.free")}
-                    {plan.suffix ? <span style={{ fontSize: "1rem" }}>{labels(plan.suffix)}</span> : null}
-                  </h3>
+                  <ul style={{ listStyle: "none", marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
+                    {plan.items.map((item) => (
+                      <li key={item} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <CheckCircle2 size={18} color="green" /> {labels(item)}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={planHref} className="button" style={{ width: "100%" }}>
+                    {planLabel}
+                  </Link>
                 </div>
-                <ul style={{ listStyle: "none", marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
-                  {plan.items.map((item) => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <CheckCircle2 size={18} color="green" /> {labels(item)}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={loginHref} className="button" style={{ width: "100%" }}>
-                  {plan.title === "public.pricing.free" ? labels("public.hero.primaryCta") : labels("public.pricing.selectPlan")}
-                </Link>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
