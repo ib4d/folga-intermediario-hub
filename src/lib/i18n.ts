@@ -488,8 +488,17 @@ const translations = {
     "login.shellTitle": "Entra a tu mesa de control",
     "login.shellDescription":
       "Accede al flujo operativo de ORI CRUIT HUB para revisar candidatos, documentos y tareas pendientes.",
+    "login.contextTitle": "Acceso compartido",
     "login.context":
       "Usa el mismo acceso con el que gestionas candidatos, documentos, legal y logistica. Si tu cuenta aun no tiene organizacion activa, el onboarding preparara el espacio inicial.",
+    "login.onboardingContextTitle": "Continuaras con la activacion",
+    "login.onboardingContextDescription":
+      "Despues de entrar volveras al onboarding para crear o terminar de preparar tu espacio operativo.",
+    "login.onboardingContextAction": "Volver al onboarding",
+    "login.demoContextTitle": "Continuaras con el sandbox demo",
+    "login.demoContextDescription":
+      "Despues de entrar volveras al onboarding guiado para activar el sandbox comercial sin perder este paso.",
+    "login.demoContextAction": "Volver al sandbox demo",
     "login.footer":
       "Si tu cuenta aun no tiene organizacion asignada, el sistema te llevara al onboarding despues de entrar.",
     "login.title": "Iniciar sesion",
@@ -1515,8 +1524,17 @@ const translations = {
     "login.shellTitle": "Enter your control desk",
     "login.shellDescription":
       "Access ORI CRUIT HUB operations to review candidates, documents and pending work.",
+    "login.contextTitle": "Shared access",
     "login.context":
       "Use the same access you manage candidates, documents, legal, and logistics with. If your account does not yet have an active organization, onboarding will prepare the initial workspace.",
+    "login.onboardingContextTitle": "You will continue with activation",
+    "login.onboardingContextDescription":
+      "After signing in, you will return to onboarding to create or finish preparing your workspace.",
+    "login.onboardingContextAction": "Back to onboarding",
+    "login.demoContextTitle": "You will continue with the demo sandbox",
+    "login.demoContextDescription":
+      "After signing in, you will return to guided onboarding to activate the commercial sandbox without losing this step.",
+    "login.demoContextAction": "Back to demo sandbox",
     "login.footer":
       "If your account has no organization assigned yet, the system will take you to onboarding after sign in.",
     "login.title": "Sign in",
@@ -2542,8 +2560,17 @@ const translations = {
     "login.shellTitle": "Wejdz do centrum kontroli",
     "login.shellDescription":
       "Pracuj w ORI CRUIT HUB nad kandydatami, dokumentami i zadaniami operacyjnymi.",
+    "login.contextTitle": "Wspolny dostep",
     "login.context":
       "Uzyj tego samego dostepu, ktorym zarzadzasz kandydatami, dokumentami, legal i logistyka. Jesli konto nie ma jeszcze aktywnej organizacji, onboarding przygotuje przestrzen startowa.",
+    "login.onboardingContextTitle": "Wrocisz do aktywacji",
+    "login.onboardingContextDescription":
+      "Po zalogowaniu wrocisz do onboardingu, aby utworzyc lub dokonczyc przygotowanie swojej przestrzeni operacyjnej.",
+    "login.onboardingContextAction": "Wroc do onboardingu",
+    "login.demoContextTitle": "Wrocisz do sandboxa demo",
+    "login.demoContextDescription":
+      "Po zalogowaniu wrocisz do prowadzonego onboardingu, aby aktywowac sandbox handlowy bez utraty tego kroku.",
+    "login.demoContextAction": "Wroc do sandboxa demo",
     "login.footer":
       "Jesli konto nie ma jeszcze przypisanej organizacji, system przeniesie Cie do onboardingu po zalogowaniu.",
     "login.title": "Logowanie",

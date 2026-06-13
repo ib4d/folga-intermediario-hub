@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import AuthShell from "@/components/public/AuthShell";
@@ -13,11 +14,31 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const language = normalizeLanguage(searchParams.get("lang"));
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const [callbackPathname, callbackQuery = ""] = callbackUrl.split("?");
+  const callbackQueryParams = new URLSearchParams(callbackQuery);
+  const isDemoOnboarding =
+    callbackPathname === "/onboarding" && callbackQueryParams.get("mode") === "demo";
+  const isStandardOnboarding = callbackPathname === "/onboarding" && !isDemoOnboarding;
   const labels = t.bind(null, language);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const contextTitle = isDemoOnboarding
+    ? labels("login.demoContextTitle")
+    : isStandardOnboarding
+      ? labels("login.onboardingContextTitle")
+      : labels("login.contextTitle");
+  const contextDescription = isDemoOnboarding
+    ? labels("login.demoContextDescription")
+    : isStandardOnboarding
+      ? labels("login.onboardingContextDescription")
+      : labels("login.context");
+  const contextActionLabel = isDemoOnboarding
+    ? labels("login.demoContextAction")
+    : isStandardOnboarding
+      ? labels("login.onboardingContextAction")
+      : null;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,11 +83,25 @@ export default function LoginPage() {
             border: "1px solid rgba(11, 5, 0, 0.12)",
             background: "rgba(255, 255, 255, 0.72)",
             padding: "0.95rem 1rem",
-            fontSize: "0.9rem",
-            lineHeight: 1.55,
+            display: "grid",
+            gap: "0.75rem",
           }}
         >
-          {labels("login.context")}
+          <div style={{ fontSize: "0.95rem", fontWeight: 800 }}>{contextTitle}</div>
+          <div style={{ fontSize: "0.9rem", lineHeight: 1.55 }}>{contextDescription}</div>
+          {contextActionLabel ? (
+            <Link
+              href={callbackUrl}
+              style={{
+                fontSize: "0.9rem",
+                fontWeight: 800,
+                color: "var(--pitch-black)",
+                width: "fit-content",
+              }}
+            >
+              {contextActionLabel}
+            </Link>
+          ) : null}
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <LanguageSwitcher currentLanguage={language} />
