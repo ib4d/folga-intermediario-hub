@@ -86,7 +86,7 @@ These are the highest-value open items for a more commercial release:
 - [ ] Finalize Stripe/customer portal rollout.
 - [ ] Add one lightweight external uptime/alerting monitor.
 - [ ] Decide the final pilot offer and commercial CTA narrative.
-- [ ] Add a short operator-facing runbook for demo reset / fresh sandbox setup.
+- [x] Add a short operator-facing runbook for demo reset / fresh sandbox setup.
 
 ## F. Exit criteria for "distribution-ready"
 
