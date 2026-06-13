@@ -134,6 +134,23 @@ export default async function PricingPage({
         <p style={{ fontSize: "1.15rem", maxWidth: "820px", margin: "0 auto", opacity: 0.88, lineHeight: 1.6 }}>
           {labels("public.pricing.description")}
         </p>
+        <div
+          style={{
+            margin: "1.5rem auto 0",
+            maxWidth: "760px",
+            border: "1px solid rgba(255, 255, 255, 0.14)",
+            backgroundColor: "#111111",
+            padding: "1rem 1.1rem",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontWeight: 900, marginBottom: "0.35rem" }}>
+            {labels("public.pricing.guidedTitle")}
+          </div>
+          <div style={{ opacity: 0.84, lineHeight: 1.6 }}>
+            {labels("public.pricing.guidedDescription")}
+          </div>
+        </div>
       </header>
 
       <section style={{ padding: "2rem 2rem 6rem" }}>

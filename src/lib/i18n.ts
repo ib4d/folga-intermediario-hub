@@ -370,9 +370,9 @@ const translations = {
     "public.hero.titleA": "De WhatsApp y Excel al",
     "public.hero.titleB": "Control Total",
     "public.hero.description":
-      "La plataforma ATS especializada en reclutamiento internacional. OCR automatico, flujos legales y logistica en un solo lugar.",
+      "La plataforma ATS especializada en reclutamiento internacional. OCR asistido, revision manual y flujos legales y logisticos en un solo lugar.",
     "public.hero.primaryCta": "Empieza gratis ahora",
-    "public.hero.secondaryCta": "Solicitar demo",
+    "public.hero.secondaryCta": "Ver demo guiada",
     "public.problem.title": "El caos del reclutamiento internacional",
     "public.problem.messagesTitle": "Mensajes Perdidos",
     "public.problem.messagesText":
@@ -391,7 +391,7 @@ const translations = {
       "Gestion de pipeline visual disenada para procesos internacionales con estados personalizados.",
     "public.features.ocrTitle": "OCR de Documentos",
     "public.features.ocrText":
-      "Sube un pasaporte y deja que nuestra IA extraiga los datos automaticamente en segundos.",
+      "Sube un documento y acelera la captura de datos con OCR asistido y una revision final clara para el operador.",
     "public.features.legalTitle": "Modulo Legal",
     "public.features.legalText":
       "Revisiones estructuradas de documentos, PESEL y Karta Pobytu con trazabilidad completa.",
@@ -417,7 +417,7 @@ const translations = {
     "public.demo.getStarted": "Comenzar demo",
     "public.demo.nextTitle": "Despues de la demo",
     "public.demo.nextDescription":
-      "Si la demo encaja con tu flujo, entra al sistema o prepara tu espacio de trabajo para empezar a operar.",
+      "Si la demo encaja con tu flujo, prepara un sandbox o activa tu espacio para un arranque guiado con tu equipo.",
     "public.demo.signIn": "Entrar al sistema",
     "public.demo.startWorkspace": "Crear sandbox",
     "public.demo.title": "Demo guiada y comercial",
@@ -449,12 +449,15 @@ const translations = {
       "Las rutinas de backup y restore drill ya estan cerradas para un arranque mas serio.",
     "public.finalCta.title": "Haz que tu operacion se vea y se sienta lista",
     "public.finalCta.description":
-      "Pasa de la demo a una plataforma con trazabilidad, control y una historia comercial clara para tu equipo y tus clientes.",
+      "Pasa de la demo a un espacio guiado con trazabilidad, control y una historia operativa clara para tu equipo y tus clientes.",
     "public.finalCta.primary": "Ver la demo",
     "public.finalCta.secondary": "Entrar al sistema",
     "public.pricing.title": "Planes hechos para crecer",
     "public.pricing.description":
-      "Elige el plan que mejor se adapte al volumen de tu agencia.",
+      "Elige el plan que mejor se adapte al volumen de tu agencia. En esta etapa, la activacion comercial sigue un rollout guiado.",
+    "public.pricing.guidedTitle": "Rollout guiado",
+    "public.pricing.guidedDescription":
+      "Los planes ya estan definidos, pero la activacion comercial actual se acompana con demo, sandbox o piloto guiado segun el caso.",
     "public.pricing.basic": "Basico",
     "public.pricing.free": "Gratis",
     "public.pricing.popular": "Popular",
@@ -1406,9 +1409,9 @@ const translations = {
     "public.hero.titleA": "From WhatsApp and Excel to",
     "public.hero.titleB": "Total Control",
     "public.hero.description":
-      "The ATS platform built for international recruitment. Automatic OCR, legal workflows and logistics in one place.",
+      "The ATS platform built for international recruitment. OCR-assisted review, manual validation, and legal and logistics workflows in one place.",
     "public.hero.primaryCta": "Start free now",
-    "public.hero.secondaryCta": "Request demo",
+    "public.hero.secondaryCta": "See guided demo",
     "public.problem.title": "The chaos of international recruitment",
     "public.problem.messagesTitle": "Lost Messages",
     "public.problem.messagesText":
@@ -1427,7 +1430,7 @@ const translations = {
       "Visual pipeline management designed for international processes with custom statuses.",
     "public.features.ocrTitle": "Document OCR",
     "public.features.ocrText":
-      "Upload a passport and let AI extract the data automatically in seconds.",
+      "Upload a document and speed up data capture with OCR-assisted extraction and a clear final review step for the operator.",
     "public.features.legalTitle": "Legal Module",
     "public.features.legalText":
       "Structured reviews for passports, PESEL and Karta Pobytu with full traceability.",
@@ -1453,7 +1456,7 @@ const translations = {
     "public.demo.getStarted": "Start demo",
     "public.demo.nextTitle": "After the demo",
     "public.demo.nextDescription":
-      "If the demo matches your flow, sign in or set up your workspace to start operating.",
+      "If the demo matches your flow, set up a sandbox or activate your workspace for a guided team rollout.",
     "public.demo.signIn": "Enter the system",
     "public.demo.startWorkspace": "Create sandbox",
     "public.demo.title": "Guided commercial demo",
@@ -1485,12 +1488,15 @@ const translations = {
       "Backup routines and restore drills are already closed for a more serious launch.",
     "public.finalCta.title": "Make your operation look and feel ready",
     "public.finalCta.description":
-      "Move from the demo to a platform with traceability, control, and a clear commercial story for your team and clients.",
+      "Move from the demo to a guided workspace with traceability, control, and a clear operational story for your team and clients.",
     "public.finalCta.primary": "See the demo",
     "public.finalCta.secondary": "Enter the system",
     "public.pricing.title": "Plans built to scale",
     "public.pricing.description":
-      "Choose the plan that fits your agency volume.",
+      "Choose the plan that fits your agency volume. At this stage, commercial activation still follows a guided rollout.",
+    "public.pricing.guidedTitle": "Guided rollout",
+    "public.pricing.guidedDescription":
+      "The plans are already defined, but the current commercial activation is still accompanied by a demo, sandbox, or guided pilot depending on the case.",
     "public.pricing.basic": "Basic",
     "public.pricing.free": "Free",
     "public.pricing.popular": "Popular",
@@ -2442,9 +2448,9 @@ const translations = {
     "public.hero.titleA": "Od WhatsAppa i Excela do",
     "public.hero.titleB": "Pelnej kontroli",
     "public.hero.description":
-      "Platforma ATS dla rekrutacji miedzynarodowej. Automatyczny OCR, procesy legalizacji i logistyka w jednym miejscu.",
+      "Platforma ATS dla rekrutacji miedzynarodowej. OCR wspomagany, reczna walidacja oraz procesy prawne i logistyczne w jednym miejscu.",
     "public.hero.primaryCta": "Zacznij za darmo",
-    "public.hero.secondaryCta": "Popros o demo",
+    "public.hero.secondaryCta": "Zobacz demo prowadzone",
     "public.problem.title": "Chaos rekrutacji miedzynarodowej",
     "public.problem.messagesTitle": "Zagubione wiadomosci",
     "public.problem.messagesText":
@@ -2463,7 +2469,7 @@ const translations = {
       "Wizualne zarzadzanie pipeline stworzone dla procesow miedzynarodowych i niestandardowych statusow.",
     "public.features.ocrTitle": "OCR dokumentow",
     "public.features.ocrText":
-      "Przeslij paszport i pozwol AI automatycznie wyciagnac dane w kilka sekund.",
+      "Przeslij dokument i przyspiesz zbieranie danych dzieki OCR wspomaganemu oraz jasnemu etapowi finalnej weryfikacji operatora.",
     "public.features.legalTitle": "Modul legalizacji",
     "public.features.legalText":
       "Strukturalne przeglady paszportow, PESEL i Karta Pobytu z pelna historia zmian.",
@@ -2489,7 +2495,7 @@ const translations = {
     "public.demo.getStarted": "Rozpocznij demo",
     "public.demo.nextTitle": "Po demie",
     "public.demo.nextDescription":
-      "Jesli demo pasuje do Twojego przeplywu, zaloguj sie lub przygotuj przestrzen robocza do startu.",
+      "Jesli demo pasuje do Twojego przeplywu, przygotuj sandbox lub aktywuj przestrzen do prowadzonego wdrozenia zespolu.",
     "public.demo.signIn": "Wejdz do systemu",
     "public.demo.startWorkspace": "Utworz sandbox",
     "public.demo.title": "Prowadzone demo handlowe",
@@ -2521,12 +2527,15 @@ const translations = {
       "Rutyny backupu i restore drill sa juz domkniete dla powazniejszego startu.",
     "public.finalCta.title": "Spraw, by Twoja operacja wygladala i czula sie gotowa",
     "public.finalCta.description":
-      "Przejdz od demo do platformy z sledzeniem, kontrola i jasna historia handlowa dla Twojego zespolu i klientow.",
+      "Przejdz od demo do prowadzonej przestrzeni z sledzeniem, kontrola i jasna historia operacyjna dla Twojego zespolu i klientow.",
     "public.finalCta.primary": "Zobacz demo",
     "public.finalCta.secondary": "Wejdz do systemu",
     "public.pricing.title": "Plany stworzone do skalowania",
     "public.pricing.description":
-      "Wybierz plan dopasowany do wolumenu Twojej agencji.",
+      "Wybierz plan dopasowany do wolumenu Twojej agencji. Na tym etapie aktywacja komercyjna nadal odbywa sie w modelu prowadzonym.",
+    "public.pricing.guidedTitle": "Prowadzone wdrozenie",
+    "public.pricing.guidedDescription":
+      "Plany sa juz zdefiniowane, ale obecna aktywacja komercyjna nadal odbywa sie z towarzyszeniem demo, sandboxa lub pilota prowadzonego zaleznie od przypadku.",
     "public.pricing.basic": "Podstawowy",
     "public.pricing.free": "Darmowy",
     "public.pricing.popular": "Popularny",
