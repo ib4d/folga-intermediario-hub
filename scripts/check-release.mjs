@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 try {
   const baseUrl = resolveBaseUrl();
@@ -56,6 +58,9 @@ function resolveExpectedRelease() {
   const explicit = process.env.EXPECTED_RELEASE?.trim();
   if (explicit) return explicit;
 
+  const releaseFile = tryReadReleaseFile();
+  if (releaseFile) return releaseFile;
+
   const envRelease = process.env.APP_RELEASE?.trim();
   if (envRelease) return envRelease;
 
@@ -71,6 +76,14 @@ function readGitHead() {
 function tryReadGitHead() {
   try {
     return readGitHead();
+  } catch {
+    return "";
+  }
+}
+
+function tryReadReleaseFile() {
+  try {
+    return readFileSync(join(process.cwd(), ".release"), "utf8").trim();
   } catch {
     return "";
   }

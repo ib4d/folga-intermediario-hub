@@ -6,6 +6,7 @@ set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env}"
+RELEASE_FILE="${RELEASE_FILE:-.release}"
 
 if [ ! -f "${COMPOSE_FILE}" ]; then
   echo "Compose file not found: ${COMPOSE_FILE}" >&2
@@ -39,6 +40,11 @@ sync_release_in_env() {
   fi
 }
 
+sync_release_file() {
+  local release="$1"
+  printf '%s\n' "${release}" > "${RELEASE_FILE}"
+}
+
 read_env_value() {
   local key="$1"
   local line
@@ -48,7 +54,9 @@ read_env_value() {
 
 echo "==> Sync APP_RELEASE with current git revision"
 sync_release_in_env "${RELEASE_SHA}"
+sync_release_file "${RELEASE_SHA}"
 echo "APP_RELEASE=${RELEASE_SHA}"
+echo "RELEASE_FILE=${RELEASE_FILE}"
 
 echo
 echo "==> Rebuild and restart containers"

@@ -63,8 +63,9 @@ CRON_SECRET=use-a-long-random-secret
 JOB_PROVIDER=inline
 NODE_ENV=production
 
-# Optional but recommended for operational visibility in /api/health and /platform
-APP_RELEASE=main-2026-06-09
+# Optional override only. The recommended deploy helper writes the current release
+# automatically into .release and syncs APP_RELEASE for backwards compatibility.
+# APP_RELEASE=main-2026-06-09
 
 # Only set this for an intentional first production bootstrap.
 ALLOW_DEMO_SEED=false
@@ -198,8 +199,10 @@ docker compose -f docker-compose.prod.yml exec web npx prisma migrate status
 docker compose -f docker-compose.prod.yml ps
 ```
 
-If `APP_RELEASE` is set, `/api/health` and Platform Admin will expose it so you
-can confirm which release is actually live.
+If you use the recommended deploy helper, `/api/health` and Platform Admin will
+expose the release that was packaged into the deployed build. `APP_RELEASE`
+should be treated as an override or compatibility fallback, not the primary
+source of truth.
 
 Manual browser checks:
 
@@ -272,6 +275,7 @@ git pull origin main
 What it does:
 
 - syncs `APP_RELEASE` in `.env` to the current `git rev-parse --short HEAD`
+- writes the same git revision into `.release` so the built artifact carries its own release marker
 - rebuilds and restarts the production containers
 - runs `npx prisma migrate deploy`
 - runs `npm run check:monitoring`

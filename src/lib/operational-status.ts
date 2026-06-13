@@ -27,6 +27,7 @@ export function getRuntimeMetadata(): RuntimeMetadata {
   const emailProvider = process.env.EMAIL_PROVIDER?.trim() || "smtp";
   const jobProvider = process.env.JOB_PROVIDER?.trim() || "inline";
   const release =
+    readReleaseMarker() ||
     process.env.APP_RELEASE?.trim() ||
     process.env.SOURCE_COMMIT?.trim() ||
     process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
@@ -47,4 +48,12 @@ export function getRuntimeMetadata(): RuntimeMetadata {
     smtpConfigured,
     jobProvider,
   };
+}
+
+function readReleaseMarker() {
+  try {
+    return readFileSync(join(process.cwd(), ".release"), "utf8").trim();
+  } catch {
+    return "";
+  }
 }
