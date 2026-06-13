@@ -1,38 +1,79 @@
 # Internal Sales Kit: Folga Hub
 
-## 1. Pitch de 30 segundos (Elevator Pitch)
-"Folga Hub es un sistema de gestión para agencias de reclutamiento internacional que elimina el trabajo manual de transcribir documentos. Usamos IA para leer pasaportes y centralizamos los paneles legal y de logística en una sola plataforma, para que puedas escalar tu agencia sin añadir más caos ni personal administrativo."
+## 1. 30-second pitch
 
-## 2. Argumentos de Venta por Perfil
+"Folga Hub is an operating system for international recruitment agencies that
+replaces fragmented Excel and WhatsApp workflows. It centralizes candidates,
+documents, legal follow-up, and logistics in one place, with OCR-assisted
+document review and manual validation built into the workflow."
 
-### Para el Dueño de la Agencia (CEO):
-- **Escalabilidad:** "Puedes gestionar 5 veces más candidatos con el mismo equipo."
-- **Control:** "Visibilidad total de tu negocio. Quién está trabajando, qué falta y qué ingresos vienen."
+## 2. Selling points by audience
 
-### Para el Reclutador:
-- **Ahorro de tiempo:** "Olvídate de perseguir documentos por WhatsApp y de escribir datos a mano."
-- **Menos estrés:** "Sabe exactamente qué documentos están pendientes y cuáles vencen pronto."
+### For the agency owner
 
-### Para el Responsable Legal/Logística:
-- **Precisión:** "Cero errores al leer pasaportes gracias al OCR."
-- **Sincronización:** "Deja de preguntar a los reclutadores cuándo llega cada vuelo; míralo en el panel."
+- **Scalability:** "You can handle more candidates with the same team because
+  the work stops living across chats and spreadsheets."
+- **Control:** "You can see what is blocked, what is pending, and where each
+  candidate stands without asking three departments."
 
-## 3. Manejo de Objeciones
+### For recruiters
 
-### "Ya tenemos un Excel que funciona"
-*Respuesta:* "El Excel funciona hasta que deja de hacerlo. No escala, no tiene alertas de vencimiento automáticas y no permite que el candidato suba sus propios documentos de forma segura."
+- **Time savings:** "Stop chasing documents through WhatsApp threads and
+  rewriting passport fields by hand."
+- **Less stress:** "You can see pending documents, review status, and the next
+  operational step in one system."
 
-### "Es muy caro"
-*Respuesta:* "Si Folga Hub ahorra solo 5 horas al mes a un reclutador, la herramienta ya se paga sola. El Plan Starter cuesta menos que una cena de equipo."
+### For legal and logistics operators
 
-### "¿Es seguro para los datos?"
-*Respuesta:* "Absolutamente. Los datos están encriptados y cada organización tiene su propio espacio aislado (multi-tenant), cumpliendo con estándares de seguridad modernos."
+- **Safer document workflow:** "The system helps extract document fields and
+  keeps manual review available before final confirmation."
+- **Coordination:** "Legal and logistics each see the cases they need, without
+  depending on side conversations."
 
-## 4. Comparativa: Antes vs. Después
+## 3. Objection handling
 
-| Proceso | Antes (Caos) | Después (Folga Hub) |
-|---------|--------------|---------------------|
-| Registro | Formulario manual / Chat | Enlace de registro público / OCR |
-| Documentos | Fotos en WhatsApp / Mail | Subida directa y validación OCR |
-| Legal | Mails internos "está listo?" | Panel de aprobación dedicado |
-| Logística | Excel compartido desfasado | Panel de llegadas en tiempo real |
+### "We already have an Excel that works"
+
+Response:
+
+"Excel works until the volume, coordination, and document risk become too
+high. It does not give you safe document intake, expiry follow-up, or a clean
+handoff between recruiters, legal, and logistics."
+
+### "It is expensive"
+
+Response:
+
+"If the platform saves only a few hours per recruiter each month and reduces
+avoidably bad document handling, it already pays for itself. The value is not
+just speed, it is operational control."
+
+### "Is it safe for candidate data?"
+
+Response:
+
+"Yes. The app runs in production with tenant separation, authenticated access,
+and operational controls already in place. It is built to move this work out of
+informal chats and into a proper system."
+
+## 4. Before vs. after
+
+| Process | Before | After |
+|---------|--------|-------|
+| Registration | Manual form or chat | Public registration / guided intake |
+| Documents | Photos in WhatsApp or mail | Direct upload with OCR-assisted review |
+| Legal | Internal "is this ready?" messages | Dedicated legal queue and status |
+| Logistics | Outdated shared Excel | Arrival and readiness view in one panel |
+
+## 5. Current approved wording
+
+Use this wording for demos and pilots:
+
+"Document upload and OCR-assisted review are active in production. Manual
+correction remains part of the workflow for some scans."
+
+Do not say:
+
+- "zero manual verification"
+- "fully automatic passport OCR"
+- "frictionless self-serve SaaS for any customer today"

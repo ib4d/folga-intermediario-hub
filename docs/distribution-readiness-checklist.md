@@ -85,7 +85,7 @@ These are the highest-value open items for a more commercial release:
 - [ ] Tighten the public conversion funnel from landing -> demo -> login -> onboarding.
 - [ ] Finalize Stripe/customer portal rollout.
 - [ ] Add one lightweight external uptime/alerting monitor.
-- [ ] Decide the final pilot offer and commercial CTA narrative.
+- [x] Decide the final pilot offer and commercial CTA narrative.
 - [x] Add a short operator-facing runbook for demo reset / fresh sandbox setup.
 
 ## F. Exit criteria for "distribution-ready"

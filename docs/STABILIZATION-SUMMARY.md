@@ -57,6 +57,7 @@ playbooks.
 - [Demo Sandbox Tenant Playbook](./demo-sandbox-tenant-playbook.md)
 - [Demo Reset Runbook](./demo-reset-runbook.md)
 - [External Monitoring Setup](./external-monitoring-setup.md)
+- [Pilot Commercial Narrative](./pilot-commercial-narrative.md)
 - [Deployment Guide](./deploy.md)
 - [Production Strategy](./production-strategy.md)
 - [Distribution Readiness Checklist](./distribution-readiness-checklist.md)
