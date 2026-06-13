@@ -291,8 +291,7 @@ docker compose -f docker-compose.prod.yml exec web npm run check:release
 
 It verifies that:
 
-- `git rev-parse --short HEAD` inside the deployment matches runtime
-  `APP_RELEASE`
+- runtime `APP_RELEASE` matches the expected deployed release
 - `/api/health` is still returning `status=ok`
 - the database is still connected
 

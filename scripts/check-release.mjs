@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 try {
   const baseUrl = resolveBaseUrl();
   const timeoutMs = Number(process.env.MONITORING_TIMEOUT_MS || "15000");
-  const headSha = readGitHead();
+  const expectedRelease = resolveExpectedRelease();
   const health = await fetchJson(new URL("/api/health", baseUrl), {
     expectedStatus: 200,
     timeoutMs,
@@ -22,13 +22,15 @@ try {
 
   if (!runtimeRelease) {
     mismatches.push("Runtime release is empty.");
-  } else if (runtimeRelease !== headSha) {
-    mismatches.push(`Runtime release ${runtimeRelease} does not match git HEAD ${headSha}.`);
+  } else if (!expectedRelease) {
+    mismatches.push("Expected release could not be resolved from EXPECTED_RELEASE, APP_RELEASE, or git HEAD.");
+  } else if (runtimeRelease !== expectedRelease) {
+    mismatches.push(`Runtime release ${runtimeRelease} does not match expected release ${expectedRelease}.`);
   }
 
   console.log("Release check summary");
   console.log(`Base URL: ${baseUrl}`);
-  console.log(`Git HEAD: ${headSha}`);
+  console.log(`Expected release: ${expectedRelease || "unknown"}`);
   console.log(`Runtime release: ${runtimeRelease || "unknown"}`);
   console.log(`Health status: ${health.status}`);
   console.log(`Database: ${health.db}`);
@@ -50,10 +52,28 @@ try {
   process.exit(1);
 }
 
+function resolveExpectedRelease() {
+  const explicit = process.env.EXPECTED_RELEASE?.trim();
+  if (explicit) return explicit;
+
+  const envRelease = process.env.APP_RELEASE?.trim();
+  if (envRelease) return envRelease;
+
+  return tryReadGitHead();
+}
+
 function readGitHead() {
   return execFileSync("git", ["rev-parse", "--short", "HEAD"], {
     encoding: "utf8",
   }).trim();
+}
+
+function tryReadGitHead() {
+  try {
+    return readGitHead();
+  } catch {
+    return "";
+  }
 }
 
 function resolveBaseUrl() {
