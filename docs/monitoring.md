@@ -64,3 +64,9 @@ Pair this script with one external monitor that checks:
 - response time / uptime
 
 That external check plus the internal script is enough for the current stage.
+
+## External monitor setup
+
+Use the operator setup here:
+
+- [External Monitoring Setup](./external-monitoring-setup.md)

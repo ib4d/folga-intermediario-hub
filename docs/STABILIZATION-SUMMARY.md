@@ -56,6 +56,7 @@ playbooks.
 - [GDPR Export/Delete Operations](./gdpr-export-delete-operations.md)
 - [Demo Sandbox Tenant Playbook](./demo-sandbox-tenant-playbook.md)
 - [Demo Reset Runbook](./demo-reset-runbook.md)
+- [External Monitoring Setup](./external-monitoring-setup.md)
 - [Deployment Guide](./deploy.md)
 - [Production Strategy](./production-strategy.md)
 - [Distribution Readiness Checklist](./distribution-readiness-checklist.md)
