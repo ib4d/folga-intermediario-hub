@@ -57,6 +57,7 @@ playbooks.
 - [Demo Sandbox Tenant Playbook](./demo-sandbox-tenant-playbook.md)
 - [Deployment Guide](./deploy.md)
 - [Production Strategy](./production-strategy.md)
+- [Distribution Readiness Checklist](./distribution-readiness-checklist.md)
 
 ---
 
