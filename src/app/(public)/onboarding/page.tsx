@@ -10,12 +10,21 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ mode?: string; lang?: string }>;
 }) {
-  const session = await auth();
-  if (!session) redirect("/login");
-  const { mode: workspaceModeParam } = await searchParams;
-  const language = normalizeLanguage(session.user.interfaceLanguage);
-  const labels = t.bind(null, language);
+  const { mode: workspaceModeParam, lang } = await searchParams;
   const workspaceMode = workspaceModeParam === "demo" ? "demo" : "standard";
+  const requestedLanguage = normalizeLanguage(lang);
+  const onboardingQuery = new URLSearchParams();
+  if (workspaceMode === "demo") onboardingQuery.set("mode", "demo");
+  onboardingQuery.set("lang", requestedLanguage);
+  const onboardingCallbackUrl = `/onboarding?${onboardingQuery.toString()}`;
+
+  const session = await auth();
+  if (!session) {
+    redirect(`/login?${new URLSearchParams({ callbackUrl: onboardingCallbackUrl, lang: requestedLanguage }).toString()}`);
+  }
+
+  const language = normalizeLanguage(lang ?? session.user.interfaceLanguage);
+  const labels = t.bind(null, language);
 
   const persistedUser = await prisma.user.findFirst({
     where: {
@@ -35,7 +44,7 @@ export default async function OnboardingPage({
   }
 
   if (!persistedUser) {
-    redirect("/login");
+    redirect(`/login?${new URLSearchParams({ callbackUrl: onboardingCallbackUrl, lang: requestedLanguage }).toString()}`);
   }
 
   return (
