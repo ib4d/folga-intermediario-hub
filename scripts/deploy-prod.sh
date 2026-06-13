@@ -63,6 +63,10 @@ echo
 echo "==> Run monitoring check"
 docker compose -f "${COMPOSE_FILE}" exec web npm run check:monitoring
 
+echo
+echo "==> Run release alignment check"
+docker compose -f "${COMPOSE_FILE}" exec web npm run check:release
+
 BASE_URL="$(read_env_value AUTH_URL)"
 if [ -n "${BASE_URL}" ] && command -v curl >/dev/null 2>&1; then
   echo

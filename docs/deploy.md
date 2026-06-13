@@ -275,9 +275,26 @@ What it does:
 - rebuilds and restarts the production containers
 - runs `npx prisma migrate deploy`
 - runs `npm run check:monitoring`
+- runs `npm run check:release`
 - calls `/api/health` when `AUTH_URL` is set
 
 This is now the preferred production deploy path for the Hostinger VPS.
+
+## Quick post-deploy release verification
+
+If you want one direct confirmation after the deploy finishes:
+
+```bash
+cd /opt/folga-intermediario-hub
+docker compose -f docker-compose.prod.yml exec web npm run check:release
+```
+
+It verifies that:
+
+- `git rev-parse --short HEAD` inside the deployment matches runtime
+  `APP_RELEASE`
+- `/api/health` is still returning `status=ok`
+- the database is still connected
 
 ## Backup note
 
