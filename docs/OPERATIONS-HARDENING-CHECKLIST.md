@@ -38,11 +38,9 @@ Run this on the VPS after pushing production-bound changes:
 ```bash
 cd /opt/folga-intermediario-hub
 git pull origin main
-docker compose -f docker-compose.prod.yml down
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
+chmod +x scripts/deploy-prod.sh
+./scripts/deploy-prod.sh
 docker compose -f docker-compose.prod.yml exec web npm run check:smoke
-curl https://app.ori-craftlabs.com/api/health
 ```
 
 ## Recommended verification after deploy

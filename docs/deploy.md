@@ -256,6 +256,29 @@ docker compose -f docker-compose.prod.yml exec web npm run check:smoke
 docker compose -f docker-compose.prod.yml logs --tail=100 web
 ```
 
+## Recommended VPS deploy helper
+
+To avoid drifting `APP_RELEASE` values between the code currently deployed and
+the runtime metadata exposed by `/api/health`, use the bundled deploy helper on
+the VPS host:
+
+```bash
+cd /opt/folga-intermediario-hub
+chmod +x scripts/deploy-prod.sh
+git pull origin main
+./scripts/deploy-prod.sh
+```
+
+What it does:
+
+- syncs `APP_RELEASE` in `.env` to the current `git rev-parse --short HEAD`
+- rebuilds and restarts the production containers
+- runs `npx prisma migrate deploy`
+- runs `npm run check:monitoring`
+- calls `/api/health` when `AUTH_URL` is set
+
+This is now the preferred production deploy path for the Hostinger VPS.
+
 ## Backup note
 
 Before production changes that affect data:
