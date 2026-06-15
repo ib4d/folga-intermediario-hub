@@ -252,14 +252,17 @@ export default async function PlatformAdminPage() {
           labels("platform.readinessSystemHardening"),
           labels("platform.readinessBackupRestore"),
           labels("platform.readinessOperationalVisibility"),
-        ]}
-        nextItems={[
           labels("platform.readinessPublicMarketing"),
           labels("platform.readinessDemoTenant"),
+          labels("platform.readinessReleaseAlignment"),
+          labels("platform.readinessPilotRunbook"),
+        ]}
+        nextItems={[
           labels("platform.readinessBilling"),
           labels("platform.readinessOnboarding"),
           labels("platform.readinessMultilanguage"),
           labels("platform.readinessMonitoring"),
+          labels("platform.readinessOcrTuning"),
           labels("platform.readinessRateLimiting"),
           labels("platform.readinessGdpr"),
           labels("platform.readinessWhiteLabel"),

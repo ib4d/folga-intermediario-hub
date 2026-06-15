@@ -24,7 +24,7 @@ calling the product broadly distribution-ready:
 - OCR extraction quality on noisy passport images needs more tuning.
 - Stripe/customer portal rollout still needs final commercialization pass.
 - Monitoring is still mostly active-check based rather than alert-driven.
-- Launch/onboarding polish still needs one explicit distribution pass.
+- Self-serve onboarding still needs one explicit low-friction distribution pass.
 
 ## Practical operating position
 
@@ -41,3 +41,4 @@ For demos or pilot usage:
 - avoid claiming field extraction is fully closed for every passport scan quality
 - treat OCR as operator-assist rather than zero-touch automation until the
   tuning stage is complete
+- use the guided pilot operator runbook and release-aligned deploy path

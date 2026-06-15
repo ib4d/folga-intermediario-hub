@@ -82,11 +82,12 @@ Before each guided demo or pilot handoff:
 These are the highest-value open items for a more commercial release:
 
 - [ ] Finish OCR field-quality tuning on noisy passport scans.
-- [ ] Tighten the public conversion funnel from landing -> demo -> login -> onboarding.
+- [x] Tighten the public conversion funnel from landing -> demo -> login -> onboarding.
 - [ ] Finalize Stripe/customer portal rollout.
 - [ ] Add one lightweight external uptime/alerting monitor.
 - [x] Decide the final pilot offer and commercial CTA narrative.
 - [x] Add a short operator-facing runbook for demo reset / fresh sandbox setup.
+- [x] Add a guided pilot operator runbook for deploy/demo/pilot handoff discipline.
 
 ## F. Exit criteria for "distribution-ready"
 
