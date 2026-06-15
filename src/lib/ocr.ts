@@ -608,6 +608,21 @@ function extractPassportFieldValue(rawText: string | undefined, labels: string[]
   return cleanLabeledValue(match?.[1]);
 }
 
+function extractPassportRegexValue(
+  rawText: string | undefined,
+  patterns: RegExp[],
+): string | undefined {
+  if (!rawText) return undefined;
+
+  for (const pattern of patterns) {
+    const match = rawText.match(pattern);
+    const value = cleanLabeledValue(match?.[1]);
+    if (value) return value;
+  }
+
+  return undefined;
+}
+
 function extractKartaPobytuType(rawText: string | undefined): string | undefined {
   if (!rawText) return undefined;
 
@@ -889,9 +904,19 @@ function mapAzureIdDocumentFields(
   const passportFrontFirstName = cleanPassportNameValue(
     extractPassportLabeledNextLine(rawText, [/(?:NOMBRES|GIVEN NAMES?)/i]),
     "first"
+  ) ?? cleanPassportNameValue(
+    extractPassportRegexValue(rawText, [
+      /(?:NOMBRES|GIVEN NAMES?)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ< ]{3,})(?=\r?\n(?:NACIONALIDAD|NATIONALITY))/i,
+    ]),
+    "first"
   );
   const passportFrontLastName = cleanPassportNameValue(
     extractPassportLabeledNextLine(rawText, [/(?:APELLIDOS|SURNAME)/i]),
+    "last"
+  ) ?? cleanPassportNameValue(
+    extractPassportRegexValue(rawText, [
+      /(?:APELLIDOS|SURNAME)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ< ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/i,
+    ]),
     "last"
   );
 
@@ -1002,6 +1027,11 @@ function mapAzureIdDocumentFields(
       extractRegexGroup(normalizedRawText, [
         /(?:AUTORIDAD|AUTHORITY)[^A-Z0-9]{0,20}([A-Z0-9 .-]{3,80})/i,
       ])
+    ) ??
+    cleanIssuingAuthorityValue(
+      extractPassportRegexValue(rawText, [
+        /(?:AUTORIDAD|AUTHORITY)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ. ]{3,})(?=\r?\n(?:FIRMA DEL TITULAR|HOLDER'?S SIGNATURE))/i,
+      ])
     );
 
   const kartaPobytuType =
@@ -1029,6 +1059,11 @@ function mapAzureIdDocumentFields(
     normalizeWhitespace(get("PlaceOfBirth")) ??
     cleanPassportPlaceOfBirthValue(
       extractPassportLabeledNextLine(rawText, [/(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)/i])
+    ) ??
+    cleanPassportPlaceOfBirthValue(
+      extractPassportRegexValue(rawText, [
+        /(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ ]{4,})(?=\r?\n(?:FECHA DE EXPEDICION|DATE OF ISSUE|AUTORIDAD|AUTHORITY))/i,
+      ])
     ) ??
     cleanPlaceOfBirthValue(
       extractPassportFieldValue(
