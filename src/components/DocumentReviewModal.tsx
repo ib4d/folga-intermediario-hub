@@ -414,8 +414,61 @@ function normalizeRawText(rawText: string): string {
     .toUpperCase();
 }
 
+function normalizeReviewName(value: string | null | undefined): string {
+  return normalizeFallbackText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizeMrzLine(line: string): string {
   return normalizeRawText(line).replace(/\s+/g, "");
+}
+
+function sanitizePassportLastNameCandidate(lastName: string | null | undefined, firstName: string | null | undefined): string {
+  const normalizedLastName = normalizeReviewName(lastName);
+  if (!normalizedLastName) return "";
+
+  const normalizedFirstName = normalizeReviewName(firstName);
+  const firstNameTokens = normalizedFirstName
+    .split(/\s+/)
+    .filter((token) => token.length >= 3);
+
+  if (firstNameTokens.length === 0) return normalizedLastName;
+
+  const lastNameTokens = normalizedLastName.split(/\s+/).filter(Boolean);
+  if (lastNameTokens.length <= 1) return normalizedLastName;
+
+  for (let index = 1; index < lastNameTokens.length; index += 1) {
+    const token = lastNameTokens[index];
+    const matchedFirstName = firstNameTokens.find(
+      (firstNameToken) =>
+        token === firstNameToken ||
+        token.startsWith(firstNameToken) ||
+        token.endsWith(firstNameToken)
+    );
+    if (!matchedFirstName) continue;
+
+    const trimmedTokens = lastNameTokens.slice(0, index);
+    const previousToken = trimmedTokens[trimmedTokens.length - 1];
+    if (previousToken) {
+      const trailingNoise = previousToken.match(/^([A-Z]+?)([A-Z])$/);
+      if (
+        trailingNoise &&
+        trailingNoise[1].length >= 3 &&
+        token.startsWith(trailingNoise[2] + matchedFirstName)
+      ) {
+        trimmedTokens[trimmedTokens.length - 1] = trailingNoise[1];
+      }
+    }
+
+    return trimmedTokens.join(" ").trim();
+  }
+
+  return normalizedLastName;
 }
 
 function parseMrzDate(value: string): string | undefined {
@@ -809,12 +862,28 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
     { value: inferredNameParts?.firstName ?? "", source: "FILE" },
   );
 
-  const lastNameCandidate = pickBestTextCandidateWithSource(
-    { value: asString(extracted.lastName), source: "OCR" },
-    { value: rawTextFallback.lastName, source: rawTextSources.lastName ?? "OCR" },
-    { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" },
-    { value: inferredNameParts?.lastName ?? "", source: "FILE" },
-  );
+  const lastNameCandidates =
+    initialType === "PASSPORT"
+      ? [
+          {
+            value: sanitizePassportLastNameCandidate(asString(extracted.lastName), firstNameCandidate.value),
+            source: "OCR" as const,
+          },
+          {
+            value: sanitizePassportLastNameCandidate(rawTextFallback.lastName, firstNameCandidate.value),
+            source: (rawTextSources.lastName ?? "OCR") as FieldSource,
+          },
+          { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" as const },
+          { value: inferredNameParts?.lastName ?? "", source: "FILE" as const },
+        ]
+      : [
+          { value: asString(extracted.lastName), source: "OCR" as const },
+          { value: rawTextFallback.lastName, source: (rawTextSources.lastName ?? "OCR") as FieldSource },
+          { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" as const },
+          { value: inferredNameParts?.lastName ?? "", source: "FILE" as const },
+        ];
+
+  const lastNameCandidate = pickBestTextCandidateWithSource(...lastNameCandidates);
 
   const nationalityCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.nationality), source: "OCR" },
