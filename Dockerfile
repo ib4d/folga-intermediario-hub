@@ -39,6 +39,8 @@ COPY . .
 # For standalone output, they are mostly needed at runtime.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+RUN test -f .release || printf 'local\n' > .release
+
 RUN npx prisma generate
 RUN npm run build
 

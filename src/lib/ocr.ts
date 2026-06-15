@@ -459,6 +459,8 @@ function cleanIssuingAuthorityValue(value: string | undefined): string | undefin
   if (!normalized) return undefined;
   if (normalizeHumanDate(normalized)) return undefined;
   if (/^\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}$/i.test(normalized)) return undefined;
+  if (/^\d{1,2}\s+[A-Z]{3}$/i.test(normalized)) return undefined;
+  if (/^(?:[A-Z]{3}\s+){2,}\d{2,4}$/i.test(normalized)) return undefined;
 
   const compact = compactSearchText(normalized);
   const rejectedLabels = [
@@ -485,9 +487,12 @@ function cleanPassportNameValue(value: string | undefined, mode: "first" | "last
 
   const rawTokens = normalized.split(/\s+/).filter(Boolean);
   const stopTokens = new Set([
+    "F",
+    "M",
     "REPUBLICA",
     "COLOMBIA",
     "COLOMBIANA",
+    "COL",
     "NACIONALIDAD",
     "NATIONALITY",
     "DATE",
@@ -500,6 +505,8 @@ function cleanPassportNameValue(value: string | undefined, mode: "first" | "last
     "PERSONAL",
     "NUMBER",
     "PASSPORT",
+    "ZOCL",
+    "ZOCI",
   ]);
 
   const tokens: string[] = [];
@@ -512,6 +519,35 @@ function cleanPassportNameValue(value: string | undefined, mode: "first" | "last
 
   if (tokens.length === 0) return undefined;
   return normalizeExtractedPersonName(tokens.join(" "));
+}
+
+function hasPassportNameBleed(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = normalizeSearchText(value);
+  if (!normalized) return false;
+
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+  if (["F", "M"].includes(tokens[0])) return true;
+  if (tokens.length > 4) return true;
+  if (tokens.some((token) => ["COL", "ZOCL", "ZOCI", "REPUBLICA", "COLOMBIA", "AUTORIDAD", "AUTHORITY"].includes(token))) {
+    return true;
+  }
+
+  return false;
+}
+
+function pickBestPassportName(...values: Array<string | undefined>): string | undefined {
+  const normalizedCandidates = values
+    .map((value) => normalizeExtractedPersonName(value))
+    .filter((value): value is string => Boolean(value));
+
+  if (normalizedCandidates.length === 0) return undefined;
+
+  const safeCandidates = normalizedCandidates.filter((value) => !hasPassportNameBleed(value));
+  const candidates = safeCandidates.length > 0 ? safeCandidates : normalizedCandidates;
+
+  return candidates.sort((left, right) => scorePersonNameCandidate(right) - scorePersonNameCandidate(left))[0];
 }
 
 function cleanPassportPlaceOfBirthValue(value: string | undefined): string | undefined {
@@ -1051,16 +1087,12 @@ function mapAzureIdDocumentFields(
     firstName:
       peselFirstName ??
       (inferredDocumentType === "PASSPORT"
-        ? passportFrontFirstName ??
-          mrzData.firstName ??
-          pickBestPersonName(get("FirstName"), rawNameData.firstName)
+        ? pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName)
         : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName)),
     lastName:
       peselLastName ??
       (inferredDocumentType === "PASSPORT"
-        ? passportFrontLastName ??
-          mrzData.lastName ??
-          pickBestPersonName(get("LastName"), rawNameData.lastName)
+        ? pickBestPassportName(mrzData.lastName, passportFrontLastName, get("LastName"), rawNameData.lastName)
         : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName)),
     documentNumber,
     personalNumber,
