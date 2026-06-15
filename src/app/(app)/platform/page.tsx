@@ -220,6 +220,20 @@ export default async function PlatformAdminPage() {
               ? labels("platform.systemStatusExternalMonitoringActive")
               : labels("platform.systemStatusExternalMonitoringPending"),
           },
+          {
+            label: labels("platform.systemStatusBilling"),
+            value: runtime.stripeConfigured
+              ? [
+                  labels("platform.systemStatusConfigured"),
+                  runtime.stripePortalConfigured
+                    ? labels("platform.systemStatusBillingPortalReady")
+                    : labels("platform.systemStatusBillingPortalPending"),
+                  runtime.stripePaymentLinksConfigured
+                    ? labels("platform.systemStatusBillingLinksReady")
+                    : labels("platform.systemStatusBillingLinksPending"),
+                ].join(" | ")
+              : labels("platform.systemStatusBillingPending"),
+          },
         ]}
         openHealthLabel={labels("platform.systemStatusOpenHealth")}
         openProvidersLabel={labels("platform.systemStatusOpenProviders")}
@@ -263,9 +277,14 @@ export default async function PlatformAdminPage() {
           labels("platform.readinessReleaseAlignment"),
           labels("platform.readinessPilotRunbook"),
           ...(runtime.externalMonitoringConfigured ? [labels("platform.readinessMonitoring")] : []),
+          ...(runtime.stripeConfigured && runtime.stripePortalConfigured && runtime.stripePaymentLinksConfigured
+            ? [labels("platform.readinessBilling")]
+            : []),
         ]}
         nextItems={[
-          labels("platform.readinessBilling"),
+          ...(runtime.stripeConfigured && runtime.stripePortalConfigured && runtime.stripePaymentLinksConfigured
+            ? []
+            : [labels("platform.readinessBilling")]),
           labels("platform.readinessOnboarding"),
           labels("platform.readinessMultilanguage"),
           ...(runtime.externalMonitoringConfigured ? [] : [labels("platform.readinessMonitoring")]),

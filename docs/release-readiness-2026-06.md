@@ -26,6 +26,17 @@ calling the product broadly distribution-ready:
 - Monitoring is still mostly active-check based rather than alert-driven.
 - Self-serve onboarding still needs one explicit low-friction distribution pass.
 
+## Billing closure signal
+
+Treat the Stripe/customer portal area as operationally closed for guided
+distribution only when all three are true in the live runtime:
+
+- Stripe core configuration is present
+- customer portal URL is configured
+- all commercial payment links are configured
+
+The live app now exposes those signals through Platform Admin and `/api/health`.
+
 ## Practical operating position
 
 Use this wording internally:

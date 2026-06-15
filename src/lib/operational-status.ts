@@ -9,6 +9,9 @@ type RuntimeMetadata = {
   smtpConfigured: boolean;
   jobProvider: string;
   externalMonitoringConfigured: boolean;
+  stripeConfigured: boolean;
+  stripePortalConfigured: boolean;
+  stripePaymentLinksConfigured: boolean;
 };
 
 let cachedVersion: string | null = null;
@@ -27,6 +30,18 @@ function readPackageVersion() {
 export function getRuntimeMetadata(): RuntimeMetadata {
   const emailProvider = process.env.EMAIL_PROVIDER?.trim() || "smtp";
   const jobProvider = process.env.JOB_PROVIDER?.trim() || "inline";
+  const stripeConfigured = Boolean(
+    process.env.STRIPE_SECRET_KEY?.trim() &&
+      process.env.STRIPE_WEBHOOK_SECRET?.trim() &&
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()
+  );
+  const stripePortalConfigured = isHttpsUrl(process.env.STRIPE_CUSTOMER_PORTAL_URL);
+  const stripePaymentLinksConfigured = [
+    process.env.STRIPE_PAYMENT_LINK_STARTER,
+    process.env.STRIPE_PAYMENT_LINK_PRO,
+    process.env.STRIPE_PAYMENT_LINK_BUSINESS,
+    process.env.STRIPE_PAYMENT_LINK_ENTERPRISE,
+  ].every((value) => isHttpsUrl(value));
   const release =
     readReleaseMarker() ||
     process.env.APP_RELEASE?.trim() ||
@@ -49,12 +64,26 @@ export function getRuntimeMetadata(): RuntimeMetadata {
     smtpConfigured,
     jobProvider,
     externalMonitoringConfigured: parseBooleanEnv(process.env.EXTERNAL_MONITORING_ACTIVE),
+    stripeConfigured,
+    stripePortalConfigured,
+    stripePaymentLinksConfigured,
   };
 }
 
 function parseBooleanEnv(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+
+function isHttpsUrl(value: string | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+
+  try {
+    return new URL(trimmed).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function readReleaseMarker() {
