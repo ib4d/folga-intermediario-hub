@@ -8,6 +8,7 @@ type RuntimeMetadata = {
   emailProvider: string;
   smtpConfigured: boolean;
   jobProvider: string;
+  externalMonitoringConfigured: boolean;
 };
 
 let cachedVersion: string | null = null;
@@ -47,7 +48,13 @@ export function getRuntimeMetadata(): RuntimeMetadata {
     emailProvider,
     smtpConfigured,
     jobProvider,
+    externalMonitoringConfigured: parseBooleanEnv(process.env.EXTERNAL_MONITORING_ACTIVE),
   };
+}
+
+function parseBooleanEnv(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
 function readReleaseMarker() {

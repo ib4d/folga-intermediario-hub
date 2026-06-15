@@ -28,6 +28,10 @@ try {
     warnings.push("SMTP is not fully configured in the live runtime.");
   }
 
+  if (!health.externalMonitoringConfigured) {
+    warnings.push("External uptime monitoring is not marked as active in the live runtime.");
+  }
+
   if (!providers?.current?.storage?.statusLabel) {
     throw new Error("Provider status payload is missing current storage information.");
   }
@@ -47,6 +51,7 @@ try {
   console.log(`Jobs: ${health.jobs}`);
   console.log(`Cron configured: ${String(Boolean(health.cronConfigured))}`);
   console.log(`SMTP configured: ${String(Boolean(health.smtpConfigured))}`);
+  console.log(`External monitoring configured: ${String(Boolean(health.externalMonitoringConfigured))}`);
 
   if (warnings.length > 0) {
     console.warn("\nMonitoring warnings:");

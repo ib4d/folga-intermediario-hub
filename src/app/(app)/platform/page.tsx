@@ -214,6 +214,12 @@ export default async function PlatformAdminPage() {
             label: labels("platform.systemStatusRelease"),
             value: `${runtime.version} (${runtime.release.slice(0, 12)})`,
           },
+          {
+            label: labels("platform.systemStatusExternalMonitoring"),
+            value: runtime.externalMonitoringConfigured
+              ? labels("platform.systemStatusExternalMonitoringActive")
+              : labels("platform.systemStatusExternalMonitoringPending"),
+          },
         ]}
         openHealthLabel={labels("platform.systemStatusOpenHealth")}
         openProvidersLabel={labels("platform.systemStatusOpenProviders")}
@@ -256,12 +262,13 @@ export default async function PlatformAdminPage() {
           labels("platform.readinessDemoTenant"),
           labels("platform.readinessReleaseAlignment"),
           labels("platform.readinessPilotRunbook"),
+          ...(runtime.externalMonitoringConfigured ? [labels("platform.readinessMonitoring")] : []),
         ]}
         nextItems={[
           labels("platform.readinessBilling"),
           labels("platform.readinessOnboarding"),
           labels("platform.readinessMultilanguage"),
-          labels("platform.readinessMonitoring"),
+          ...(runtime.externalMonitoringConfigured ? [] : [labels("platform.readinessMonitoring")]),
           labels("platform.readinessOcrTuning"),
           labels("platform.readinessRateLimiting"),
           labels("platform.readinessGdpr"),

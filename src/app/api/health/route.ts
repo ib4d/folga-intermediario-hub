@@ -34,6 +34,7 @@ export async function GET() {
       jobs: runtime.jobProvider,
       cronConfigured: runtime.cronConfigured,
       smtpConfigured: runtime.smtpConfigured,
+      externalMonitoringConfigured: runtime.externalMonitoringConfigured,
       release: runtime.release,
       timestamp: new Date().toISOString(),
       version: runtime.version,

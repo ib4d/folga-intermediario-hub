@@ -99,6 +99,28 @@ After setting it up in the monitoring service:
 3. verify alert recipients are correct
 4. note the monitor name in operations docs or team notes
 
+## Mirror the monitor state inside the app
+
+Once the external monitor is actually live, set this in the VPS `.env`:
+
+```bash
+EXTERNAL_MONITORING_ACTIVE=true
+```
+
+Then redeploy normally:
+
+```bash
+cd /opt/folga-intermediario-hub
+bash ./scripts/deploy-prod.sh
+```
+
+This makes the live runtime expose the monitoring state through:
+
+- `/api/health`
+- `npm run check:monitoring`
+- Platform Admin system status
+- Platform readiness card
+
 Recommended monitor names:
 
 - `ORI CRUIT HUB - Public Health`
