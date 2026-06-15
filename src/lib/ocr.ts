@@ -550,6 +550,53 @@ function pickBestPassportName(...values: Array<string | undefined>): string | un
   return candidates.sort((left, right) => scorePersonNameCandidate(right) - scorePersonNameCandidate(left))[0];
 }
 
+function trimPassportLastNameNoise(
+  lastName: string | undefined,
+  firstName: string | undefined,
+): string | undefined {
+  const normalizedLastName = normalizeExtractedPersonName(lastName);
+  if (!normalizedLastName) return undefined;
+
+  const normalizedFirstName = normalizeExtractedPersonName(firstName);
+  const firstNameTokens = normalizeSearchText(normalizedFirstName ?? "")
+    .split(/\s+/)
+    .filter((token) => token.length >= 3);
+
+  if (firstNameTokens.length === 0) return normalizedLastName;
+
+  const lastNameTokens = normalizeSearchText(normalizedLastName).split(/\s+/).filter(Boolean);
+  if (lastNameTokens.length <= 1) return normalizedLastName;
+
+  for (let index = 1; index < lastNameTokens.length; index += 1) {
+    const token = lastNameTokens[index];
+    const matchedFirstName = firstNameTokens.find(
+      (firstNameToken) =>
+        token === firstNameToken ||
+        token.endsWith(firstNameToken) ||
+        token.startsWith(firstNameToken)
+    );
+    if (!matchedFirstName) continue;
+
+    const trimmedTokens = lastNameTokens.slice(0, index);
+    const previousToken = trimmedTokens[trimmedTokens.length - 1];
+    if (previousToken) {
+      const trailingNoise = previousToken.match(/^([A-Z]+?)([A-Z])$/);
+      if (
+        trailingNoise &&
+        trailingNoise[1].length >= 3 &&
+        token.startsWith(trailingNoise[2] + matchedFirstName)
+      ) {
+        trimmedTokens[trimmedTokens.length - 1] = trailingNoise[1];
+      }
+    }
+
+    const trimmedValue = normalizeExtractedPersonName(trimmedTokens.join(" "));
+    if (trimmedValue) return trimmedValue;
+  }
+
+  return normalizedLastName;
+}
+
 function cleanPassportPlaceOfBirthValue(value: string | undefined): string | undefined {
   const normalized = normalizeSearchText(value ?? "")
     .replace(/[^A-Z\s-]/g, " ")
@@ -1118,17 +1165,24 @@ function mapAzureIdDocumentFields(
       ? normalizeExtractedPersonName(extractLineValueNearLabels(rawText, ["NAZWISKO"], 0))
       : undefined;
 
+  const firstName =
+    peselFirstName ??
+    (inferredDocumentType === "PASSPORT"
+      ? pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName)
+      : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
+
+  const lastName =
+    peselLastName ??
+    (inferredDocumentType === "PASSPORT"
+      ? trimPassportLastNameNoise(
+          pickBestPassportName(mrzData.lastName, passportFrontLastName, get("LastName"), rawNameData.lastName),
+          firstName,
+        )
+      : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));
+
   return {
-    firstName:
-      peselFirstName ??
-      (inferredDocumentType === "PASSPORT"
-        ? pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName)
-        : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName)),
-    lastName:
-      peselLastName ??
-      (inferredDocumentType === "PASSPORT"
-        ? pickBestPassportName(mrzData.lastName, passportFrontLastName, get("LastName"), rawNameData.lastName)
-        : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName)),
+    firstName,
+    lastName,
     documentNumber,
     personalNumber,
     dateOfBirth,
