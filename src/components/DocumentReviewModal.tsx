@@ -594,6 +594,10 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
 
 function inferNamePartsFromFileName(fileName: string): InferredNameParts | null {
   const normalized = normalizeFileStem(fileName).toLowerCase();
+  if (/(^|\s)(collage|camscanner)(\s|$)/i.test(normalized)) {
+    return null;
+  }
+
   const tokens = normalized
     .split(" ")
     .map((token) => token.trim())
@@ -624,6 +628,11 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
           "png",
           "doc",
           "documento",
+          "collage",
+          "camscanner",
+          "scanner",
+          "scanned",
+          "scaner",
         ].includes(token),
     );
 
