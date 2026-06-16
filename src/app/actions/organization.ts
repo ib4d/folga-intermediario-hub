@@ -1,7 +1,9 @@
 "use server";
 
 import { auth, unstable_update } from "@/auth";
+import { signIn } from "@/auth";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -148,9 +150,6 @@ export async function createOrganizationAction(
   formData: FormData
 ) {
   const session = await auth();
-  if (!session?.user?.id && !session?.user?.email) {
-    return { error: "Tu sesion expiro. Inicia sesion otra vez." };
-  }
 
   const name = String(formData.get("name") ?? "").trim();
   const workspaceMode = String(formData.get("mode") ?? "standard").trim();
@@ -158,82 +157,172 @@ export async function createOrganizationAction(
     return { error: "El nombre de la organizacion es obligatorio." };
   }
 
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!session && !fullName) {
+    return { error: "Tu nombre es obligatorio para crear el acceso inicial." };
+  }
+
+  if (!session && !email) {
+    return { error: "El correo electronico es obligatorio para crear el acceso inicial." };
+  }
+
+  if (!session && password.length < 8) {
+    return { error: "La contrasena inicial debe tener al menos 8 caracteres." };
+  }
+
   const slug = slugifyOrganizationName(name);
 
   try {
-    const currentUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          ...(session?.user?.id ? [{ id: session.user.id }] : []),
-          ...(session?.user?.email ? [{ email: session.user.email }] : []),
-        ],
-      },
-      select: {
-        id: true,
-        email: true,
-        isPlatformAdmin: true,
-      },
-    });
+    const currentUser = session
+      ? await prisma.user.findFirst({
+          where: {
+            OR: [
+              ...(session?.user?.id ? [{ id: session.user.id }] : []),
+              ...(session?.user?.email ? [{ email: session.user.email }] : []),
+            ],
+          },
+          select: {
+            id: true,
+            email: true,
+            isPlatformAdmin: true,
+          },
+        })
+      : null;
 
-    if (!currentUser) {
+    if (session && !currentUser) {
       return {
         error: "La sesion actual no corresponde a un usuario valido. Cierra sesion y vuelve a entrar.",
       };
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const org = await tx.organization.create({
-        data: {
-          name,
-          slug,
-          plan: "FREE",
-          isActive: true,
-        },
-      });
-
-      await tx.membership.upsert({
-        where: {
-          userId_organizationId: {
-            userId: currentUser.id,
-            organizationId: org.id,
+    if (currentUser) {
+      const result = await prisma.$transaction(async (tx) => {
+        const org = await tx.organization.create({
+          data: {
+            name,
+            slug,
+            plan: "FREE",
+            isActive: true,
           },
-        },
-        update: {
-          role: "SUPERADMIN",
-          isActive: true,
-        },
-        create: {
-          organizationId: org.id,
-          userId: currentUser.id,
-          role: "SUPERADMIN",
-          isActive: true,
-        },
+        });
+
+        await tx.membership.upsert({
+          where: {
+            userId_organizationId: {
+              userId: currentUser.id,
+              organizationId: org.id,
+            },
+          },
+          update: {
+            role: "SUPERADMIN",
+            isActive: true,
+          },
+          create: {
+            organizationId: org.id,
+            userId: currentUser.id,
+            role: "SUPERADMIN",
+            isActive: true,
+          },
+        });
+
+        await tx.user.update({
+          where: { id: currentUser.id },
+          data: {
+            organizationId: org.id,
+            role: "SUPERADMIN",
+          },
+        });
+
+        if (workspaceMode === "demo") {
+          await seedDemoWorkspace(tx, org, currentUser.id);
+        }
+
+        return org;
       });
 
-      await tx.user.update({
-        where: { id: currentUser.id },
-        data: {
-          organizationId: org.id,
+      await unstable_update({
+        user: {
+          id: currentUser.id,
+          organizationId: result.id,
           role: "SUPERADMIN",
+          isPlatformAdmin: Boolean(currentUser.isPlatformAdmin),
         },
       });
+    } else {
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
 
-      if (workspaceMode === "demo") {
-        await seedDemoWorkspace(tx, org, currentUser.id);
+      if (existingUser) {
+        return {
+          error: "Ya existe una cuenta con este correo. Inicia sesion para continuar con la activacion.",
+        };
       }
 
-      return org;
-    });
+      const passwordHash = await bcrypt.hash(password, 12);
 
-    await unstable_update({
-      user: {
-        id: currentUser.id,
-        organizationId: result.id,
-        role: "SUPERADMIN",
-        isPlatformAdmin: Boolean(currentUser.isPlatformAdmin),
-      },
-    });
+      await prisma.$transaction(async (tx) => {
+        const org = await tx.organization.create({
+          data: {
+            name,
+            slug,
+            plan: "FREE",
+            isActive: true,
+          },
+        });
+
+        const createdUser = await tx.user.create({
+          data: {
+            email,
+            name: fullName,
+            passwordHash,
+            organizationId: org.id,
+            role: "SUPERADMIN",
+            isActive: true,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.membership.create({
+          data: {
+            organizationId: org.id,
+            userId: createdUser.id,
+            role: "SUPERADMIN",
+            isActive: true,
+          },
+        });
+
+        if (workspaceMode === "demo") {
+          await seedDemoWorkspace(tx, org, createdUser.id);
+        }
+      });
+
+      revalidatePath("/", "layout");
+      revalidatePath("/dashboard");
+      revalidatePath("/candidatos");
+      revalidatePath("/legal");
+      revalidatePath("/logistica");
+      revalidatePath("/notificaciones");
+
+      await signIn("credentials", {
+        email,
+        password,
+        redirectTo: "/dashboard",
+      });
+    }
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        error: "Ya existe una cuenta o espacio con esos datos. Usa otro nombre o inicia sesion con el correo ya creado.",
+      };
+    }
+
     const message = error instanceof Error ? error.message : "Error desconocido";
     return {
       error: `No se pudo crear la organizacion. ${message}`,

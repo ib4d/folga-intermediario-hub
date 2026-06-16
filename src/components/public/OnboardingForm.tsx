@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { createOrganizationAction } from "@/app/actions/organization";
 
 type OnboardingFormProps = {
@@ -14,6 +15,17 @@ type OnboardingFormProps = {
   submitLabel: string;
   submittingLabel: string;
   footerText: string;
+  requiresAccount: boolean;
+  accountTitle: string;
+  fullNameLabel: string;
+  fullNamePlaceholder: string;
+  emailLabel: string;
+  emailPlaceholder: string;
+  passwordLabel: string;
+  passwordPlaceholder: string;
+  existingAccountLabel: string;
+  existingAccountAction: string;
+  existingAccountHref: string;
 };
 
 const initialOrganizationState = {
@@ -31,6 +43,17 @@ export default function OnboardingForm({
   submitLabel,
   submittingLabel,
   footerText,
+  requiresAccount,
+  accountTitle,
+  fullNameLabel,
+  fullNamePlaceholder,
+  emailLabel,
+  emailPlaceholder,
+  passwordLabel,
+  passwordPlaceholder,
+  existingAccountLabel,
+  existingAccountAction,
+  existingAccountHref,
 }: OnboardingFormProps) {
   const [state, formAction, isPending] = useActionState(
     createOrganizationAction,
@@ -65,6 +88,76 @@ export default function OnboardingForm({
           ))}
         </ul>
       </div>
+
+      {requiresAccount ? (
+        <div
+          style={{
+            border: "1px solid rgba(11, 5, 0, 0.12)",
+            background: "rgba(255, 255, 255, 0.72)",
+            padding: "0.95rem 1rem",
+            display: "grid",
+            gap: "0.9rem",
+          }}
+        >
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <div style={{ fontWeight: 900, fontSize: "0.92rem" }}>{accountTitle}</div>
+            <div style={{ fontSize: "0.88rem", color: "var(--muted)", lineHeight: 1.5 }}>
+              {existingAccountLabel}{" "}
+              <Link href={existingAccountHref} style={{ fontWeight: 800, color: "var(--pitch-black)" }}>
+                {existingAccountAction}
+              </Link>
+            </div>
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="label" htmlFor="fullName">
+              {fullNameLabel}
+            </label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              className="input"
+              placeholder={fullNamePlaceholder}
+              required
+              disabled={isPending}
+            />
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="label" htmlFor="email">
+              {emailLabel}
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              className="input"
+              placeholder={emailPlaceholder}
+              required
+              disabled={isPending}
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="input-group" style={{ marginBottom: 0 }}>
+            <label className="label" htmlFor="password">
+              {passwordLabel}
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              className="input"
+              placeholder={passwordPlaceholder}
+              required
+              disabled={isPending}
+              autoComplete="new-password"
+              minLength={8}
+            />
+          </div>
+        </div>
+      ) : null}
 
       {state.error ? (
         <div

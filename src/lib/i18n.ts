@@ -536,6 +536,15 @@ const translations = {
     "onboarding.formTitle": "Crea tu organizacion",
     "onboarding.formDescription":
       "Define el espacio de trabajo inicial para empezar a operar en ORI CRUIT HUB.",
+    "onboarding.accountTitle": "Crea tu acceso inicial",
+    "onboarding.fullNameLabel": "Nombre completo",
+    "onboarding.fullNamePlaceholder": "Ej: Abad Bolanos",
+    "onboarding.emailLabel": "Correo electronico de acceso",
+    "onboarding.emailPlaceholder": "tu@empresa.com",
+    "onboarding.passwordLabel": "Contrasena inicial",
+    "onboarding.passwordPlaceholder": "Minimo 8 caracteres",
+    "onboarding.existingAccountLabel": "Ya tienes cuenta?",
+    "onboarding.existingAccountAction": "Inicia sesion aqui",
     "onboarding.stepsLabel": "Lo que queda listo al crearla",
     "onboarding.step1":
       "Se habilita la mesa de trabajo para candidatos, documentos, legal y logistica.",
@@ -1587,6 +1596,15 @@ const translations = {
     "onboarding.formTitle": "Create your organization",
     "onboarding.formDescription":
       "Define the initial workspace to start operating in ORI CRUIT HUB.",
+    "onboarding.accountTitle": "Create your initial access",
+    "onboarding.fullNameLabel": "Full name",
+    "onboarding.fullNamePlaceholder": "e.g. Abad Bolanos",
+    "onboarding.emailLabel": "Access email",
+    "onboarding.emailPlaceholder": "you@company.com",
+    "onboarding.passwordLabel": "Initial password",
+    "onboarding.passwordPlaceholder": "At least 8 characters",
+    "onboarding.existingAccountLabel": "Already have an account?",
+    "onboarding.existingAccountAction": "Sign in here",
     "onboarding.stepsLabel": "What becomes ready when you create it",
     "onboarding.step1":
       "The workspace is enabled for candidates, documents, legal, and logistics.",
@@ -2638,6 +2656,15 @@ const translations = {
     "onboarding.formTitle": "Utworz organizacje",
     "onboarding.formDescription":
       "Okresl poczatkowa przestrzen robocza, aby zaczac pracowac w ORI CRUIT HUB.",
+    "onboarding.accountTitle": "Utworz pierwszy dostep",
+    "onboarding.fullNameLabel": "Pelne imie i nazwisko",
+    "onboarding.fullNamePlaceholder": "np. Abad Bolanos",
+    "onboarding.emailLabel": "Adres e-mail dostepu",
+    "onboarding.emailPlaceholder": "ty@firma.com",
+    "onboarding.passwordLabel": "Haslo poczatkowe",
+    "onboarding.passwordPlaceholder": "Co najmniej 8 znakow",
+    "onboarding.existingAccountLabel": "Masz juz konto?",
+    "onboarding.existingAccountAction": "Zaloguj sie tutaj",
     "onboarding.stepsLabel": "Co bedzie gotowe po utworzeniu",
     "onboarding.step1":
       "Przestrzen zostaje wlaczona dla kandydatow, dokumentow, legal i logistyki.",

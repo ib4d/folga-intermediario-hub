@@ -20,6 +20,11 @@ const PROXY_RATE_LIMIT_RULES: ProxyRateLimitRule[] = [
     config: { windowMs: 15 * 60 * 1000, max: 10 },
   },
   {
+    pathPrefix: "/onboarding",
+    methods: ["POST"],
+    config: { windowMs: 15 * 60 * 1000, max: 10 },
+  },
+  {
     pathPrefix: "/api/health",
     methods: ["GET"],
     config: { windowMs: 60 * 1000, max: 60 },
