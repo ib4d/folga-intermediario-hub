@@ -13,6 +13,7 @@ import {
   getDocumentDisposition,
   getDocumentDispositionLabel,
   getDocumentDisplayNumber,
+  isOcrReviewRequiredStatus,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
 import { deleteDocumentById } from "@/lib/document-client";
@@ -166,7 +167,7 @@ export default function DocumentTable({
 
   const getOcrBadgeClassName = (ocrStatus: string | null) => {
     if (ocrStatus === "FAILED") return "status-badge danger";
-    if (isManualReviewOcrStatus(ocrStatus)) {
+    if (isManualReviewOcrStatus(ocrStatus) || isOcrReviewRequiredStatus(ocrStatus)) {
       return "status-badge warning";
     }
     if (ocrStatus === "OCR_CAPTURED" || ocrStatus === "SUCCESS") {
@@ -178,6 +179,7 @@ export default function DocumentTable({
   const getOcrLabel = (ocrStatus: string | null) => {
     if (ocrStatus === "OCR_CAPTURED") return labels.ocrCaptured;
     if (ocrStatus === "FAILED") return labels.ocrFailed;
+    if (isOcrReviewRequiredStatus(ocrStatus)) return labels.review;
     if (isManualReviewOcrStatus(ocrStatus)) return labels.manualReview;
     return ocrStatus || labels.pending;
   };
@@ -430,10 +432,10 @@ export default function DocumentTable({
                           >
                             {doc.ocrStatus === "FAILED"
                               ? labels.fix
-                              : isManualReviewOcrStatus(doc.ocrStatus)
-                                ? ocrMode === "manual"
+                              : isOcrReviewRequiredStatus(doc.ocrStatus)
+                                ? labels.review
+                                : isManualReviewOcrStatus(doc.ocrStatus)
                                   ? "Revisar manual"
-                                  : labels.review
                                 : labels.verify}
                           </Link>
                           {canDeleteDocuments ? (

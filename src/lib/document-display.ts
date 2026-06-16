@@ -71,7 +71,11 @@ export function getDocumentDispositionLabel(disposition: DocumentDisposition | n
 }
 
 export function isManualReviewOcrStatus(status: DocumentOcrStatus): boolean {
-  return status === "REVIEW_REQUIRED" || status === "manual_review";
+  return status === "manual_review";
+}
+
+export function isOcrReviewRequiredStatus(status: DocumentOcrStatus): boolean {
+  return status === "REVIEW_REQUIRED";
 }
 
 function parseDateValue(value: string | Date | null | undefined): Date | null {

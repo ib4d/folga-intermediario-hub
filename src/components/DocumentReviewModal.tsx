@@ -7,6 +7,7 @@ import {
   getDocumentDisplayNumber,
   getDocumentDisposition,
   getDocumentDispositionLabel,
+  isOcrReviewRequiredStatus,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
 
@@ -289,6 +290,43 @@ function pickBestTextCandidateWithSource(
   return { value: bestCandidate.value, source: bestCandidate.source };
 }
 
+function pickPreferredTextCandidateWithSource(
+  preferredSources: FieldSource[],
+  ...candidates: Array<{ value: string | null | undefined; source: FieldSource }>
+): { value: string; source?: FieldSource } {
+  const normalizedCandidates = candidates
+    .map((candidate) => {
+      const normalized = normalizeFallbackText(candidate.value);
+      if (!normalized) {
+        return null;
+      }
+
+      return {
+        ...candidate,
+        value: normalized,
+        score: scoreTextCandidate(normalized),
+      };
+    })
+    .filter((candidate): candidate is { value: string; source: FieldSource; score: number } => Boolean(candidate));
+
+  if (normalizedCandidates.length === 0) {
+    return { value: "" };
+  }
+
+  for (const source of preferredSources) {
+    const sourceCandidates = normalizedCandidates
+      .filter((candidate) => candidate.source === source)
+      .sort((left, right) => right.score - left.score);
+
+    if (sourceCandidates.length > 0) {
+      return { value: sourceCandidates[0].value, source: sourceCandidates[0].source };
+    }
+  }
+
+  const bestCandidate = normalizedCandidates.sort((left, right) => right.score - left.score)[0];
+  return { value: bestCandidate.value, source: bestCandidate.source };
+}
+
 function asBoolean(value: unknown): boolean {
   return value === true;
 }
@@ -307,6 +345,7 @@ function getReviewableDocumentStatus(doc: ReviewableDocument): string {
   if (doc.isVerified) return "Verificado";
   if (doc.ocrStatus === "FAILED") return "OCR fallido";
   if (doc.ocrStatus === "OCR_CAPTURED") return "OCR capturado";
+  if (isOcrReviewRequiredStatus(doc.ocrStatus)) return "OCR para revisar";
   if (isManualReviewOcrStatus(doc.ocrStatus)) return "Pendiente de revision manual";
   if (doc.ocrStatus === "SUCCESS") return "OCR exitoso";
   return doc.ocrStatus ?? "Pendiente";
@@ -442,6 +481,36 @@ function sanitizePassportLastNameCandidate(lastName: string | null | undefined, 
   const lastNameTokens = normalizedLastName.split(/\s+/).filter(Boolean);
   if (lastNameTokens.length <= 1) return normalizedLastName;
 
+  const cleanupSurnameTokens = (value: string) => {
+    const tokens = value.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return "";
+
+    while (tokens.length > 1 && tokens[tokens.length - 1]?.length === 1) {
+      const trailingToken = tokens[tokens.length - 1];
+      const previousToken = tokens[tokens.length - 2];
+
+      if (
+        trailingToken &&
+        previousToken &&
+        previousToken.length >= 5 &&
+        previousToken.endsWith(trailingToken)
+      ) {
+        tokens[tokens.length - 2] = previousToken.slice(0, -1);
+      }
+
+      tokens.pop();
+    }
+
+    return tokens.join(" ").trim();
+  };
+
+  for (const firstNameToken of firstNameTokens) {
+    const embeddedIndex = normalizedLastName.indexOf(firstNameToken);
+    if (embeddedIndex > 0) {
+      return cleanupSurnameTokens(normalizedLastName.slice(0, embeddedIndex).trim());
+    }
+  }
+
   for (let index = 1; index < lastNameTokens.length; index += 1) {
     const token = lastNameTokens[index];
     const matchedFirstName = firstNameTokens.find(
@@ -465,10 +534,10 @@ function sanitizePassportLastNameCandidate(lastName: string | null | undefined, 
       }
     }
 
-    return trimmedTokens.join(" ").trim();
+    return cleanupSurnameTokens(trimmedTokens.join(" ").trim());
   }
 
-  return normalizedLastName;
+  return cleanupSurnameTokens(normalizedLastName);
 }
 
 function parseMrzDate(value: string): string | undefined {
@@ -864,11 +933,24 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
     },
   );
 
-  const firstNameCandidate = pickBestTextCandidateWithSource(
-    { value: asString(extracted.firstName), source: "OCR" },
-    { value: rawTextFallback.firstName, source: rawTextSources.firstName ?? "OCR" },
-    { value: normalizeFallbackText(candidateDefaults?.firstName), source: "CANDIDATE" },
-    { value: inferredNameParts?.firstName ?? "", source: "FILE" },
+  const firstNameCandidates =
+    initialType === "PASSPORT"
+      ? [
+          { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "MRZ") as FieldSource },
+          { value: asString(extracted.firstName), source: "OCR" as const },
+          { value: normalizeFallbackText(candidateDefaults?.firstName), source: "CANDIDATE" as const },
+          { value: inferredNameParts?.firstName ?? "", source: "FILE" as const },
+        ]
+      : [
+          { value: asString(extracted.firstName), source: "OCR" as const },
+          { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "OCR") as FieldSource },
+          { value: normalizeFallbackText(candidateDefaults?.firstName), source: "CANDIDATE" as const },
+          { value: inferredNameParts?.firstName ?? "", source: "FILE" as const },
+        ];
+
+  const firstNameCandidate = pickPreferredTextCandidateWithSource(
+    ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
+    ...firstNameCandidates,
   );
 
   const lastNameCandidates =
@@ -892,7 +974,13 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
           { value: inferredNameParts?.lastName ?? "", source: "FILE" as const },
         ];
 
-  const lastNameCandidate = pickBestTextCandidateWithSource(...lastNameCandidates);
+  const lastNameCandidate =
+    initialType === "PASSPORT"
+      ? pickPreferredTextCandidateWithSource(
+          ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
+          ...lastNameCandidates,
+        )
+      : pickBestTextCandidateWithSource(...lastNameCandidates);
 
   const nationalityCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.nationality), source: "OCR" },

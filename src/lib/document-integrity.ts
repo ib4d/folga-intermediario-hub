@@ -1,4 +1,6 @@
+import { access } from "node:fs/promises";
 import { DocumentType, type Prisma } from "@prisma/client";
+import { getStorageProvider, resolveLocalStorageAbsolutePath } from "@/lib/providers/storage";
 
 export interface DocumentIntegrityRecord {
   id: string;
@@ -28,6 +30,18 @@ export interface DocumentIntegritySummary {
 
 export async function isDocumentUrlReachable(publicUrl: string): Promise<boolean> {
   if (!publicUrl) return false;
+
+  const storage = getStorageProvider();
+  const objectPath = storage.getObjectPathFromPublicUrl(publicUrl);
+  if (storage.name === "local" && objectPath) {
+    try {
+      const { target } = resolveLocalStorageAbsolutePath(objectPath);
+      await access(target);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   const timeoutMs = 5000;
   const createAbortSignal = () => {
