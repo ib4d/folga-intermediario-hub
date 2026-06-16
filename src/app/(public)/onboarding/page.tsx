@@ -81,10 +81,6 @@ export default async function OnboardingPage({
     },
   });
 
-  if (persistedUser?.organizationId && workspaceMode !== "demo") {
-    redirect("/dashboard");
-  }
-
   if (!persistedUser) {
     redirect(loginHref);
   }
