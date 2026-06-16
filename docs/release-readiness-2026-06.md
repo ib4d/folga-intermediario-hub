@@ -15,6 +15,7 @@ without mixing already-closed hardening work with active polish items.
 - Document upload works in production.
 - Local OCR provider is running in automatic `tesseract` mode.
 - Document review modal and manual correction flow work in production.
+- Lightweight external uptime monitoring is active and mirrored in runtime status.
 
 ## Not blocking private production
 
@@ -23,7 +24,7 @@ calling the product broadly distribution-ready:
 
 - OCR extraction quality on noisy passport images needs more tuning.
 - Stripe/customer portal rollout still needs final commercialization pass.
-- Monitoring is still mostly active-check based rather than alert-driven.
+- Monitoring is live, but alerting maturity is still intentionally lightweight.
 - Self-serve onboarding still needs one explicit low-friction distribution pass.
 
 ## Billing closure signal

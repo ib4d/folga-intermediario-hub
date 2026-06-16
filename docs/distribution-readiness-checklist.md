@@ -84,7 +84,7 @@ These are the highest-value open items for a more commercial release:
 - [ ] Finish OCR field-quality tuning on noisy passport scans.
 - [x] Tighten the public conversion funnel from landing -> demo -> login -> onboarding.
 - [ ] Finalize Stripe/customer portal rollout.
-- [ ] Add one lightweight external uptime/alerting monitor.
+- [x] Add one lightweight external uptime/alerting monitor.
 - [x] Decide the final pilot offer and commercial CTA narrative.
 - [x] Add a short operator-facing runbook for demo reset / fresh sandbox setup.
 - [x] Add a guided pilot operator runbook for deploy/demo/pilot handoff discipline.
@@ -103,6 +103,6 @@ pilots" when:
 Move from "pilot-ready" to "broader distribution-ready" only after:
 
 - Stripe/self-serve path is stable
-- monitoring/alerting is stronger than manual checks alone
+- monitoring/alerting maturity goes beyond the current lightweight uptime baseline
 - onboarding and demo entry paths are consistently low-friction
 - OCR quality and operator expectations are aligned with what is promised

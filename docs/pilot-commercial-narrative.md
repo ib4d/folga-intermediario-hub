@@ -117,4 +117,4 @@ This narrative remains the approved one until all of the following are true:
 - self-serve billing is fully productized
 - public onboarding is consistently low-friction
 - OCR quality matches the promise being made
-- external monitoring is live, not just documented
+- monitoring and alerting maturity go beyond the current lightweight uptime baseline

@@ -106,7 +106,7 @@ These items are real, but they belong to the next stage rather than blocking
 guided pilots now:
 
 - OCR field-quality tuning on noisy passport scans
-- stronger external monitoring and alerting
+- stronger alerting maturity beyond the current lightweight uptime monitor
 - more productized Stripe/customer portal rollout
 - smoother self-serve onboarding
 
