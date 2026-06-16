@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 function slugifyOrganizationName(name: string) {
   const base = name
@@ -317,6 +318,10 @@ export async function createOrganizationAction(
       });
     }
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return {
         error: "Ya existe una cuenta o espacio con esos datos. Usa otro nombre o inicia sesion con el correo ya creado.",
