@@ -550,18 +550,26 @@ function pickBestPassportName(...values: Array<string | undefined>): string | un
   return candidates.sort((left, right) => scorePersonNameCandidate(right) - scorePersonNameCandidate(left))[0];
 }
 
+function collectPassportFirstNameTokens(...values: Array<string | undefined>): string[] {
+  const tokens = values
+    .flatMap((value) =>
+      normalizeSearchText(normalizeExtractedPersonName(value) ?? "")
+        .split(/\s+/)
+        .filter((token) => token.length >= 3)
+    )
+    .filter(Boolean);
+
+  return [...new Set(tokens)];
+}
+
 function trimPassportLastNameNoise(
   lastName: string | undefined,
-  firstName: string | undefined,
+  ...firstNameHints: Array<string | undefined>
 ): string | undefined {
   const normalizedLastName = normalizeExtractedPersonName(lastName);
   if (!normalizedLastName) return undefined;
 
-  const normalizedFirstName = normalizeExtractedPersonName(firstName);
-  const firstNameTokens = normalizeSearchText(normalizedFirstName ?? "")
-    .split(/\s+/)
-    .filter((token) => token.length >= 3);
-
+  const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
   if (firstNameTokens.length === 0) return normalizedLastName;
 
   const lastNameTokens = normalizeSearchText(normalizedLastName).split(/\s+/).filter(Boolean);
@@ -572,6 +580,7 @@ function trimPassportLastNameNoise(
     const matchedFirstName = firstNameTokens.find(
       (firstNameToken) =>
         token === firstNameToken ||
+        token.includes(firstNameToken) ||
         token.endsWith(firstNameToken) ||
         token.startsWith(firstNameToken)
     );
@@ -1176,6 +1185,10 @@ function mapAzureIdDocumentFields(
     (inferredDocumentType === "PASSPORT"
       ? trimPassportLastNameNoise(
           pickBestPassportName(mrzData.lastName, passportFrontLastName, get("LastName"), rawNameData.lastName),
+          mrzData.firstName,
+          passportFrontFirstName,
+          get("FirstName"),
+          rawNameData.firstName,
           firstName,
         )
       : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));

@@ -463,19 +463,30 @@ function normalizeReviewName(value: string | null | undefined): string {
     .trim();
 }
 
+function collectPassportFirstNameTokens(...values: Array<string | null | undefined>): string[] {
+  const tokens = values
+    .flatMap((value) =>
+      normalizeReviewName(value)
+        .split(/\s+/)
+        .filter((token) => token.length >= 3)
+    )
+    .filter(Boolean);
+
+  return [...new Set(tokens)];
+}
+
 function normalizeMrzLine(line: string): string {
   return normalizeRawText(line).replace(/\s+/g, "");
 }
 
-function sanitizePassportLastNameCandidate(lastName: string | null | undefined, firstName: string | null | undefined): string {
+function sanitizePassportLastNameCandidate(
+  lastName: string | null | undefined,
+  ...firstNameHints: Array<string | null | undefined>
+): string {
   const normalizedLastName = normalizeReviewName(lastName);
   if (!normalizedLastName) return "";
 
-  const normalizedFirstName = normalizeReviewName(firstName);
-  const firstNameTokens = normalizedFirstName
-    .split(/\s+/)
-    .filter((token) => token.length >= 3);
-
+  const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
   if (firstNameTokens.length === 0) return normalizedLastName;
 
   const lastNameTokens = normalizedLastName.split(/\s+/).filter(Boolean);
@@ -516,6 +527,7 @@ function sanitizePassportLastNameCandidate(lastName: string | null | undefined, 
     const matchedFirstName = firstNameTokens.find(
       (firstNameToken) =>
         token === firstNameToken ||
+        token.includes(firstNameToken) ||
         token.startsWith(firstNameToken) ||
         token.endsWith(firstNameToken)
     );
@@ -538,6 +550,76 @@ function sanitizePassportLastNameCandidate(lastName: string | null | undefined, 
   }
 
   return cleanupSurnameTokens(normalizedLastName);
+}
+
+function isLikelyGenericFileNameName(value: string | null | undefined): boolean {
+  const normalized = normalizeReviewName(value);
+  if (!normalized) return false;
+
+  return /\b(COLLAGE|CAMSCANNER|SCAN|SCANNER|SCANNED|PAGE|PASSPORT|PASAPORTE|PASZPORT|DOCUMENTO|DOC)\b/.test(
+    normalized,
+  );
+}
+
+function scorePassportLastNameCandidate(
+  value: string | null | undefined,
+  source: FieldSource,
+  ...firstNameHints: Array<string | null | undefined>
+): number {
+  const sanitized = sanitizePassportLastNameCandidate(value, ...firstNameHints);
+  if (!sanitized) return -1;
+  if (source === "FILE" && isLikelyGenericFileNameName(sanitized)) return -1;
+
+  const tokens = sanitized.split(/\s+/).filter(Boolean);
+  const compact = sanitized.replace(/[^A-Z]/g, "");
+  const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
+  const sourceWeight: Record<FieldSource, number> = {
+    OCR: 40,
+    MRZ: 34,
+    CANDIDATE: 18,
+    FILE: 6,
+    RECORD: 8,
+    MANUAL: 2,
+  };
+
+  let score = compact.length + tokens.length * 4 + sourceWeight[source];
+
+  if (tokens.length > 3) score -= 18;
+  if (tokens.some((token) => token.length === 1)) score -= 24;
+  if (firstNameTokens.some((token) => sanitized.includes(token))) score -= 28;
+
+  return score;
+}
+
+function pickPassportLastNameCandidateWithSource(
+  candidates: Array<{ value: string | null | undefined; source: FieldSource }>,
+  ...firstNameHints: Array<string | null | undefined>
+): { value: string; source?: FieldSource } {
+  const scoredCandidates = candidates
+    .map((candidate) => {
+      const sanitized = sanitizePassportLastNameCandidate(candidate.value, ...firstNameHints);
+      const normalized = normalizeFallbackText(sanitized);
+      if (!normalized) {
+        return null;
+      }
+
+      return {
+        source: candidate.source,
+        value: normalized,
+        score: scorePassportLastNameCandidate(normalized, candidate.source, ...firstNameHints),
+      };
+    })
+    .filter(
+      (candidate): candidate is { value: string; source: FieldSource; score: number } =>
+        candidate !== null && candidate.score >= 0,
+    )
+    .sort((left, right) => right.score - left.score);
+
+  if (scoredCandidates.length === 0) {
+    return { value: "" };
+  }
+
+  return { value: scoredCandidates[0].value, source: scoredCandidates[0].source };
 }
 
 function parseMrzDate(value: string): string | undefined {
@@ -953,15 +1035,26 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
     ...firstNameCandidates,
   );
 
+  const passportFirstNameHints =
+    initialType === "PASSPORT"
+      ? [
+          firstNameCandidate.value,
+          asString(extracted.firstName),
+          rawTextFallback.firstName,
+          candidateDefaults?.firstName,
+          inferredNameParts?.firstName,
+        ]
+      : [];
+
   const lastNameCandidates =
     initialType === "PASSPORT"
       ? [
           {
-            value: sanitizePassportLastNameCandidate(asString(extracted.lastName), firstNameCandidate.value),
+            value: asString(extracted.lastName),
             source: "OCR" as const,
           },
           {
-            value: sanitizePassportLastNameCandidate(rawTextFallback.lastName, firstNameCandidate.value),
+            value: rawTextFallback.lastName,
             source: (rawTextSources.lastName ?? "OCR") as FieldSource,
           },
           { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" as const },
@@ -976,9 +1069,9 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
 
   const lastNameCandidate =
     initialType === "PASSPORT"
-      ? pickPreferredTextCandidateWithSource(
-          ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
-          ...lastNameCandidates,
+      ? pickPassportLastNameCandidateWithSource(
+          lastNameCandidates,
+          ...passportFirstNameHints,
         )
       : pickBestTextCandidateWithSource(...lastNameCandidates);
 
