@@ -70,6 +70,30 @@ export function getDocumentDispositionLabel(disposition: DocumentDisposition | n
   return null;
 }
 
+export function getDocumentTypeLabel(type: string | null | undefined): string {
+  if (type === "PASSPORT") return "Pasaporte";
+  if (type === "KARTA_POBYTU") return "Karta Pobytu";
+  if (type === "PESEL") return "PESEL";
+  if (type === "DECYZJA_WOJEWODY") return "Decision Wojewody";
+  if (!type) return "Documento";
+
+  return type
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getDocumentTypeWithDispositionLabel(
+  doc: Pick<DisplayableDocument, "type" | "extractedData"> | null,
+): string {
+  if (!doc) return "Documento";
+
+  const typeLabel = getDocumentTypeLabel(doc.type);
+  const dispositionLabel = getDocumentDispositionLabel(getDocumentDisposition(doc));
+
+  return dispositionLabel ? `${typeLabel} · ${dispositionLabel}` : typeLabel;
+}
+
 export function isManualReviewOcrStatus(status: DocumentOcrStatus): boolean {
   return status === "manual_review";
 }

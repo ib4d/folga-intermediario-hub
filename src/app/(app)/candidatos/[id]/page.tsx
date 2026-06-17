@@ -16,6 +16,7 @@ import {
   getDocumentDisposition,
   getDocumentDispositionLabel,
   getDocumentDisplayNumber,
+  getDocumentTypeLabel,
   isOcrReviewRequiredStatus,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
@@ -594,12 +595,13 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   ) : (
                     candidate.documents.map((doc) => {
                       const dispositionLabel = getDocumentDispositionLabel(getDocumentDisposition(doc));
+                      const typeLabel = getDocumentTypeLabel(doc.type);
 
                       return (
                       <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4 font-bold text-gray-900">
                           <div className="flex flex-col gap-1">
-                            <span>{doc.type}</span>
+                            <span>{typeLabel}</span>
                             {dispositionLabel ? (
                               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                                 {dispositionLabel}

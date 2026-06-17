@@ -13,6 +13,7 @@ import {
   getDocumentDisposition,
   getDocumentDispositionLabel,
   getDocumentDisplayNumber,
+  getDocumentTypeLabel,
   isOcrReviewRequiredStatus,
   isManualReviewOcrStatus,
 } from "@/lib/document-display";
@@ -375,6 +376,7 @@ export default function DocumentTable({
                   const displayNumber = getDocumentDisplayNumber(doc) ?? "-";
                   const displayExpiry = formatDocumentDisplayDate(getDocumentDisplayExpiry(doc));
                   const dispositionLabel = getDocumentDispositionLabel(getDocumentDisposition(doc));
+                  const typeLabel = getDocumentTypeLabel(doc.type);
                   const candidateName = `${doc.candidate?.firstName ?? ""} ${doc.candidate?.lastName ?? ""}`.trim() || "Sin candidato asignado";
                   const filename = doc.url?.split("/").pop()?.trim() || `documento-${doc.id.slice(0, 8)}`;
 
@@ -403,7 +405,7 @@ export default function DocumentTable({
                       <td>{candidateName}</td>
                       <td>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                          <span>{doc.type}</span>
+                          <span>{typeLabel}</span>
                           {dispositionLabel ? (
                             <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)" }}>
                               {dispositionLabel}
