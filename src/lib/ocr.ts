@@ -550,10 +550,44 @@ function pickBestPassportName(...values: Array<string | undefined>): string | un
   return candidates.sort((left, right) => scorePersonNameCandidate(right) - scorePersonNameCandidate(left))[0];
 }
 
+function isLikelyPassportTrailingNoiseToken(token: string): boolean {
+  const normalized = normalizeSearchText(token).trim();
+  if (!normalized) return false;
+  if (normalized.length === 1) return true;
+  if (/^[KLX]+$/.test(normalized)) return true;
+  if (!/[AEIOUY]/.test(normalized) && normalized.length <= 4 && new Set(normalized.split("")).size <= 3) {
+    return true;
+  }
+
+  return false;
+}
+
+function trimPassportFirstNameNoise(firstName: string | undefined): string | undefined {
+  const normalizedFirstName = normalizeExtractedPersonName(firstName);
+  if (!normalizedFirstName) return undefined;
+
+  const tokens = normalizeSearchText(normalizedFirstName).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return undefined;
+
+  while (tokens.length > 1 && isLikelyPassportTrailingNoiseToken(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+
+  const lastToken = tokens[tokens.length - 1];
+  if (lastToken) {
+    const trailingNoise = lastToken.match(/^([A-Z]{4,})([KLX])$/);
+    if (trailingNoise && /[AEIOUY]/.test(trailingNoise[1])) {
+      tokens[tokens.length - 1] = trailingNoise[1];
+    }
+  }
+
+  return normalizeExtractedPersonName(tokens.join(" "));
+}
+
 function collectPassportFirstNameTokens(...values: Array<string | undefined>): string[] {
   const tokens = values
     .flatMap((value) =>
-      normalizeSearchText(normalizeExtractedPersonName(value) ?? "")
+      normalizeSearchText(trimPassportFirstNameNoise(value) ?? "")
         .split(/\s+/)
         .filter((token) => token.length >= 3)
     )
@@ -1177,7 +1211,9 @@ function mapAzureIdDocumentFields(
   const firstName =
     peselFirstName ??
     (inferredDocumentType === "PASSPORT"
-      ? pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName)
+      ? trimPassportFirstNameNoise(
+          pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName),
+        )
       : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
 
   const lastName =

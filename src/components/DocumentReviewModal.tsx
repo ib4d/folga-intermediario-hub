@@ -466,13 +466,47 @@ function normalizeReviewName(value: string | null | undefined): string {
 function collectPassportFirstNameTokens(...values: Array<string | null | undefined>): string[] {
   const tokens = values
     .flatMap((value) =>
-      normalizeReviewName(value)
+      sanitizePassportFirstNameCandidate(value)
         .split(/\s+/)
         .filter((token) => token.length >= 3)
     )
     .filter(Boolean);
 
   return [...new Set(tokens)];
+}
+
+function isLikelyPassportTrailingNoiseToken(token: string): boolean {
+  const normalized = normalizeReviewName(token);
+  if (!normalized) return false;
+  if (normalized.length === 1) return true;
+  if (/^[KLX]+$/.test(normalized)) return true;
+  if (!/[AEIOUY]/.test(normalized) && normalized.length <= 4 && new Set(normalized.split("")).size <= 3) {
+    return true;
+  }
+
+  return false;
+}
+
+function sanitizePassportFirstNameCandidate(firstName: string | null | undefined): string {
+  const normalizedFirstName = normalizeReviewName(firstName);
+  if (!normalizedFirstName) return "";
+
+  const tokens = normalizedFirstName.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return "";
+
+  while (tokens.length > 1 && isLikelyPassportTrailingNoiseToken(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+
+  const lastToken = tokens[tokens.length - 1];
+  if (lastToken) {
+    const trailingNoise = lastToken.match(/^([A-Z]{4,})([KLX])$/);
+    if (trailingNoise && /[AEIOUY]/.test(trailingNoise[1])) {
+      tokens[tokens.length - 1] = trailingNoise[1];
+    }
+  }
+
+  return tokens.join(" ").trim();
 }
 
 function normalizeMrzLine(line: string): string {
@@ -1034,11 +1068,18 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
     ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
     ...firstNameCandidates,
   );
+  const normalizedFirstNameCandidate =
+    initialType === "PASSPORT"
+      ? {
+          value: sanitizePassportFirstNameCandidate(firstNameCandidate.value),
+          source: firstNameCandidate.source,
+        }
+      : firstNameCandidate;
 
   const passportFirstNameHints =
     initialType === "PASSPORT"
       ? [
-          firstNameCandidate.value,
+          normalizedFirstNameCandidate.value,
           asString(extracted.firstName),
           rawTextFallback.firstName,
           candidateDefaults?.firstName,
@@ -1134,7 +1175,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       personalNumber: personalNumberCandidate.value,
       expiryDate: expiryDateCandidate.value,
       issueDate: issueDateCandidate.value,
-      firstName: firstNameCandidate.value,
+      firstName: normalizedFirstNameCandidate.value,
       lastName: lastNameCandidate.value,
       nationality: nationalityCandidate.value,
       issuingCountry: issuingCountryCandidate.value,
@@ -1158,7 +1199,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       personalNumber: personalNumberCandidate.source || "OCR",
       expiryDate: expiryDateCandidate.source || "RECORD",
       issueDate: issueDateCandidate.source || "RECORD",
-      firstName: firstNameCandidate.source || "OCR",
+      firstName: normalizedFirstNameCandidate.source || "OCR",
       lastName: lastNameCandidate.source || "OCR",
       nationality: nationalityCandidate.source || "OCR",
       issuingCountry: issuingCountryCandidate.source || "OCR",
