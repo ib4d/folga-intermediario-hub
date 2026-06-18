@@ -16,7 +16,8 @@
     "check:smoke": "node scripts/check-production-smoke.mjs",
     "check:smtp": "node scripts/check-smtp.mjs",
     "check:monitoring": "node scripts/check-monitoring.mjs",
-    "check:release": "node scripts/check-release.mjs"
+    "check:release": "node scripts/check-release.mjs",
+    "check:ocr": "tsx scripts/check-ocr-regressions.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

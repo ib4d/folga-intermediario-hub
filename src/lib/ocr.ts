@@ -1020,6 +1020,11 @@ function mapAzureIdDocumentFields(
       /(?:APELLIDOS|SURNAME)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ< ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/i,
     ]),
     "last"
+  ) ?? cleanPassportNameValue(
+    extractPassportRegexValue(rawText, [
+      /\bPASSPORT[^\S\r\n]+([A-Z ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/i,
+    ]),
+    "last"
   );
 
   const personalNumber =
@@ -1182,6 +1187,11 @@ function mapAzureIdDocumentFields(
         "MIEJSCE I KRAJ URODZENIA",
       ])
     ) ??
+    cleanPlaceOfBirthValue(
+      extractRegexGroup(normalizedRawText, [
+        /\b([A-Z]{4,}(?:\s+[A-Z]{3,}){0,3})\s+COL\b(?=[\s\S]{0,120}(?:FECHA DE EXPEDICION|DATE OF ISSUE))/i,
+      ])
+    ) ??
     undefined;
 
   const heightCm =
@@ -1249,7 +1259,14 @@ function mapAzureIdDocumentFields(
     dateOfBirth,
     dateOfExpiry,
     dateOfIssue,
-    sex: normalizeSex(get("Sex")) ?? mrzData.sex,
+    sex:
+      normalizeSex(get("Sex")) ??
+      mrzData.sex ??
+      normalizeSex(
+        extractRegexGroup(normalizedRawText, [
+          /(?:SEXO|SEX)[\s\S]{0,40}\b([MF])\b/i,
+        ])
+      ),
     nationality,
     issuingCountry,
     placeOfBirth,
@@ -1268,6 +1285,10 @@ function mapAzureIdDocumentFields(
     rawText,
     rawFields: fields as Record<string, unknown>,
   };
+}
+
+export function parseIdentityDocumentText(rawText: string): OcrExtractedData {
+  return mapAzureIdDocumentFields({}, rawText);
 }
 
 async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buffer | null> {
@@ -1310,7 +1331,7 @@ async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise
         ? (await renderPdfFirstPageToImageBuffer(fileBuffer)) ?? fileBuffer
         : await shrinkImageForAzure(fileBuffer, mimeType);
 
-    const { createWorker } = await import("tesseract.js");
+    const { createWorker, PSM } = await import("tesseract.js");
     const workerOptions: Record<string, string> = {
       cachePath: process.env.TESSERACT_CACHE_PATH?.trim() || "/tmp/tesseract-cache",
     };
@@ -1321,6 +1342,10 @@ async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise
     const worker = await createWorker("eng", 1, workerOptions);
 
     try {
+      await worker.setParameters({
+        tessedit_pageseg_mode: PSM.AUTO,
+        preserve_interword_spaces: "1",
+      });
       const result = await worker.recognize(inputBuffer);
       const text = result?.data?.text?.trim();
       return text ? text : null;
