@@ -134,7 +134,9 @@ type RawTextFallback = {
   nationality?: string;
   issuingCountry?: string;
   dateOfBirth?: string;
+  sex?: string;
   placeOfBirth?: string;
+  issuingAuthority?: string;
   kartaPobytuType?: string;
 };
 
@@ -527,7 +529,15 @@ function sanitizePassportLastNameCandidate(
   if (lastNameTokens.length <= 1) return normalizedLastName;
 
   const cleanupSurnameTokens = (value: string) => {
-    const tokens = value.split(/\s+/).filter(Boolean);
+    const tokens = value
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((token, index, allTokens) => !(token.length === 1 && index > 0 && index < allTokens.length - 1))
+      .map((token, index) => {
+        if (index === 0) return token;
+        const fillerPrefix = token.match(/^[KLX]([A-Z]{4,})$/);
+        return fillerPrefix && /[AEIOUY]/.test(fillerPrefix[1]) ? fillerPrefix[1] : token;
+      });
     if (tokens.length === 0) return "";
 
     while (tokens.length > 1 && tokens[tokens.length - 1]?.length === 1) {
@@ -670,6 +680,36 @@ function parseMrzDate(value: string): string | undefined {
   return `${fullYear.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
+function extractReviewValueNearLabels(rawText: string, labels: string[]): string | undefined {
+  const lines = rawText.split(/\r?\n/);
+  const normalizedLabels = labels.map((label) => normalizeRawText(label));
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const normalizedLine = normalizeRawText(lines[index]).replace(/\s+/g, " ").trim();
+    const matchedLabel = normalizedLabels.find((label) => normalizedLine.includes(label));
+    if (!matchedLabel) continue;
+
+    const inlineValue = normalizedLine
+      .slice(normalizedLine.indexOf(matchedLabel) + matchedLabel.length)
+      .replace(/^[\s:./-]+/, "")
+      .trim();
+    if (inlineValue.length >= 3 && !normalizedLabels.some((label) => inlineValue === label)) {
+      return inlineValue;
+    }
+
+    for (let offset = 1; offset <= 2; offset += 1) {
+      const candidate = normalizeRawText(lines[index + offset] ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (candidate.length >= 3 && !normalizedLabels.some((label) => candidate === label)) {
+        return candidate;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 function inferFromRawText(rawText: string, docType: string): RawTextFallbackResult {
   if (!rawText) {
     return { values: {}, sources: {} };
@@ -690,21 +730,45 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
     const mrzNames = mrzLine1.slice(5).split("<<");
     const lastName = mrzNames[0]?.replace(/</g, " ").trim();
     const firstName = mrzNames.slice(1).join(" ").replace(/</g, " ").trim();
+    const normalizedFullText = normalizeRawText(rawText);
+    const personalNumberFromText = normalizedFullText.match(/\b(CC[A-Z0-9]{8,14})\b/)?.[1];
+    const placeOfBirth = extractReviewValueNearLabels(rawText, [
+      "LUGAR DE NACIMIENTO",
+      "PLACE OF BIRTH",
+    ])
+      ?.replace(/\bCOL\b.*$/, "")
+      .trim();
+    const issuingAuthority = extractReviewValueNearLabels(rawText, [
+      "AUTORIDAD",
+      "AUTHORITY",
+    ])
+      ?.replace(/\bFIRMA\b.*$/, "")
+      .replace(/\bHOLDER\b.*$/, "")
+      .trim();
 
     fallback.documentNumber = mrzLine2.slice(0, 9).replace(/</g, "") || undefined;
+    fallback.personalNumber =
+      personalNumberFromText || mrzLine2.slice(28, 42).replace(/</g, "").trim() || undefined;
     fallback.dateOfBirth = parseMrzDate(mrzLine2.slice(13, 19));
     fallback.expiryDate = parseMrzDate(mrzLine2.slice(21, 27));
+    fallback.sex = mrzLine2.slice(20, 21).replace(/</g, "").trim() || undefined;
     fallback.nationality = mrzLine2.slice(10, 13).replace(/</g, "").trim() || undefined;
     fallback.issuingCountry = mrzLine1.slice(2, 5).replace(/</g, "").trim() || undefined;
     fallback.firstName = firstName || undefined;
     fallback.lastName = lastName || undefined;
+    fallback.placeOfBirth = placeOfBirth || undefined;
+    fallback.issuingAuthority = issuingAuthority || undefined;
     sources.documentNumber = "MRZ";
+    sources.personalNumber = "MRZ";
     sources.dateOfBirth = "MRZ";
     sources.expiryDate = "MRZ";
+    sources.sex = "MRZ";
     sources.nationality = "MRZ";
     sources.issuingCountry = "MRZ";
     sources.firstName = "MRZ";
     sources.lastName = "MRZ";
+    sources.placeOfBirth = "OCR";
+    sources.issuingAuthority = "OCR";
     return { values: fallback, sources };
   }
 
@@ -842,8 +906,8 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
   }
 
   return {
-    firstName: prettyTokens.slice(2).join(" "),
-    lastName: prettyTokens.slice(0, 2).join(" "),
+    firstName: prettyTokens.slice(0, 2).join(" "),
+    lastName: prettyTokens.slice(2).join(" "),
   };
 }
 
@@ -1054,7 +1118,6 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       ? [
           { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "MRZ") as FieldSource },
           { value: asString(extracted.firstName), source: "OCR" as const },
-          { value: normalizeFallbackText(candidateDefaults?.firstName), source: "CANDIDATE" as const },
           { value: inferredNameParts?.firstName ?? "", source: "FILE" as const },
         ]
       : [
@@ -1065,7 +1128,9 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         ];
 
   const firstNameCandidate = pickPreferredTextCandidateWithSource(
-    ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
+    initialType === "PASSPORT"
+      ? ["MRZ", "OCR", "FILE", "RECORD", "MANUAL"]
+      : ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
     ...firstNameCandidates,
   );
   const normalizedFirstNameCandidate =
@@ -1098,7 +1163,6 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
             value: rawTextFallback.lastName,
             source: (rawTextSources.lastName ?? "OCR") as FieldSource,
           },
-          { value: normalizeFallbackText(candidateDefaults?.lastName), source: "CANDIDATE" as const },
           { value: inferredNameParts?.lastName ?? "", source: "FILE" as const },
         ]
       : [
@@ -1150,11 +1214,29 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
     { value: asString(extracted.dateOfExpiry), source: "OCR" },
   );
 
-  const placeOfBirthCandidate = pickBestTextCandidateWithSource(
-    { value: asString(extracted.placeOfBirth), source: "OCR" },
-    { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
-    { value: normalizeFallbackText(candidateDefaults?.birthPlace), source: "CANDIDATE" },
-  );
+  const placeOfBirthCandidate =
+    initialType === "PASSPORT"
+      ? pickBestTextCandidateWithSource(
+          { value: asString(extracted.placeOfBirth), source: "OCR" },
+          { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
+        )
+      : pickBestTextCandidateWithSource(
+          { value: asString(extracted.placeOfBirth), source: "OCR" },
+          { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
+          { value: normalizeFallbackText(candidateDefaults?.birthPlace), source: "CANDIDATE" },
+        );
+
+  const sexCandidate =
+    initialType === "PASSPORT"
+      ? pickPreferredTextCandidateWithSource(
+          ["MRZ", "OCR"],
+          { value: rawTextFallback.sex, source: rawTextSources.sex ?? "MRZ" },
+          { value: asString(extracted.sex), source: "OCR" },
+        )
+      : pickBestTextCandidateWithSource(
+          { value: asString(extracted.sex), source: "OCR" },
+          { value: normalizeFallbackText(candidateDefaults?.gender), source: "CANDIDATE" },
+        );
 
   const kartaPobytuTypeCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.kartaPobytuType), source: "OCR" },
@@ -1180,10 +1262,12 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       nationality: nationalityCandidate.value,
       issuingCountry: issuingCountryCandidate.value,
       dateOfBirth: dateOfBirthCandidate.value,
-      sex: asString(extracted.sex) || normalizeFallbackText(candidateDefaults?.gender),
+      sex: sexCandidate.value,
       placeOfBirth: placeOfBirthCandidate.value,
-      issuingAuthority: asString(extracted.issuingAuthority),
-      passportBiometric: asBoolean(extracted.passportBiometric) || candidateDefaults?.passportBiometric === true,
+      issuingAuthority: asString(extracted.issuingAuthority) || rawTextFallback.issuingAuthority || "",
+      passportBiometric:
+        asBoolean(extracted.passportBiometric) ||
+        (initialType !== "PASSPORT" && candidateDefaults?.passportBiometric === true),
       kartaPobytuType: kartaPobytuTypeCandidate.value,
       remarks: asString(extracted.remarks),
       municipalityOffice: asString(extracted.municipalityOffice),
@@ -1204,10 +1288,10 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       nationality: nationalityCandidate.source || "OCR",
       issuingCountry: issuingCountryCandidate.source || "OCR",
       dateOfBirth: dateOfBirthCandidate.source || "OCR",
-      sex: extracted.sex ? "OCR" : "CANDIDATE",
+      sex: sexCandidate.source || "OCR",
       placeOfBirth: placeOfBirthCandidate.source || "OCR",
-      issuingAuthority: extracted.issuingAuthority ? "OCR" : "RECORD",
-      passportBiometric: extracted.passportBiometric ? "OCR" : "CANDIDATE",
+      issuingAuthority: extracted.issuingAuthority || rawTextFallback.issuingAuthority ? "OCR" : "RECORD",
+      passportBiometric: extracted.passportBiometric ? "OCR" : "MANUAL",
       kartaPobytuType: kartaPobytuTypeCandidate.source || "OCR",
       remarks: extracted.remarks ? "OCR" : "RECORD",
       municipalityOffice: extracted.municipalityOffice ? "OCR" : "RECORD",

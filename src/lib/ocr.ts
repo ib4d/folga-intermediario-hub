@@ -603,11 +603,23 @@ function trimPassportLastNameNoise(
   const normalizedLastName = normalizeExtractedPersonName(lastName);
   if (!normalizedLastName) return undefined;
 
-  const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
-  if (firstNameTokens.length === 0) return normalizedLastName;
+  const cleanedLastNameTokens = normalizeSearchText(normalizedLastName)
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token, index, allTokens) => !(token.length === 1 && index > 0 && index < allTokens.length - 1))
+    .map((token, index) => {
+      if (index === 0) return token;
+      const fillerPrefix = token.match(/^[KLX]([A-Z]{4,})$/);
+      return fillerPrefix && /[AEIOUY]/.test(fillerPrefix[1]) ? fillerPrefix[1] : token;
+    });
+  const cleanedLastName = normalizeExtractedPersonName(cleanedLastNameTokens.join(" "));
+  if (!cleanedLastName) return undefined;
 
-  const lastNameTokens = normalizeSearchText(normalizedLastName).split(/\s+/).filter(Boolean);
-  if (lastNameTokens.length <= 1) return normalizedLastName;
+  const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
+  if (firstNameTokens.length === 0) return cleanedLastName;
+
+  const lastNameTokens = normalizeSearchText(cleanedLastName).split(/\s+/).filter(Boolean);
+  if (lastNameTokens.length <= 1) return cleanedLastName;
 
   for (let index = 1; index < lastNameTokens.length; index += 1) {
     const token = lastNameTokens[index];
@@ -637,7 +649,7 @@ function trimPassportLastNameNoise(
     if (trimmedValue) return trimmedValue;
   }
 
-  return normalizedLastName;
+  return cleanedLastName;
 }
 
 function cleanPassportPlaceOfBirthValue(value: string | undefined): string | undefined {
