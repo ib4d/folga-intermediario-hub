@@ -524,20 +524,24 @@ async function mergeOcrIntoExistingDocument(
   const existingExtractedData = getExtractedDataRecord(existingDocument.extractedData);
 
   const mergedOcrData = mergeOcrPayload(existingExtractedData, ocrData as Record<string, unknown>);
+  const nextNumber =
+    normalizeOptionalString(ocrData.documentNumber) ??
+    normalizeOptionalString(ocrData.personalNumber) ??
+    normalizeOptionalString(existingDocument.number);
+  const nextIssuerCountry =
+    normalizeOptionalString(ocrData.issuingCountry) ??
+    normalizeOptionalString(existingDocument.issuerCountry);
+  const nextIssueDate = parseDateSafe(ocrData.dateOfIssue) ?? existingDocument.issueDate;
+  const nextExpiryDate = parseDateSafe(ocrData.dateOfExpiry) ?? existingDocument.expiryDate;
 
   await prisma.document.update({
     where: { id: documentId },
     data: {
       extractedData: toInputJsonValue(mergedOcrData),
-      number:
-        existingDocument.number ??
-        normalizeOptionalString(ocrData.documentNumber) ??
-        normalizeOptionalString(ocrData.personalNumber) ??
-        undefined,
-      issuerCountry:
-        existingDocument.issuerCountry ?? normalizeOptionalString(ocrData.issuingCountry) ?? undefined,
-      issueDate: existingDocument.issueDate ?? parseDateSafe(ocrData.dateOfIssue),
-      expiryDate: existingDocument.expiryDate ?? parseDateSafe(ocrData.dateOfExpiry),
+      number: nextNumber ?? undefined,
+      issuerCountry: nextIssuerCountry ?? undefined,
+      issueDate: nextIssueDate,
+      expiryDate: nextExpiryDate,
       ocrStatus: isOcrSupported(docType) ? "REVIEW_REQUIRED" : "OCR_CAPTURED",
     },
   });
@@ -930,6 +934,10 @@ async function applyCandidateFieldsFromOcr(
   if (!candidate) return;
 
   const candidateUpdateData: Prisma.CandidateUncheckedUpdateInput = {};
+  const shouldAutoApplyIdentityProfile =
+    docType !== DocumentType.PASSPORT &&
+    docType !== DocumentType.KARTA_POBYTU &&
+    docType !== DocumentType.PESEL;
 
   const firstName = normalizePersonName(ocrData.firstName);
   const lastName = normalizePersonName(ocrData.lastName);
@@ -941,18 +949,20 @@ async function applyCandidateFieldsFromOcr(
   const documentNumber = normalizeOptionalString(ocrData.documentNumber);
   const addressOfRegistration = normalizeOptionalString(ocrData.addressOfRegistration);
 
-  if (firstName && !isMeaningfulCandidateString(candidate.firstName)) candidateUpdateData.firstName = firstName;
-  if (lastName && !isMeaningfulCandidateString(candidate.lastName)) candidateUpdateData.lastName = lastName;
-  if (citizenship && !isMeaningfulCandidateString(candidate.citizenship)) candidateUpdateData.citizenship = citizenship;
-  if (nationality && !isMeaningfulCandidateString(candidate.nationality)) candidateUpdateData.nationality = nationality;
-  if (birthPlace && !isMeaningfulCandidateString(candidate.birthPlace)) candidateUpdateData.birthPlace = birthPlace;
-  if ((gender === "M" || gender === "F") && !isMeaningfulCandidateString(candidate.gender)) candidateUpdateData.gender = gender;
-  if (ocrData.heightCm && !candidate.heightCm) candidateUpdateData.heightCm = ocrData.heightCm;
-  if (addressOfRegistration && !isMeaningfulCandidateString(candidate.polishAddress)) {
-    candidateUpdateData.polishAddress = addressOfRegistration;
-  }
-  if (ocrData.dateOfBirth && !candidate.dateOfBirth) {
-    candidateUpdateData.dateOfBirth = parseDateSafe(ocrData.dateOfBirth);
+  if (shouldAutoApplyIdentityProfile) {
+    if (firstName && !isMeaningfulCandidateString(candidate.firstName)) candidateUpdateData.firstName = firstName;
+    if (lastName && !isMeaningfulCandidateString(candidate.lastName)) candidateUpdateData.lastName = lastName;
+    if (citizenship && !isMeaningfulCandidateString(candidate.citizenship)) candidateUpdateData.citizenship = citizenship;
+    if (nationality && !isMeaningfulCandidateString(candidate.nationality)) candidateUpdateData.nationality = nationality;
+    if (birthPlace && !isMeaningfulCandidateString(candidate.birthPlace)) candidateUpdateData.birthPlace = birthPlace;
+    if ((gender === "M" || gender === "F") && !isMeaningfulCandidateString(candidate.gender)) candidateUpdateData.gender = gender;
+    if (ocrData.heightCm && !candidate.heightCm) candidateUpdateData.heightCm = ocrData.heightCm;
+    if (addressOfRegistration && !isMeaningfulCandidateString(candidate.polishAddress)) {
+      candidateUpdateData.polishAddress = addressOfRegistration;
+    }
+    if (ocrData.dateOfBirth && !candidate.dateOfBirth) {
+      candidateUpdateData.dateOfBirth = parseDateSafe(ocrData.dateOfBirth);
+    }
   }
 
   if (docType === DocumentType.PASSPORT) {
@@ -1848,6 +1858,7 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
     reviewRequired?: boolean;
     ocrStatus?: string;
   }> = [];
+  const primaryDocumentByType = new Map<DocumentType, string>();
 
   for (const file of files) {
     const single = new FormData();
@@ -1863,6 +1874,48 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
 
     try {
       const result = await uploadDocument(single);
+
+      if (result.success && result.documentId) {
+        const existingPrimaryId = primaryDocumentByType.get(effectiveType);
+
+        if (!existingPrimaryId) {
+          primaryDocumentByType.set(effectiveType, result.documentId);
+        } else if (existingPrimaryId !== result.documentId) {
+          const supplementalDocument = await prisma.document.findFirst({
+            where: { id: result.documentId, candidateId },
+          });
+
+          if (supplementalDocument) {
+            const supplementalExtractedData = getExtractedDataRecord(supplementalDocument.extractedData);
+            if (!supplementalExtractedData) {
+              continue;
+            }
+
+            await mergeOcrIntoExistingDocument(
+              existingPrimaryId,
+              effectiveType,
+              supplementalExtractedData as PresentOcrData,
+            );
+
+            await prisma.document.update({
+              where: { id: result.documentId },
+              data: {
+                extractedData: toInputJsonValue({
+                  ...supplementalExtractedData,
+                  documentDisposition:
+                    supplementalExtractedData.documentDisposition === "PRIMARY"
+                      ? "BACK"
+                      : supplementalExtractedData.documentDisposition ?? "BACK",
+                }),
+                ocrStatus:
+                  supplementalDocument.ocrStatus === "OCR_CAPTURED"
+                    ? "REVIEW_REQUIRED"
+                    : supplementalDocument.ocrStatus,
+              },
+            });
+          }
+        }
+      }
 
       results.push({
         filename: file.name,

@@ -438,10 +438,31 @@ function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
   const normalized = cleanLabeledValue(value);
   if (!normalized) return undefined;
 
-  const tokens = normalized
+  const withoutLabels = normalized
+    .replace(/\bPLACE\s+AND\s+COUNTRY\s+OF\s+BIRTH\b/gi, " ")
+    .replace(/\bPLACE\s+OF\s+BIRTH\b/gi, " ")
+    .replace(/\bCOUNTRY\s+OF\s+BIRTH\b/gi, " ")
+    .replace(/\bLUGAR\s+DE\s+NACIMIENTO\b/gi, " ")
+    .replace(/\bMIEJSCE\s+I\s+KRAJ\s+URODZENIA\b/gi, " ");
+
+  const tokens = withoutLabels
     .split(/\s+/)
     .filter(Boolean)
-    .filter((token) => !["PLACE", "BIRTH", "LUGAR", "NACIMIENTO"].includes(token));
+    .filter(
+      (token) =>
+        ![
+          "PLACE",
+          "BIRTH",
+          "COUNTRY",
+          "LUGAR",
+          "NACIMIENTO",
+          "MIEJSCE",
+          "KRAJ",
+          "URODZENIA",
+          "AND",
+          "OF",
+        ].includes(token),
+    );
 
   if (tokens.length === 0) return undefined;
 
@@ -457,12 +478,29 @@ function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
 function cleanIssuingAuthorityValue(value: string | undefined): string | undefined {
   const normalized = cleanLabeledValue(value);
   if (!normalized) return undefined;
-  if (normalizeHumanDate(normalized)) return undefined;
-  if (/^\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}$/i.test(normalized)) return undefined;
-  if (/^\d{1,2}\s+[A-Z]{3}$/i.test(normalized)) return undefined;
-  if (/^(?:[A-Z]{3}\s+){2,}\d{2,4}$/i.test(normalized)) return undefined;
+  const cleaned = normalized
+    .replace(/\b\d{1,2}[A-Z]{3}(?:\/[A-Z]{3})?\d{4}\b/gi, " ")
+    .replace(/\b\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}\b/gi, " ")
+    .replace(/\b\d{1,2}\s+[A-Z]{3}\b/gi, " ")
+    .replace(/\bDATE OF ISSUE AND ISSUING AUTHORITY\b/gi, " ")
+    .replace(/\bDATA WYDANIA I ORGAN WYDAJACY\b/gi, " ")
+    .replace(/\bORGAN WYDAJACY\b/gi, " ")
+    .replace(/\bDATE OF ISSUE\b/gi, " ")
+    .replace(/\bFECHA DE EXPEDICION\b/gi, " ")
+    .replace(/\bPLACE AND COUNTRY OF BIRTH\b/gi, " ")
+    .replace(/\bPLACE OF BIRTH\b/gi, " ")
+    .replace(/\bAUTHORITY\b/gi, " ")
+    .replace(/\bAUTORIDAD\b/gi, " ")
+    .replace(/^[./,_\-\s]+|[./,_\-\s]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return undefined;
+  if (normalizeHumanDate(cleaned)) return undefined;
+  if (/^\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}$/i.test(cleaned)) return undefined;
+  if (/^\d{1,2}\s+[A-Z]{3}$/i.test(cleaned)) return undefined;
+  if (/^(?:[A-Z]{3}\s+){2,}\d{2,4}$/i.test(cleaned)) return undefined;
 
-  const compact = compactSearchText(normalized);
+  const compact = compactSearchText(cleaned);
   const rejectedLabels = [
     "AUTHORITY",
     "AUTORIDAD",
@@ -475,7 +513,7 @@ function cleanIssuingAuthorityValue(value: string | undefined): string | undefin
   ];
   if (rejectedLabels.some((label) => compact === label)) return undefined;
 
-  return normalized;
+  return cleaned;
 }
 
 function cleanPassportNameValue(value: string | undefined, mode: "first" | "last"): string | undefined {
@@ -757,10 +795,21 @@ function extractKartaPobytuType(rawText: string | undefined): string | undefined
     for (const pattern of permitKinds) {
       const match = candidateBlock.match(pattern);
       if (match?.[1]) {
-        const permitKind = match[1].replace(/\s+/g, " ").trim();
-        return normalizedLine.includes("TYPE OF PERMIT")
-          ? `RESIDENCE PERMIT ${permitKind}`
-          : `ZEZWOLENIE NA POBYT ${permitKind}`;
+        const permitKind = match[1].replace(/\s+/g, " ").trim().toUpperCase();
+
+        if (permitKind.includes("CZASOWY") || permitKind.includes("TEMPORARY")) {
+          return "Permiso de residencia temporal";
+        }
+
+        if (permitKind.includes("STA") || permitKind.includes("PERMANENT")) {
+          return "Permiso de residencia permanente";
+        }
+
+        if (permitKind.includes("REZYDENT") || permitKind.includes("RESIDENT")) {
+          return "Residencia de larga duracion";
+        }
+
+        return "Permiso de residencia";
       }
     }
   }
@@ -1143,8 +1192,8 @@ function mapAzureIdDocumentFields(
 
   const kartaPobytuType =
     inferredDocumentType === "KARTA_POBYTU"
-      ? normalizeWhitespace(get("Category")) ??
-        extractKartaPobytuType(rawText)
+      ? extractKartaPobytuType(rawText) ??
+        normalizeWhitespace(get("Category"))
       : undefined;
 
   const remarks =

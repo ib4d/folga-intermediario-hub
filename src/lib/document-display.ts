@@ -91,7 +91,7 @@ export function getDocumentTypeWithDispositionLabel(
   const typeLabel = getDocumentTypeLabel(doc.type);
   const dispositionLabel = getDocumentDispositionLabel(getDocumentDisposition(doc));
 
-  return dispositionLabel ? `${typeLabel} · ${dispositionLabel}` : typeLabel;
+  return dispositionLabel ? `${typeLabel} - ${dispositionLabel}` : typeLabel;
 }
 
 export function isManualReviewOcrStatus(status: DocumentOcrStatus): boolean {

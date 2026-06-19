@@ -432,6 +432,46 @@ function inferDocumentTypeFromFileName(fileName: string): string {
   return "OTHER";
 }
 
+function canonicalizeDocumentType(value: string | null | undefined): string {
+  const normalized = normalizeFileStem(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  if (!normalized) return "OTHER";
+
+  if (
+    normalized === "PASSPORT" ||
+    normalized === "PASAPORTE" ||
+    normalized === "PASZPORT"
+  ) {
+    return "PASSPORT";
+  }
+
+  if (
+    normalized === "KARTA POBYTU" ||
+    normalized === "KARTA_POBYTU" ||
+    normalized === "KARTAPOBYTU" ||
+    normalized === "RESIDENCE PERMIT"
+  ) {
+    return "KARTA_POBYTU";
+  }
+
+  if (normalized === "PESEL") {
+    return "PESEL";
+  }
+
+  if (
+    normalized === "DECYZJA WOJEWODY" ||
+    normalized === "DECYZJA_WOJEWODY" ||
+    normalized === "WOJEWODY"
+  ) {
+    return "DECYZJA_WOJEWODY";
+  }
+
+  return normalized.replace(/\s+/g, "_");
+}
+
 function inferDocumentNumberFromFileName(fileName: string): string {
   const normalized = normalizeFileStem(fileName).toUpperCase();
   const peselMatch = normalized.match(/\b\d{11}\b/);
@@ -864,7 +904,9 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
 }
 
 function shouldUseCandidateIdentityFallback(documentType: string): boolean {
-  return !["PASSPORT", "KARTA_POBYTU", "PESEL"].includes(documentType);
+  return !["PASSPORT", "KARTA_POBYTU", "PESEL"].includes(
+    canonicalizeDocumentType(documentType),
+  );
 }
 
 function restoreNameSpacingFromFileCandidate(
@@ -1057,14 +1099,15 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const inferredType = inferDocumentTypeFromFileName(fileName);
   const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
   const inferredNameParts = inferNamePartsFromFileName(fileName);
-  const extractedDocumentType = asString(extracted.documentType);
+  const extractedDocumentType = canonicalizeDocumentType(asString(extracted.documentType));
   const fallbackDocumentNumber =
     normalizeFallbackText(candidateDefaults?.passportNumber) ||
     normalizeFallbackText(candidateDefaults?.kartaPobytuNumber) ||
     normalizeFallbackText(candidateDefaults?.peselNumber) ||
     "";
-  const initialType =
-    doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType;
+  const initialType = canonicalizeDocumentType(
+    doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType,
+  );
 
   const documentNumberCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.documentNumber), source: "OCR" },
@@ -1254,16 +1297,26 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
           { value: normalizeFallbackText(candidateDefaults?.gender), source: "CANDIDATE" },
         );
 
-  const kartaPobytuTypeCandidate = pickBestTextCandidateWithSource(
-    { value: asString(extracted.kartaPobytuType), source: "OCR" },
-    { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
-    { value: normalizeFallbackText(candidateDefaults?.kartaPobytuType), source: "CANDIDATE" },
-  );
+  const kartaPobytuTypeCandidate = shouldUseCandidateIdentityFallback(initialType)
+    ? pickBestTextCandidateWithSource(
+        { value: asString(extracted.kartaPobytuType), source: "OCR" },
+        { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+        { value: normalizeFallbackText(candidateDefaults?.kartaPobytuType), source: "CANDIDATE" },
+      )
+    : pickBestTextCandidateWithSource(
+        { value: asString(extracted.kartaPobytuType), source: "OCR" },
+        { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+      );
 
-  const addressCandidate = pickBestTextCandidateWithSource(
-    { value: asString(extracted.addressOfRegistration), source: "OCR" },
-    { value: normalizeFallbackText(candidateDefaults?.polishAddress), source: "CANDIDATE" },
-  );
+  const addressCandidate = shouldUseCandidateIdentityFallback(initialType)
+    ? pickBestTextCandidateWithSource(
+        { value: asString(extracted.addressOfRegistration), source: "OCR" },
+        { value: normalizeFallbackText(candidateDefaults?.polishAddress), source: "CANDIDATE" },
+      )
+    : pickBestTextCandidateWithSource({
+        value: asString(extracted.addressOfRegistration),
+        source: "OCR",
+      });
 
   return {
     form: {
@@ -1293,7 +1346,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       markVerified: false,
     },
     fieldSources: {
-      type: extractedDocumentType ? "OCR" : inferredType !== "OTHER" ? "FILE" : "RECORD",
+      type: extractedDocumentType !== "OTHER" ? "OCR" : inferredType !== "OTHER" ? "FILE" : "RECORD",
       documentDisposition: extracted.documentDisposition ? "OCR" : "MANUAL",
       documentNumber: documentNumberCandidate.source || "RECORD",
       personalNumber: personalNumberCandidate.source || "OCR",
@@ -1311,7 +1364,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       kartaPobytuType: kartaPobytuTypeCandidate.source || "OCR",
       remarks: extracted.remarks ? "OCR" : "RECORD",
       municipalityOffice: extracted.municipalityOffice ? "OCR" : "RECORD",
-      addressOfRegistration: addressCandidate.source || "CANDIDATE",
+      addressOfRegistration: addressCandidate.source || "OCR",
       heightCm: extracted.heightCm ? "OCR" : "RECORD",
       ocrError: extracted.ocrError ? "OCR" : "RECORD",
       markVerified: "MANUAL",

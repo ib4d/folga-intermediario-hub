@@ -70,7 +70,7 @@ export default function DocumentUploadButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState("PASSPORT");
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [message, setMessage] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -84,17 +84,20 @@ export default function DocumentUploadButton({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (files.length === 0) return;
 
     startTransition(async () => {
       setMessage(null);
       try {
         const formData = new FormData();
-        formData.append("file", file);
+        for (const file of files) {
+          formData.append("files", file);
+        }
         formData.append("candidateId", candidateId);
-        formData.append("type", type);
+        formData.append("docType", type);
+        formData.append("mode", "manual");
 
-        const response = await fetch("/api/documents/upload", {
+        const response = await fetch("/api/documents/batch-upload", {
           method: "POST",
           body: formData,
         });
@@ -106,8 +109,9 @@ export default function DocumentUploadButton({
 
         if (res.success) {
           setIsOpen(false);
-          setFile(null);
+          setFiles([]);
           router.refresh();
+          const uploadedCount = files.length;
           setMessage({
             tone:
               res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
@@ -116,8 +120,10 @@ export default function DocumentUploadButton({
             text:
               res.message ||
               (res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
-                ? "Documento guardado. Queda pendiente de revision manual."
-                : "Documento subido correctamente."),
+                ? `Documento${uploadedCount > 1 ? "s guardados" : " guardado"}. Queda pendiente de revision manual.`
+                : uploadedCount > 1
+                  ? "Documentos subidos correctamente."
+                  : "Documento subido correctamente."),
           });
         } else {
           setMessage({ tone: "error", text: res.message || "Error al subir documento." });
@@ -188,14 +194,18 @@ export default function DocumentUploadButton({
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="label">Archivo (PDF o Imagen)</label>
+                <label className="label">Archivo(s) (PDF o Imagen)</label>
                 <input
                   type="file"
                   className="input"
                   accept="application/pdf,image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  multiple
+                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
                   required
                 />
+                {files.length > 0 ? (
+                  <div className="text-xs text-gray-500">{files.length} archivo(s) seleccionado(s)</div>
+                ) : null}
               </div>
 
               {ocrMode === "manual" ? (
@@ -214,7 +224,7 @@ export default function DocumentUploadButton({
                   justifyContent: "center",
                   gap: "0.5rem",
                 }}
-                disabled={isPending || !file}
+                disabled={isPending || files.length === 0}
               >
                 {isPending ? (
                   <>
