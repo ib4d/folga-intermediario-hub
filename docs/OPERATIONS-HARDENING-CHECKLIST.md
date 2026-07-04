@@ -43,6 +43,34 @@ chmod +x scripts/deploy-prod.sh
 docker compose -f docker-compose.prod.yml exec web npm run check:smoke
 ```
 
+## Local pre-release gate
+
+Before pushing a production-bound release from a workstation or CI runner:
+
+```bash
+npm run check:readiness
+```
+
+What it enforces by default:
+
+- production env preflight
+- lint
+- TypeScript
+- Prisma schema validation
+- OCR regressions
+- permission policy source check
+- production build
+
+You can skip selected steps intentionally with:
+
+```bash
+CHECK_READINESS_SKIP_BUILD=true
+CHECK_READINESS_SKIP_LINT=true
+CHECK_READINESS_SKIP_TYPES=true
+CHECK_READINESS_SKIP_OCR=true
+CHECK_READINESS_SKIP_PERMISSIONS=true
+```
+
 ## Recommended verification after deploy
 
 ```bash
@@ -50,6 +78,18 @@ docker compose -f docker-compose.prod.yml exec web npm run check:monitoring
 curl -i -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-expiring
 curl -i -H "Authorization: Bearer YOUR_CRON_SECRET" https://app.ori-craftlabs.com/api/cron/check-billing
 docker compose -f docker-compose.prod.yml exec web npm run check:smtp -- your-email@example.com
+```
+
+For stricter release gating on the live runtime:
+
+```bash
+MONITORING_STRICT_RUNTIME=true docker compose -f docker-compose.prod.yml exec web npm run check:monitoring
+```
+
+Or enforce only selected runtime signals:
+
+```bash
+MONITORING_STRICT_SIGNALS=cron,smtp,external-monitoring docker compose -f docker-compose.prod.yml exec web npm run check:monitoring
 ```
 
 ## Still open before broader distribution

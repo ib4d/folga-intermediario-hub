@@ -75,6 +75,10 @@ echo
 echo "==> Run release alignment check"
 docker compose -f "${COMPOSE_FILE}" exec -e EXPECTED_RELEASE="${RELEASE_SHA}" web npm run check:release
 
+echo
+echo "==> Run public smoke check"
+docker compose -f "${COMPOSE_FILE}" exec web npm run check:smoke
+
 BASE_URL="$(read_env_value AUTH_URL)"
 if [ -n "${BASE_URL}" ] && command -v curl >/dev/null 2>&1; then
   echo

@@ -2,7 +2,7 @@ import { updateCandidate } from "@/app/actions/candidates";
 import { auth } from "@/auth";
 import { canAccessCandidateByOwnership, canCreateCandidates } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { requireTenant } from "@/lib/tenant";
+import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
@@ -24,10 +24,7 @@ export default async function EditCandidatePage({ params }: { params: Promise<{ 
   const resolvedParams = await params;
 
   const candidate = await prisma.candidate.findFirst({
-    where: {
-      id: resolvedParams.id,
-      organizationId: tenant.organizationId,
-    },
+    where: candidateAccessWhere(tenant, resolvedParams.id),
   });
 
   if (!candidate) notFound();

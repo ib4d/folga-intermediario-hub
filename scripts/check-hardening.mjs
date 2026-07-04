@@ -41,9 +41,13 @@ function runNpmStep(label, args, options = {}) {
   runStep(label, "npm", args, options);
 }
 
-runNpmStep("Production environment check", ["run", "check:prod-env"]);
-runNpmStep("Permission policy source check", ["run", "check:permissions"]);
-runPrismaValidate();
+if (process.env.CHECK_HARDENING_SKIP_READINESS === "true") {
+  console.warn("CHECK_HARDENING_SKIP_READINESS=true. Skipping readiness gate.");
+  runNpmStep("Production environment check", ["run", "check:prod-env"]);
+  runPrismaValidate();
+} else {
+  runNpmStep("Readiness gate", ["run", "check:readiness"]);
+}
 
 const smtpRecipient = process.env.SMTP_TEST_RECIPIENT?.trim();
 if (smtpRecipient) {
@@ -56,6 +60,12 @@ if (process.env.CHECK_HARDENING_SKIP_SMOKE === "true") {
   console.warn("CHECK_HARDENING_SKIP_SMOKE=true. Skipping production smoke check.");
 } else {
   runNpmStep("Production smoke check", ["run", "check:smoke"]);
+}
+
+if (process.env.CHECK_HARDENING_SKIP_MONITORING === "true") {
+  console.warn("CHECK_HARDENING_SKIP_MONITORING=true. Skipping monitoring check.");
+} else {
+  runNpmStep("Monitoring check", ["run", "check:monitoring"]);
 }
 
 if (process.env.CHECK_HARDENING_RUN_BACKUP === "true") {

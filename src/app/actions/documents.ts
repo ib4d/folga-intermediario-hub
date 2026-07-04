@@ -10,6 +10,7 @@ import { getStorageProvider } from "@/lib/providers/storage";
 import { getProviderStatus } from "@/lib/provider-status";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
+import { shouldTryBatchCandidateHeuristicMatch } from "@/lib/document-batch";
 import { writeAuditLog } from "@/lib/audit";
 import { emitEvent, type SystemEventType } from "@/core/events";
 import { CandidateStatus, DocumentType, Prisma, Role } from "@prisma/client";
@@ -377,24 +378,78 @@ function mergeOcrPayload(
 ) {
   const base = existing ? { ...existing } : {};
 
+  const isPresent = (value: unknown) =>
+    value !== null &&
+    value !== undefined &&
+    value !== "" &&
+    !(typeof value === "number" && !Number.isFinite(value));
+
   for (const [key, value] of Object.entries(incoming)) {
-    if (
-      value === null ||
-      value === undefined ||
-      value === "" ||
-      (typeof value === "number" && !Number.isFinite(value))
-    ) {
-      continue;
-    }
+    if (!isPresent(value)) continue;
 
     const current = base[key];
-    if (
-      current === null ||
-      current === undefined ||
-      current === "" ||
-      (typeof current === "number" && !Number.isFinite(current))
-    ) {
+    if (!isPresent(current)) {
       base[key] = value;
+    }
+  }
+
+  // OCR output for the current document should win over stale values already
+  // persisted on the record, otherwise a previous candidate/document can bleed
+  // names, dates, or identifiers into the next review.
+  const authoritativeIdentityFields = [
+    "documentType",
+    "documentDisposition",
+    "documentNumber",
+    "personalNumber",
+    "firstName",
+    "lastName",
+    "nationality",
+    "issuingCountry",
+    "dateOfBirth",
+    "dateOfExpiry",
+    "dateOfIssue",
+    "sex",
+    "placeOfBirth",
+    "issuingAuthority",
+    "passportAuthority",
+    "passportType",
+    "passportBiometric",
+    "kartaPobytuType",
+    "remarks",
+    "municipalityOffice",
+    "addressOfRegistration",
+    "heightCm",
+  ];
+
+  for (const key of authoritativeIdentityFields) {
+    if (isPresent(incoming[key])) {
+      base[key] = incoming[key];
+    }
+  }
+
+  const incomingIsDocumentBack = incoming.documentDisposition === "BACK";
+  if (incomingIsDocumentBack) {
+    const authoritativeBackFields = [
+      "documentNumber",
+      "personalNumber",
+      "dateOfBirth",
+      "dateOfExpiry",
+      "dateOfIssue",
+      "sex",
+      "nationality",
+      "issuingCountry",
+      "placeOfBirth",
+      "issuingAuthority",
+      "passportAuthority",
+      "remarks",
+      "addressOfRegistration",
+      "heightCm",
+    ];
+
+    for (const key of authoritativeBackFields) {
+      if (isPresent(incoming[key])) {
+        base[key] = incoming[key];
+      }
     }
   }
 
@@ -420,7 +475,7 @@ async function markDocumentOcrFailed(
   const existingExtractedData = getExtractedDataRecord(existingDocument?.extractedData);
   const failedPayload = mergeOcrPayload(existingExtractedData, {
       documentType: docType,
-      ocrStatus: "FAILED",
+      ocrStatus: "OCR_FAILED",
       ocrSource: ACTIVE_OCR_SOURCE,
       ocrError: reason,
       ocrFailedAt: new Date().toISOString(),
@@ -429,7 +484,7 @@ async function markDocumentOcrFailed(
   await prisma.document.update({
     where: { id: documentId },
     data: {
-      ocrStatus: "FAILED",
+      ocrStatus: "REVIEW_REQUIRED",
       extractedData: toInputJsonValue(failedPayload),
     },
   });
@@ -525,14 +580,16 @@ async function mergeOcrIntoExistingDocument(
 
   const mergedOcrData = mergeOcrPayload(existingExtractedData, ocrData as Record<string, unknown>);
   const nextNumber =
-    normalizeOptionalString(ocrData.documentNumber) ??
-    normalizeOptionalString(ocrData.personalNumber) ??
+    normalizeOptionalString(mergedOcrData.documentNumber) ??
+    normalizeOptionalString(mergedOcrData.personalNumber) ??
     normalizeOptionalString(existingDocument.number);
   const nextIssuerCountry =
-    normalizeOptionalString(ocrData.issuingCountry) ??
+    normalizeOptionalString(mergedOcrData.issuingCountry) ??
     normalizeOptionalString(existingDocument.issuerCountry);
-  const nextIssueDate = parseDateSafe(ocrData.dateOfIssue) ?? existingDocument.issueDate;
-  const nextExpiryDate = parseDateSafe(ocrData.dateOfExpiry) ?? existingDocument.expiryDate;
+  const nextIssueDate =
+    parseDateSafe(normalizeOptionalString(mergedOcrData.dateOfIssue)) ?? existingDocument.issueDate;
+  const nextExpiryDate =
+    parseDateSafe(normalizeOptionalString(mergedOcrData.dateOfExpiry)) ?? existingDocument.expiryDate;
 
   await prisma.document.update({
     where: { id: documentId },
@@ -598,37 +655,12 @@ function inferDocumentTypeFromSmartSignals(
   return DocumentType.OTHER;
 }
 
-function extractNameHintsFromFileName(fileName: string) {
-  const stem = fileName.replace(/\.[^.]+$/, "");
-  const tokens = stem
-    .split(/[^a-zA-Z]+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-
-  const ignored = new Set([
-    "passport",
-    "paszport",
-    "karta",
-    "pobytu",
-    "pesel",
-    "decyzja",
-    "wojewody",
-    "document",
-    "doc",
-    "other",
-  ]);
-
-  const filtered = tokens.filter(
-    (token) =>
-      token.length > 2 &&
-      !ignored.has(token.toLowerCase()) &&
-      !/^\d+$/.test(token)
+function isIdentityDocumentType(docType: DocumentType | null | undefined) {
+  return (
+    docType === DocumentType.PASSPORT ||
+    docType === DocumentType.KARTA_POBYTU ||
+    docType === DocumentType.PESEL
   );
-
-  return {
-    firstName: normalizePersonName(filtered[0] ?? null),
-    lastName: normalizePersonName(filtered.slice(1).join(" ") || null),
-  };
 }
 
 type SmartUploadPreparation = {
@@ -657,37 +689,18 @@ function scoreSmartOcrForCandidateResolution(
   if (normalizeOptionalString(ocrData?.dateOfBirth)) score += 1;
   if (docType === DocumentType.PASSPORT || docType === DocumentType.KARTA_POBYTU) score += 1;
 
-  const hints = extractNameHintsFromFileName(fileName);
-  if (hints.firstName && hints.lastName) score += 1;
-
   return score;
 }
 
 function buildIdentityLookupKeys(input: {
   ocrData: OcrData;
-  fileName?: string | null;
-  candidate?: { firstName: string | null; lastName: string | null } | null;
 }) {
   const keys = new Set<string>();
-  const ocrSignature = candidateNameSignature(input.ocrData?.firstName, input.ocrData?.lastName);
-  const fileNameHints = input.fileName ? extractNameHintsFromFileName(input.fileName) : null;
-  const fileSignature = candidateNameSignature(fileNameHints?.firstName, fileNameHints?.lastName);
-  const candidateSignature = input.candidate
-    ? candidateNameSignature(input.candidate.firstName, input.candidate.lastName)
-    : "";
-  const normalizedDob = normalizeOptionalString(input.ocrData?.dateOfBirth);
   const documentNumber = normalizeOptionalString(input.ocrData?.documentNumber);
   const personalNumber = normalizeOptionalString(input.ocrData?.personalNumber);
 
-  for (const key of [documentNumber, personalNumber, ocrSignature, fileSignature, candidateSignature]) {
+  for (const key of [documentNumber, personalNumber]) {
     if (key) keys.add(key);
-  }
-
-  if (normalizedDob) {
-    keys.add(`DOB:${normalizedDob}`);
-    if (ocrSignature) keys.add(`DOBSIG:${normalizedDob}:${ocrSignature}`);
-    if (fileSignature) keys.add(`DOBSIG:${normalizedDob}:${fileSignature}`);
-    if (candidateSignature) keys.add(`DOBSIG:${normalizedDob}:${candidateSignature}`);
   }
 
   return Array.from(keys);
@@ -696,7 +709,6 @@ function buildIdentityLookupKeys(input: {
 function scoreBatchCandidateHeuristicMatch(input: {
   candidate: { firstName: string | null; lastName: string | null; dateOfBirth: Date | null };
   ocrData: OcrData;
-  fileNameHints: ReturnType<typeof extractNameHintsFromFileName>;
 }) {
   const candidateSignature = candidateNameSignature(
     input.candidate.firstName,
@@ -705,10 +717,6 @@ function scoreBatchCandidateHeuristicMatch(input: {
   const ocrSignature = candidateNameSignature(
     input.ocrData?.firstName,
     input.ocrData?.lastName
-  );
-  const fileSignature = candidateNameSignature(
-    input.fileNameHints.firstName,
-    input.fileNameHints.lastName
   );
 
   let score = 0;
@@ -729,20 +737,6 @@ function scoreBatchCandidateHeuristicMatch(input: {
     else if (ocrSharedTokens === 1) score += 1;
   }
 
-  if (fileSignature && candidateSignature && fileSignature === candidateSignature) {
-    score += 4;
-  } else {
-    const fileSharedTokens = sharedTokenCount(
-      input.fileNameHints.firstName,
-      input.fileNameHints.lastName,
-      input.candidate.firstName,
-      input.candidate.lastName
-    );
-
-    if (fileSharedTokens >= 2) score += 2;
-    else if (fileSharedTokens === 1) score += 1;
-  }
-
   if (datesMatch(input.candidate.dateOfBirth, input.ocrData?.dateOfBirth)) {
     score += 3;
   }
@@ -754,7 +748,6 @@ async function findBestBatchCandidateHeuristicMatch(
   tenant: Awaited<ReturnType<typeof requireTenant>>,
   batchCandidates: Map<string, string>,
   ocrData: OcrData,
-  fileName: string,
   batchAnchorCandidateId: string | null
 ) {
   const candidateIds = Array.from(
@@ -782,14 +775,12 @@ async function findBestBatchCandidateHeuristicMatch(
 
   if (batchCandidatePool.length === 0) return null;
 
-  const fileNameHints = extractNameHintsFromFileName(fileName);
   const scoredCandidates = batchCandidatePool
     .map((candidate) => ({
       candidate,
       score: scoreBatchCandidateHeuristicMatch({
         candidate,
         ocrData,
-        fileNameHints,
       }),
     }))
     .filter((entry) => entry.score > 0)
@@ -890,13 +881,10 @@ async function prepareSmartUploadFile(file: File): Promise<SmartUploadPreparatio
 function rememberBatchCandidate(
   batchCandidates: Map<string, string>,
   candidate: { id: string; firstName: string | null; lastName: string | null },
-  ocrData: OcrData,
-  fileName?: string | null
+  ocrData: OcrData
 ) {
   for (const key of buildIdentityLookupKeys({
     ocrData,
-    fileName,
-    candidate,
   })) {
     if (key) {
       batchCandidates.set(key, candidate.id);
@@ -918,121 +906,11 @@ async function findIntermediaryForCandidate(organizationId: string, fallbackUser
   return membership?.userId ?? fallbackUserId;
 }
 
-async function applyCandidateFieldsFromOcr(
-  tenant: Awaited<ReturnType<typeof requireTenant>>,
-  candidateId: string,
-  docType: DocumentType,
-  ocrData: PresentOcrData
-) {
-  const candidate = await prisma.candidate.findFirst({
-    where: {
-      id: candidateId,
-      organizationId: tenant.organizationId!,
-    },
-  });
-
-  if (!candidate) return;
-
-  const candidateUpdateData: Prisma.CandidateUncheckedUpdateInput = {};
-  const shouldAutoApplyIdentityProfile =
-    docType !== DocumentType.PASSPORT &&
-    docType !== DocumentType.KARTA_POBYTU &&
-    docType !== DocumentType.PESEL;
-
-  const firstName = normalizePersonName(ocrData.firstName);
-  const lastName = normalizePersonName(ocrData.lastName);
-  const citizenship = normalizeOptionalString(ocrData.issuingCountry);
-  const nationality = normalizeOptionalString(ocrData.nationality);
-  const birthPlace = normalizeOptionalString(ocrData.placeOfBirth);
-  const gender = normalizeOptionalString(ocrData.sex)?.toUpperCase();
-  const personalNumber = normalizeOptionalString(ocrData.personalNumber);
-  const documentNumber = normalizeOptionalString(ocrData.documentNumber);
-  const addressOfRegistration = normalizeOptionalString(ocrData.addressOfRegistration);
-
-  if (shouldAutoApplyIdentityProfile) {
-    if (firstName && !isMeaningfulCandidateString(candidate.firstName)) candidateUpdateData.firstName = firstName;
-    if (lastName && !isMeaningfulCandidateString(candidate.lastName)) candidateUpdateData.lastName = lastName;
-    if (citizenship && !isMeaningfulCandidateString(candidate.citizenship)) candidateUpdateData.citizenship = citizenship;
-    if (nationality && !isMeaningfulCandidateString(candidate.nationality)) candidateUpdateData.nationality = nationality;
-    if (birthPlace && !isMeaningfulCandidateString(candidate.birthPlace)) candidateUpdateData.birthPlace = birthPlace;
-    if ((gender === "M" || gender === "F") && !isMeaningfulCandidateString(candidate.gender)) candidateUpdateData.gender = gender;
-    if (ocrData.heightCm && !candidate.heightCm) candidateUpdateData.heightCm = ocrData.heightCm;
-    if (addressOfRegistration && !isMeaningfulCandidateString(candidate.polishAddress)) {
-      candidateUpdateData.polishAddress = addressOfRegistration;
-    }
-    if (ocrData.dateOfBirth && !candidate.dateOfBirth) {
-      candidateUpdateData.dateOfBirth = parseDateSafe(ocrData.dateOfBirth);
-    }
-  }
-
-  if (docType === DocumentType.PASSPORT) {
-    if (documentNumber && !isMeaningfulCandidateString(candidate.passportNumber)) {
-      candidateUpdateData.passportNumber = documentNumber;
-    }
-    if (ocrData.dateOfExpiry && !candidate.passportExpiry) {
-      candidateUpdateData.passportExpiry = parseDateSafe(ocrData.dateOfExpiry);
-    }
-    if (ocrData.dateOfIssue && !candidate.passportIssueDate) {
-      candidateUpdateData.passportIssueDate = parseDateSafe(ocrData.dateOfIssue);
-    }
-    if (typeof ocrData.passportBiometric === "boolean" && candidate.passportBiometric === null) {
-      candidateUpdateData.passportBiometric = ocrData.passportBiometric;
-    }
-  }
-
-  if (docType === DocumentType.KARTA_POBYTU) {
-    if (documentNumber && !isMeaningfulCandidateString(candidate.kartaPobytuNumber)) {
-      candidateUpdateData.kartaPobytuNumber = documentNumber;
-    }
-    if (ocrData.dateOfExpiry && !candidate.kartaPobytuExpiry) {
-      candidateUpdateData.kartaPobytuExpiry = parseDateSafe(ocrData.dateOfExpiry);
-    }
-    if (ocrData.dateOfIssue && !candidate.kartaPobytuIssueDate) {
-      candidateUpdateData.kartaPobytuIssueDate = parseDateSafe(ocrData.dateOfIssue);
-    }
-    if (ocrData.kartaPobytuType && !isMeaningfulCandidateString(candidate.kartaPobytuType)) {
-      candidateUpdateData.kartaPobytuType = ocrData.kartaPobytuType;
-    }
-    if (personalNumber && !isMeaningfulCandidateString(candidate.peselNumber)) {
-      candidateUpdateData.peselNumber = personalNumber;
-    }
-  }
-
-  if (docType === DocumentType.PESEL) {
-    if (personalNumber && !isMeaningfulCandidateString(candidate.peselNumber)) {
-      candidateUpdateData.peselNumber = personalNumber;
-    }
-  }
-
-  if (Object.keys(candidateUpdateData).length === 0) {
-    return;
-  }
-
-  candidateUpdateData.ocrProcessed = true;
-  candidateUpdateData.ocrSource = ACTIVE_OCR_SOURCE;
-
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: candidateUpdateData,
-  });
-
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "CANDIDATE_OCR_FIELDS_APPLIED",
-    entityType: "Candidate",
-    entityId: candidateId,
-    details: toInputJsonValue({
-      docType,
-      appliedFields: Object.keys(candidateUpdateData),
-    }),
-  });
-}
-
 async function resolveSmartUploadCandidate(
   tenant: Awaited<ReturnType<typeof requireTenant>>,
   file: File,
   ocrData: Awaited<ReturnType<typeof analyzeIdentityDocument>>,
+  docType: DocumentType,
   explicitCandidateId: string | null,
   batchCandidates: Map<string, string>,
   batchAnchorCandidateId: string | null
@@ -1055,7 +933,7 @@ async function resolveSmartUploadCandidate(
   const docNumber = normalizeOptionalString(ocrData?.documentNumber);
   const personalNumber = normalizeOptionalString(ocrData?.personalNumber);
   const ocrNameSignature = candidateNameSignature(ocrData?.firstName, ocrData?.lastName);
-  const identityLookupKeys = buildIdentityLookupKeys({ ocrData, fileName: file.name });
+  const identityLookupKeys = buildIdentityLookupKeys({ ocrData });
 
   for (const key of identityLookupKeys) {
     if (!key) continue;
@@ -1111,17 +989,24 @@ async function resolveSmartUploadCandidate(
 
   const ocrFirstName = normalizePersonName(ocrData?.firstName);
   const ocrLastName = normalizePersonName(ocrData?.lastName);
-  const fileNameHints = extractNameHintsFromFileName(file.name);
-  const firstName = ocrFirstName ?? fileNameHints.firstName;
-  const lastName = ocrLastName ?? fileNameHints.lastName;
+  const firstName = ocrFirstName;
+  const lastName = ocrLastName;
+  const isIdentityDoc = isIdentityDocumentType(docType);
+  const isDocumentBack = ocrData?.documentDisposition === "BACK";
   const hasStandaloneIdentity = Boolean(docNumber || personalNumber || (firstName && lastName));
+  const hasStrongIdentityKey = Boolean(docNumber || personalNumber);
 
-  if (!hasStandaloneIdentity || !(docNumber || personalNumber)) {
+  if (
+    shouldTryBatchCandidateHeuristicMatch({
+      documentType: docType,
+      documentDisposition: ocrData?.documentDisposition,
+    }) &&
+    (!hasStandaloneIdentity || !hasStrongIdentityKey || isDocumentBack)
+  ) {
     const heuristicBatchMatch = await findBestBatchCandidateHeuristicMatch(
       tenant,
       batchCandidates,
       ocrData,
-      file.name,
       batchAnchorCandidateId
     );
 
@@ -1130,7 +1015,7 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  if (firstName && lastName) {
+  if (!hasStrongIdentityKey && !isIdentityDoc && firstName && lastName) {
     const byName = await prisma.candidate.findFirst({
       where: {
         organizationId: tenant.organizationId!,
@@ -1145,7 +1030,7 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  if (ocrNameSignature) {
+  if (!isIdentityDoc && !hasStrongIdentityKey && ocrNameSignature) {
     const candidatesWithSimilarIdentity = await prisma.candidate.findMany({
       where: {
         organizationId: tenant.organizationId!,
@@ -1168,7 +1053,7 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  if (batchAnchorCandidateId && !hasStandaloneIdentity) {
+  if (batchAnchorCandidateId && !hasStandaloneIdentity && isDocumentBack) {
     const batchCandidate = await prisma.candidate.findFirst({
       where: {
         id: batchAnchorCandidateId,
@@ -1181,7 +1066,7 @@ async function resolveSmartUploadCandidate(
     }
   }
 
-  if (!firstName || !lastName) {
+  if (!hasStrongIdentityKey && (!firstName || !lastName) && isDocumentBack) {
     const distinctBatchCandidateIds = Array.from(new Set(batchCandidates.values()));
     if (distinctBatchCandidateIds.length === 1) {
       const fallbackCandidate = await prisma.candidate.findFirst({
@@ -1770,23 +1655,26 @@ export async function reviewDocumentOcr(input: {
     : null;
 
   const candidateUpdateData: Prisma.CandidateUncheckedUpdateInput = {
-    firstName: normalizedFirstName ?? currentCandidateFirstName,
-    lastName: normalizedLastName ?? currentCandidateLastName,
-    nationality: normalizedNationality ?? currentCandidateNationality,
-    citizenship: normalizedIssuingCountry ?? currentCandidateCitizenship,
-    dateOfBirth: parseDateSafe(normalizedDob) ?? document.candidate.dateOfBirth,
-    birthPlace: normalizedBirthPlace ?? currentCandidateBirthPlace,
-    gender:
-      normalizedSex === "M" || normalizedSex === "F"
-        ? normalizedSex
-        : currentCandidateGender,
-    heightCm: normalizedHeight ?? document.candidate.heightCm,
-    polishAddress: normalizedAddress ?? currentCandidatePolishAddress,
     ocrProcessed: true,
     ocrSource: `${ACTIVE_OCR_SOURCE}_REVIEWED`,
   };
 
-  if (normalizedType === DocumentType.PASSPORT) {
+  if (input.markVerified) {
+    candidateUpdateData.firstName = normalizedFirstName ?? currentCandidateFirstName;
+    candidateUpdateData.lastName = normalizedLastName ?? currentCandidateLastName;
+    candidateUpdateData.nationality = normalizedNationality ?? currentCandidateNationality;
+    candidateUpdateData.citizenship = normalizedIssuingCountry ?? currentCandidateCitizenship;
+    candidateUpdateData.dateOfBirth = parseDateSafe(normalizedDob) ?? document.candidate.dateOfBirth;
+    candidateUpdateData.birthPlace = normalizedBirthPlace ?? currentCandidateBirthPlace;
+    candidateUpdateData.gender =
+      normalizedSex === "M" || normalizedSex === "F"
+        ? normalizedSex
+        : currentCandidateGender;
+    candidateUpdateData.heightCm = normalizedHeight ?? document.candidate.heightCm;
+    candidateUpdateData.polishAddress = normalizedAddress ?? currentCandidatePolishAddress;
+  }
+
+  if (input.markVerified && normalizedType === DocumentType.PASSPORT) {
     candidateUpdateData.passportNumber = normalizedDocumentNumber;
     candidateUpdateData.passportIssueDate = parseDateSafe(normalizedIssue);
     candidateUpdateData.passportExpiry = parseDateSafe(normalizedExpiry);
@@ -1795,7 +1683,7 @@ export async function reviewDocumentOcr(input: {
     }
   }
 
-  if (normalizedType === DocumentType.KARTA_POBYTU) {
+  if (input.markVerified && normalizedType === DocumentType.KARTA_POBYTU) {
     candidateUpdateData.kartaPobytuNumber = normalizedDocumentNumber;
     candidateUpdateData.kartaPobytuIssueDate = parseDateSafe(normalizedIssue);
     candidateUpdateData.kartaPobytuExpiry = parseDateSafe(normalizedExpiry);
@@ -1805,7 +1693,7 @@ export async function reviewDocumentOcr(input: {
     }
   }
 
-  if (normalizedType === DocumentType.PESEL) {
+  if (input.markVerified && normalizedType === DocumentType.PESEL) {
     candidateUpdateData.peselNumber = normalizedPersonalNumber ?? normalizedDocumentNumber;
   }
 
@@ -2031,6 +1919,7 @@ export async function smartBatchUpload(formData: FormData) {
 
   const results: Array<{ filename: string; success: boolean; message: string }> = [];
   const batchCandidates = new Map<string, string>();
+  const primaryDocumentByCandidateAndType = new Map<string, string>();
   const touchedCandidateIds = new Set<string>();
   let batchAnchorCandidateId: string | null = candidateId;
 
@@ -2046,13 +1935,14 @@ export async function smartBatchUpload(formData: FormData) {
           tenant,
           prepared.file,
           prepared.ocrData,
+          prepared.docType,
           null,
           batchCandidates,
           null
         );
 
         batchAnchorCandidateId = resolved.candidate.id;
-        rememberBatchCandidate(batchCandidates, resolved.candidate, prepared.ocrData, prepared.file.name);
+        rememberBatchCandidate(batchCandidates, resolved.candidate, prepared.ocrData);
         break;
       } catch (error) {
         console.warn("[smartBatchUpload] anchor resolution skipped", {
@@ -2063,7 +1953,17 @@ export async function smartBatchUpload(formData: FormData) {
     }
   }
 
-  for (const prepared of preparedFiles) {
+  const orderedPreparedFiles = [...preparedFiles].sort((left, right) => {
+    const dispositionRank = (disposition: string | undefined) =>
+      disposition === "PRIMARY" ? 0 : disposition === "BACK" ? 1 : 2;
+
+    return (
+      dispositionRank(left.ocrData?.documentDisposition) -
+      dispositionRank(right.ocrData?.documentDisposition)
+    );
+  });
+
+  for (const prepared of orderedPreparedFiles) {
     const { file, ocrData, docType, preparationError, ocrError } = prepared;
 
     if (preparationError) {
@@ -2080,6 +1980,7 @@ export async function smartBatchUpload(formData: FormData) {
         tenant,
         file,
         ocrData,
+        docType,
         candidateId,
         batchCandidates,
         batchAnchorCandidateId
@@ -2114,8 +2015,7 @@ export async function smartBatchUpload(formData: FormData) {
       if (!result.success) {
         if (result.status === "DUPLICATE_DOCUMENT" && result.documentId && ocrData) {
           await mergeOcrIntoExistingDocument(result.documentId, docType, ocrData);
-          await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-          rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData, file.name);
+          rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
           await syncCandidateOperationalAlerts({
             candidateId: resolved.candidate.id,
             organizationId: tenant.organizationId!,
@@ -2147,9 +2047,55 @@ export async function smartBatchUpload(formData: FormData) {
       }
 
       if (ocrData) {
-        await persistExtractedData(result.documentId, docType, ocrData);
-        await applyCandidateFieldsFromOcr(tenant, resolved.candidate.id, docType, ocrData);
-        rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData, file.name);
+        const primaryKey = `${resolved.candidate.id}:${docType}`;
+        const primaryDocumentId = primaryDocumentByCandidateAndType.get(primaryKey);
+
+        const shouldMergeAsSupplement =
+          docType === DocumentType.KARTA_POBYTU &&
+          ocrData.documentDisposition === "BACK" &&
+          primaryDocumentId &&
+          primaryDocumentId !== result.documentId;
+
+        if (shouldMergeAsSupplement) {
+          await persistExtractedData(result.documentId, docType, ocrData);
+          await mergeOcrIntoExistingDocument(primaryDocumentId, docType, ocrData);
+
+          const supplementalDocument = await prisma.document.findFirst({
+            where: { id: result.documentId, candidateId: resolved.candidate.id },
+          });
+
+          if (supplementalDocument) {
+            const supplementalExtractedData = getExtractedDataRecord(supplementalDocument.extractedData);
+            if (supplementalExtractedData) {
+              await prisma.document.update({
+                where: { id: result.documentId },
+                data: {
+                  extractedData: toInputJsonValue({
+                    ...supplementalExtractedData,
+                    documentDisposition:
+                      supplementalExtractedData.documentDisposition === "PRIMARY"
+                        ? "BACK"
+                        : supplementalExtractedData.documentDisposition ?? "BACK",
+                  }),
+                  ocrStatus:
+                    supplementalDocument.ocrStatus === "OCR_CAPTURED"
+                      ? "REVIEW_REQUIRED"
+                      : supplementalDocument.ocrStatus,
+                },
+              });
+            }
+          }
+        } else {
+          await persistExtractedData(result.documentId, docType, ocrData);
+          if (
+            docType === DocumentType.KARTA_POBYTU &&
+            ocrData.documentDisposition !== "BACK" &&
+            !primaryDocumentId
+          ) {
+            primaryDocumentByCandidateAndType.set(primaryKey, result.documentId);
+          }
+        }
+        rememberBatchCandidate(batchCandidates, resolved.candidate, ocrData);
       } else if (isOcrSupported(docType)) {
         await markDocumentOcrFailed(
           result.documentId,

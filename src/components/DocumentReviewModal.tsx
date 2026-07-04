@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Loader2, PencilLine, X } from "lucide-react";
@@ -42,6 +42,7 @@ type CandidateDefaults = {
   kartaPobytuExpiry?: string | Date | null;
   kartaPobytuType?: string | null;
   peselNumber?: string | null;
+  issuingAuthority?: string | null;
 };
 
 type DuplicateContext = {
@@ -136,6 +137,7 @@ type RawTextFallback = {
   dateOfBirth?: string;
   sex?: string;
   placeOfBirth?: string;
+  issuingAuthority?: string;
   kartaPobytuType?: string;
 };
 
@@ -449,10 +451,29 @@ function canonicalizeDocumentType(value: string | null | undefined): string {
   }
 
   if (
+    normalized.includes("PASSPORT") ||
+    normalized.includes("PASAPORTE") ||
+    normalized.includes("PASZPORT")
+  ) {
+    return "PASSPORT";
+  }
+
+  if (
     normalized === "KARTA POBYTU" ||
     normalized === "KARTA_POBYTU" ||
     normalized === "KARTAPOBYTU" ||
     normalized === "RESIDENCE PERMIT"
+  ) {
+    return "KARTA_POBYTU";
+  }
+
+  if (
+    normalized.includes("KARTA POBYTU") ||
+    normalized.includes("KARTA_POBYTU") ||
+    normalized.includes("KARTAPOBYTU") ||
+    normalized.includes("RESIDENCE PERMIT") ||
+    normalized.includes("PERMISO DE RESIDENCIA") ||
+    normalized.includes("TARJETA DE RESIDENCIA")
   ) {
     return "KARTA_POBYTU";
   }
@@ -639,7 +660,7 @@ function isLikelyGenericFileNameName(value: string | null | undefined): boolean 
   const normalized = normalizeReviewName(value);
   if (!normalized) return false;
 
-  return /\b(COLLAGE|CAMSCANNER|SCAN|SCANNER|SCANNED|PAGE|PASSPORT|PASAPORTE|PASZPORT|DOCUMENTO|DOC)\b/.test(
+  return /\b(COLLAGE|CAMSCANNER|SCAN|SCANNER|SCANNED|PAGE|PASSPORT|PASAPORTE|PASZPORT|DOCUMENTO|DOC|IMG|JPEG|JPG|PNG|WA)\b/.test(
     normalized,
   );
 }
@@ -657,10 +678,10 @@ function scorePassportLastNameCandidate(
   const compact = sanitized.replace(/[^A-Z]/g, "");
   const firstNameTokens = collectPassportFirstNameTokens(...firstNameHints);
   const sourceWeight: Record<FieldSource, number> = {
-    OCR: 34,
-    MRZ: 48,
+    OCR: 52,
+    MRZ: 32,
     CANDIDATE: -20,
-    FILE: 6,
+    FILE: -2,
     RECORD: 8,
     MANUAL: 2,
   };
@@ -761,7 +782,6 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
     sources.issuingCountry = "MRZ";
     sources.firstName = "MRZ";
     sources.lastName = "MRZ";
-    return { values: fallback, sources };
   }
 
   const kartaMrzIndex = lines.findIndex((line) => /^I[A-Z<]?POL/.test(line));
@@ -771,7 +791,7 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
     const mrzLine3 = lines[kartaMrzIndex + 2];
 
     const documentNumberMatch =
-      mrzLine1.match(/^I[A-Z<]?POL([A-Z]{1,3}\d{6,10})/)?.[1] ??
+      (mrzLine1.length >= 14 ? mrzLine1.slice(5, 14).replace(/</g, "") : undefined) ??
       mrzLine1.match(/([A-Z]{1,3}\d{6,10})/)?.[1];
     const dateMatch = mrzLine2.match(/^(\d{6})\d?([MF<])(\d{6})\d?([A-Z]{3})/);
     const nameParts = mrzLine3.split("<<");
@@ -792,7 +812,6 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
     sources.issuingCountry = "MRZ";
     sources.firstName = "MRZ";
     sources.lastName = "MRZ";
-    return { values: fallback, sources };
   }
 
   if (docType === "PESEL") {
@@ -906,6 +925,26 @@ function inferNamePartsFromFileName(fileName: string): InferredNameParts | null 
 function shouldUseCandidateIdentityFallback(documentType: string): boolean {
   return !["PASSPORT", "KARTA_POBYTU", "PESEL"].includes(
     canonicalizeDocumentType(documentType),
+  );
+}
+
+function stripCandidateFallbackForIdentityDocument(
+  documentType: string,
+  candidate: { value: string; source?: FieldSource },
+  ...fallbackCandidates: Array<{ value: string | null | undefined; source: FieldSource }>
+): { value: string; source?: FieldSource } {
+  if (shouldUseCandidateIdentityFallback(documentType)) return candidate;
+  if (candidate.source !== "CANDIDATE" && candidate.source !== "FILE") return candidate;
+
+  const nonProfileCandidates = fallbackCandidates.filter(
+    (fallbackCandidate) =>
+      fallbackCandidate.source !== "CANDIDATE" && fallbackCandidate.source !== "FILE",
+  );
+  if (nonProfileCandidates.length === 0) return { value: "" };
+
+  return pickPreferredTextCandidateWithSource(
+    ["MRZ", "OCR", "RECORD", "MANUAL"],
+    ...nonProfileCandidates,
   );
 }
 
@@ -1112,9 +1151,15 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const documentNumberCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.documentNumber), source: "OCR" },
     { value: doc.number, source: "RECORD" },
-    { value: fallbackDocumentNumber, source: "CANDIDATE" },
+    {
+      value: shouldUseCandidateIdentityFallback(initialType) ? fallbackDocumentNumber : "",
+      source: "CANDIDATE",
+    },
     { value: rawTextFallback.documentNumber, source: rawTextSources.documentNumber ?? "OCR" },
-    { value: inferredDocumentNumber, source: "FILE" },
+    {
+      value: shouldUseCandidateIdentityFallback(initialType) ? inferredDocumentNumber : "",
+      source: "FILE",
+    },
   );
 
   const personalNumberCandidate = pickBestTextCandidateWithSource(
@@ -1138,7 +1183,6 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       ? [
           { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "MRZ") as FieldSource },
           { value: asString(extracted.firstName), source: "OCR" as const },
-          { value: inferredNameParts?.firstName ?? "", source: "FILE" as const },
         ]
       : [
           { value: asString(extracted.firstName), source: "OCR" as const },
@@ -1149,7 +1193,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
 
   const firstNameCandidate = pickPreferredTextCandidateWithSource(
     initialType === "PASSPORT"
-      ? ["MRZ", "OCR", "FILE", "RECORD", "MANUAL"]
+      ? ["OCR", "MRZ", "FILE", "RECORD", "MANUAL"]
       : ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
     ...firstNameCandidates,
   );
@@ -1183,7 +1227,6 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
             value: rawTextFallback.lastName,
             source: (rawTextSources.lastName ?? "OCR") as FieldSource,
           },
-          { value: inferredNameParts?.lastName ?? "", source: "FILE" as const },
         ]
       : [
           { value: asString(extracted.lastName), source: "OCR" as const },
@@ -1200,7 +1243,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         )
       : pickBestTextCandidateWithSource(...lastNameCandidates);
   const lastNameCandidate =
-    initialType === "PASSPORT"
+    initialType === "PASSPORT" && shouldUseCandidateIdentityFallback(initialType)
       ? restoreNameSpacingFromFileCandidate(rawLastNameCandidate, inferredNameParts?.lastName)
       : rawLastNameCandidate;
 
@@ -1238,6 +1281,8 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   );
 
   const issueDateCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.dateOfIssue), source: "OCR" },
+    { value: rawTextFallback.issueDate, source: rawTextSources.issueDate ?? "OCR" },
     { value: toDateInputValue(doc.issueDate), source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
@@ -1251,11 +1296,11 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         : "",
       source: "CANDIDATE",
     },
-    { value: rawTextFallback.issueDate, source: rawTextSources.issueDate ?? "OCR" },
-    { value: asString(extracted.dateOfIssue), source: "OCR" },
   );
 
   const expiryDateCandidate = pickBestTextCandidateWithSource(
+    { value: asString(extracted.dateOfExpiry), source: "OCR" },
+    { value: rawTextFallback.expiryDate, source: rawTextSources.expiryDate ?? "MRZ" },
     { value: toDateInputValue(doc.expiryDate), source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
@@ -1269,8 +1314,6 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         : "",
       source: "CANDIDATE",
     },
-    { value: rawTextFallback.expiryDate, source: rawTextSources.expiryDate ?? "MRZ" },
-    { value: asString(extracted.dateOfExpiry), source: "OCR" },
   );
 
   const placeOfBirthCandidate =
@@ -1297,6 +1340,24 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
           { value: normalizeFallbackText(candidateDefaults?.gender), source: "CANDIDATE" },
         );
 
+  const issuingAuthorityCandidate =
+    !shouldUseCandidateIdentityFallback(initialType)
+      ? pickBestTextCandidateWithSource(
+          { value: asString(extracted.issuingAuthority), source: "OCR" },
+          {
+            value: rawTextFallback.issuingAuthority,
+            source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
+          },
+        )
+      : pickBestTextCandidateWithSource(
+          { value: asString(extracted.issuingAuthority), source: "OCR" },
+          {
+            value: rawTextFallback.issuingAuthority,
+            source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
+          },
+          { value: normalizeFallbackText(candidateDefaults?.issuingAuthority), source: "CANDIDATE" },
+        );
+
   const kartaPobytuTypeCandidate = shouldUseCandidateIdentityFallback(initialType)
     ? pickBestTextCandidateWithSource(
         { value: asString(extracted.kartaPobytuType), source: "OCR" },
@@ -1318,6 +1379,56 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         source: "OCR",
       });
 
+  const resolvedFirstNameCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    normalizedFirstNameCandidate,
+    ...firstNameCandidates,
+  );
+  const resolvedLastNameCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    lastNameCandidate,
+    ...lastNameCandidates,
+  );
+  const resolvedNationalityCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    nationalityCandidate,
+    { value: asString(extracted.nationality), source: "OCR" },
+    { value: rawTextFallback.nationality, source: rawTextSources.nationality ?? "MRZ" },
+  );
+  const resolvedIssuingCountryCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    issuingCountryCandidate,
+    { value: asString(extracted.issuingCountry), source: "OCR" },
+    { value: rawTextFallback.issuingCountry, source: rawTextSources.issuingCountry ?? "MRZ" },
+  );
+  const resolvedDateOfBirthCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    dateOfBirthCandidate,
+    { value: asString(extracted.dateOfBirth), source: "OCR" },
+    { value: rawTextFallback.dateOfBirth, source: rawTextSources.dateOfBirth ?? "MRZ" },
+  );
+  const resolvedSexCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    sexCandidate,
+    { value: rawTextFallback.sex, source: rawTextSources.sex ?? "MRZ" },
+    { value: asString(extracted.sex), source: "OCR" },
+  );
+  const resolvedPlaceOfBirthCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    placeOfBirthCandidate,
+    { value: asString(extracted.placeOfBirth), source: "OCR" },
+    { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
+  );
+  const resolvedIssuingAuthorityCandidate = stripCandidateFallbackForIdentityDocument(
+    initialType,
+    issuingAuthorityCandidate,
+    { value: asString(extracted.issuingAuthority), source: "OCR" },
+    {
+      value: rawTextFallback.issuingAuthority,
+      source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
+    },
+  );
+
   return {
     form: {
       type: initialType,
@@ -1326,17 +1437,17 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       personalNumber: personalNumberCandidate.value,
       expiryDate: expiryDateCandidate.value,
       issueDate: issueDateCandidate.value,
-      firstName: normalizedFirstNameCandidate.value,
-      lastName: lastNameCandidate.value,
-      nationality: nationalityCandidate.value,
-      issuingCountry: issuingCountryCandidate.value,
-      dateOfBirth: dateOfBirthCandidate.value,
-      sex: sexCandidate.value,
-      placeOfBirth: placeOfBirthCandidate.value,
-      issuingAuthority: asString(extracted.issuingAuthority),
+      firstName: resolvedFirstNameCandidate.value,
+      lastName: resolvedLastNameCandidate.value,
+      nationality: resolvedNationalityCandidate.value,
+      issuingCountry: resolvedIssuingCountryCandidate.value,
+      dateOfBirth: resolvedDateOfBirthCandidate.value,
+      sex: resolvedSexCandidate.value,
+      placeOfBirth: resolvedPlaceOfBirthCandidate.value,
+      issuingAuthority: resolvedIssuingAuthorityCandidate.value,
       passportBiometric:
         asBoolean(extracted.passportBiometric) ||
-        (initialType !== "PASSPORT" && candidateDefaults?.passportBiometric === true),
+        (initialType === "PASSPORT" && candidateDefaults?.passportBiometric === true),
       kartaPobytuType: kartaPobytuTypeCandidate.value,
       remarks: asString(extracted.remarks),
       municipalityOffice: asString(extracted.municipalityOffice),
@@ -1352,14 +1463,14 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       personalNumber: personalNumberCandidate.source || "OCR",
       expiryDate: expiryDateCandidate.source || "RECORD",
       issueDate: issueDateCandidate.source || "RECORD",
-      firstName: normalizedFirstNameCandidate.source || "OCR",
-      lastName: lastNameCandidate.source || "OCR",
-      nationality: nationalityCandidate.source || "OCR",
-      issuingCountry: issuingCountryCandidate.source || "OCR",
-      dateOfBirth: dateOfBirthCandidate.source || "OCR",
-      sex: sexCandidate.source || "OCR",
-      placeOfBirth: placeOfBirthCandidate.source || "OCR",
-      issuingAuthority: extracted.issuingAuthority ? "OCR" : "RECORD",
+      firstName: resolvedFirstNameCandidate.source || "OCR",
+      lastName: resolvedLastNameCandidate.source || "OCR",
+      nationality: resolvedNationalityCandidate.source || "OCR",
+      issuingCountry: resolvedIssuingCountryCandidate.source || "OCR",
+      dateOfBirth: resolvedDateOfBirthCandidate.source || "OCR",
+      sex: resolvedSexCandidate.source || "OCR",
+      placeOfBirth: resolvedPlaceOfBirthCandidate.source || "OCR",
+      issuingAuthority: resolvedIssuingAuthorityCandidate.source || "OCR",
       passportBiometric: extracted.passportBiometric ? "OCR" : "MANUAL",
       kartaPobytuType: kartaPobytuTypeCandidate.source || "OCR",
       remarks: extracted.remarks ? "OCR" : "RECORD",

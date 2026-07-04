@@ -17,6 +17,7 @@ export interface OcrExtractedData {
   placeOfBirth?: string;
   documentType?: string;
   documentTypeCode?: string;
+  documentDisposition?: "PRIMARY" | "BACK";
   issuingAuthority?: string;
   passportAuthority?: string;
   passportType?: string;
@@ -80,16 +81,23 @@ function normalizeHumanDate(value: string | undefined): string | undefined {
   };
 
   const compact = normalizeSearchText(value).replace(/\s+/g, " ");
-  const numeric = compact.match(/\b(\d{1,2})[./\s-]+(\d{1,2})[./\s-]+(\d{4})\b/);
+  const numeric = compact.match(/\b(\d{1,2})[./\s-]+(\d{1,2})[./\s-]+(\d{4,5})\b/);
   if (numeric) {
-    const [, day, month, year] = numeric;
+    const [, day, month, rawYear] = numeric;
+    const year = rawYear.length === 5 && rawYear.startsWith("20")
+      ? `20${rawYear.slice(-2)}`
+      : rawYear;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
 
-  const named = compact.match(/\b(\d{1,2})\s+([A-Z]{3,})(?:[./][A-Z]{3,})?\s+(\d{4})\b/);
+  const named = compact.match(/\b(\d{1,2})\s*([A-Z0-9]{3,})(?:[./]([A-Z0-9]{3,}))?\s*(\d{4})\b/);
   if (named) {
-    const [, day, rawMonth, year] = named;
-    const month = monthMap[normalizeSearchText(rawMonth).slice(0, 3)];
+    const [, day, rawMonth, alternateMonth, year] = named;
+    const monthToken = [rawMonth, alternateMonth]
+      .filter(Boolean)
+      .map((item) => normalizeSearchText(item).replace(/^0/, "O").slice(0, 3))
+      .find((item) => monthMap[item]);
+    const month = monthToken ? monthMap[monthToken] : undefined;
     if (month) return `${year}-${month}-${day.padStart(2, "0")}`;
   }
 
@@ -167,6 +175,63 @@ function normalizePersonalNumber(value: string | undefined): string | undefined 
   return undefined;
 }
 
+function isValidPesel(value: string): boolean {
+  if (!/^\d{11}$/.test(value)) return false;
+
+  const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+  const checksum = weights.reduce(
+    (sum, weight, index) => sum + Number(value[index]) * weight,
+    0,
+  );
+  const expectedCheckDigit = (10 - (checksum % 10)) % 10;
+  return expectedCheckDigit === Number(value[10]);
+}
+
+function peselBirthPrefix(dateOfBirth: string | undefined): string | undefined {
+  if (!dateOfBirth) return undefined;
+
+  const match = dateOfBirth.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+
+  const year = Number(match[1]);
+  let month = Number(match[2]);
+  const day = Number(match[3]);
+
+  if (year >= 1800 && year <= 1899) month += 80;
+  else if (year >= 2000 && year <= 2099) month += 20;
+  else if (year >= 2100 && year <= 2199) month += 40;
+  else if (year >= 2200 && year <= 2299) month += 60;
+  else if (year < 1900 || year > 2299) return undefined;
+
+  return `${String(year).slice(-2)}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+}
+
+function normalizePeselAgainstBirthDate(
+  value: string | undefined,
+  dateOfBirth: string | undefined,
+): string | undefined {
+  const normalized = normalizePersonalNumber(value);
+  if (!normalized || !/^\d{11}$/.test(normalized)) return normalized;
+
+  const expectedPrefix = peselBirthPrefix(dateOfBirth);
+  if (!expectedPrefix) return normalized;
+
+  if (normalized.startsWith(expectedPrefix)) {
+    return normalized;
+  }
+
+  const reconstructed = `${expectedPrefix}${normalized.slice(6)}`;
+  const changedDigits = [...normalized.slice(0, 6)].filter(
+    (digit, index) => digit !== expectedPrefix[index],
+  ).length;
+
+  if (changedDigits <= 2 && isValidPesel(reconstructed)) {
+    return reconstructed;
+  }
+
+  return isValidPesel(normalized) ? normalized : undefined;
+}
+
 function normalizeWhitespace(value: string | undefined): string | undefined {
   if (!value) return undefined;
 
@@ -200,19 +265,19 @@ function normalizeExtractedPersonName(value: string | undefined): string | undef
   if (!normalized) return undefined;
 
   const cleaned = normalized
-    .replace(/^[^A-ZÀ-ÖØ-Ý0-9]+/i, "")
-    .replace(/[^A-ZÀ-ÖØ-Ý0-9]+$/i, "")
+    .replace(/^[^\p{L}0-9]+/u, "")
+    .replace(/[^\p{L}0-9]+$/u, "")
     .replace(/\s+/g, " ")
     .trim();
 
   if (!cleaned) return undefined;
 
-  const alphaCount = cleaned.replace(/[^A-ZÀ-ÖØ-Ý]/gi, "").length;
+  const alphaCount = cleaned.replace(/[^\p{L}]/gu, "").length;
   if (alphaCount < 3) return undefined;
   if (/\d/.test(cleaned) && alphaCount < 6) return undefined;
 
   const compact = compactSearchText(cleaned);
-  const rejectedLabels = [
+  const rejectedFragments = [
     "PARENTSFORENAMES",
     "GIVENNAME",
     "GIVENNAMES",
@@ -242,19 +307,26 @@ function normalizeExtractedPersonName(value: string | undefined): string | undef
     "REPUBLICA",
     "COLOMBIA",
     "FIRMA",
+    "CAMSCANNER",
+    "COLLAGE",
+    "SCANNER",
+    "SCANNED",
   ].map((item) => item.replace(/\s+/g, ""));
-  if (rejectedLabels.some((label) => compact.includes(label))) return undefined;
+  if (rejectedFragments.some((label) => compact.includes(label))) return undefined;
 
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   const shortTokenCount = tokens.filter((token) => token.length <= 2).length;
   if (tokens.length > 4 && shortTokenCount >= 2) return undefined;
+  if (tokens.every((token) => /^(IMG|WA|JPG|JPEG|PNG|SCAN|PHOTO|FOTO|IMAGE)$/i.test(token))) {
+    return undefined;
+  }
 
   return cleaned.toUpperCase();
 }
 
 function scorePersonNameCandidate(value: string | undefined): number {
   if (!value) return -1;
-  const alphaCount = value.replace(/[^A-ZÀ-ÖØ-Ý]/gi, "").length;
+  const alphaCount = value.replace(/[^\p{L}]/gu, "").length;
   const wordCount = value.split(/\s+/).filter(Boolean).length;
   const digitsPenalty = /\d/.test(value) ? 10 : 0;
 
@@ -461,6 +533,12 @@ function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
           "URODZENIA",
           "AND",
           "OF",
+          "Q",
+          "BS",
+          "AUTHORITY",
+          "AUTORIDAD",
+          "DATE",
+          "ISSUE",
         ].includes(token),
     );
 
@@ -476,21 +554,42 @@ function cleanPlaceOfBirthValue(value: string | undefined): string | undefined {
 }
 
 function cleanIssuingAuthorityValue(value: string | undefined): string | undefined {
-  const normalized = cleanLabeledValue(value);
+  const normalized = cleanLabeledValue(value)?.replace(/[|]/g, " ");
   if (!normalized) return undefined;
-  const cleaned = normalized
+  const extractedAuthorityTail =
+    normalized.match(
+      /\b(?:AUTHORITY|AUTORIDAD|ORGAN WYDAJACY|ISSUING AUTHORITY)\b[\s:./_-]*([A-Z][A-Z .-]{2,})$/i,
+    )?.[1] ??
+    normalized.match(
+      /\b(?:\d{1,2}\s+[A-Z]{3}(?:\/[A-Z]{3})?\s+\d{4}|\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\s*[_.,-]*\s*([A-Z][A-Z .-]{2,})$/i,
+    )?.[1] ??
+    normalized;
+
+  const cleaned = extractedAuthorityTail
     .replace(/\b\d{1,2}[A-Z]{3}(?:\/[A-Z]{3})?\d{4}\b/gi, " ")
     .replace(/\b\d{1,2}\s+[A-Z]{3}(?:[./][A-Z]{3})?\s+\d{4}\b/gi, " ")
+    .replace(/\b\d{1,2}\s*[./-]?\s*[A-Z0-9]{3}(?:\/[A-Z0-9]{3})?\s*\d{4}\b/gi, " ")
+    .replace(/\b\d{1,2}\s+[A-Z]{3}(?:\/[A-Z]{3})?\s+\d{4}\s*[_.,-]*\s*/gi, " ")
+    .replace(/\b\d{1,2}[./\s-]+\d{1,2}[./\s-]+\d{4,5}\s*[_.,-]*\s*/gi, " ")
     .replace(/\b\d{1,2}\s+[A-Z]{3}\b/gi, " ")
     .replace(/\bDATE OF ISSUE AND ISSUING AUTHORITY\b/gi, " ")
     .replace(/\bDATA WYDANIA I ORGAN WYDAJACY\b/gi, " ")
     .replace(/\bORGAN WYDAJACY\b/gi, " ")
+    .replace(/\bDATA WYDANIA I ORGAN WYDAJACY\/DATE OF ISSUE AND ISSUING AUTHORITY\b/gi, " ")
+    .replace(/\bDATE OF ISSUE AND ISSUING AUTHORITY\/DATA WYDANIA I ORGAN WYDAJACY\b/gi, " ")
     .replace(/\bDATE OF ISSUE\b/gi, " ")
     .replace(/\bFECHA DE EXPEDICION\b/gi, " ")
     .replace(/\bPLACE AND COUNTRY OF BIRTH\b/gi, " ")
     .replace(/\bPLACE OF BIRTH\b/gi, " ")
+    .replace(/\bPLACE AND COUNTRY OF BIRTH\s+[A-Z]{1,3}\s+[A-Z]{1,3}\b/gi, " ")
     .replace(/\bAUTHORITY\b/gi, " ")
     .replace(/\bAUTORIDAD\b/gi, " ")
+    .replace(/\bISSUING AUTHORITY\b/gi, " ")
+    .replace(/\bDATA WYDANIA\b/gi, " ")
+    .replace(/\bDATE OF ISSUE AND ISSUING AUTHORITY\b/gi, " ")
+    .replace(/\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+[A-Z]\.?\s+[A-Z]{2,}\b/gi, " ")
+    .replace(/\b\d{1,2}\s+[A-Z]{3}\s+[A-Z]{3}\s+\d{4}\b/gi, " ")
+    .replace(/\b\d{1,2}[./-]\d{1,2}[./-]\d{4}\s+[A-Z]\.?\s+[A-Z]{2,}\b/gi, " ")
     .replace(/^[./,_\-\s]+|[./,_\-\s]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -514,6 +613,20 @@ function cleanIssuingAuthorityValue(value: string | undefined): string | undefin
   if (rejectedLabels.some((label) => compact === label)) return undefined;
 
   return cleaned;
+}
+
+function restorePassportLastNameSpacing(
+  value: string | undefined,
+  spacingHint: string | undefined,
+): string | undefined {
+  const normalized = normalizeExtractedPersonName(value);
+  if (!normalized) return undefined;
+  if (normalized.includes(" ")) return normalized;
+  const normalizedHint = normalizeExtractedPersonName(spacingHint);
+  if (!normalizedHint?.includes(" ")) return normalized;
+
+  const compact = (candidate: string) => normalizeSearchText(candidate).replace(/\s+/g, "");
+  return compact(normalized) === compact(normalizedHint) ? normalizedHint : normalized;
 }
 
 function cleanPassportNameValue(value: string | undefined, mode: "first" | "last"): string | undefined {
@@ -854,8 +967,19 @@ function extractDateNearLabels(rawText: string | undefined, labels: string[]): s
     if (!normalizedLabels.some((label) => normalizedLine.includes(label))) continue;
 
     for (let offset = 0; offset <= 2; offset += 1) {
-      const date = normalizeHumanDate(lines[index + offset]);
+      const candidateLine = lines[index + offset];
+      const date = normalizeHumanDate(candidateLine);
       if (date) return date;
+
+      if (!candidateLine) continue;
+
+      const inlineDate =
+        candidateLine.match(/\b\d{1,2}[./\s-]+\d{1,2}[./\s-]+\d{4,5}\b/)?.[0] ??
+        candidateLine.match(/\b\d{1,2}\s+[A-Z]{3}(?:\/[A-Z]{3})?\s+\d{4}\b/i)?.[0] ??
+        candidateLine.match(/\b\d{1,2}[A-Z]{3}(?:\/[A-Z]{3})?\d{4}\b/i)?.[0];
+
+      const normalizedInlineDate = normalizeHumanDate(inlineDate);
+      if (normalizedInlineDate) return normalizedInlineDate;
     }
   }
 
@@ -941,15 +1065,15 @@ function parseMrz(rawText: string | undefined): OcrExtractedData {
 
     if (!/^I[A-Z<]?POL/.test(firstLine)) continue;
 
+    const fixedPositionDocumentNumber =
+      firstLine.length >= 14 ? firstLine.slice(5, 14).replace(/</g, "") : undefined;
     const documentNumber =
-      normalizeDocumentNumberForType(
-        firstLine.match(/^I[A-Z<]?POL([A-Z]{1,3}\d{6,8})\d?/)?.[1],
-        "KARTA_POBYTU"
-      ) ??
+      normalizeDocumentNumberForType(fixedPositionDocumentNumber, "KARTA_POBYTU") ??
       normalizeDocumentNumberForType(firstLine.match(/([A-Z]{1,3}\d{6,10})/)?.[1], "KARTA_POBYTU");
 
-    const dateMatch = secondLine.match(/^(\d{6})\d?([MF<])(\d{6})\d?([A-Z]{3})/);
+    const dateMatch = secondLine.match(/^(\d{6})\d?([MF<])(\d{6})\d?([A-Z0-9]{3})/);
     const nameData = parseMrzName(thirdLine);
+    const nationalityToken = dateMatch?.[4]?.replace(/0/g, "O");
 
     return {
       ...nameData,
@@ -957,7 +1081,7 @@ function parseMrz(rawText: string | undefined): OcrExtractedData {
       dateOfBirth: parseMrzDate(dateMatch?.[1], "birth"),
       sex: normalizeSex(dateMatch?.[2]),
       dateOfExpiry: parseMrzDate(dateMatch?.[3], "expiry"),
-      nationality: normalizeCountryCode(dateMatch?.[4]),
+      nationality: normalizeCountryCode(nationalityToken),
       issuingCountry: "POL",
       documentType: "KARTA_POBYTU",
     };
@@ -1001,7 +1125,9 @@ function inferDocumentType(
   if (
     category.includes("ZEZWOLENIE NA POBYT") ||
     normalizedRawText.includes("KARTA POBYTU") ||
-    normalizedRawText.includes("RESIDENCE PERMIT")
+    normalizedRawText.includes("RESIDENCE PERMIT") ||
+    normalizedRawText.includes("RODZAJ ZEZWOLENIA") ||
+    normalizedRawText.includes("TYPE OF PERMIT")
   ) {
     return "KARTA_POBYTU";
   }
@@ -1052,12 +1178,17 @@ function mapAzureIdDocumentFields(
   const mrzData = parseMrz(rawText);
   const inferredDocumentType = inferDocumentType(fields, rawText, mrzData);
   const rawNameData = extractNameNearLabels(rawText);
+  const kartaFrontNameMatch = rawText?.match(
+    /\n\s*([A-Z][A-Z .-]{3,})\s*\n\s*([A-Z][A-Za-z .-]{3,})\s*\n\s*(?:PLEC|SEX|OBYWATELSTWO|NATIONALITY)/i,
+  );
+  const kartaFrontLastName = normalizeExtractedPersonName(kartaFrontNameMatch?.[1]?.replace(/[.]+/g, " "));
+  const kartaFrontFirstName = normalizeExtractedPersonName(kartaFrontNameMatch?.[2]?.replace(/[.]+/g, " "));
   const passportFrontFirstName = cleanPassportNameValue(
     extractPassportLabeledNextLine(rawText, [/(?:NOMBRES|GIVEN NAMES?)/i]),
     "first"
   ) ?? cleanPassportNameValue(
     extractPassportRegexValue(rawText, [
-      /(?:NOMBRES|GIVEN NAMES?)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ< ]{3,})(?=\r?\n(?:NACIONALIDAD|NATIONALITY))/i,
+      /(?:NOMBRES|GIVEN NAMES?)[^\S\r\n]*[:/.-]?[^\S\r\n]*([\p{L}< ]{3,})(?=\r?\n(?:NACIONALIDAD|NATIONALITY))/iu,
     ]),
     "first"
   );
@@ -1066,12 +1197,12 @@ function mapAzureIdDocumentFields(
     "last"
   ) ?? cleanPassportNameValue(
     extractPassportRegexValue(rawText, [
-      /(?:APELLIDOS|SURNAME)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ< ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/i,
+      /(?:APELLIDOS|SURNAME)[^\S\r\n]*[:/.-]?[^\S\r\n]*([\p{L}< ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/iu,
     ]),
     "last"
   ) ?? cleanPassportNameValue(
     extractPassportRegexValue(rawText, [
-      /\bPASSPORT[^\S\r\n]+([A-Z ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/i,
+      /\bPASSPORT[^\S\r\n]+([A-Z ]{3,})(?=\r?\n(?:NOMBRES|GIVEN NAMES?))/iu,
     ]),
     "last"
   );
@@ -1139,6 +1270,8 @@ function mapAzureIdDocumentFields(
     }
   }
 
+  const rawPassportAuthority = get("IssuingAuthority");
+
   const dateOfIssue =
     normalizeDate(get("DateOfIssue")) ??
     extractDateNearLabels(rawText, [
@@ -1165,9 +1298,10 @@ function mapAzureIdDocumentFields(
       "FECHA DE NACIMIENTO",
       "DATA URODZENIA",
     ]);
+  const verifiedPersonalNumber = normalizePeselAgainstBirthDate(personalNumber, dateOfBirth);
 
   const passportAuthority =
-    cleanIssuingAuthorityValue(get("IssuingAuthority")) ??
+    cleanIssuingAuthorityValue(rawPassportAuthority) ??
     cleanIssuingAuthorityValue(
       normalizeWhitespace(
         extractPassportLabeledNextLine(rawText, [/(?:AUT\w*DAD|AUTHORITY)/i])?.replace(
@@ -1186,7 +1320,7 @@ function mapAzureIdDocumentFields(
     ) ??
     cleanIssuingAuthorityValue(
       extractPassportRegexValue(rawText, [
-        /(?:AUTORIDAD|AUTHORITY)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ. ]{3,})(?=\r?\n(?:FIRMA DEL TITULAR|HOLDER'?S SIGNATURE))/i,
+        /(?:AUTORIDAD|AUTHORITY)[^\S\r\n]*[:/.-]?[^\S\r\n]*([\p{L}. ]{3,})(?=\r?\n(?:FIRMA DEL TITULAR|HOLDER'?S SIGNATURE))/iu,
       ])
     );
 
@@ -1212,13 +1346,13 @@ function mapAzureIdDocumentFields(
       : undefined;
 
   const placeOfBirth =
-    normalizeWhitespace(get("PlaceOfBirth")) ??
+    cleanPlaceOfBirthValue(normalizeWhitespace(get("PlaceOfBirth"))) ??
     cleanPassportPlaceOfBirthValue(
       extractPassportLabeledNextLine(rawText, [/(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)/i])
     ) ??
     cleanPassportPlaceOfBirthValue(
       extractPassportRegexValue(rawText, [
-        /(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)[^\S\r\n]*[:/.-]?[^\S\r\n]*([A-ZÁÉÍÓÚÑ ]{4,})(?=\r?\n(?:FECHA DE EXPEDICION|DATE OF ISSUE|AUTORIDAD|AUTHORITY))/i,
+        /(?:LUGAR DE NACIMI\w*|PLACE OF BIRTH)[^\S\r\n]*[:/.-]?[^\S\r\n]*([\p{L} ]{4,})(?=\r?\n(?:FECHA DE EXPEDICION|DATE OF ISSUE|AUTORIDAD|AUTHORITY))/iu,
       ])
     ) ??
     cleanPlaceOfBirthValue(
@@ -1283,28 +1417,52 @@ function mapAzureIdDocumentFields(
     peselFirstName ??
     (inferredDocumentType === "PASSPORT"
       ? trimPassportFirstNameNoise(
-          pickBestPassportName(mrzData.firstName, passportFrontFirstName, get("FirstName"), rawNameData.firstName),
+          pickBestPassportName(
+            passportFrontFirstName,
+            get("FirstName"),
+            rawNameData.firstName,
+            mrzData.firstName,
+          ),
         )
-      : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
+      : inferredDocumentType === "KARTA_POBYTU"
+        ? pickBestPersonName(kartaFrontFirstName, get("FirstName"), mrzData.firstName, rawNameData.firstName)
+        : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
 
-  const lastName =
+  const selectedLastName =
     peselLastName ??
     (inferredDocumentType === "PASSPORT"
       ? trimPassportLastNameNoise(
-          pickBestPassportName(mrzData.lastName, passportFrontLastName, get("LastName"), rawNameData.lastName),
+          pickBestPassportName(
+            passportFrontLastName,
+            get("LastName"),
+            rawNameData.lastName,
+            mrzData.lastName,
+          ),
           mrzData.firstName,
           passportFrontFirstName,
           get("FirstName"),
           rawNameData.firstName,
           firstName,
         )
-      : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));
+      : inferredDocumentType === "KARTA_POBYTU"
+        ? pickBestPersonName(kartaFrontLastName, get("LastName"), mrzData.lastName, rawNameData.lastName)
+        : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));
+  const lastName =
+    inferredDocumentType === "PASSPORT"
+      ? restorePassportLastNameSpacing(selectedLastName, mrzData.lastName)
+      : selectedLastName;
+
+  const documentDisposition =
+    inferredDocumentType === "KARTA_POBYTU" &&
+    /(?:UWAGI|REMARKS|DATA WYDANIA|DATE OF ISSUE AND ISSUING AUTHORITY|NUMER EWIDENCYJNY PESEL)/i.test(rawText ?? "")
+      ? "BACK"
+      : "PRIMARY";
 
   return {
     firstName,
     lastName,
     documentNumber,
-    personalNumber,
+    personalNumber: verifiedPersonalNumber,
     dateOfBirth,
     dateOfExpiry,
     dateOfIssue,
@@ -1320,6 +1478,7 @@ function mapAzureIdDocumentFields(
     issuingCountry,
     placeOfBirth,
     documentType: inferredDocumentType,
+    documentDisposition,
     documentTypeCode: get("DocumentType") ?? mrzData.documentTypeCode,
     issuingAuthority: passportAuthority,
     passportAuthority,
@@ -1373,6 +1532,34 @@ async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buff
   }
 }
 
+function scoreRecognizedIdentityText(text: string | null | undefined): number {
+  if (!text) return 0;
+
+  const normalized = normalizeSearchText(text);
+  let score = Math.min(20, Math.floor(normalized.length / 80));
+  const signals = [
+    "PASSPORT",
+    "PASAPORTE",
+    "KARTA POBYTU",
+    "RESIDENCE PERMIT",
+    "DOCUMENT NUMBER",
+    "PASSPORT NO",
+    "DATE OF BIRTH",
+    "DATE OF EXPIRY",
+    "NATIONALITY",
+    "NUMER PESEL",
+    "DATA URODZENIA",
+    "DATA WAZNOSCI",
+  ];
+
+  for (const signal of signals) {
+    if (normalized.includes(signal)) score += 5;
+  }
+
+  if (/P<[A-Z0-9<]{20,}/.test(normalized.replace(/\s+/g, ""))) score += 30;
+  if (/I[A-Z<]?POL[A-Z0-9<]{15,}/.test(normalized.replace(/\s+/g, ""))) score += 30;
+  return score;
+}
 async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise<string | null> {
   try {
     const inputBuffer =
@@ -1391,13 +1578,28 @@ async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise
     const worker = await createWorker("eng", 1, workerOptions);
 
     try {
+      const candidates: string[] = [];
       await worker.setParameters({
         tessedit_pageseg_mode: PSM.AUTO,
         preserve_interword_spaces: "1",
       });
-      const result = await worker.recognize(inputBuffer);
-      const text = result?.data?.text?.trim();
-      return text ? text : null;
+      const automaticResult = await worker.recognize(inputBuffer);
+      const automaticText = automaticResult?.data?.text?.trim();
+      if (automaticText) candidates.push(automaticText);
+
+      if (scoreRecognizedIdentityText(automaticText) < 25) {
+        await worker.setParameters({
+          tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+          preserve_interword_spaces: "1",
+        });
+        const sparseResult = await worker.recognize(inputBuffer);
+        const sparseText = sparseResult?.data?.text?.trim();
+        if (sparseText) candidates.push(sparseText);
+      }
+
+      return candidates.sort(
+        (left, right) => scoreRecognizedIdentityText(right) - scoreRecognizedIdentityText(left),
+      )[0] ?? null;
     } finally {
       await worker.terminate();
     }

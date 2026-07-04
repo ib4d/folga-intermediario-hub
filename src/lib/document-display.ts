@@ -22,6 +22,48 @@ function normalizeDigits(value: string | null): string | null {
   return digits || null;
 }
 
+function canonicalizeDisplayDocumentType(type: string | null | undefined): string | null {
+  const normalized = normalizeOptionalString(type)
+    ?.replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  if (!normalized) return null;
+  if (
+    normalized === "PASSPORT" ||
+    normalized === "PASAPORTE" ||
+    normalized === "PASZPORT" ||
+    normalized.includes("PASSPORT") ||
+    normalized.includes("PASAPORTE") ||
+    normalized.includes("PASZPORT")
+  ) {
+    return "PASSPORT";
+  }
+
+  if (
+    normalized === "KARTA POBYTU" ||
+    normalized === "KARTA_POBYTU" ||
+    normalized === "KARTAPOBYTU" ||
+    normalized === "RESIDENCE PERMIT" ||
+    normalized.includes("KARTA POBYTU") ||
+    normalized.includes("KARTA_POBYTU") ||
+    normalized.includes("KARTAPOBYTU") ||
+    normalized.includes("RESIDENCE PERMIT") ||
+    normalized.includes("PERMISO DE RESIDENCIA") ||
+    normalized.includes("TARJETA DE RESIDENCIA")
+  ) {
+    return "KARTA_POBYTU";
+  }
+
+  if (normalized === "PESEL") return "PESEL";
+  if (normalized.includes("WOJEWODY") || normalized.includes("DECYZJA")) {
+    return "DECYZJA_WOJEWODY";
+  }
+
+  return normalized;
+}
+
 function getExtractedData(value: ExtractedData): Record<string, unknown> {
   if (!value || Array.isArray(value) || typeof value !== "object") {
     return {};
@@ -71,10 +113,11 @@ export function getDocumentDispositionLabel(disposition: DocumentDisposition | n
 }
 
 export function getDocumentTypeLabel(type: string | null | undefined): string {
-  if (type === "PASSPORT") return "Pasaporte";
-  if (type === "KARTA_POBYTU") return "Karta Pobytu";
-  if (type === "PESEL") return "PESEL";
-  if (type === "DECYZJA_WOJEWODY") return "Decision Wojewody";
+  const canonicalType = canonicalizeDisplayDocumentType(type);
+  if (canonicalType === "PASSPORT") return "Pasaporte";
+  if (canonicalType === "KARTA_POBYTU") return "Karta Pobytu";
+  if (canonicalType === "PESEL") return "PESEL";
+  if (canonicalType === "DECYZJA_WOJEWODY") return "Decision Wojewody";
   if (!type) return "Documento";
 
   return type
@@ -155,6 +198,7 @@ function sanitizePeselCandidate(value: string | null): string | null {
 
 export function getDocumentDisplayNumber(doc: DisplayableDocument | null): string | null {
   if (!doc) return null;
+  const canonicalType = canonicalizeDisplayDocumentType(doc.type);
 
   const directNumber = normalizeOptionalString(doc.number);
   const extractedNumber = getExtractedString(doc.extractedData, [
@@ -167,7 +211,7 @@ export function getDocumentDisplayNumber(doc: DisplayableDocument | null): strin
     "peselNumber",
   ]);
 
-  if (doc.type === "PESEL") {
+  if (canonicalType === "PESEL") {
     return (
       sanitizePeselCandidate(personalNumber) ??
       sanitizePeselCandidate(directNumber) ??
@@ -175,11 +219,11 @@ export function getDocumentDisplayNumber(doc: DisplayableDocument | null): strin
     );
   }
 
-  if (doc.type === "KARTA_POBYTU") {
+  if (canonicalType === "KARTA_POBYTU") {
     return sanitizeDocumentNumberCandidate(extractedNumber) ?? sanitizeDocumentNumberCandidate(directNumber);
   }
 
-  if (doc.type === "PASSPORT") {
+  if (canonicalType === "PASSPORT") {
     return sanitizeDocumentNumberCandidate(extractedNumber) ?? sanitizeDocumentNumberCandidate(directNumber);
   }
 
@@ -192,7 +236,7 @@ export function getDocumentDisplayNumber(doc: DisplayableDocument | null): strin
 
 export function getDocumentDisplayExpiry(doc: DisplayableDocument | null): Date | null {
   if (!doc) return null;
-  if (doc.type === "PESEL") return null;
+  if (canonicalizeDisplayDocumentType(doc.type) === "PESEL") return null;
 
   return (
     parseDateValue(doc.expiryDate) ??

@@ -34,14 +34,13 @@ export interface StorageProvider {
 }
 
 const DEFAULT_BUCKET = "documentos-candidatos";
-const DEFAULT_LOCAL_STORAGE_DIR = path.join(process.cwd(), "public", "uploads");
 
 function getStorageBucket() {
   return process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_BUCKET;
 }
 
 function getLocalStorageDir() {
-  return process.env.LOCAL_STORAGE_DIR || DEFAULT_LOCAL_STORAGE_DIR;
+  return process.env.LOCAL_STORAGE_DIR || path.join(/* turbopackIgnore: true */ process.cwd(), "public", "uploads");
 }
 
 export function resolveLocalStorageAbsolutePath(relativePath: string) {

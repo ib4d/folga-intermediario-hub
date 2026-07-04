@@ -44,6 +44,7 @@ const required = [
   "DB_PASSWORD",
   "AUTH_URL",
   "AUTH_SECRET",
+  "NEXTAUTH_URL",
   "NEXTAUTH_SECRET",
   "SMTP_HOST",
   "SMTP_USER",
@@ -105,6 +106,19 @@ if (nextAuthUrl && !nextAuthUrl.startsWith("https://") && !nextAuthUrl.includes(
 
 if (nextAuthUrl && authUrl && nextAuthUrl !== authUrl) {
   warnings.push("NEXTAUTH_URL differs from AUTH_URL. Keep them aligned unless this is intentional.");
+}
+
+if (storageProvider === "supabase" && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()) {
+  warnings.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is set without NEXT_PUBLIC_SUPABASE_ANON_KEY. Verify the client upload flow uses the intended public credential.");
+}
+
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+if (serviceRoleKey && placeholderPatterns.some((pattern) => pattern.test(serviceRoleKey))) {
+  errors.push("SUPABASE_SERVICE_ROLE_KEY still looks like a placeholder.");
+}
+
+if (process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+  errors.push("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY must never be exposed to the browser.");
 }
 
 const authSecret = process.env.AUTH_SECRET?.trim();
