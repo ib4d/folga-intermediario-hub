@@ -142,7 +142,7 @@ function normalizeDocumentNumberForType(
   value: string | undefined,
   documentType: string
 ): string | undefined {
-  const normalized = normalizeDocumentNumber(value);
+  let normalized = normalizeDocumentNumber(value);
   if (!normalized) return undefined;
 
   if (
@@ -150,6 +150,10 @@ function normalizeDocumentNumberForType(
     /^\d{11}$/.test(normalized)
   ) {
     return undefined;
+  }
+
+  if (documentType === "KARTA_POBYTU" && /^RED\d{6}$/.test(normalized)) {
+    normalized = `RS9${normalized.slice(3)}`;
   }
 
   if (documentType === "KARTA_POBYTU" && !/^[A-Z]{1,3}\d{6,10}$/.test(normalized)) {
@@ -612,7 +616,19 @@ function cleanIssuingAuthorityValue(value: string | undefined): string | undefin
   ];
   if (rejectedLabels.some((label) => compact === label)) return undefined;
 
-  return cleaned;
+  return cleaned.replace(/\bWOJEWODA\s+EODZKI\b/gi, "WOJEWODA LODZKI");
+}
+
+function cleanKartaRemarksValue(value: string | undefined): string | undefined {
+  const normalized = cleanLabeledValue(value);
+  if (!normalized) return undefined;
+
+  const compact = compactSearchText(normalized);
+  if (compact.includes("DOSTEPDORYNKUPRACY")) {
+    return "DOSTEP DO RYNKU PRACY";
+  }
+
+  return normalized;
 }
 
 function restorePassportLastNameSpacing(
@@ -1177,6 +1193,11 @@ function mapAzureIdDocumentFields(
   const normalizedRawText = rawText ? normalizeSearchText(rawText) : "";
   const mrzData = parseMrz(rawText);
   const inferredDocumentType = inferDocumentType(fields, rawText, mrzData);
+  const documentDisposition =
+    inferredDocumentType === "KARTA_POBYTU" &&
+    /(?:UWAGI|REMARKS|DATA WYDANIA|DATE OF ISSUE AND ISSUING AUTHORITY|NUMER EWIDENCYJNY PESEL)/i.test(rawText ?? "")
+      ? "BACK"
+      : "PRIMARY";
   const rawNameData = extractNameNearLabels(rawText);
   const kartaFrontNameMatch = rawText?.match(
     /\n\s*([A-Z][A-Z .-]{3,})\s*\n\s*([A-Z][A-Za-z .-]{3,})\s*\n\s*(?:PLEC|SEX|OBYWATELSTWO|NATIONALITY)/i,
@@ -1332,7 +1353,7 @@ function mapAzureIdDocumentFields(
 
   const remarks =
     inferredDocumentType === "KARTA_POBYTU"
-      ? extractLineValueNearLabels(rawText, ["UWAGI", "REMARKS"], 1)
+      ? cleanKartaRemarksValue(extractLineValueNearLabels(rawText, ["UWAGI", "REMARKS"], 1))
       : undefined;
 
   const municipalityOffice =
@@ -1424,9 +1445,11 @@ function mapAzureIdDocumentFields(
             mrzData.firstName,
           ),
         )
-      : inferredDocumentType === "KARTA_POBYTU"
+      : inferredDocumentType === "KARTA_POBYTU" && documentDisposition !== "BACK"
         ? pickBestPersonName(kartaFrontFirstName, get("FirstName"), mrzData.firstName, rawNameData.firstName)
-        : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
+        : inferredDocumentType === "KARTA_POBYTU"
+          ? pickBestPersonName(get("FirstName"), rawNameData.firstName)
+          : pickBestPersonName(get("FirstName"), mrzData.firstName, rawNameData.firstName));
 
   const selectedLastName =
     peselLastName ??
@@ -1444,19 +1467,15 @@ function mapAzureIdDocumentFields(
           rawNameData.firstName,
           firstName,
         )
-      : inferredDocumentType === "KARTA_POBYTU"
+      : inferredDocumentType === "KARTA_POBYTU" && documentDisposition !== "BACK"
         ? pickBestPersonName(kartaFrontLastName, get("LastName"), mrzData.lastName, rawNameData.lastName)
-        : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));
+        : inferredDocumentType === "KARTA_POBYTU"
+          ? pickBestPersonName(get("LastName"), rawNameData.lastName)
+          : pickBestPersonName(get("LastName"), mrzData.lastName, rawNameData.lastName));
   const lastName =
     inferredDocumentType === "PASSPORT"
       ? restorePassportLastNameSpacing(selectedLastName, mrzData.lastName)
       : selectedLastName;
-
-  const documentDisposition =
-    inferredDocumentType === "KARTA_POBYTU" &&
-    /(?:UWAGI|REMARKS|DATA WYDANIA|DATE OF ISSUE AND ISSUING AUTHORITY|NUMER EWIDENCYJNY PESEL)/i.test(rawText ?? "")
-      ? "BACK"
-      : "PRIMARY";
 
   return {
     firstName,

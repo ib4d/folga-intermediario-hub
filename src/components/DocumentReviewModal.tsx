@@ -23,6 +23,22 @@ type ReviewableDocument = {
   extractedData: unknown;
 };
 
+type SiblingDocumentFallback = {
+  documentNumber?: string;
+  personalNumber?: string;
+  expiryDate?: string;
+  issueDate?: string;
+  firstName?: string;
+  lastName?: string;
+  nationality?: string;
+  issuingCountry?: string;
+  dateOfBirth?: string;
+  sex?: string;
+  placeOfBirth?: string;
+  issuingAuthority?: string;
+  kartaPobytuType?: string;
+};
+
 type CandidateDefaults = {
   firstName?: string | null;
   lastName?: string | null;
@@ -139,6 +155,7 @@ type RawTextFallback = {
   placeOfBirth?: string;
   issuingAuthority?: string;
   kartaPobytuType?: string;
+  remarks?: string;
 };
 
 type RawTextFallbackResult = {
@@ -191,6 +208,57 @@ function buildDuplicateContext(doc: ReviewableDocument, allDocuments: Reviewable
         ? "Sugerencia: confirma si este grupo corresponde a frente y reverso antes de dejarlo como duplicado."
         : "Sugerencia: conserva un principal y reclasifica el resto como soporte o duplicado real.",
     matchingDocuments,
+  };
+}
+
+function getSiblingDocumentFallback(
+  doc: ReviewableDocument,
+  allDocuments: ReviewableDocument[],
+): SiblingDocumentFallback | null {
+  if (canonicalizeDocumentType(doc.type) !== "KARTA_POBYTU") return null;
+
+  const currentDisposition = getDocumentDisposition(doc);
+  const currentNumber = getDocumentDisplayNumber(doc);
+  const allKartaCandidates = allDocuments.filter((candidateDocument) => {
+    if (candidateDocument.id === doc.id) return false;
+    if (canonicalizeDocumentType(candidateDocument.type) !== "KARTA_POBYTU") return false;
+    return true;
+  });
+
+  const siblingCandidatesByNumber = allKartaCandidates.filter((candidateDocument) => {
+    const candidateNumber = getDocumentDisplayNumber(candidateDocument);
+    if (!currentNumber || !candidateNumber) return false;
+    return currentNumber === candidateNumber;
+  });
+
+  const siblingCandidates =
+    siblingCandidatesByNumber.length > 0 ? siblingCandidatesByNumber : allKartaCandidates;
+
+  if (siblingCandidates.length === 0) return null;
+
+  const preferredSibling =
+    siblingCandidates.find((candidateDocument) => {
+      const siblingDisposition = getDocumentDisposition(candidateDocument);
+      return currentDisposition === "BACK"
+        ? siblingDisposition === "PRIMARY" || siblingDisposition === "FRONT"
+        : siblingDisposition === "BACK";
+    }) ?? siblingCandidates[0];
+
+  const extracted = getExtractedData(preferredSibling.extractedData);
+  return {
+    documentNumber: asString(extracted.documentNumber) || preferredSibling.number || undefined,
+    personalNumber: asString(extracted.personalNumber) || undefined,
+    expiryDate: asString(extracted.dateOfExpiry) || toDateInputValue(preferredSibling.expiryDate) || undefined,
+    issueDate: asString(extracted.dateOfIssue) || toDateInputValue(preferredSibling.issueDate) || undefined,
+    firstName: asString(extracted.firstName) || undefined,
+    lastName: asString(extracted.lastName) || undefined,
+    nationality: asString(extracted.nationality) || undefined,
+    issuingCountry: asString(extracted.issuingCountry) || undefined,
+    dateOfBirth: asString(extracted.dateOfBirth) || undefined,
+    sex: asString(extracted.sex) || undefined,
+    placeOfBirth: asString(extracted.placeOfBirth) || undefined,
+    issuingAuthority: asString(extracted.issuingAuthority) || undefined,
+    kartaPobytuType: asString(extracted.kartaPobytuType) || undefined,
   };
 }
 
@@ -525,6 +593,27 @@ function normalizeReviewName(value: string | null | undefined): string {
     .trim();
 }
 
+function cleanReviewIssuingAuthorityValue(value: string | null | undefined): string {
+  const normalized = normalizeReviewName(value);
+  if (!normalized) return "";
+
+  return normalized
+    .replace(/\bWOJEWODA\s+EODZKI\b/g, "WOJEWODA LODZKI")
+    .replace(/\bWOJEWODA\s+LODZKI[A-Z]+\b/g, "WOJEWODA LODZKI")
+    .trim();
+}
+
+function cleanReviewKartaRemarksValue(value: string | null | undefined): string {
+  const normalized = normalizeReviewName(value);
+  if (!normalized) return "";
+
+  if (normalized.replace(/\s+/g, "").includes("DOSTEPDORYNKUPRACY")) {
+    return "DOSTEP DO RYNKU PRACY";
+  }
+
+  return normalized;
+}
+
 function collectPassportFirstNameTokens(...values: Array<string | null | undefined>): string[] {
   const tokens = values
     .flatMap((value) =>
@@ -812,6 +901,34 @@ function inferFromRawText(rawText: string, docType: string): RawTextFallbackResu
     sources.issuingCountry = "MRZ";
     sources.firstName = "MRZ";
     sources.lastName = "MRZ";
+  }
+
+  if (docType === "KARTA_POBYTU") {
+    const normalized = normalizeRawText(rawText);
+    const authorityMatch = normalized.match(
+      /\b(?:DATA WYDANIA I ORGAN WYDAJACY|DATE OF ISSUE AND ISSUING AUTHORITY)\b[\s:.-]*([A-Z ]{6,})/,
+    );
+    const authorityCandidate = cleanReviewIssuingAuthorityValue(authorityMatch?.[1]);
+    if (authorityCandidate) {
+      fallback.issuingAuthority = authorityCandidate;
+      sources.issuingAuthority = "OCR";
+    }
+
+    const remarksCandidate = cleanReviewKartaRemarksValue(
+      normalized.match(/\b(?:UWAGI|REMARKS)\b[\s:.-]*([A-Z ]{6,})/)?.[1] ?? "",
+    );
+    if (remarksCandidate) {
+      fallback.remarks = remarksCandidate;
+      sources.remarks = "OCR";
+    }
+
+    if (normalized.includes("ZEZWOLENIE NA POBYT CZASOWY")) {
+      fallback.kartaPobytuType = "Permiso de residencia temporal";
+      sources.kartaPobytuType = "OCR";
+    } else if (normalized.includes("ZEZWOLENIE NA POBYT STALY")) {
+      fallback.kartaPobytuType = "Permiso de residencia permanente";
+      sources.kartaPobytuType = "OCR";
+    }
   }
 
   if (docType === "PESEL") {
@@ -1129,11 +1246,16 @@ function buildManualReviewChecklist(
   };
 }
 
-function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: CandidateDefaults): ManualReviewState {
+function deriveInitialState(
+  doc: ReviewableDocument,
+  allDocuments: ReviewableDocument[],
+  candidateDefaults?: CandidateDefaults,
+): ManualReviewState {
   const extracted = getExtractedData(doc.extractedData);
   const rawTextFallbackResult = inferFromRawText(getRawText(extracted), doc.type);
   const rawTextFallback = rawTextFallbackResult.values;
   const rawTextSources = rawTextFallbackResult.sources;
+  const siblingFallback = getSiblingDocumentFallback(doc, allDocuments);
   const fileName = getReviewableDocumentName(doc);
   const inferredType = inferDocumentTypeFromFileName(fileName);
   const inferredDocumentNumber = inferDocumentNumberFromFileName(fileName);
@@ -1147,6 +1269,8 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const initialType = canonicalizeDocumentType(
     doc.type && doc.type !== "OTHER" ? doc.type : extractedDocumentType || inferredType,
   );
+  const currentDisposition = getDocumentDisposition(doc);
+  const isKartaBack = initialType === "KARTA_POBYTU" && currentDisposition === "BACK";
 
   const documentNumberCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.documentNumber), source: "OCR" },
@@ -1165,6 +1289,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const personalNumberCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.personalNumber), source: "OCR" },
     { value: rawTextFallback.personalNumber, source: rawTextSources.personalNumber ?? "OCR" },
+    { value: siblingFallback?.personalNumber, source: "RECORD" },
     {
       value:
         initialType === "PESEL"
@@ -1179,10 +1304,17 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   );
 
   const firstNameCandidates =
-    !shouldUseCandidateIdentityFallback(initialType)
+    isKartaBack
+      ? [
+          { value: siblingFallback?.firstName, source: "RECORD" as const },
+          { value: asString(extracted.firstName), source: "OCR" as const },
+          { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "MRZ") as FieldSource },
+        ]
+      : !shouldUseCandidateIdentityFallback(initialType)
       ? [
           { value: rawTextFallback.firstName, source: (rawTextSources.firstName ?? "MRZ") as FieldSource },
           { value: asString(extracted.firstName), source: "OCR" as const },
+          { value: siblingFallback?.firstName, source: "RECORD" as const },
         ]
       : [
           { value: asString(extracted.firstName), source: "OCR" as const },
@@ -1194,6 +1326,8 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const firstNameCandidate = pickPreferredTextCandidateWithSource(
     initialType === "PASSPORT"
       ? ["OCR", "MRZ", "FILE", "RECORD", "MANUAL"]
+      : isKartaBack
+        ? ["RECORD", "OCR", "MRZ", "MANUAL"]
       : ["MRZ", "OCR", "CANDIDATE", "FILE", "RECORD", "MANUAL"],
     ...firstNameCandidates,
   );
@@ -1217,7 +1351,19 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       : [];
 
   const lastNameCandidates =
-    !shouldUseCandidateIdentityFallback(initialType)
+    isKartaBack
+      ? [
+          { value: siblingFallback?.lastName, source: "RECORD" as const },
+          {
+            value: asString(extracted.lastName),
+            source: "OCR" as const,
+          },
+          {
+            value: rawTextFallback.lastName,
+            source: (rawTextSources.lastName ?? "OCR") as FieldSource,
+          },
+        ]
+      : !shouldUseCandidateIdentityFallback(initialType)
       ? [
           {
             value: asString(extracted.lastName),
@@ -1227,6 +1373,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
             value: rawTextFallback.lastName,
             source: (rawTextSources.lastName ?? "OCR") as FieldSource,
           },
+          { value: siblingFallback?.lastName, source: "RECORD" as const },
         ]
       : [
           { value: asString(extracted.lastName), source: "OCR" as const },
@@ -1241,6 +1388,8 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
           lastNameCandidates,
           ...passportFirstNameHints,
         )
+      : isKartaBack
+        ? pickPreferredTextCandidateWithSource(["RECORD", "OCR", "MRZ", "MANUAL"], ...lastNameCandidates)
       : pickBestTextCandidateWithSource(...lastNameCandidates);
   const lastNameCandidate =
     initialType === "PASSPORT" && shouldUseCandidateIdentityFallback(initialType)
@@ -1250,6 +1399,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const nationalityCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.nationality), source: "OCR" },
     { value: rawTextFallback.nationality, source: rawTextSources.nationality ?? "MRZ" },
+    { value: siblingFallback?.nationality, source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
         ? normalizeFallbackText(candidateDefaults?.nationality)
@@ -1261,6 +1411,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const issuingCountryCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.issuingCountry), source: "OCR" },
     { value: rawTextFallback.issuingCountry, source: rawTextSources.issuingCountry ?? "MRZ" },
+    { value: siblingFallback?.issuingCountry, source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
         ? normalizeFallbackText(candidateDefaults?.citizenship)
@@ -1272,6 +1423,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const dateOfBirthCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.dateOfBirth), source: "OCR" },
     { value: rawTextFallback.dateOfBirth, source: rawTextSources.dateOfBirth ?? "MRZ" },
+    { value: siblingFallback?.dateOfBirth, source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
         ? toDateInputValue(candidateDefaults?.dateOfBirth)
@@ -1283,6 +1435,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const issueDateCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.dateOfIssue), source: "OCR" },
     { value: rawTextFallback.issueDate, source: rawTextSources.issueDate ?? "OCR" },
+    { value: siblingFallback?.issueDate, source: "RECORD" },
     { value: toDateInputValue(doc.issueDate), source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
@@ -1301,6 +1454,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const expiryDateCandidate = pickBestTextCandidateWithSource(
     { value: asString(extracted.dateOfExpiry), source: "OCR" },
     { value: rawTextFallback.expiryDate, source: rawTextSources.expiryDate ?? "MRZ" },
+    { value: siblingFallback?.expiryDate, source: "RECORD" },
     { value: toDateInputValue(doc.expiryDate), source: "RECORD" },
     {
       value: shouldUseCandidateIdentityFallback(initialType)
@@ -1321,6 +1475,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       ? pickBestTextCandidateWithSource(
           { value: asString(extracted.placeOfBirth), source: "OCR" },
           { value: rawTextFallback.placeOfBirth, source: rawTextSources.placeOfBirth ?? "OCR" },
+          { value: siblingFallback?.placeOfBirth, source: "RECORD" },
         )
       : pickBestTextCandidateWithSource(
           { value: asString(extracted.placeOfBirth), source: "OCR" },
@@ -1334,6 +1489,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
           ["MRZ", "OCR"],
           { value: rawTextFallback.sex, source: rawTextSources.sex ?? "MRZ" },
           { value: asString(extracted.sex), source: "OCR" },
+          { value: siblingFallback?.sex, source: "RECORD" },
         )
       : pickBestTextCandidateWithSource(
           { value: asString(extracted.sex), source: "OCR" },
@@ -1343,30 +1499,40 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const issuingAuthorityCandidate =
     !shouldUseCandidateIdentityFallback(initialType)
       ? pickBestTextCandidateWithSource(
-          { value: asString(extracted.issuingAuthority), source: "OCR" },
+          { value: cleanReviewIssuingAuthorityValue(asString(extracted.issuingAuthority)), source: "OCR" },
           {
-            value: rawTextFallback.issuingAuthority,
+            value: cleanReviewIssuingAuthorityValue(rawTextFallback.issuingAuthority),
             source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
           },
+          { value: cleanReviewIssuingAuthorityValue(siblingFallback?.issuingAuthority), source: "RECORD" },
         )
       : pickBestTextCandidateWithSource(
-          { value: asString(extracted.issuingAuthority), source: "OCR" },
+          { value: cleanReviewIssuingAuthorityValue(asString(extracted.issuingAuthority)), source: "OCR" },
           {
-            value: rawTextFallback.issuingAuthority,
+            value: cleanReviewIssuingAuthorityValue(rawTextFallback.issuingAuthority),
             source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
           },
-          { value: normalizeFallbackText(candidateDefaults?.issuingAuthority), source: "CANDIDATE" },
+          { value: cleanReviewIssuingAuthorityValue(candidateDefaults?.issuingAuthority), source: "CANDIDATE" },
         );
 
-  const kartaPobytuTypeCandidate = shouldUseCandidateIdentityFallback(initialType)
+  const kartaPobytuTypeCandidate = isKartaBack
+    ? pickPreferredTextCandidateWithSource(
+        ["RECORD", "OCR", "MRZ", "MANUAL"],
+        { value: siblingFallback?.kartaPobytuType, source: "RECORD" },
+        { value: asString(extracted.kartaPobytuType), source: "OCR" },
+        { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+      )
+    : shouldUseCandidateIdentityFallback(initialType)
     ? pickBestTextCandidateWithSource(
         { value: asString(extracted.kartaPobytuType), source: "OCR" },
         { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+        { value: siblingFallback?.kartaPobytuType, source: "RECORD" },
         { value: normalizeFallbackText(candidateDefaults?.kartaPobytuType), source: "CANDIDATE" },
       )
     : pickBestTextCandidateWithSource(
         { value: asString(extracted.kartaPobytuType), source: "OCR" },
         { value: rawTextFallback.kartaPobytuType, source: rawTextSources.kartaPobytuType ?? "MRZ" },
+        { value: siblingFallback?.kartaPobytuType, source: "RECORD" },
       );
 
   const addressCandidate = shouldUseCandidateIdentityFallback(initialType)
@@ -1422,11 +1588,16 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
   const resolvedIssuingAuthorityCandidate = stripCandidateFallbackForIdentityDocument(
     initialType,
     issuingAuthorityCandidate,
-    { value: asString(extracted.issuingAuthority), source: "OCR" },
+    { value: cleanReviewIssuingAuthorityValue(asString(extracted.issuingAuthority)), source: "OCR" },
     {
-      value: rawTextFallback.issuingAuthority,
+      value: cleanReviewIssuingAuthorityValue(rawTextFallback.issuingAuthority),
       source: (rawTextSources.issuingAuthority ?? "OCR") as FieldSource,
     },
+  );
+  const remarksCandidate = pickPreferredTextCandidateWithSource(
+    ["OCR", "RECORD", "MANUAL"],
+    { value: cleanReviewKartaRemarksValue(asString(extracted.remarks)), source: "OCR" },
+    { value: cleanReviewKartaRemarksValue(rawTextFallback.remarks), source: rawTextSources.remarks ?? "OCR" },
   );
 
   return {
@@ -1449,7 +1620,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
         asBoolean(extracted.passportBiometric) ||
         (initialType === "PASSPORT" && candidateDefaults?.passportBiometric === true),
       kartaPobytuType: kartaPobytuTypeCandidate.value,
-      remarks: asString(extracted.remarks),
+      remarks: remarksCandidate.value,
       municipalityOffice: asString(extracted.municipalityOffice),
       addressOfRegistration: addressCandidate.value,
       heightCm: asNumber(extracted.heightCm),
@@ -1473,7 +1644,7 @@ function deriveInitialState(doc: ReviewableDocument, candidateDefaults?: Candida
       issuingAuthority: resolvedIssuingAuthorityCandidate.source || "OCR",
       passportBiometric: extracted.passportBiometric ? "OCR" : "MANUAL",
       kartaPobytuType: kartaPobytuTypeCandidate.source || "OCR",
-      remarks: extracted.remarks ? "OCR" : "RECORD",
+      remarks: remarksCandidate.source || "RECORD",
       municipalityOffice: extracted.municipalityOffice ? "OCR" : "RECORD",
       addressOfRegistration: addressCandidate.source || "OCR",
       heightCm: extracted.heightCm ? "OCR" : "RECORD",
@@ -1495,7 +1666,7 @@ export default function DocumentReviewModal({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const initialState = useMemo(() => deriveInitialState(doc, candidateDefaults), [doc, candidateDefaults]);
+  const initialState = useMemo(() => deriveInitialState(doc, allDocuments, candidateDefaults), [allDocuments, candidateDefaults, doc]);
   const duplicateContext = useMemo(() => buildDuplicateContext(doc, allDocuments), [allDocuments, doc]);
   const suggestedDispositionOptions = useMemo(
     () => getSuggestedDispositionOptions(duplicateContext),
@@ -2020,15 +2191,21 @@ export default function DocumentReviewModal({
               </div>
 
               <div className="input-group" style={{ marginBottom: 0 }}>
-                <label className="label">Clasificacion</label>
+                <label className="label">
+                  {canonicalizeDocumentType(form.type) === "KARTA_POBYTU" ? "Cara del documento" : "Clasificacion"}
+                </label>
                 <select
                   className="select"
                   value={form.documentDisposition}
                   onChange={(e) => setField("documentDisposition", e.target.value)}
                 >
-                  <option value="PRIMARY">Principal</option>
+                  <option value="PRIMARY">
+                    {canonicalizeDocumentType(form.type) === "KARTA_POBYTU" ? "Cara principal (frente)" : "Principal"}
+                  </option>
                   <option value="FRONT">Frente</option>
-                  <option value="BACK">Reverso</option>
+                  <option value="BACK">
+                    {canonicalizeDocumentType(form.type) === "KARTA_POBYTU" ? "Cara secundaria (reverso)" : "Reverso"}
+                  </option>
                   <option value="SUPPORTING">Soporte</option>
                   <option value="DUPLICATE">Duplicado</option>
                 </select>
@@ -2036,7 +2213,18 @@ export default function DocumentReviewModal({
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "1rem" }}>
                 <Field label="Numero de documento" source={fieldSources.documentNumber} value={form.documentNumber} onChange={(value) => setField("documentNumber", value)} />
-                <Field label="Numero personal / PESEL" source={fieldSources.personalNumber} value={form.personalNumber} onChange={(value) => setField("personalNumber", value)} />
+                <Field
+                  label={
+                    canonicalizeDocumentType(form.type) === "PASSPORT"
+                      ? "Numero personal / Personal No."
+                      : canonicalizeDocumentType(form.type) === "PESEL"
+                        ? "PESEL"
+                        : "PESEL / Numero personal"
+                  }
+                  source={fieldSources.personalNumber}
+                  value={form.personalNumber}
+                  onChange={(value) => setField("personalNumber", value)}
+                />
                 <Field label="Fecha de expedicion" source={fieldSources.issueDate} type="date" value={form.issueDate} onChange={(value) => setField("issueDate", value)} />
                 <Field label="Fecha de vencimiento" source={fieldSources.expiryDate} type="date" value={form.expiryDate} onChange={(value) => setField("expiryDate", value)} />
                 <Field label="Nombres" source={fieldSources.firstName} value={form.firstName} onChange={(value) => setField("firstName", value)} />

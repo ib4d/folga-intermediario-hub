@@ -4,6 +4,13 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, Loader2 } from "lucide-react";
 
+type UploadResponse = {
+  success: boolean;
+  message?: string;
+  ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
+  results?: Array<{ filename: string; success: boolean; message: string }>;
+};
+
 function normalizeUploadErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "Error desconocido";
 
@@ -26,19 +33,11 @@ async function parseUploadResponse(response: Response) {
   const raw = await response.text();
 
   if (!raw) {
-    return {} as {
-      success: boolean;
-      message?: string;
-      ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
-    };
+    return {} as UploadResponse;
   }
 
   try {
-    return JSON.parse(raw) as {
-      success: boolean;
-      message?: string;
-      ocrStatus?: "captured" | "failed" | "not_supported" | "manual_review";
-    };
+    return JSON.parse(raw) as UploadResponse;
   } catch {
     if (response.ok) {
       return {
@@ -46,7 +45,7 @@ async function parseUploadResponse(response: Response) {
         message:
           "Documento guardado. El servidor devolvio una respuesta inesperada, pero la subida probablemente ya quedo registrada. Recarga la pagina para confirmarlo.",
         ocrStatus: "manual_review",
-      };
+      } satisfies UploadResponse;
     }
 
     throw new Error(
@@ -102,24 +101,34 @@ export default function DocumentUploadButton({
           body: formData,
         });
         const res = await parseUploadResponse(response);
+        const successfulResults = Array.isArray(res.results)
+          ? res.results.filter((item) => item.success)
+          : [];
+        const failedResults = Array.isArray(res.results)
+          ? res.results.filter((item) => !item.success)
+          : [];
+        const hasPartialSuccess = successfulResults.length > 0 && failedResults.length > 0;
+        const hasAnySuccess = successfulResults.length > 0;
 
-        if (!response.ok) {
+        if (!response.ok && !hasAnySuccess) {
           throw new Error(res.message || "Error al subir documento.");
         }
 
-        if (res.success) {
+        if (res.success || hasAnySuccess) {
           setIsOpen(false);
           setFiles([]);
           router.refresh();
           const uploadedCount = files.length;
           setMessage({
             tone:
-              res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
+              hasPartialSuccess || res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
                 ? "warning"
                 : "success",
             text:
               res.message ||
-              (res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
+              (hasPartialSuccess
+                ? `Se guardaron ${successfulResults.length} documento(s), pero ${failedResults.length} fallo/fallaron.`
+                : res.ocrStatus === "failed" || res.ocrStatus === "manual_review"
                 ? `Documento${uploadedCount > 1 ? "s guardados" : " guardado"}. Queda pendiente de revision manual.`
                 : uploadedCount > 1
                   ? "Documentos subidos correctamente."

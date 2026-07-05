@@ -1688,7 +1688,7 @@ export async function reviewDocumentOcr(input: {
     candidateUpdateData.kartaPobytuIssueDate = parseDateSafe(normalizedIssue);
     candidateUpdateData.kartaPobytuExpiry = parseDateSafe(normalizedExpiry);
     candidateUpdateData.kartaPobytuType = normalizedKartaType;
-    if (normalizedPersonalNumber) {
+    if (/^\d{11}$/.test(normalizedPersonalNumber ?? "")) {
       candidateUpdateData.peselNumber = normalizedPersonalNumber;
     }
   }
@@ -1823,8 +1823,26 @@ export async function batchUploadDocuments(candidateId: string, formData: FormDa
 
   revalidatePath(`/candidatos/${candidateId}`);
   revalidatePath("/documentos");
+  const successCount = results.filter((result) => result.success).length;
+  const failureCount = results.length - successCount;
+  const firstFailure = results.find((result) => !result.success);
+  const reviewRequired = results.some((result) => result.reviewRequired);
+  const failedStatuses = new Set(["failed", "manual_review"]);
+  const needsAttention = results.some((result) => result.ocrStatus && failedStatuses.has(result.ocrStatus));
 
-  return { success: true, results };
+  return {
+    success: failureCount === 0,
+    results,
+    message:
+      failureCount === 0
+        ? successCount > 1
+          ? "Documentos subidos correctamente."
+          : "Documento subido correctamente."
+        : successCount > 0
+          ? `Se guardaron ${successCount} documento(s), pero ${failureCount} fallo/fallaron. ${firstFailure?.message ?? ""}`.trim()
+          : firstFailure?.message ?? "No se pudo completar la subida de los documentos.",
+    ocrStatus: needsAttention ? "manual_review" : reviewRequired ? "manual_review" : successCount > 0 ? "captured" : "failed",
+  };
 }
 
 export async function deleteDocument(documentId: string) {

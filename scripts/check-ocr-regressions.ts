@@ -164,6 +164,7 @@ assert.equal(compactCarlos.issuingAuthority, "G.META");
 const kartaFront = parseIdentityDocumentText(kartaFrontOcr);
 assert.equal(kartaFront.documentType, "KARTA_POBYTU");
 assert.equal(kartaFront.documentDisposition, "PRIMARY");
+assert.equal(kartaFront.documentNumber, "RS9744678");
 assert.equal(kartaFront.firstName, "DICKSON RODULFO");
 assert.equal(kartaFront.lastName, "CAMACHO RODRIGUEZ");
 assert.equal(kartaFront.kartaPobytuType, "Permiso de residencia temporal");
@@ -171,6 +172,8 @@ assert.equal(kartaFront.kartaPobytuType, "Permiso de residencia temporal");
 const kartaBack = parseIdentityDocumentText(kartaBackOcr);
 assert.equal(kartaBack.documentType, "KARTA_POBYTU");
 assert.equal(kartaBack.documentDisposition, "BACK");
+assert.equal(kartaBack.firstName, undefined);
+assert.equal(kartaBack.lastName, undefined);
 assert.equal(kartaBack.personalNumber, "84052126071");
 assert.equal(kartaBack.documentNumber, "RS9744678");
 assert.equal(kartaBack.dateOfBirth, "1984-05-21");
@@ -179,6 +182,8 @@ assert.equal(kartaBack.dateOfExpiry, "2028-09-29");
 assert.equal(kartaBack.sex, "M");
 assert.equal(kartaBack.nationality, "COL");
 assert.equal(kartaBack.issuingCountry, "POL");
+assert.equal(kartaBack.remarks, "DOSTEP DO RYNKU PRACY");
+assert.equal(kartaBack.issuingAuthority, "WOJEWODA LODZKI");
 assert.equal(
   shouldTryBatchCandidateHeuristicMatch({
     documentType: kartaBack.documentType,
