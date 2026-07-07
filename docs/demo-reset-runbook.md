@@ -118,6 +118,18 @@ Only retire an old sandbox when you are sure it is no longer needed for:
 - pilot follow-ups
 - comparison against earlier demos
 
+Useful VPS commands from the repository root:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web npm run ops:tenant-audit
+docker compose -f docker-compose.prod.yml exec web npm run ops:tenant-audit -- --slug ori-demo-june-8w8j
+docker compose -f docker-compose.prod.yml exec web npm run ops:tenant-prune -- --slug ori-demo-june-8w8j --delete-candidate CANDIDATE_ID --dry-run
+docker compose -f docker-compose.prod.yml exec web npm run ops:tenant-prune -- --slug ori-demo-june-8w8j --delete-candidate CANDIDATE_ID --confirm-delete
+```
+
+The prune command is candidate-scoped on purpose. It does not delete an entire
+organization, and it requires `--confirm-delete` to execute.
+
 ## 8. Current status
 
 `Guided-demo ready with fresh-sandbox discipline.`
