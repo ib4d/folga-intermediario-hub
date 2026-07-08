@@ -125,6 +125,46 @@ export function normalizeLeadType(value: unknown): "PROVIDER" | "CANDIDATE" | "U
   return "UNKNOWN";
 }
 
+export function inferBrokerLeadType(input: {
+  explicitLeadType?: unknown;
+  rawStatus?: unknown;
+  normalizedStatus?: unknown;
+  declaredSupplyText?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  city?: unknown;
+  phone?: unknown;
+  email?: unknown;
+}): "PROVIDER" | "CANDIDATE" | "UNKNOWN" {
+  const explicit = normalizeLeadType(input.explicitLeadType);
+  if (explicit !== "UNKNOWN") return explicit;
+
+  const rawStatusType = normalizeLeadType(input.rawStatus);
+  if (rawStatusType !== "UNKNOWN") return rawStatusType;
+
+  const normalizedStatusType = normalizeLeadType(input.normalizedStatus);
+  if (normalizedStatusType !== "UNKNOWN") return normalizedStatusType;
+
+  const declaredSupplyText = normalizeText(input.declaredSupplyText)?.toLowerCase() ?? "";
+  if (
+    declaredSupplyText &&
+    (/\d/.test(declaredSupplyText) ||
+      ["persona", "personas", "workers", "trabajadores", "pracownik", "dostarc", "supply", "semana", "mes"].some((token) =>
+        declaredSupplyText.includes(token)
+      ))
+  ) {
+    return "PROVIDER";
+  }
+
+  const personalSignals = [input.firstName, input.lastName, input.city, input.phone, input.email]
+    .map((value) => normalizeText(value))
+    .filter(Boolean).length;
+
+  if (personalSignals >= 2) return "CANDIDATE";
+
+  return "UNKNOWN";
+}
+
 export function normalizeLeadStatus(value: unknown): string | null {
   const text = normalizeText(value);
   if (!text) return null;

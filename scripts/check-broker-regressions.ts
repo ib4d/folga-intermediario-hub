@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { normalizeLeadType, parseReferencePeriod } from "../src/lib/brokers/utils";
+import { inferBrokerLeadType, normalizeLeadType, parseReferencePeriod } from "../src/lib/brokers/utils";
 
 const dashedPeriod = parseReferencePeriod("2026-06-01 - 2026-06-30");
 assert.ok(dashedPeriod.start instanceof Date);
@@ -20,5 +20,43 @@ assert.equal(normalizeLeadType("intermediario"), "PROVIDER");
 assert.equal(normalizeLeadType("candidate"), "CANDIDATE");
 assert.equal(normalizeLeadType("trabajador"), "CANDIDATE");
 assert.equal(normalizeLeadType("sin dato"), "UNKNOWN");
+
+assert.equal(inferBrokerLeadType({ explicitLeadType: null, rawStatus: "Provider" }), "PROVIDER");
+assert.equal(
+  inferBrokerLeadType({
+    explicitLeadType: null,
+    rawStatus: "Replied",
+    declaredSupplyText: "15 personas por mes",
+    firstName: "Mario",
+    lastName: "Lopez",
+  }),
+  "PROVIDER"
+);
+assert.equal(
+  inferBrokerLeadType({
+    explicitLeadType: null,
+    rawStatus: "Replied",
+    firstName: "Rodrigo",
+    lastName: "Moran",
+    city: "Jutiapa",
+    phone: "50248394841",
+  }),
+  "CANDIDATE"
+);
+
+assert.equal(
+  inferBrokerLeadType({
+    explicitLeadType: null,
+    rawStatus: null,
+    normalizedStatus: null,
+    declaredSupplyText: null,
+    firstName: null,
+    lastName: null,
+    city: null,
+    phone: null,
+    email: null,
+  }),
+  "UNKNOWN"
+);
 
 console.log("Broker regression checks passed.");

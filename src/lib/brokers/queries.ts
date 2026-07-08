@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { inferBrokerLeadType } from "./utils";
 
 function containsInsensitive(value?: string | null): Prisma.StringFilter | undefined {
   return value ? { contains: value, mode: "insensitive" } : undefined;
@@ -12,10 +13,7 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
   const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59));
 
   const [
-    totalLeads,
     repliedLeads,
-    candidateLeads,
-    providerLeads,
     activeBrokers,
     totalInvoices,
     periodInvoices,
@@ -25,11 +23,9 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
     periodAmountAggregate,
     leadsBySheet,
     invoicesByBroker,
+    leadTypeInputs,
   ] = await Promise.all([
-    prisma.brokerLead.count({ where: { organizationId } }),
     prisma.brokerLead.count({ where: { organizationId, rawStatus: { equals: "Replied", mode: "insensitive" } } }),
-    prisma.brokerLead.count({ where: { organizationId, leadType: "CANDIDATE" } }),
-    prisma.brokerLead.count({ where: { organizationId, leadType: "PROVIDER" } }),
     prisma.broker.count({ where: { organizationId, status: "ACTIVE" } }),
     prisma.brokerInvoice.count({ where: { organizationId } }),
     prisma.brokerInvoice.count({
@@ -76,6 +72,20 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
       _sum: { finalAmount: true },
       _count: { _all: true },
     }),
+    prisma.brokerLead.findMany({
+      where: { organizationId },
+      select: {
+        leadType: true,
+        rawStatus: true,
+        normalizedStatus: true,
+        declaredSupplyText: true,
+        firstName: true,
+        lastName: true,
+        city: true,
+        phone: true,
+        email: true,
+      },
+    }),
   ]);
 
   const brokerNames = await prisma.broker.findMany({
@@ -84,6 +94,24 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
   });
 
   const nameMap = new Map(brokerNames.map((item) => [item.id, item.displayName]));
+
+  const inferredLeadTypes = leadTypeInputs.map((lead) =>
+    inferBrokerLeadType({
+      explicitLeadType: lead.leadType,
+      rawStatus: lead.rawStatus,
+      normalizedStatus: lead.normalizedStatus,
+      declaredSupplyText: lead.declaredSupplyText,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      city: lead.city,
+      phone: lead.phone,
+      email: lead.email,
+    })
+  );
+
+  const totalLeads = inferredLeadTypes.length;
+  const candidateLeads = inferredLeadTypes.filter((value) => value === "CANDIDATE").length;
+  const providerLeads = inferredLeadTypes.filter((value) => value === "PROVIDER").length;
 
   return {
     totalLeads,
@@ -121,7 +149,7 @@ export async function listBrokerLeads(
 ) {
   const query = filters.query?.trim();
 
-  return prisma.brokerLead.findMany({
+  const leads = await prisma.brokerLead.findMany({
     where: {
       organizationId,
       ...(filters.sourceCountrySheet ? { sourceCountrySheet: filters.sourceCountrySheet } : {}),
@@ -149,10 +177,25 @@ export async function listBrokerLeads(
     },
     orderBy: [{ lastReplyDate: "desc" }, { leadDate: "desc" }, { createdAt: "desc" }],
   });
+
+  return leads.map((lead) => ({
+    ...lead,
+    leadType: inferBrokerLeadType({
+      explicitLeadType: lead.leadType,
+      rawStatus: lead.rawStatus,
+      normalizedStatus: lead.normalizedStatus,
+      declaredSupplyText: lead.declaredSupplyText,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      city: lead.city,
+      phone: lead.phone,
+      email: lead.email,
+    }),
+  }));
 }
 
 export async function getBrokerLeadDetail(organizationId: string, id: string) {
-  return prisma.brokerLead.findFirst({
+  const lead = await prisma.brokerLead.findFirst({
     where: { id, organizationId },
     include: {
       broker: true,
@@ -160,6 +203,23 @@ export async function getBrokerLeadDetail(organizationId: string, id: string) {
       contactAttempts: { orderBy: { attemptNo: "asc" } },
     },
   });
+
+  if (!lead) return null;
+
+  return {
+    ...lead,
+    leadType: inferBrokerLeadType({
+      explicitLeadType: lead.leadType,
+      rawStatus: lead.rawStatus,
+      normalizedStatus: lead.normalizedStatus,
+      declaredSupplyText: lead.declaredSupplyText,
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      city: lead.city,
+      phone: lead.phone,
+      email: lead.email,
+    }),
+  };
 }
 
 export async function listBrokers(organizationId: string) {
