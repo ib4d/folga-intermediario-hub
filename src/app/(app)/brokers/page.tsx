@@ -44,7 +44,7 @@ export default async function BrokersPage() {
           <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{brokers.filter((item) => item.status === "ACTIVE").length}</div>
         </div>
         <div className="card">
-          <div className="card-header"><h3>Referrals</h3><HandCoins size={18} /></div>
+          <div className="card-header"><h3>Referrals acumulados</h3><HandCoins size={18} /></div>
           <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>
             {brokers.reduce((sum, item) => sum + item._count.referrals, 0)}
           </div>

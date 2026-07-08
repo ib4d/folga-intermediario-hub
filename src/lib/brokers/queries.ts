@@ -17,8 +17,11 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
     candidateLeads,
     providerLeads,
     activeBrokers,
+    totalInvoices,
     periodInvoices,
+    totalEligibleReferrals,
     periodEligibleReferrals,
+    totalAmountAggregate,
     periodAmountAggregate,
     leadsBySheet,
     invoicesByBroker,
@@ -28,6 +31,7 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
     prisma.brokerLead.count({ where: { organizationId, leadType: "CANDIDATE" } }),
     prisma.brokerLead.count({ where: { organizationId, leadType: "PROVIDER" } }),
     prisma.broker.count({ where: { organizationId, status: "ACTIVE" } }),
+    prisma.brokerInvoice.count({ where: { organizationId } }),
     prisma.brokerInvoice.count({
       where: {
         organizationId,
@@ -38,10 +42,20 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
     prisma.workerReferral.count({
       where: {
         organizationId,
+        minimumHoursMet: true,
+      },
+    }),
+    prisma.workerReferral.count({
+      where: {
+        organizationId,
         referencePeriodStart: { gte: periodStart },
         referencePeriodEnd: { lte: periodEnd },
         minimumHoursMet: true,
       },
+    }),
+    prisma.brokerInvoice.aggregate({
+      where: { organizationId },
+      _sum: { finalAmount: true },
     }),
     prisma.brokerInvoice.aggregate({
       where: {
@@ -77,8 +91,11 @@ export async function getBrokerDashboardMetrics(organizationId: string) {
     candidateLeads,
     providerLeads,
     activeBrokers,
+    totalInvoices,
     periodInvoices,
+    totalEligibleReferrals,
     periodEligibleReferrals,
+    totalFinalAmount: Number(totalAmountAggregate._sum.finalAmount ?? 0),
     periodFinalAmount: Number(periodAmountAggregate._sum.finalAmount ?? 0),
     leadsBySheet,
     invoicesByBroker: invoicesByBroker.map((item) => ({

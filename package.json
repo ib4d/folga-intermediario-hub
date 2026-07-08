@@ -20,7 +20,8 @@
     "check:smtp": "node scripts/check-smtp.mjs",
     "check:monitoring": "node scripts/check-monitoring.mjs",
     "check:release": "node scripts/check-release.mjs",
-    "check:ocr": "tsx scripts/check-ocr-regressions.ts"
+    "check:ocr": "tsx scripts/check-ocr-regressions.ts",
+    "check:broker": "tsx scripts/check-broker-regressions.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

@@ -33,9 +33,6 @@ export function parseBrokerDate(value: unknown): Date | null {
   const text = String(value).trim();
   if (!text) return null;
 
-  const native = new Date(text);
-  if (!Number.isNaN(native.getTime())) return native;
-
   const euMatch = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (euMatch) {
     const [, dd, mm, yyyy] = euMatch;
@@ -58,6 +55,9 @@ export function parseBrokerDate(value: unknown): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
+  const native = new Date(text);
+  if (!Number.isNaN(native.getTime())) return native;
+
   return null;
 }
 
@@ -68,13 +68,33 @@ export function parseReferencePeriod(value: unknown): {
   const text = normalizeText(value);
   if (!text) return { start: null, end: null };
 
-  const parts = text.split(/–|--|-/).map((part) => part.trim()).filter(Boolean);
-  if (parts.length < 2) return { start: parseBrokerDate(text), end: null };
+  const normalized = text
+    .replace(/\u2013|\u2014/g, " - ")
+    .replace(/\s+al\s+/gi, " - ")
+    .replace(/\s+to\s+/gi, " - ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  return {
-    start: parseBrokerDate(parts[0]),
-    end: parseBrokerDate(parts[1]),
-  };
+  const dateMatches = normalized.match(
+    /\d{1,2}\.\d{1,2}\.\d{4}|\d{4}-\d{2}-\d{2}|\d{4}\/\d{2}\/\d{2}|\d{4}\.\d{2}\.\d{2}/g
+  );
+
+  if (dateMatches && dateMatches.length >= 2) {
+    return {
+      start: parseBrokerDate(dateMatches[0]),
+      end: parseBrokerDate(dateMatches[1]),
+    };
+  }
+
+  const explicitParts = normalized.split(/\s-\s|--/).map((part) => part.trim()).filter(Boolean);
+  if (explicitParts.length >= 2) {
+    return {
+      start: parseBrokerDate(explicitParts[0]),
+      end: parseBrokerDate(explicitParts[1]),
+    };
+  }
+
+  return { start: parseBrokerDate(normalized), end: null };
 }
 
 export function parseNumber(value: unknown): number | null {
@@ -96,8 +116,12 @@ export function inferContactChannel(value: unknown): "EMAIL" | "WHATSAPP" | "CAL
 
 export function normalizeLeadType(value: unknown): "PROVIDER" | "CANDIDATE" | "UNKNOWN" {
   const text = normalizeText(value)?.toLowerCase() ?? "";
-  if (text.includes("provider")) return "PROVIDER";
-  if (text.includes("candidate")) return "CANDIDATE";
+  if (["provider", "proveedor", "broker", "intermediario", "pośrednik", "posrednik"].some((token) => text.includes(token))) {
+    return "PROVIDER";
+  }
+  if (["candidate", "candidato", "worker", "trabajador", "pracownik"].some((token) => text.includes(token))) {
+    return "CANDIDATE";
+  }
   return "UNKNOWN";
 }
 

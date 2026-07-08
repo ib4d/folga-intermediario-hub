@@ -1,5 +1,31 @@
 type Tone = "default" | "success" | "warning" | "danger" | "info";
 
+function getLabel(value: string): string {
+  const upper = value.toUpperCase();
+  const labels: Record<string, string> = {
+    UNKNOWN: "Sin clasificar",
+    PROVIDER: "Proveedor",
+    CANDIDATE: "Candidato",
+    MIXED: "Mixto",
+    ACTIVE: "Activo",
+    READY: "Lista",
+    PAID: "Pagada",
+    SENT: "Enviada",
+    DRAFT: "Borrador",
+    NEW: "Nuevo",
+    TESTING: "Prueba",
+    REJECTED: "Rechazado",
+    DISPUTED: "Disputada",
+    LOW_PERFORMANCE: "Bajo rendimiento",
+    ELIGIBLE: "Elegible",
+    NOT_ELIGIBLE: "No elegible",
+    REPLIED: "Respondido",
+    CONTACTED: "Contactado",
+  };
+
+  return labels[upper] ?? value.replace(/_/g, " ");
+}
+
 function getTone(value: string): Tone {
   const upper = value.toUpperCase();
   if (["ACTIVE", "PAID", "PROVIDER", "READY", "SENT", "RESPONDED", "REPLIED", "CANDIDATE"].includes(upper)) {
@@ -48,7 +74,7 @@ export default function BrokerStatusBadge({
         letterSpacing: "0.04em",
       }}
     >
-      {value.replace(/_/g, " ")}
+      {getLabel(value)}
     </span>
   );
 }
