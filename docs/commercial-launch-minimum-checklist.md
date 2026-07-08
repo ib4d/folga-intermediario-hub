@@ -21,10 +21,10 @@ Before actively selling, these assets should exist and be usable:
 - [x] one approved pilot narrative
 - [x] one pilot-readiness checklist
 - [x] one guided pilot commercial playbook
-- [ ] one explicit pilot pricing structure
-- [ ] one explicit paid rollout pricing structure
-- [ ] one lightweight customer-facing one-pager or PDF
-- [ ] one lightweight onboarding handoff template for pilot customers
+- [x] one explicit pilot pricing structure
+- [x] one explicit paid rollout pricing structure
+- [x] one lightweight customer-facing one-pager or PDF
+- [x] one lightweight onboarding handoff template for pilot customers
 
 ## 2. Minimum technical confidence gate
 
@@ -133,10 +133,10 @@ Exit condition:
 
 These are the highest-value missing commercial artifacts:
 
-1. pilot pricing sheet
-2. paid rollout pricing sheet
-3. customer-facing one-pager
-4. pilot onboarding handoff template
+1. refine pilot pricing numbers
+2. refine paid rollout pricing numbers
+3. convert one-pager into a branded PDF or slide
+4. use the onboarding handoff template with the first real pilot
 
 ## 5. What is enough to start selling now
 
