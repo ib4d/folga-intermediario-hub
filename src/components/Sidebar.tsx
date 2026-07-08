@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Briefcase, Car, FileText, Globe, Menu, Settings, Users, X } from "lucide-react";
+import { BarChart3, Briefcase, BriefcaseBusiness, Car, FileText, Globe, Menu, Settings, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { normalizeLanguage, t } from "@/lib/i18n";
@@ -20,6 +20,7 @@ export default function Sidebar() {
   const role = session?.user?.role as SidebarRole | undefined;
   const links = [
     { name: labels("nav.dashboard"), href: "/dashboard", icon: BarChart3, module: "dashboard" as AppModule },
+    { name: labels("nav.brokers"), href: "/brokers", icon: BriefcaseBusiness, module: "brokers" as AppModule },
     { name: labels("nav.candidates"), href: "/candidatos", icon: Users, module: "candidates" as AppModule },
     { name: labels("nav.documents"), href: "/documentos", icon: FileText, module: "documents" as AppModule },
     { name: labels("nav.logistics"), href: "/logistica", icon: Car, module: "logistics" as AppModule },

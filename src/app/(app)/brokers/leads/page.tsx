@@ -1,0 +1,128 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
+import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
+import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
+import { getBrokerFilterOptions, listBrokerLeads } from "@/lib/brokers/queries";
+import { canAccessModule } from "@/lib/permissions";
+import { requireTenant } from "@/lib/tenant";
+
+export default async function BrokerLeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const tenant = await requireTenant();
+  if (!canAccessModule(tenant.role, "brokers")) redirect("/sin-permisos");
+
+  const params = await searchParams;
+  const filters = {
+    sourceCountrySheet: typeof params.sourceCountrySheet === "string" ? params.sourceCountrySheet : undefined,
+    leadType: typeof params.leadType === "string" ? params.leadType : undefined,
+    rawStatus: typeof params.rawStatus === "string" ? params.rawStatus : undefined,
+    normalizedStatus: typeof params.normalizedStatus === "string" ? params.normalizedStatus : undefined,
+    flowStatus: typeof params.flowStatus === "string" ? params.flowStatus : undefined,
+    emailStatus: typeof params.emailStatus === "string" ? params.emailStatus : undefined,
+    query: typeof params.query === "string" ? params.query : undefined,
+  };
+
+  const [leads, options] = await Promise.all([
+    listBrokerLeads(tenant.organizationId, filters),
+    getBrokerFilterOptions(tenant.organizationId),
+  ]);
+
+  return (
+    <div className="main-content">
+      <h1>Broker Leads</h1>
+      <p>Ingesta operativa desde POŚREDNICY LATAM, con foco en GWATEMALA.</p>
+
+      <BrokerModuleNav />
+
+      <form className="card" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
+        <input className="input" type="text" name="query" placeholder="Buscar nombre, email, telefono..." defaultValue={filters.query ?? ""} />
+        <select className="input" name="sourceCountrySheet" defaultValue={filters.sourceCountrySheet ?? ""}>
+          <option value="">Todas las hojas</option>
+          {options.sourceCountrySheets.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select className="input" name="leadType" defaultValue={filters.leadType ?? ""}>
+          <option value="">Todos los tipos</option>
+          <option value="PROVIDER">Provider</option>
+          <option value="CANDIDATE">Candidate</option>
+          <option value="UNKNOWN">Unknown</option>
+        </select>
+        <select className="input" name="rawStatus" defaultValue={filters.rawStatus ?? ""}>
+          <option value="">Todos los raw status</option>
+          {options.rawStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select className="input" name="normalizedStatus" defaultValue={filters.normalizedStatus ?? ""}>
+          <option value="">Todos los normalized status</option>
+          {options.normalizedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select className="input" name="flowStatus" defaultValue={filters.flowStatus ?? ""}>
+          <option value="">Todos los flow status</option>
+          {options.flowStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <select className="input" name="emailStatus" defaultValue={filters.emailStatus ?? ""}>
+          <option value="">Todos los email status</option>
+          {options.emailStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+        <button className="button" type="submit">Filtrar</button>
+      </form>
+
+      <div className="card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Lead date</th>
+                <th>Nombre completo</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>City</th>
+                <th>Sheet</th>
+                <th>Lead type</th>
+                <th>Raw status</th>
+                <th>Flow</th>
+                <th>Email</th>
+                <th>Last reply</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((lead) => (
+                <tr key={lead.id}>
+                  <td>{lead.leadDate ? new Date(lead.leadDate).toLocaleDateString() : "-"}</td>
+                  <td>
+                    <div style={{ fontWeight: 800 }}>{[lead.firstName, lead.lastName].filter(Boolean).join(" ") || "-"}</div>
+                    <div style={{ opacity: 0.65, fontSize: "0.8rem" }}>{lead._count.contactAttempts} intentos</div>
+                  </td>
+                  <td>{lead.email || "-"}</td>
+                  <td>{lead.phone || "-"}</td>
+                  <td>{lead.city || "-"}</td>
+                  <td>{lead.sourceCountrySheet}</td>
+                  <td><BrokerStatusBadge value={lead.leadType} /></td>
+                  <td><BrokerStatusBadge value={lead.rawStatus} /></td>
+                  <td><BrokerStatusBadge value={lead.flowStatus} /></td>
+                  <td><BrokerStatusBadge value={lead.emailStatus} /></td>
+                  <td>{lead.lastReplyDate ? new Date(lead.lastReplyDate).toLocaleString() : "-"}</td>
+                  <td>
+                    <Link href={`/brokers/leads/${lead.id}`} className="button button-secondary" style={{ textDecoration: "none" }}>
+                      Ver
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+              {leads.length === 0 ? (
+                <tr><td colSpan={12} style={{ textAlign: "center", opacity: 0.6, padding: "2rem" }}>No hay leads para estos filtros.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

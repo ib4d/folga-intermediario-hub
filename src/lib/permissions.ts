@@ -21,6 +21,7 @@ type RolePermissionSummaryKey = {
 
 export type AppModule =
   | "dashboard"
+  | "brokers"
   | "candidates"
   | "documents"
   | "logistics"
@@ -37,6 +38,7 @@ export function getAppModuleLabel(module: AppModule, language: AppLanguage = "es
   const labels = t.bind(null, language);
   const moduleLabels: Record<AppModule, string> = {
     dashboard: labels("module.dashboard"),
+    brokers: labels("module.brokers"),
     candidates: labels("module.candidates"),
     documents: labels("module.documents"),
     logistics: labels("module.logistics"),
@@ -56,6 +58,7 @@ export function getAppModuleLabel(module: AppModule, language: AppLanguage = "es
 const MODULE_ACCESS: Record<Role, AppModule[]> = {
   [Role.SUPERADMIN]: [
     "dashboard",
+    "brokers",
     "candidates",
     "documents",
     "logistics",
@@ -70,6 +73,7 @@ const MODULE_ACCESS: Record<Role, AppModule[]> = {
   ],
   [Role.ADMIN]: [
     "dashboard",
+    "brokers",
     "candidates",
     "documents",
     "logistics",
