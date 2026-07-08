@@ -58,11 +58,11 @@ function resolveExpectedRelease() {
   const explicit = process.env.EXPECTED_RELEASE?.trim();
   if (explicit) return explicit;
 
-  const releaseFile = tryReadReleaseFile();
-  if (releaseFile) return releaseFile;
-
   const envRelease = process.env.APP_RELEASE?.trim();
   if (envRelease) return envRelease;
+
+  const releaseFile = tryReadReleaseFile();
+  if (releaseFile) return releaseFile;
 
   return tryReadGitHead();
 }

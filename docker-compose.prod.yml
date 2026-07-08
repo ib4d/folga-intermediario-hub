@@ -18,6 +18,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        APP_RELEASE: ${APP_RELEASE:-local}
     command: sh -c "node scripts/check-production-env.mjs && node server.js"
     restart: unless-stopped
     environment:

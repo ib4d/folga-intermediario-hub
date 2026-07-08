@@ -43,8 +43,8 @@ export function getRuntimeMetadata(): RuntimeMetadata {
     process.env.STRIPE_PAYMENT_LINK_ENTERPRISE,
   ].every((value) => isHttpsUrl(value));
   const release =
-    readReleaseMarker() ||
     process.env.APP_RELEASE?.trim() ||
+    readReleaseMarker() ||
     process.env.SOURCE_COMMIT?.trim() ||
     process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
     "local";

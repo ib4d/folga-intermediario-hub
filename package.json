@@ -21,7 +21,7 @@
     "check:monitoring": "node scripts/check-monitoring.mjs",
     "check:release": "node scripts/check-release.mjs",
     "check:ocr": "tsx scripts/check-ocr-regressions.ts",
-    "check:broker": "tsx scripts/check-broker-regressions.ts"
+    "check:broker": "node scripts/check-broker-regressions.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

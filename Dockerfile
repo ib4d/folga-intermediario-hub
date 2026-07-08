@@ -34,12 +34,13 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG APP_RELEASE=local
 
 # Environment variables must be provided at build time if needed by Next.js
 # For standalone output, they are mostly needed at runtime.
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN test -f .release || printf 'local\n' > .release
+RUN printf '%s\n' "${APP_RELEASE}" > .release
 
 RUN npx prisma generate
 RUN npm run build
@@ -75,9 +76,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-env.mjs 
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-permissions.mjs ./scripts/check-permissions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-smtp.mjs ./scripts/check-smtp.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-broker-regressions.mjs ./scripts/check-broker-regressions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/tenant-audit.mjs ./scripts/tenant-audit.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/tenant-prune.mjs ./scripts/tenant-prune.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/permissions.ts ./src/lib/permissions.ts
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/brokers ./src/lib/brokers
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/providers ./src/lib/providers
 
 # Set the correct permission for production prerender/cache output.
