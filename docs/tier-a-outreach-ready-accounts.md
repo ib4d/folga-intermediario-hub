@@ -120,7 +120,8 @@ Where it does not, use the official business channel and look separately for:
 - fit: strong
 - why now: large-scale staffing and operational complexity across logistics/production-heavy roles and multi-country structure
 - public business route:
-  - employer route visible from site: `Dla pracodawców`
+  - employer route visible from site header: `Dla pracodawców`
+  - employer site entry: `https://ottoworkforce.com/`
 - suggested target role:
   - Operations Director
   - Country Manager
@@ -133,8 +134,11 @@ Where it does not, use the official business channel and look separately for:
 - website: `https://www.smartwork.pl`
 - fit: strong
 - why now: temporary work, subcontracting, outsourcing, recruitment, legalisation of stay and work
+- public business contact:
+  - email: `biuro@smartwork.pl`
+  - phone: `+48 74 648 70 47`
 - public business route:
-  - employer offer and contact path on official site
+  - employer offer visible from site navigation: `Oferta -> Usługi dla biznesu`
 - suggested target role:
   - Managing Director
   - Operations Lead
@@ -160,7 +164,8 @@ Use this order:
 - Personnel Service and ATERIMA expose named or direct usable business contacts immediately
 - EWL and Gremi have strong public business channels and high fit
 - Grupa Progres and InterKadra are strong, but may require a little more routing
-- OTTO and Smart Work remain good targets, but likely need more careful entry-point selection
+- OTTO remains a good target but likely needs more careful entry-point selection
+- Smart Work is now easier to approach directly through public contact details
 
 ## Recommended immediate next action
 

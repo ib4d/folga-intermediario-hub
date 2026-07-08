@@ -124,7 +124,8 @@ Body:
 
 ### Target
 
-- employer/business route on official site
+- main contact
+- biuro@smartwork.pl
 
 ### Pain hypothesis
 
