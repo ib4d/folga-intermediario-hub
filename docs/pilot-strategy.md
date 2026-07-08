@@ -1,30 +1,125 @@
-# Estrategia de Adquisición de Pilotos
+# Pilot Acquisition Strategy
 
-## Objetivo: Conseguir los primeros 5 clientes reales en 30 días.
+## Objective
 
-### 1. Perfil del "Early Adopter"
-- Agencias medianas (5-15 empleados).
-- Especializadas en trabajadores de América Latina, Asia o Europa del Este.
-- Con procesos actuales basados en Excel y carpetas compartidas.
+Get the first 5 serious guided-pilot opportunities without diluting pricing or
+scope discipline.
 
-### 2. La Oferta Irresistible (The Hook)
-- **30 días de acceso gratuito** (Plan PRO).
-- **Onboarding guiado**: Sesión de 1 hora para configurar sus tipos de documentos y estados.
-- **Importación asistida**: Ayudarles a migrar sus últimos 50 candidatos desde Excel.
-- **Precio Early Adopter**: 50% de descuento de por vida si deciden continuar.
+## 1. Ideal customer profile
 
-### 3. Canales de Outreach
-1. **Direct Message en LinkedIn**: Contactar a CEOs y Operations Managers de agencias.
-2. **Webinars en vivo**: "Cómo digitalizar tu agencia de reclutamiento en 1 hora".
-3. **Alianzas**: Consultores de extranjería que recomienden la herramienta a sus clientes.
+Primary ICP:
 
-### 4. Checklist de Conversión
-- [ ] Semana 1: Contactar a 20 prospectos diarios.
-- [ ] Semana 2: Realizar 10 demos.
-- [ ] Semana 3: Iniciar 5 pilotos con soporte dedicado.
-- [ ] Semana 4: Recoger feedback y solicitar el primer pago/suscripción.
+- recruitment agencies focused on international hiring
+- visible document and coordination load
+- at least 5 people touching operations, recruiting, legal, or logistics
+- active cross-border worker flow
+- currently dependent on Excel, WhatsApp, email, or shared folders
 
-### 5. KPIs de Éxito
-- Ratio de Demo a Piloto: >30%.
-- Ratio de Piloto a Cliente: >50%.
-- Tiempo medio de registro de primer candidato: < 24 horas.
+Best-fit signals:
+
+- repeated passport / permit / PESEL handling
+- logistics coordination around arrivals
+- frustration with traceability and document follow-up
+- desire to scale without adding admin chaos
+
+## 2. Roles to target
+
+Primary targets:
+
+- founder / owner
+- operations manager
+- recruitment manager
+
+Secondary targets:
+
+- legal coordinator
+- logistics coordinator
+
+## 3. Offer to present
+
+Offer now:
+
+- guided demo
+- guided pilot
+- paid rollout after validation
+
+Do not offer now:
+
+- free open-ended trials
+- no-touch self-serve onboarding
+- broad discounted access with undefined scope
+
+## 4. Commercial discipline
+
+Standard pilot:
+
+- setup: `EUR 2,500`
+- pilot cycle: `EUR 2,000 / 30 days`
+
+Selective early-adopter version:
+
+- setup: `EUR 1,500`
+- pilot cycle: `EUR 1,250 / 30 days`
+
+Use early-adopter pricing only when strategically justified.
+
+## 5. Outreach channels
+
+Priority order:
+
+1. direct LinkedIn outreach
+2. warm introductions
+3. cold outbound email
+4. partner/referral channels
+
+## 6. Weekly operating rhythm
+
+### Week 1 target
+
+- identify 20-30 high-fit target accounts
+- identify 1-3 target contacts per account
+- send first outbound wave
+
+### Week 2 target
+
+- follow up systematically
+- book 5-10 discovery/demo conversations
+
+### Week 3 target
+
+- qualify which accounts deserve pilot effort
+- advance best-fit prospects to pilot decision
+
+### Week 4 target
+
+- close 1-2 pilot starts
+- disqualify weak prospects instead of dragging them
+
+## 7. Success KPIs
+
+- connection-to-conversation rate
+- conversation-to-demo rate
+- demo-to-pilot rate
+- pilot-to-rollout rate
+
+Minimum commercial quality targets:
+
+- demo-to-pilot: `>= 25%`
+- pilot-to-rollout: `>= 40%`
+
+## 8. Rule for the first wave
+
+Do not optimize for volume only.
+
+Optimize for:
+
+- fit
+- seriousness
+- operational pain
+- ability to adopt in a guided way
+
+## 9. Current decision
+
+Recommended motion:
+
+`Target fewer, better-fit accounts and push them through guided demo -> guided pilot -> rollout with pricing discipline intact.`
