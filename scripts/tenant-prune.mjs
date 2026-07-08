@@ -2,16 +2,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-type Args = {
-  slug?: string;
-  id?: string;
-  deleteCandidateIds: string[];
-  dryRun: boolean;
-  confirmDelete: boolean;
-};
-
-function parseArgs(argv: string[]): Args {
-  const args: Args = {
+function parseArgs(argv) {
+  const args = {
     deleteCandidateIds: [],
     dryRun: false,
     confirmDelete: false,

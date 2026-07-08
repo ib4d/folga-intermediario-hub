@@ -75,6 +75,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-env.mjs 
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-permissions.mjs ./scripts/check-permissions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-smtp.mjs ./scripts/check-smtp.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/tenant-audit.mjs ./scripts/tenant-audit.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/tenant-prune.mjs ./scripts/tenant-prune.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/permissions.ts ./src/lib/permissions.ts
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/providers ./src/lib/providers
 

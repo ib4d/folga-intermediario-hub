@@ -2,13 +2,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-type Args = {
-  slug?: string;
-  id?: string;
-};
-
-function parseArgs(argv: string[]): Args {
-  const args: Args = {};
+function parseArgs(argv) {
+  const args = {};
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -60,13 +55,9 @@ async function printOrganizationList() {
   );
 }
 
-async function printOrganizationAudit(args: Required<Pick<Args, "slug" | "id">> | Args) {
+async function printOrganizationAudit(args) {
   const organization = await prisma.organization.findFirst({
-    where: args.id
-      ? { id: args.id }
-      : args.slug
-        ? { slug: args.slug }
-        : undefined,
+    where: args.id ? { id: args.id } : args.slug ? { slug: args.slug } : undefined,
     select: {
       id: true,
       name: true,
