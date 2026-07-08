@@ -59,16 +59,16 @@ Do not overcomplicate the first offers.
 
 Recommended list price:
 
-- pilot setup fee: `€2,500`
-- pilot cycle fee: `€2,000 / 30 days`
+- pilot setup fee: `EUR 2,500`
+- pilot cycle fee: `EUR 2,000 / 30 days`
 - pilot duration default: `30 days`, extendable only by explicit decision
 - included operator seats: `up to 5`
 - support cadence included: `1 onboarding session + 1 weekly review call`
 
 Recommended early-adopter floor:
 
-- setup fee floor: `€1,500`
-- pilot cycle floor: `€1,250 / 30 days`
+- setup fee floor: `EUR 1,500`
+- pilot cycle floor: `EUR 1,250 / 30 days`
 
 Rule:
 

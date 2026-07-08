@@ -42,8 +42,8 @@ Recommended stance:
 
 ### Guided Pilot
 
-- setup fee: `€2,500`
-- pilot cycle fee: `€2,000 / 30 days`
+- setup fee: `EUR 2,500`
+- pilot cycle fee: `EUR 2,000 / 30 days`
 - included: `up to 5 operators`
 
 Use when:
@@ -52,7 +52,7 @@ Use when:
 
 ### Core Rollout
 
-- `€1,250 / month`
+- `EUR 1,250 / month`
 - included: `up to 5 operators`
 
 Use when:
@@ -61,7 +61,7 @@ Use when:
 
 ### Growth Rollout
 
-- `€2,500 / month`
+- `EUR 2,500 / month`
 - included: `up to 15 operators`
 
 Use when:
@@ -71,7 +71,7 @@ Use when:
 
 ### Scale Rollout
 
-- `€4,500 / month`
+- `EUR 4,500 / month`
 - included: `up to 30 operators`
 
 Use when:
@@ -80,7 +80,7 @@ Use when:
 
 ### Enterprise
 
-- `from €7,500 / month`
+- `from EUR 7,500 / month`
 
 Use when:
 
@@ -99,8 +99,8 @@ Recommended discount logic:
 
 Recommended floor:
 
-- guided pilot floor: `€1,500 setup + €1,250 / 30 days`
-- core rollout floor: `€990 / month`
+- guided pilot floor: `EUR 1,500 setup + EUR 1,250 / 30 days`
+- core rollout floor: `EUR 990 / month`
 
 Do not normalize lower than that without a deliberate reason.
 
@@ -145,9 +145,9 @@ Do not:
 
 If you want one practical starting position right now:
 
-- pilot offer list price: `€2,500 setup + €2,000 / 30 days`
-- first rollout anchor: `€1,250 / month`
-- growth anchor: `€2,500 / month`
+- pilot offer list price: `EUR 2,500 setup + EUR 2,000 / 30 days`
+- first rollout anchor: `EUR 1,250 / month`
+- growth anchor: `EUR 2,500 / month`
 
 That is high enough to position the product seriously, while still being
 defensible for agencies with real operational pain.
