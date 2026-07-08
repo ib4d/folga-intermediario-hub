@@ -45,15 +45,44 @@ Keep these outside base pricing unless intentionally included:
 - non-standard support expectations
 - extensive training cycles
 
-## 5. Internal fields to define
+## 5. Recommended internal pricing fields
 
-Complete these before broader commercial push:
+Recommended tenant-based pricing:
 
-- monthly base fee: `TODO`
-- included seats/operators: `TODO`
-- included operational scope: `TODO`
-- expansion fee logic: `TODO`
-- optional add-ons: `TODO`
+### Core
+
+- monthly base fee: `€1,250 / month`
+- included seats/operators: `up to 5`
+- included scope: `1 tenant, core candidate/doc/legal/logistics workflow`
+
+### Growth
+
+- monthly base fee: `€2,500 / month`
+- included seats/operators: `up to 15`
+- included scope: `broader team rollout, stronger operating cadence`
+
+### Scale
+
+- monthly base fee: `€4,500 / month`
+- included seats/operators: `up to 30`
+- included scope: `multi-team operational rollout with higher-touch support`
+
+### Enterprise
+
+- pricing: `from €7,500 / month`
+- scope: `custom commercial review`
+
+Expansion logic:
+
+- additional operator pack: `€300 / month per 5 operators`
+- additional tenant / brand environment: `from €750 / month`
+- premium onboarding / migration project: `from €2,000 one-time`
+
+Optional add-ons:
+
+- branded rollout / white-label setup: `from €1,500 one-time`
+- custom reporting / export package: `from €500 / month`
+- higher-touch support cadence: `from €750 / month`
 
 ## 6. Positioning line
 

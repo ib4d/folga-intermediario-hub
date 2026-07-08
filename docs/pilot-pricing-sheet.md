@@ -55,15 +55,25 @@ Use pricing based on:
 
 Do not overcomplicate the first offers.
 
-## 6. Internal pricing fields to define
+## 6. Recommended internal pricing fields
 
-Fill these before active outreach:
+Recommended list price:
 
-- pilot setup fee: `TODO`
-- pilot monthly fee or fixed-cycle fee: `TODO`
-- pilot duration default: `TODO`
-- included operator seats: `TODO`
-- support cadence included: `TODO`
+- pilot setup fee: `€2,500`
+- pilot cycle fee: `€2,000 / 30 days`
+- pilot duration default: `30 days`, extendable only by explicit decision
+- included operator seats: `up to 5`
+- support cadence included: `1 onboarding session + 1 weekly review call`
+
+Recommended early-adopter floor:
+
+- setup fee floor: `€1,500`
+- pilot cycle floor: `€1,250 / 30 days`
+
+Rule:
+
+Do not open below the floor unless there is a very strong logo, reference, or
+distribution reason.
 
 ## 7. Positioning line
 
