@@ -6,18 +6,32 @@ import { auth } from "@/auth";
 import BrokerImportForms from "@/components/brokers/BrokerImportForms";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
+import QueryPagination from "@/components/ui/QueryPagination";
 import { canAccessModule } from "@/lib/permissions";
 import { listBrokers } from "@/lib/brokers/queries";
 import { requireTenant } from "@/lib/tenant";
 
-export default async function BrokersPage() {
+export default async function BrokersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
 
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "brokers")) redirect("/sin-permisos");
 
-  const brokers = await listBrokers(tenant.organizationId);
+  const params = await searchParams;
+  const page = Math.max(1, Number(typeof params.page === "string" ? params.page : 1) || 1);
+  const limit = Math.max(1, Number(typeof params.limit === "string" ? params.limit : 20) || 20);
+
+  const brokersPage = await listBrokers(tenant.organizationId, { page, pageSize: limit });
+  const brokers = brokersPage.items;
+  const exportParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
 
   return (
     <div className="main-content">
@@ -61,9 +75,14 @@ export default async function BrokersPage() {
         <BrokerImportForms />
       </div>
 
+      <div className="broker-toolbar no-print">
+        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=xlsx`}>Exportar XLSX</a>
+        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=csv`}>Exportar CSV</a>
+      </div>
+
       <div className="card">
         <div className="table-container">
-          <table>
+          <table className="broker-table">
             <thead>
               <tr>
                 <th>Broker</th>
@@ -93,8 +112,8 @@ export default async function BrokersPage() {
                   <td>{broker.qualityRating ?? "-"}</td>
                   <td>{broker._count.referrals}</td>
                   <td>PLN {broker.accumulatedBilling.toFixed(2)}</td>
-                  <td>
-                    <Link href={`/brokers/${broker.id}`} className="button button-secondary" style={{ textDecoration: "none" }}>
+                  <td className="broker-action-cell">
+                    <Link href={`/brokers/${broker.id}`} className="button button-secondary broker-action-button" style={{ textDecoration: "none" }}>
                       Ver
                     </Link>
                   </td>
@@ -109,6 +128,15 @@ export default async function BrokersPage() {
               ) : null}
             </tbody>
           </table>
+        </div>
+        <div style={{ marginTop: "1rem" }}>
+          <QueryPagination
+            label="Brokers"
+            pageNumber={brokersPage.pageNumber}
+            totalPages={brokersPage.totalPages}
+            totalItems={brokersPage.totalItems}
+            pageSize={brokersPage.pageSize}
+          />
         </div>
       </div>
     </div>

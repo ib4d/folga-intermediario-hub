@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
+import QueryPagination from "@/components/ui/QueryPagination";
 import { getBrokerFilterOptions, listBrokerLeads } from "@/lib/brokers/queries";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
@@ -28,12 +29,20 @@ export default async function BrokerLeadsPage({
     flowStatus: typeof params.flowStatus === "string" ? params.flowStatus : undefined,
     emailStatus: typeof params.emailStatus === "string" ? params.emailStatus : undefined,
     query: typeof params.query === "string" ? params.query : undefined,
+    page: typeof params.page === "string" ? Number(params.page) : 1,
+    pageSize: typeof params.limit === "string" ? Number(params.limit) : 20,
   };
 
-  const [leads, options] = await Promise.all([
+  const [leadsPage, options] = await Promise.all([
     listBrokerLeads(tenant.organizationId, filters),
     getBrokerFilterOptions(tenant.organizationId),
   ]);
+  const exportParams = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      exportParams.set(key, String(value));
+    }
+  });
 
   return (
     <div className="main-content">
@@ -73,9 +82,14 @@ export default async function BrokerLeadsPage({
         <button className="button" type="submit">Filtrar</button>
       </form>
 
+      <div className="broker-toolbar no-print">
+        <a className="button" href={`/api/brokers/leads/export?${exportParams.toString()}&format=xlsx`}>Exportar XLSX</a>
+        <a className="button" href={`/api/brokers/leads/export?${exportParams.toString()}&format=csv`}>Exportar CSV</a>
+      </div>
+
       <div className="card">
         <div className="table-container">
-          <table>
+          <table className="broker-table">
             <thead>
               <tr>
                 <th>Lead date</th>
@@ -93,7 +107,7 @@ export default async function BrokerLeadsPage({
               </tr>
             </thead>
             <tbody>
-              {leads.map((lead) => (
+              {leadsPage.items.map((lead) => (
                 <tr key={lead.id}>
                   <td>{lead.leadDate ? new Date(lead.leadDate).toLocaleDateString() : "-"}</td>
                   <td>
@@ -109,18 +123,27 @@ export default async function BrokerLeadsPage({
                   <td><BrokerStatusBadge value={lead.flowStatus} /></td>
                   <td><BrokerStatusBadge value={lead.emailStatus} /></td>
                   <td>{lead.lastReplyDate ? new Date(lead.lastReplyDate).toLocaleString() : "-"}</td>
-                  <td>
-                    <Link href={`/brokers/leads/${lead.id}`} className="button button-secondary" style={{ textDecoration: "none" }}>
+                  <td className="broker-action-cell">
+                    <Link href={`/brokers/leads/${lead.id}`} className="button button-secondary broker-action-button" style={{ textDecoration: "none" }}>
                       Ver
                     </Link>
                   </td>
                 </tr>
               ))}
-              {leads.length === 0 ? (
+              {leadsPage.items.length === 0 ? (
                 <tr><td colSpan={12} style={{ textAlign: "center", opacity: 0.6, padding: "2rem" }}>No hay leads para estos filtros.</td></tr>
               ) : null}
             </tbody>
           </table>
+        </div>
+        <div style={{ marginTop: "1rem" }}>
+          <QueryPagination
+            label="Leads"
+            pageNumber={leadsPage.pageNumber}
+            totalPages={leadsPage.totalPages}
+            totalItems={leadsPage.totalItems}
+            pageSize={leadsPage.pageSize}
+          />
         </div>
       </div>
     </div>

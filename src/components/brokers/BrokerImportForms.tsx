@@ -51,12 +51,23 @@ export default function BrokerImportForms() {
       <form action={leadAction} className="card" style={{ display: "grid", gap: "0.75rem" }}>
         <h3>Importar leads de brokers</h3>
         <p style={{ margin: 0, opacity: 0.75 }}>
-          Usa POŚREDNICY LATAM y toma GWATEMALA como schema base.
+          Usa POŚREDNICY LATAM o tu plantilla por pais. Puedes escribir el nombre exacto del tab si cambia.
         </p>
         <label style={{ display: "grid", gap: "0.35rem" }}>
           <span>Hoja origen</span>
-          <input className="input" type="text" name="sourceCountrySheet" defaultValue="GWATEMALA" />
+          <input className="input" type="text" name="sourceCountrySheet" list="broker-source-sheets" defaultValue="GWATEMALA" />
         </label>
+        <datalist id="broker-source-sheets">
+          <option value="GWATEMALA" />
+          <option value="GUATEMALA" />
+          <option value="POLONIA" />
+          <option value="PERU" />
+          <option value="MEXICO" />
+          <option value="COLOMBIA" />
+          <option value="CHILE" />
+          <option value="ECUADOR" />
+          <option value="COSTA RICA" />
+        </datalist>
         <input className="input" type="file" name="file" accept=".xlsx,.xls" required />
         <button className="button" type="submit" disabled={leadPending}>
           {leadPending ? "Importando..." : "Importar leads"}

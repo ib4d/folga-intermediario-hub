@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { promoteBrokerLeadAction } from "@/app/actions/brokers";
+import { promoteBrokerLeadAction, updateBrokerLeadAction } from "@/app/actions/brokers";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
 import { getBrokerLeadDetail } from "@/lib/brokers/queries";
@@ -31,7 +31,10 @@ export default async function BrokerLeadDetailPage({
           <h1>{[lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Broker lead"}</h1>
           <p>{lead.sourceCountrySheet} · {lead.email || lead.phone || "Sin contacto"}</p>
         </div>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div className="broker-action-row no-print">
+          <a className="button button-secondary" href={`/api/brokers/leads/${lead.id}/export?format=xlsx`}>Exportar XLSX</a>
+          <a className="button button-secondary" href={`/api/brokers/leads/${lead.id}/export?format=csv`}>Exportar CSV</a>
+          <a className="button button-secondary" href={`/brokers/leads/${lead.id}/print`}>Vista impresión</a>
           {lead.broker ? (
             <Link href={`/brokers/${lead.broker.id}`} className="button button-secondary" style={{ textDecoration: "none" }}>
               Ir al broker
@@ -50,6 +53,75 @@ export default async function BrokerLeadDetailPage({
       </div>
 
       <BrokerModuleNav />
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h3>Editar lead</h3>
+        <form
+          action={async (formData) => {
+            "use server";
+            await updateBrokerLeadAction(lead.id, formData);
+          }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}
+        >
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Nombre</span>
+            <input className="input" name="firstName" defaultValue={lead.firstName || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Apellido</span>
+            <input className="input" name="lastName" defaultValue={lead.lastName || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Email</span>
+            <input className="input" name="email" defaultValue={lead.email || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Telefono</span>
+            <input className="input" name="phone" defaultValue={lead.phone || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Ciudad</span>
+            <input className="input" name="city" defaultValue={lead.city || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Supply declarado</span>
+            <input className="input" name="declaredSupplyText" defaultValue={lead.declaredSupplyText || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Lead type</span>
+            <select className="input" name="leadType" defaultValue={lead.leadType}>
+              {["PROVIDER", "CANDIDATE", "UNKNOWN"].map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Raw status</span>
+            <input className="input" name="rawStatus" defaultValue={lead.rawStatus || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Normalized status</span>
+            <input className="input" name="normalizedStatus" defaultValue={lead.normalizedStatus || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Flow status</span>
+            <input className="input" name="flowStatus" defaultValue={lead.flowStatus || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem" }}>
+            <span>Email status</span>
+            <input className="input" name="emailStatus" defaultValue={lead.emailStatus || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem", gridColumn: "1 / -1" }}>
+            <span>Delivery error</span>
+            <input className="input" name="deliveryError" defaultValue={lead.deliveryError || ""} />
+          </label>
+          <label style={{ display: "grid", gap: "0.35rem", gridColumn: "1 / -1" }}>
+            <span>Notes</span>
+            <textarea className="input" name="notes" rows={4} defaultValue={lead.notes || ""} />
+          </label>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <button className="button" type="submit">Guardar cambios</button>
+          </div>
+        </form>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
         <div className="card">

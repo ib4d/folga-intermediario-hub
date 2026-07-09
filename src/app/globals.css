@@ -1013,6 +1013,57 @@ p { margin-bottom: 1rem; color: var(--muted-foreground); }
   box-shadow: var(--shadow-soft);
 }
 
+.broker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.broker-table {
+  min-width: 100%;
+}
+
+.broker-table th,
+.broker-table td {
+  padding: 0.75rem 0.8rem;
+  vertical-align: top;
+}
+
+.broker-table .broker-action-cell {
+  white-space: nowrap;
+}
+
+.broker-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.broker-action-button {
+  padding: 0.35rem 0.65rem;
+  min-height: 34px;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.broker-action-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.no-print {
+  display: block;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
