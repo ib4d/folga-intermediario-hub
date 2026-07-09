@@ -3,6 +3,7 @@
 import { auth, unstable_update } from "@/auth";
 import { signIn } from "@/auth";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -201,8 +202,10 @@ export async function createOrganizationAction(
 
     if (currentUser) {
       const result = await prisma.$transaction(async (tx) => {
+        const organizationId = randomUUID();
         const org = await tx.organization.create({
           data: {
+            id: organizationId,
             name,
             slug,
             plan: "FREE",
@@ -267,8 +270,10 @@ export async function createOrganizationAction(
       const passwordHash = await bcrypt.hash(password, 12);
 
       await prisma.$transaction(async (tx) => {
+        const organizationId = randomUUID();
         const org = await tx.organization.create({
           data: {
+            id: organizationId,
             name,
             slug,
             plan: "FREE",
