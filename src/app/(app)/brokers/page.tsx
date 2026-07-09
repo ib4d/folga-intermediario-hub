@@ -38,7 +38,7 @@ export default async function BrokersPage({
       <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
         <div>
           <h1>Broker Hub</h1>
-          <p>Consolidacion de intermediarios, leads, referrals y facturacion operativa.</p>
+          <p>Consolidación de intermediarios, leads, referrals y facturación operativa.</p>
         </div>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <Link href="/brokers/leads" className="button">Ver leads</Link>
@@ -86,14 +86,14 @@ export default async function BrokersPage({
             <thead>
               <tr>
                 <th>Broker</th>
-                <th>Pais</th>
+                <th>País</th>
                 <th>Ciudad</th>
                 <th>Email</th>
-                <th>Telefono</th>
+                <th>Teléfono</th>
                 <th>Status</th>
                 <th>Rating</th>
                 <th>Referrals</th>
-                <th>Facturacion</th>
+                <th>Facturación</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -122,7 +122,7 @@ export default async function BrokersPage({
               {brokers.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign: "center", opacity: 0.6, padding: "2rem" }}>
-                    No hay brokers consolidados todavia. Importa leads o facturacion y promueve los leads validos.
+                    No hay brokers consolidados todavía. Importa leads o facturación y promueve los leads válidos.
                   </td>
                 </tr>
               ) : null}

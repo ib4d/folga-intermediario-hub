@@ -47,7 +47,7 @@ export default async function BrokerLeadsPage({
   return (
     <div className="main-content">
       <h1>Broker Leads</h1>
-      <p>Ingesta operativa desde POŚREDNICY LATAM, con foco en GWATEMALA.</p>
+      <p>Ingesta operativa desde POŚREDNICY LATAM, con foco en Guatemala.</p>
 
       <BrokerModuleNav />
 

@@ -18,7 +18,7 @@ export default async function BrokerDashboardPage() {
   return (
     <div className="main-content">
       <h1>Broker Dashboard</h1>
-      <p>KPIs operativos de leads, brokers e invoices del modulo broker.</p>
+      <p>KPIs operativos de leads, brokers e invoices del módulo broker.</p>
       <BrokerModuleNav />
 
       <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>

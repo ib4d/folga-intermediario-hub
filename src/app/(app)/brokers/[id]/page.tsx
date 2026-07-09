@@ -63,7 +63,7 @@ export default async function BrokerDetailPage({
             <input className="input" name="legalOrBillingName" defaultValue={broker.legalOrBillingName || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span>Pais</span>
+            <span>País</span>
             <input className="input" name="country" defaultValue={broker.country || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
@@ -75,7 +75,7 @@ export default async function BrokerDetailPage({
             <input className="input" name="primaryEmail" defaultValue={broker.primaryEmail || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span>Telefono</span>
+            <span>Teléfono</span>
             <input className="input" name="primaryPhone" defaultValue={broker.primaryPhone || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
@@ -145,16 +145,16 @@ export default async function BrokerDetailPage({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
         <div className="card">
           <h3>Datos generales</h3>
-          <p><strong>Pais:</strong> {broker.country || "-"}</p>
+          <p><strong>País:</strong> {broker.country || "-"}</p>
           <p><strong>Ciudad:</strong> {broker.city || "-"}</p>
           <p><strong>Email:</strong> {broker.primaryEmail || "-"}</p>
-          <p><strong>Telefono:</strong> {broker.primaryPhone || "-"}</p>
+          <p><strong>Teléfono:</strong> {broker.primaryPhone || "-"}</p>
           <p><strong>Broker type:</strong> <BrokerStatusBadge value={broker.brokerType} /></p>
           <p><strong>Quality rating:</strong> {broker.qualityRating ?? "-"}</p>
           <p><strong>Notes:</strong> {broker.notes || "-"}</p>
         </div>
         <div className="card">
-          <h3>Metricas</h3>
+          <h3>Métricas</h3>
           <p><strong>Leads asociados:</strong> {broker.leads.length}</p>
           <p><strong>Referrals asociados:</strong> {broker.referrals.length}</p>
           <p><strong>Facturas asociadas:</strong> {broker.invoices.length}</p>

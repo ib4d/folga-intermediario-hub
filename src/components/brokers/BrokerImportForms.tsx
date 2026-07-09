@@ -51,15 +51,15 @@ export default function BrokerImportForms() {
       <form action={leadAction} className="card" style={{ display: "grid", gap: "0.75rem" }}>
         <h3>Importar leads de brokers</h3>
         <p style={{ margin: 0, opacity: 0.75 }}>
-          Usa POŚREDNICY LATAM o tu plantilla por pais. Puedes escribir el nombre exacto del tab si cambia.
+          Usa POŚREDNICY LATAM o tu plantilla por país. Puedes escribir el nombre exacto del tab.
         </p>
         <label style={{ display: "grid", gap: "0.35rem" }}>
-          <span>Hoja origen</span>
-          <input className="input" type="text" name="sourceCountrySheet" list="broker-source-sheets" defaultValue="GWATEMALA" />
+          <span>Nombre exacto del tab</span>
+          <input className="input" type="text" name="sourceCountrySheet" list="broker-source-sheets" defaultValue="GUATEMALA" />
         </label>
         <datalist id="broker-source-sheets">
-          <option value="GWATEMALA" />
           <option value="GUATEMALA" />
+          <option value="GWATEMALA" />
           <option value="POLONIA" />
           <option value="PERU" />
           <option value="MEXICO" />
@@ -68,6 +68,9 @@ export default function BrokerImportForms() {
           <option value="ECUADOR" />
           <option value="COSTA RICA" />
         </datalist>
+        <p style={{ margin: 0, opacity: 0.65, fontSize: "0.9rem" }}>
+          Si el Excel usa una variante con o sin tilde, la importación la resuelve igual.
+        </p>
         <input className="input" type="file" name="file" accept=".xlsx,.xls" required />
         <button className="button" type="submit" disabled={leadPending}>
           {leadPending ? "Importando..." : "Importar leads"}

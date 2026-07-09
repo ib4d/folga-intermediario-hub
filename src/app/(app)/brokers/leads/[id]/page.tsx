@@ -46,7 +46,7 @@ export default async function BrokerLeadDetailPage({
                 await promoteBrokerLeadAction(lead.id);
               }}
             >
-              <button className="button" type="submit">Promover a Broker</button>
+              <button className="button" type="submit">Promover a broker</button>
             </form>
           )}
         </div>
@@ -76,7 +76,7 @@ export default async function BrokerLeadDetailPage({
             <input className="input" name="email" defaultValue={lead.email || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
-            <span>Telefono</span>
+            <span>Teléfono</span>
             <input className="input" name="phone" defaultValue={lead.phone || ""} />
           </label>
           <label style={{ display: "grid", gap: "0.35rem" }}>
@@ -125,17 +125,17 @@ export default async function BrokerLeadDetailPage({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
         <div className="card">
-          <h3>Datos basicos</h3>
+          <h3>Datos básicos</h3>
           <p><strong>Lead date:</strong> {lead.leadDate ? new Date(lead.leadDate).toLocaleString() : "-"}</p>
           <p><strong>Email:</strong> {lead.email || "-"}</p>
-          <p><strong>Telefono:</strong> {lead.phone || "-"}</p>
+          <p><strong>Teléfono:</strong> {lead.phone || "-"}</p>
           <p><strong>Ciudad:</strong> {lead.city || "-"}</p>
           <p><strong>Supply declarado:</strong> {lead.declaredSupplyText || "-"}</p>
           <p><strong>Broker vinculado:</strong> {lead.broker?.displayName || "-"}</p>
         </div>
 
         <div className="card">
-          <h3>Clasificacion</h3>
+          <h3>Clasificación</h3>
           <p><strong>Lead type:</strong> <BrokerStatusBadge value={lead.leadType} /></p>
           <p><strong>Raw status:</strong> <BrokerStatusBadge value={lead.rawStatus} /></p>
           <p><strong>Normalized status:</strong> <BrokerStatusBadge value={lead.normalizedStatus} /></p>
@@ -143,7 +143,7 @@ export default async function BrokerLeadDetailPage({
         </div>
 
         <div className="card">
-          <h3>Automatizacion</h3>
+          <h3>Automatización</h3>
           <p><strong>Flow status:</strong> <BrokerStatusBadge value={lead.flowStatus} /></p>
           <p><strong>Flow sent date:</strong> {lead.flowSentDate ? new Date(lead.flowSentDate).toLocaleString() : "-"}</p>
           <p><strong>Email status:</strong> <BrokerStatusBadge value={lead.emailStatus} /></p>

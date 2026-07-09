@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import PrintActionsClient from "@/components/ui/PrintActionsClient";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
+import PrintActionsClient from "@/components/ui/PrintActionsClient";
 import { getBrokerLeadDetail } from "@/lib/brokers/queries";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
@@ -23,6 +23,8 @@ export default async function BrokerLeadPrintPage({
   const lead = await getBrokerLeadDetail(tenant.organizationId, id);
   if (!lead) redirect("/brokers/leads");
 
+  const displayName = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Broker lead";
+
   return (
     <div className="main-content" style={{ maxWidth: 1200 }}>
       <style>{`
@@ -34,32 +36,48 @@ export default async function BrokerLeadPrintPage({
       `}</style>
 
       <div className="no-print" style={{ marginBottom: "1rem" }}>
-        <a className="button button-secondary" href={`/brokers/leads/${lead.id}`}>Volver</a>
+        <a className="button button-secondary" href={`/brokers/leads/${lead.id}`}>
+          Volver
+        </a>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-        <div>
-          <h1>{[lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Broker lead"}</h1>
-          <p>{lead.sourceCountrySheet} · {lead.email || lead.phone || "Sin contacto"}</p>
-        </div>
-      </div>
-
+      <h1>{displayName}</h1>
+      <p>{lead.sourceCountrySheet} · {lead.email || lead.phone || "Sin contacto"}</p>
       <BrokerModuleNav />
       <PrintActionsClient guideLabel="Puedes guardar esta ficha como PDF desde la impresión del navegador." />
 
+      <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+        <div className="card print-card">
+          <h3>Lead type</h3>
+          <BrokerStatusBadge value={lead.leadType} />
+        </div>
+        <div className="card print-card">
+          <h3>Raw status</h3>
+          <BrokerStatusBadge value={lead.rawStatus} />
+        </div>
+        <div className="card print-card">
+          <h3>Normalized status</h3>
+          <BrokerStatusBadge value={lead.normalizedStatus} />
+        </div>
+        <div className="card print-card">
+          <h3>Flow status</h3>
+          <BrokerStatusBadge value={lead.flowStatus} />
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
         <div className="card print-card">
-          <h3>Datos basicos</h3>
+          <h3>Datos básicos</h3>
           <p><strong>Lead date:</strong> {lead.leadDate ? new Date(lead.leadDate).toLocaleString() : "-"}</p>
           <p><strong>Email:</strong> {lead.email || "-"}</p>
-          <p><strong>Telefono:</strong> {lead.phone || "-"}</p>
+          <p><strong>Teléfono:</strong> {lead.phone || "-"}</p>
           <p><strong>Ciudad:</strong> {lead.city || "-"}</p>
           <p><strong>Supply declarado:</strong> {lead.declaredSupplyText || "-"}</p>
           <p><strong>Broker vinculado:</strong> {lead.broker?.displayName || "-"}</p>
         </div>
 
         <div className="card print-card">
-          <h3>Clasificacion</h3>
+          <h3>Clasificación</h3>
           <p><strong>Lead type:</strong> <BrokerStatusBadge value={lead.leadType} /></p>
           <p><strong>Raw status:</strong> <BrokerStatusBadge value={lead.rawStatus} /></p>
           <p><strong>Normalized status:</strong> <BrokerStatusBadge value={lead.normalizedStatus} /></p>
@@ -67,7 +85,7 @@ export default async function BrokerLeadPrintPage({
         </div>
 
         <div className="card print-card">
-          <h3>Automatizacion</h3>
+          <h3>Automatización</h3>
           <p><strong>Flow status:</strong> <BrokerStatusBadge value={lead.flowStatus} /></p>
           <p><strong>Flow sent date:</strong> {lead.flowSentDate ? new Date(lead.flowSentDate).toLocaleString() : "-"}</p>
           <p><strong>Email status:</strong> <BrokerStatusBadge value={lead.emailStatus} /></p>
@@ -92,7 +110,9 @@ export default async function BrokerLeadPrintPage({
               <div><strong>Next step date:</strong> {attempt.nextStepDate ? new Date(attempt.nextStepDate).toLocaleString() : "-"}</div>
             </div>
           ))}
-          {lead.contactAttempts.length === 0 ? <div style={{ opacity: 0.6 }}>Sin intentos de contacto importados.</div> : null}
+          {lead.contactAttempts.length === 0 ? (
+            <div style={{ opacity: 0.6 }}>Sin intentos de contacto importados.</div>
+          ) : null}
         </div>
       </div>
     </div>

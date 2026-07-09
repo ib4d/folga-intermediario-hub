@@ -46,7 +46,7 @@ function getMonthRange(monthValue: string) {
 export async function importBrokerLeadsAction(formData: FormData) {
   const tenant = await assertBrokerAccess();
   const file = formData.get("file");
-  const sourceCountrySheet = String(formData.get("sourceCountrySheet") || "GWATEMALA");
+  const sourceCountrySheet = String(formData.get("sourceCountrySheet") || "GUATEMALA");
 
   if (!(file instanceof File)) {
     throw new Error("Selecciona un archivo Excel de leads.");

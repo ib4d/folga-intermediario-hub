@@ -20,6 +20,28 @@ import {
 type BrokerLeadRow = Record<string, unknown>;
 type BrokerSheetSummaryRow = Record<string, unknown>;
 
+function normalizeSheetName(value: string): string {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+}
+
+function resolveWorkbookSheetName(workbook: XLSX.WorkBook, requestedName: string): string | null {
+  const normalizedRequested = normalizeSheetName(requestedName);
+  const directMatch = workbook.SheetNames.find((sheetName) => sheetName === requestedName);
+  if (directMatch) return directMatch;
+
+  const normalizedMatch = workbook.SheetNames.find(
+    (sheetName) => normalizeSheetName(sheetName) === normalizedRequested
+  );
+  if (normalizedMatch) return normalizedMatch;
+
+  return null;
+}
+
 export async function importBrokerLeadsWorkbook(input: {
   organizationId: string;
   actorUserId?: string | null;
@@ -28,13 +50,12 @@ export async function importBrokerLeadsWorkbook(input: {
   sourceCountrySheet?: string;
 }) {
   const workbook = XLSX.read(input.fileBuffer, { type: "buffer" });
-  const sourceCountrySheet = input.sourceCountrySheet ?? "GWATEMALA";
-  const worksheet =
-    workbook.Sheets[sourceCountrySheet] ??
-    workbook.Sheets[sourceCountrySheet.toUpperCase()] ??
-    workbook.Sheets[sourceCountrySheet.toLowerCase()] ??
-    workbook.Sheets["GUATEMALA"] ??
-    workbook.Sheets["GWATEMALA"];
+  const sourceCountrySheet = input.sourceCountrySheet ?? "GUATEMALA";
+  const resolvedSheetName =
+    resolveWorkbookSheetName(workbook, sourceCountrySheet) ??
+    resolveWorkbookSheetName(workbook, "GUATEMALA") ??
+    resolveWorkbookSheetName(workbook, "GWATEMALA");
+  const worksheet = resolvedSheetName ? workbook.Sheets[resolvedSheetName] : undefined;
 
   if (!worksheet) {
     throw new Error(`No se encontro la hoja ${sourceCountrySheet} en ${input.fileName}.`);
@@ -66,7 +87,7 @@ export async function importBrokerLeadsWorkbook(input: {
       where: {
         organizationId_sourceCountrySheet_sourceRowHash: {
           organizationId: input.organizationId,
-          sourceCountrySheet,
+          sourceCountrySheet: resolvedSheetName ?? sourceCountrySheet,
           sourceRowHash,
         },
       },
@@ -91,7 +112,7 @@ export async function importBrokerLeadsWorkbook(input: {
       },
       create: {
         organizationId: input.organizationId,
-        sourceCountrySheet,
+        sourceCountrySheet: resolvedSheetName ?? sourceCountrySheet,
         sourceFileName: input.fileName,
         sourceRowHash,
         leadDate,
@@ -157,7 +178,7 @@ export async function importBrokerLeadsWorkbook(input: {
 
   return {
     imported,
-    sourceCountrySheet,
+    sourceCountrySheet: resolvedSheetName ?? sourceCountrySheet,
     totalRows: rows.length,
   };
 }
