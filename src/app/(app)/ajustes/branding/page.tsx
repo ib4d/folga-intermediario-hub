@@ -1,11 +1,11 @@
-import { requireTenant } from "@/lib/tenant";
-import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
+import { normalizeLanguage, t } from "@/lib/i18n";
+import { prisma } from "@/lib/prisma";
+import { requireTenant } from "@/lib/tenant";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { normalizeLanguage, t } from "@/lib/i18n";
 
 export default async function BrandingSettingsPage() {
   const session = await auth();
@@ -33,21 +33,21 @@ export default async function BrandingSettingsPage() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "640px" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <Link href="/ajustes" style={{ color: "var(--muted)", textDecoration: "none", fontSize: "0.875rem" }}>
-          {labels("settings.backToSettings")}
-        </Link>
-        <h1 style={{ marginTop: "0.5rem" }}>{labels("settings.brandingTitle")}</h1>
-        <p style={{ opacity: 0.7 }}>{labels("settings.brandingDescription")}</p>
+    <div className="settings-detail-page settings-detail-page--narrow">
+      <div className="settings-detail-header">
+        <div>
+          <Link href="/ajustes" className="settings-back-link">
+            {labels("settings.backToSettings")}
+          </Link>
+          <h1>{labels("settings.brandingTitle")}</h1>
+          <p>{labels("settings.brandingDescription")}</p>
+        </div>
       </div>
 
-      <div className="card">
-        <form action={saveBranding} style={{ display: "grid", gap: "1.5rem" }}>
-          <div>
-            <label htmlFor="logoUrl" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              {labels("settings.logoUrl")}
-            </label>
+      <div className="card settings-form-card">
+        <form action={saveBranding} className="settings-form-grid">
+          <div className="settings-field">
+            <label htmlFor="logoUrl">{labels("settings.logoUrl")}</label>
             <input
               id="logoUrl"
               name="logoUrl"
@@ -55,7 +55,6 @@ export default async function BrandingSettingsPage() {
               defaultValue={org.logoUrl || ""}
               placeholder="https://example.com/logo.png"
               className="input"
-              style={{ width: "100%" }}
             />
             {org.logoUrl && (
               <Image
@@ -64,59 +63,41 @@ export default async function BrandingSettingsPage() {
                 width={160}
                 height={48}
                 unoptimized
-                style={{ marginTop: "0.75rem", height: "48px", objectFit: "contain" }}
+                className="settings-logo-preview"
               />
             )}
           </div>
 
-          <div>
-            <label htmlFor="primaryColor" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              {labels("settings.primaryColor")}
-            </label>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div className="settings-field">
+            <label htmlFor="primaryColor">{labels("settings.primaryColor")}</label>
+            <div className="settings-color-row">
               <input
                 id="primaryColor"
                 name="primaryColor"
                 type="color"
                 defaultValue={org.primaryColor || "#fcba04"}
-                style={{ height: "42px", width: "80px", border: "none", cursor: "pointer", borderRadius: "8px" }}
+                className="settings-color-input"
               />
-              <input
-                type="text"
-                defaultValue={org.primaryColor || "#fcba04"}
-                placeholder="#fcba04"
-                className="input"
-                style={{ flex: 1 }}
-                readOnly
-              />
+              <input type="text" defaultValue={org.primaryColor || "#fcba04"} className="input settings-color-copy" readOnly />
             </div>
           </div>
 
-          <div>
-            <label htmlFor="secondaryColor" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-              {labels("settings.secondaryColor")}
-            </label>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div className="settings-field">
+            <label htmlFor="secondaryColor">{labels("settings.secondaryColor")}</label>
+            <div className="settings-color-row">
               <input
                 id="secondaryColor"
                 name="secondaryColor"
                 type="color"
                 defaultValue={org.secondaryColor || "#1a1a1a"}
-                style={{ height: "42px", width: "80px", border: "none", cursor: "pointer", borderRadius: "8px" }}
+                className="settings-color-input"
               />
-              <input
-                type="text"
-                defaultValue={org.secondaryColor || "#1a1a1a"}
-                placeholder="#1a1a1a"
-                className="input"
-                style={{ flex: 1 }}
-                readOnly
-              />
+              <input type="text" defaultValue={org.secondaryColor || "#1a1a1a"} className="input settings-color-copy" readOnly />
             </div>
           </div>
 
-          <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--muted)" }}>
-            <button type="submit" className="button" style={{ width: "100%" }}>
+          <div className="settings-form-footer">
+            <button type="submit" className="button settings-submit-button">
               {labels("settings.saveChanges")}
             </button>
           </div>

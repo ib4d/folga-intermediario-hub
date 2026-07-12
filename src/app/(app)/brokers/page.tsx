@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import BrokerImportForms from "@/components/brokers/BrokerImportForms";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
+import PageHeader from "@/components/ui/PageHeader";
 import QueryPagination from "@/components/ui/QueryPagination";
 import { canAccessModule } from "@/lib/permissions";
 import { listBrokers } from "@/lib/brokers/queries";
@@ -34,55 +35,73 @@ export default async function BrokersPage({
   });
 
   return (
-    <div className="main-content">
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-        <div>
-          <h1>Broker Hub</h1>
-          <p>Consolidación de intermediarios, leads, referrals y facturación operativa.</p>
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          <Link href="/brokers/leads" className="button">Ver leads</Link>
-          <Link href="/broker-invoices" className="button button-secondary">Ver facturas</Link>
-        </div>
-      </div>
+    <div className="main-content module-page-shell">
+      <PageHeader
+        title="Broker Hub"
+        description="Consolidación de intermediarios, leads, referrals y facturación operativa."
+        actions={
+          <>
+            <Link href="/brokers/leads" className="button">
+              Ver leads
+            </Link>
+            <Link href="/broker-invoices" className="button button-secondary">
+              Ver facturas
+            </Link>
+          </>
+        }
+      />
 
       <BrokerModuleNav />
 
-      <div className="dashboard-grid" style={{ marginBottom: "1.5rem" }}>
-        <div className="card">
-          <div className="card-header"><h3>Brokers</h3><BriefcaseBusiness size={18} /></div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{brokers.length}</div>
-        </div>
-        <div className="card">
-          <div className="card-header"><h3>Activos</h3><Users size={18} /></div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{brokers.filter((item) => item.status === "ACTIVE").length}</div>
-        </div>
-        <div className="card">
-          <div className="card-header"><h3>Referrals acumulados</h3><HandCoins size={18} /></div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>
-            {brokers.reduce((sum, item) => sum + item._count.referrals, 0)}
+      <div className="dashboard-grid">
+        <div className="card module-panel module-panel--tight">
+          <div className="card-header">
+            <h3>Brokers</h3>
+            <BriefcaseBusiness size={18} />
           </div>
+          <div className="broker-metric-value">{brokers.length}</div>
         </div>
-        <div className="card">
-          <div className="card-header"><h3>Facturacion acumulada</h3><FileSpreadsheet size={18} /></div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>
+        <div className="card module-panel module-panel--tight">
+          <div className="card-header">
+            <h3>Activos</h3>
+            <Users size={18} />
+          </div>
+          <div className="broker-metric-value">{brokers.filter((item) => item.status === "ACTIVE").length}</div>
+        </div>
+        <div className="card module-panel module-panel--tight">
+          <div className="card-header">
+            <h3>Referrals acumulados</h3>
+            <HandCoins size={18} />
+          </div>
+          <div className="broker-metric-value">{brokers.reduce((sum, item) => sum + item._count.referrals, 0)}</div>
+        </div>
+        <div className="card module-panel module-panel--tight">
+          <div className="card-header">
+            <h3>Facturación acumulada</h3>
+            <FileSpreadsheet size={18} />
+          </div>
+          <div className="broker-metric-value">
             PLN {brokers.reduce((sum, item) => sum + item.accumulatedBilling, 0).toFixed(2)}
           </div>
         </div>
       </div>
 
-      <div style={{ marginBottom: "1.5rem" }}>
+      <div className="module-panel">
         <BrokerImportForms />
       </div>
 
       <div className="broker-toolbar no-print">
-        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=xlsx`}>Exportar XLSX</a>
-        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=csv`}>Exportar CSV</a>
+        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=xlsx`}>
+          Exportar XLSX
+        </a>
+        <a className="button" href={`/api/brokers/export?${exportParams.toString()}&format=csv`}>
+          Exportar CSV
+        </a>
       </div>
 
-      <div className="card">
-        <div className="table-container">
-          <table className="broker-table">
+      <div className="card module-panel">
+        <div className="table-container table-container--responsive">
+          <table className="broker-table broker-table--brokers">
             <thead>
               <tr>
                 <th>Broker</th>
@@ -101,19 +120,21 @@ export default async function BrokersPage({
               {brokers.map((broker) => (
                 <tr key={broker.id}>
                   <td>
-                    <div style={{ fontWeight: 800 }}>{broker.displayName}</div>
-                    <div style={{ opacity: 0.65, fontSize: "0.8rem" }}>{broker.legalOrBillingName || "-"}</div>
+                    <div className="broker-name-primary">{broker.displayName}</div>
+                    <div className="broker-name-secondary">{broker.legalOrBillingName || "-"}</div>
                   </td>
                   <td>{broker.country || "-"}</td>
                   <td>{broker.city || "-"}</td>
                   <td>{broker.primaryEmail || "-"}</td>
                   <td>{broker.primaryPhone || "-"}</td>
-                  <td><BrokerStatusBadge value={broker.status} /></td>
+                  <td>
+                    <BrokerStatusBadge value={broker.status} />
+                  </td>
                   <td>{broker.qualityRating ?? "-"}</td>
                   <td>{broker._count.referrals}</td>
                   <td>PLN {broker.accumulatedBilling.toFixed(2)}</td>
                   <td className="broker-action-cell">
-                    <Link href={`/brokers/${broker.id}`} className="button button-secondary broker-action-button" style={{ textDecoration: "none" }}>
+                    <Link href={`/brokers/${broker.id}`} className="button button-secondary broker-action-button">
                       Ver
                     </Link>
                   </td>
@@ -121,7 +142,7 @@ export default async function BrokersPage({
               ))}
               {brokers.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: "center", opacity: 0.6, padding: "2rem" }}>
+                  <td colSpan={10} className="broker-empty-state">
                     No hay brokers consolidados todavía. Importa leads o facturación y promueve los leads válidos.
                   </td>
                 </tr>
@@ -129,7 +150,7 @@ export default async function BrokersPage({
             </tbody>
           </table>
         </div>
-        <div style={{ marginTop: "1rem" }}>
+        <div className="broker-pagination-shell">
           <QueryPagination
             label="Brokers"
             pageNumber={brokersPage.pageNumber}

@@ -78,6 +78,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
           fontWeight: "900",
           textTransform: "uppercase",
           marginBottom: "1.25rem",
+          overflowWrap: "anywhere",
         }}
       >
         Programar Nueva Llegada
@@ -86,7 +87,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: "1rem",
           marginBottom: "1rem",
         }}
@@ -106,25 +107,26 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
                 setIsCandidatePickerOpen(true);
               }}
               onFocus={() => setIsCandidatePickerOpen(true)}
-              placeholder="Buscar por nombre, pasaporte, PESEL, pais..."
+              placeholder="Buscar por nombre, pasaporte, PESEL, país..."
               disabled={candidates.length === 0}
               autoComplete="off"
             />
             {isCandidatePickerOpen && candidates.length > 0 ? (
-              <div
-                style={{
-                  position: "absolute",
-                  zIndex: 20,
-                  top: "calc(100% + 4px)",
-                  left: 0,
-                  right: 0,
-                  maxHeight: "260px",
-                  overflowY: "auto",
-                  border: "1px solid var(--border)",
-                  backgroundColor: "var(--background)",
-                  boxShadow: "8px 8px 0 var(--shadow)",
-                }}
-              >
+                <div
+                  style={{
+                    position: "absolute",
+                    zIndex: 20,
+                    top: "calc(100% + 4px)",
+                    left: 0,
+                    right: 0,
+                    maxHeight: "260px",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    border: "1px solid var(--border)",
+                    backgroundColor: "var(--background)",
+                    boxShadow: "8px 8px 0 var(--shadow)",
+                  }}
+                >
                 {filteredCandidates.length > 0 ? (
                   filteredCandidates.map((candidate) => (
                     <button
@@ -145,6 +147,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
                         padding: "0.8rem",
                         textAlign: "left",
                         cursor: "pointer",
+                        overflowWrap: "anywhere",
                       }}
                     >
                       <strong style={{ display: "block", textTransform: "uppercase" }}>
@@ -159,7 +162,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
                   ))
                 ) : (
                   <div style={{ padding: "0.9rem", fontSize: "0.82rem", color: "var(--muted-foreground)" }}>
-                    Sin coincidencias. Prueba con nombre, pasaporte, PESEL o pais.
+                    Sin coincidencias. Prueba con nombre, pasaporte, PESEL o país.
                   </div>
                 )}
               </div>
@@ -185,7 +188,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
             value={transportType}
             onChange={(event) => setTransportType(event.target.value)}
           >
-            <option value="AVION">Avion</option>
+            <option value="AVION">Avión</option>
             <option value="TREN">Tren</option>
             <option value="COCHE_EMPRESA">Coche Empresa</option>
             <option value="PROPIO">Propio / Flixbus</option>

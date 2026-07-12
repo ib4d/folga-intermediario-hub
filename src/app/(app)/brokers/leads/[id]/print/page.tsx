@@ -26,27 +26,23 @@ export default async function BrokerLeadPrintPage({
   const displayName = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Broker lead";
 
   return (
-    <div className="main-content" style={{ maxWidth: 1200 }}>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .print-card { box-shadow: none !important; border-color: #ccc !important; }
-        }
-      `}</style>
-
-      <div className="no-print" style={{ marginBottom: "1rem" }}>
+    <div className="main-content print-page-shell">
+      <div className="no-print print-page-back">
         <a className="button button-secondary" href={`/brokers/leads/${lead.id}`}>
           Volver
         </a>
       </div>
 
       <h1>{displayName}</h1>
-      <p>{lead.sourceCountrySheet} · {lead.email || lead.phone || "Sin contacto"}</p>
-      <BrokerModuleNav />
+      <p>
+        {lead.sourceCountrySheet} · {lead.email || lead.phone || "Sin contacto"}
+      </p>
+      <div className="no-print">
+        <BrokerModuleNav />
+      </div>
       <PrintActionsClient guideLabel="Puedes guardar esta ficha como PDF desde la impresión del navegador." />
 
-      <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+      <div className="dashboard-grid print-page-grid">
         <div className="card print-card">
           <h3>Lead type</h3>
           <BrokerStatusBadge value={lead.leadType} />
@@ -65,7 +61,7 @@ export default async function BrokerLeadPrintPage({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
+      <div className="print-page-section-grid">
         <div className="card print-card">
           <h3>Datos básicos</h3>
           <p><strong>Lead date:</strong> {lead.leadDate ? new Date(lead.leadDate).toLocaleString() : "-"}</p>
@@ -94,24 +90,24 @@ export default async function BrokerLeadPrintPage({
         </div>
       </div>
 
-      <div className="card print-card" style={{ marginTop: "1rem" }}>
+      <div className="card print-card print-page-section">
         <h3>Timeline de contactos</h3>
-        <div style={{ display: "grid", gap: "0.75rem" }}>
+        <div className="print-page-contact-list">
           {lead.contactAttempts.map((attempt) => (
-            <div key={attempt.id} style={{ border: "1px solid rgba(0,0,0,0.08)", padding: "0.85rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div key={attempt.id} className="print-page-contact-item">
+              <div className="print-page-contact-meta">
                 <strong>Intento #{attempt.attemptNo}</strong>
                 <BrokerStatusBadge value={attempt.channel} />
               </div>
-              <div style={{ marginTop: "0.5rem" }}><strong>Fecha:</strong> {attempt.contactDate ? new Date(attempt.contactDate).toLocaleString() : "-"}</div>
-              <div><strong>Resultado:</strong> {attempt.result || "-"}</div>
-              <div><strong>Summary:</strong> {attempt.summary || "-"}</div>
-              <div><strong>Next step:</strong> {attempt.nextStep || "-"}</div>
-              <div><strong>Next step date:</strong> {attempt.nextStepDate ? new Date(attempt.nextStepDate).toLocaleString() : "-"}</div>
+              <div className="print-page-contact-line"><strong>Fecha:</strong> {attempt.contactDate ? new Date(attempt.contactDate).toLocaleString() : "-"}</div>
+              <div className="print-page-contact-line"><strong>Resultado:</strong> {attempt.result || "-"}</div>
+              <div className="print-page-contact-line"><strong>Summary:</strong> {attempt.summary || "-"}</div>
+              <div className="print-page-contact-line"><strong>Next step:</strong> {attempt.nextStep || "-"}</div>
+              <div className="print-page-contact-line"><strong>Next step date:</strong> {attempt.nextStepDate ? new Date(attempt.nextStepDate).toLocaleString() : "-"}</div>
             </div>
           ))}
           {lead.contactAttempts.length === 0 ? (
-            <div style={{ opacity: 0.6 }}>Sin intentos de contacto importados.</div>
+            <div className="print-page-empty">Sin intentos de contacto importados.</div>
           ) : null}
         </div>
       </div>

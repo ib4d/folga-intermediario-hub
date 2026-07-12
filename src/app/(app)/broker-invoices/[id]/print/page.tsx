@@ -22,28 +22,28 @@ export default async function BrokerInvoicePrintPage({
   if (!invoice) redirect("/broker-invoices");
 
   return (
-    <div className="main-content" style={{ maxWidth: 1200 }}>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .print-card { box-shadow: none !important; border-color: #ccc !important; }
-        }
-      `}</style>
-
-      <div className="no-print" style={{ marginBottom: "1rem" }}>
-        <a className="button button-secondary" href={`/broker-invoices/${invoice.id}`}>Volver</a>
+    <div className="main-content print-page-shell">
+      <div className="no-print print-page-back">
+        <a className="button button-secondary" href={`/broker-invoices/${invoice.id}`}>
+          Volver
+        </a>
       </div>
 
       <h1>Factura broker · {invoice.broker.displayName}</h1>
-      <p>{invoice.sourceInvoiceSheet} · {invoice.sourceFileName || "sin archivo origen"}</p>
+      <p>
+        {invoice.sourceInvoiceSheet} · {invoice.sourceFileName || "sin archivo origen"}
+      </p>
 
       <BrokerInvoicePrintClient />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem", marginBottom: "1rem" }}>
+      <div className="print-page-section-grid">
         <div className="card print-card">
           <h3>Cabecera</h3>
-          <p><strong>Periodo:</strong> {invoice.referencePeriodStart ? new Date(invoice.referencePeriodStart).toLocaleDateString() : "-"} - {invoice.referencePeriodEnd ? new Date(invoice.referencePeriodEnd).toLocaleDateString() : "-"}</p>
+          <p>
+            <strong>Periodo:</strong>{" "}
+            {invoice.referencePeriodStart ? new Date(invoice.referencePeriodStart).toLocaleDateString() : "-"} -{" "}
+            {invoice.referencePeriodEnd ? new Date(invoice.referencePeriodEnd).toLocaleDateString() : "-"}
+          </p>
           <p><strong>Invoice type:</strong> {invoice.invoiceType || "-"}</p>
           <p><strong>Threshold:</strong> {invoice.minimumHoursThreshold ?? "-"}</p>
           <p><strong>Rate per person:</strong> {invoice.ratePerPersonPln ? `PLN ${Number(invoice.ratePerPersonPln).toFixed(2)}` : "-"}</p>
@@ -67,8 +67,8 @@ export default async function BrokerInvoicePrintPage({
         </div>
       </div>
 
-      <div className="card print-card">
-        <h3>Lineas</h3>
+      <div className="card print-card print-page-section">
+        <h3>Líneas</h3>
         <div className="table-container">
           <table>
             <thead>
@@ -100,7 +100,13 @@ export default async function BrokerInvoicePrintPage({
                   <td>{line.notes || "-"}</td>
                 </tr>
               ))}
-              {invoice.lines.length === 0 ? <tr><td colSpan={10} style={{ textAlign: "center", opacity: 0.6, padding: "2rem" }}>Sin lineas importadas.</td></tr> : null}
+              {invoice.lines.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="print-page-empty print-page-empty--padded">
+                    Sin líneas importadas.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

@@ -50,6 +50,7 @@ type DuplicateQueueItem = {
 type DocumentTableLabels = {
   processedTitle: string;
   deleteSelected: string;
+  clearSelection: string;
   deleteBulkTitle: string;
   deleteSingleTitle: string;
   deleteBulkDescription: string;
@@ -107,6 +108,8 @@ export default function DocumentTable({
       (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
       template,
     );
+  const selectedCount = selectedIds.length;
+  const visibleDocumentCount = initialDocuments.length;
 
   const duplicateQueueItems = useMemo<DuplicateQueueItem[]>(() => {
     const grouped = new Map<string, Document[]>();
@@ -232,13 +235,13 @@ export default function DocumentTable({
   return (
     <>
       {duplicateQueueItems.length > 0 ? (
-        <div className="card" style={{ marginBottom: "1.5rem", padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div className="card module-panel document-table-workbench-shell">
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.45rem" }}>
+            <div className="document-table-workbench-title">
               <AlertTriangle size={16} strokeWidth={2.75} />
               {labels.duplicateWorkbenchTitle}
             </div>
-            <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "bold", color: "var(--muted)", maxWidth: "760px" }}>
+            <p className="document-table-workbench-copy">
               {labels.duplicateWorkbenchDescription}
             </p>
           </div>
@@ -247,33 +250,32 @@ export default function DocumentTable({
             items={duplicateQueueItems}
             pageSize={4}
             label={labels.duplicateWorkbenchPagination}
-            className="equal-card-grid"
-            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}
+            className="equal-card-grid document-table-workbench-grid"
             renderItem={(item) => (
-              <div key={item.key} className="card equal-card" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+              <div key={item.key} className="card equal-card document-table-workbench-card">
+                <div className="document-table-workbench-card-head">
                   <div>
-                    <div style={{ fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase", lineHeight: 1.25 }}>
+                    <div className="document-table-workbench-name">
                       {item.candidateName}
                     </div>
-                    <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "var(--muted)", marginTop: "0.2rem" }}>
+                    <div className="document-table-workbench-meta">
                       {item.type}{item.number ? ` (${item.number})` : ""}
                     </div>
                   </div>
-                  <span className="status-badge" style={{ backgroundColor: "#fef3c7", color: "#92400e", fontSize: "0.62rem", whiteSpace: "nowrap" }}>
+                  <span className="status-badge document-table-workbench-badge">
                     {labels.duplicateWorkbenchBadge}
                   </span>
                 </div>
 
-                <div style={{ fontSize: "0.8rem", fontWeight: "900", color: "#7c2d12" }}>
+                <div className="document-table-workbench-count">
                   x{item.count}
                 </div>
 
-                <div style={{ fontSize: "0.72rem", fontWeight: "800", color: "var(--muted)", lineHeight: 1.45, minHeight: "3.2rem" }}>
+                <div className="document-table-workbench-suggestion">
                   {labels.duplicateSuggestedAction}: {item.suggestion}
                 </div>
 
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "auto", flexWrap: "wrap" }}>
+                <div className="document-table-workbench-actions">
                   {canReviewDocuments ? (
                     <DocumentReviewModal
                       doc={item.documents[0]}
@@ -281,7 +283,7 @@ export default function DocumentTable({
                       candidateDefaults={item.documents[0].candidate ?? undefined}
                     />
                   ) : null}
-                  <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
+                  <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary document-table-workbench-open">
                     {labels.openCandidate}
                   </Link>
                 </div>
@@ -291,62 +293,60 @@ export default function DocumentTable({
         </div>
       ) : null}
 
-      <div className="card">
+      <div className="card module-panel">
         {ocrMode === "manual" ? (
-          <div
-            style={{
-              marginBottom: "1rem",
-              padding: "0.85rem 1rem",
-              border: "1px solid #f59e0b",
-              backgroundColor: "#fffbeb",
-              color: "#92400e",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-            }}
-          >
-            Modo manual activo: los documentos se guardan correctamente y quedan pendientes de
-            revision antes de validar los datos.
+          <div className="document-manual-banner">
+            Modo manual activo: los documentos se guardan correctamente, pero quedan en revisión antes de validar los datos.
           </div>
         ) : null}
 
-        <div
-          className="card-header"
-          style={{
-            borderBottom: "2px solid var(--pitch-black)",
-            paddingBottom: "1rem",
-            marginBottom: "1.5rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h2>{labels.processedTitle}</h2>
-          {canDeleteDocuments && selectedIds.length > 0 ? (
-            <button
-              className="button button-secondary"
-              style={{ backgroundColor: "#fee2e2", color: "#dc2626", borderColor: "#dc2626" }}
-              onClick={handleDeleteSelected}
-              disabled={isDeleting}
-            >
-              {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-              {`${labels.deleteSelected} (${selectedIds.length})`}
-            </button>
+        <div className="page-section-header document-table-header">
+          <div className="page-section-copy">
+            <h2 className="page-section-title">{labels.processedTitle}</h2>
+            <p className="page-section-description">
+              {visibleDocumentCount} documentos visibles - {selectedCount} seleccionados
+            </p>
+          </div>
+          {canDeleteDocuments && selectedCount > 0 ? (
+            <div className="document-table-summary-actions">
+              <button
+                className="button button-secondary document-table-bulk-delete"
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                {`${labels.deleteSelected} (${selectedCount})`}
+              </button>
+              <button
+                className="button button-outline"
+                type="button"
+                onClick={() => setSelectedIds([])}
+                disabled={isDeleting}
+              >
+                {labels.clearSelection}
+              </button>
+            </div>
           ) : null}
         </div>
 
         {tableMessage ? (
-          <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error"} style={{ marginBottom: "1rem" }}>
+          <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error document-table-message"}>
             {tableMessage.text}
           </p>
         ) : null}
 
-        <div className="table-container">
+        <div className="table-container table-container--responsive document-table-scroll">
           <table>
             <thead>
               <tr>
                 {canDeleteDocuments ? (
-                  <th style={{ width: "40px" }}>
-                    <button onClick={toggleSelectAll} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                  <th className="document-table-select-col">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="document-table-select-toggle"
+                      aria-label={selectedIds.length === initialDocuments.length ? "Deseleccionar todos los documentos" : "Seleccionar todos los documentos"}
+                    >
                       {selectedIds.length === initialDocuments.length && initialDocuments.length > 0 ? (
                         <CheckSquare size={18} />
                       ) : (
@@ -367,7 +367,7 @@ export default function DocumentTable({
             <tbody>
               {initialDocuments.length === 0 ? (
                 <tr>
-                  <td colSpan={canDeleteDocuments ? 8 : 7} style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+                  <td colSpan={canDeleteDocuments ? 8 : 7} className="document-table-empty">
                     {labels.empty}
                   </td>
                 </tr>
@@ -382,11 +382,13 @@ export default function DocumentTable({
 
                   return (
                     <tr key={doc.id}>
-                      {canDeleteDocuments ? (
+                {canDeleteDocuments ? (
                         <td>
                           <button
+                            type="button"
                             onClick={() => toggleSelect(doc.id)}
-                            style={{ background: "none", border: "none", cursor: "pointer" }}
+                            className="document-table-select-toggle"
+                            aria-label={selectedIds.includes(doc.id) ? `Quitar selección de ${filename}` : `Seleccionar ${filename}`}
                           >
                             {selectedIds.includes(doc.id) ? (
                               <CheckSquare size={18} color="var(--amber-flame)" />
@@ -397,29 +399,29 @@ export default function DocumentTable({
                         </td>
                       ) : null}
                       <td>
-                        <div style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div className="document-table-file-cell">
                           <FileText size={16} />
                           {filename}
                         </div>
                       </td>
                       <td>{candidateName}</td>
                       <td>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                        <div className="document-table-type-cell">
                           <span>{typeLabel}</span>
                           {dispositionLabel ? (
-                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)" }}>
+                            <span className="document-table-type-disposition">
                               {dispositionLabel}
                             </span>
                           ) : null}
                         </div>
                       </td>
-                      <td style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "0.875rem" }}>{displayNumber}</td>
+                      <td className="document-table-number">{displayNumber}</td>
                       <td>{displayExpiry}</td>
                       <td>
                         <span className={getOcrBadgeClassName(doc.ocrStatus)}>{getOcrLabel(doc.ocrStatus)}</span>
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <div className="document-table-actions">
                           {canReviewDocuments ? (
                             <DocumentReviewModal
                               doc={doc}
@@ -429,28 +431,23 @@ export default function DocumentTable({
                           ) : null}
                           <Link
                             href={`/candidatos/${doc.candidateId}`}
-                            className="button button-secondary"
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                            className="button button-secondary document-table-action-link"
                           >
                             {doc.ocrStatus === "FAILED"
                               ? labels.fix
                               : isOcrReviewRequiredStatus(doc.ocrStatus)
                                 ? labels.review
                                 : isManualReviewOcrStatus(doc.ocrStatus)
-                                  ? "Revisar manual"
+                                  ? "Revisión manual"
                                 : labels.verify}
                           </Link>
                           {canDeleteDocuments ? (
                             <button
+                              type="button"
                               onClick={() => handleDeleteSingle(doc.id)}
                               disabled={isDeleting}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                color: "#dc2626",
-                                cursor: "pointer",
-                                opacity: isDeleting ? 0.5 : 1,
-                              }}
+                              aria-label={`Eliminar documento ${filename}`}
+                              className="document-table-delete-button"
                             >
                               <Trash2 size={16} />
                             </button>

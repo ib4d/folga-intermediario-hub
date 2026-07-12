@@ -1,13 +1,13 @@
 export default function Loading() {
   return (
-    <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      <div className="skeleton" style={{ height: "120px", width: "100%" }} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
+    <div className="route-loading-shell">
+      <div className="skeleton route-loading-hero" />
+      <div className="route-loading-grid">
         {[1, 2].map((i) => (
-          <div key={i} className="skeleton" style={{ height: "120px" }} />
+          <div key={i} className="skeleton route-loading-card" />
         ))}
       </div>
-      <div className="skeleton" style={{ height: "360px", width: "100%" }} />
+      <div className="skeleton route-loading-table" />
     </div>
   );
 }

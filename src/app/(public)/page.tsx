@@ -163,116 +163,81 @@ export default async function LandingPage({
   const loginHref = localizedHref("/login", language);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "var(--pitch-black)",
-        color: "var(--ghost-white)",
-        overflowX: "hidden",
-      }}
-    >
-      <nav
-        style={{
-          padding: "1.5rem 2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "4px solid var(--amber-flame)",
-          position: "sticky",
-          top: 0,
-          backgroundColor: "rgba(11, 5, 0, 0.9)",
-          backdropFilter: "blur(10px)",
-          zIndex: 100,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "1.75rem",
-            fontWeight: 900,
-            color: "var(--amber-flame)",
-          }}
-        >
-          ORI CRUIT <span style={{ color: "var(--ghost-white)" }}>HUB</span>
+    <div className="public-landing">
+      <nav className="public-topbar">
+        <div className="public-brand">
+          ORI CRUIT <span className="public-brand-accent">HUB</span>
         </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="#features" style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+        <div className="public-nav-links">
+          <Link href="#features" className="public-nav-link">
             {labels("public.nav.features")}
           </Link>
-          <Link href={demoHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={demoHref} className="public-nav-link">
             {labels("public.nav.demo")}
           </Link>
-          <Link href={securityHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={securityHref} className="public-nav-link">
             {labels("public.nav.security")}
           </Link>
-          <Link href={pricingHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={pricingHref} className="public-nav-link">
             {labels("public.nav.pricing")}
           </Link>
           <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button" style={{ fontSize: "0.8rem", padding: "0.5rem 1.25rem" }}>
+          <Link href={loginHref} className="button public-login-link">
             {labels("public.nav.login")}
           </Link>
         </div>
       </nav>
 
-      <header style={{ padding: "8rem 2rem", textAlign: "center", maxWidth: "1200px", margin: "0 auto" }}>
-        <h1
-          style={{
-            fontSize: "clamp(3rem, 8vw, 5.5rem)",
-            fontWeight: 900,
-            marginBottom: "2rem",
-            lineHeight: 0.95,
-            textTransform: "uppercase",
-          }}
-        >
+      <header className="public-hero">
+        <h1 className="public-hero-title">
           {labels("public.hero.titleA")} <br />
-          <span style={{ color: "var(--amber-flame)" }}>{labels("public.hero.titleB")}</span>
+          <span>{labels("public.hero.titleB")}</span>
         </h1>
-        <p
-          style={{
-            fontSize: "1.35rem",
-            margin: "0 auto 3rem",
-            maxWidth: "820px",
-            opacity: 0.9,
-            fontWeight: 600,
-          }}
-        >
+        <p className="public-hero-copy">
           {labels("public.hero.description")}
         </p>
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href={onboardingHref} className="button" style={{ padding: "1.1rem 2rem", fontSize: "1.1rem" }}>
-            {labels("public.hero.primaryCta")} <ArrowRight size={22} style={{ marginLeft: "0.5rem" }} />
+        <div className="public-hero-actions">
+          <Link href={onboardingHref} className="button public-hero-primary-action">
+            {labels("public.hero.primaryCta")} <ArrowRight size={22} className="public-hero-arrow" />
           </Link>
           <Link
             href={demoHref}
-            className="button button-secondary"
-            style={{
-              padding: "1.1rem 2rem",
-              fontSize: "1.1rem",
-              backgroundColor: "transparent",
-              border: "2px solid var(--ghost-white)",
-              color: "var(--ghost-white)",
-            }}
+            className="button public-hero-secondary-action"
           >
             {labels("public.hero.secondaryCta")}
           </Link>
         </div>
+
+        <div className="public-card-grid public-card-grid--3 public-hero-card-grid">
+          {featureCards.slice(0, 3).map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.title}
+                className="card public-card public-card-dark public-hero-card"
+              >
+                <Icon size={28} className="public-hero-card-icon" />
+                <h3 className="public-hero-card-title">{labels(card.title)}</h3>
+                <p className="public-hero-card-copy">{labels(card.text)}</p>
+              </div>
+            );
+          })}
+        </div>
       </header>
 
-      <section style={{ padding: "5rem 2rem", backgroundColor: "#0f0f0f", borderBlock: "4px solid var(--amber-flame)" }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "3rem", marginBottom: "3rem", textTransform: "uppercase" }}>
+      <section className="public-section public-section--dark">
+        <div className="public-section-inner public-section-inner--narrow public-section-copy">
+          <h2 className="public-section-title">
             {labels("public.problem.title")}
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "2rem" }}>
+          <div className="public-card-grid public-card-grid--4">
             {problemCards.map((card) => {
               const Icon = card.icon;
               return (
-                <div key={card.title} style={{ padding: "2rem", border: "1px solid rgba(255,255,255,0.15)" }}>
-                  <Icon size={40} style={{ color: "#ff4d4d", marginBottom: "1.5rem" }} />
-                  <h3 style={{ marginBottom: "1rem" }}>{labels(card.title)}</h3>
-                  <p style={{ opacity: 0.75 }}>{labels(card.text)}</p>
+                <div key={card.title} className="card public-card public-card-dark-alt">
+                  <Icon size={40} className="public-problem-icon" />
+                  <h3 className="public-problem-title">{labels(card.title)}</h3>
+                  <p className="public-problem-copy">{labels(card.text)}</p>
                 </div>
               );
             })}
@@ -280,33 +245,27 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section id="features" style={{ padding: "7rem 2rem" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-            <h2 style={{ fontSize: "3.5rem", marginBottom: "1.5rem", textTransform: "uppercase" }}>
+      <section id="features" className="public-section public-section--light">
+        <div className="public-section-inner">
+          <div className="public-section-copy">
+            <h2 className="public-section-title">
               {labels("public.features.title")}
             </h2>
-            <p style={{ fontSize: "1.25rem", maxWidth: "720px", margin: "0 auto" }}>
+            <p>
               {labels("public.features.description")}
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2rem" }}>
+          <div className="public-card-grid public-card-grid--pricing">
             {featureCards.map((card) => {
               const Icon = card.icon;
               return (
                 <div
                   key={card.title}
-                  className="card"
-                  style={{
-                    backgroundColor: "#151515",
-                    border: "2px solid var(--amber-flame)",
-                    boxShadow: "8px 8px 0 var(--amber-flame)",
-                    minHeight: "220px",
-                  }}
+                  className="card public-card public-card-dark public-card-accent"
                 >
-                  <Icon size={32} style={{ color: "var(--amber-flame)", marginBottom: "1.5rem" }} />
-                  <h3 style={{ color: "var(--amber-flame)" }}>{labels(card.title)}</h3>
+                  <Icon size={32} className="public-feature-icon" />
+                  <h3 className="public-feature-title">{labels(card.title)}</h3>
                   <p>{labels(card.text)}</p>
                 </div>
               );
@@ -315,52 +274,33 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section
-        id="demo"
-        style={{
-          padding: "7rem 2rem",
-          backgroundColor: "#0f0f0f",
-          borderBlock: "4px solid var(--amber-flame)",
-        }}
-      >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-            <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+      <section id="demo" className="public-section public-section--dark">
+        <div className="public-section-inner">
+          <div className="public-section-copy">
+            <h2 className="public-section-title">
               {labels("public.demo.title")}
             </h2>
-            <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto", opacity: 0.9 }}>
+            <p>
               {labels("public.demo.description")}
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem" }}>
+          <div className="public-card-grid public-demo-card-grid">
             {demoSteps.map((step, index) => {
               const Icon = step.icon;
               return (
                 <div
                   key={step.title}
-                  className="card"
-                  style={{
-                    backgroundColor: "#151515",
-                    border: "2px solid rgba(255, 255, 255, 0.14)",
-                    minHeight: "220px",
-                  }}
+                  className="card public-card public-card-dark-alt"
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-                    <span
-                      className="status-badge active"
-                      style={{
-                        backgroundColor: "var(--amber-flame)",
-                        color: "var(--pitch-black)",
-                        paddingInline: "0.65rem",
-                      }}
-                    >
+                  <div className="public-demo-step-header">
+                    <span className="status-badge active public-demo-step-badge">
                       0{index + 1}
                     </span>
-                    <Icon size={28} style={{ color: "var(--amber-flame)" }} />
+                    <Icon size={28} className="public-demo-step-icon" />
                   </div>
-                  <h3 style={{ color: "var(--ghost-white)", marginBottom: "0.75rem" }}>{labels(step.title)}</h3>
-                  <p style={{ opacity: 0.78, margin: 0 }}>{labels(step.text)}</p>
+                  <h3 className="public-demo-step-title">{labels(step.title)}</h3>
+                  <p className="public-demo-step-copy">{labels(step.text)}</p>
                 </div>
               );
             })}
@@ -368,34 +308,26 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section
-        id="security"
-        style={{ padding: "7rem 2rem", backgroundColor: "var(--ghost-white)", color: "var(--pitch-black)" }}
-      >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-            <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+      <section id="security" className="public-section public-section--light">
+        <div className="public-section-inner">
+          <div className="public-section-copy">
+            <h2 className="public-section-title">
               {labels("public.security.title")}
             </h2>
-            <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto" }}>{labels("public.security.description")}</p>
+            <p>{labels("public.security.description")}</p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
+          <div className="public-card-grid public-card-grid--4 public-security-card-grid">
             {trustCards.map((card) => {
               const Icon = card.icon;
               return (
                 <div
                   key={card.title}
-                  className="card"
-                  style={{
-                    backgroundColor: "white",
-                    border: "1px solid rgba(0, 0, 0, 0.08)",
-                    minHeight: "200px",
-                  }}
+                  className="card public-card"
                 >
-                  <Icon size={30} style={{ color: "var(--amber-flame)", marginBottom: "1rem" }} />
-                  <h3 style={{ marginBottom: "0.75rem" }}>{labels(card.title)}</h3>
-                  <p style={{ margin: 0, opacity: 0.8 }}>{labels(card.text)}</p>
+                  <Icon size={30} className="public-security-icon" />
+                  <h3 className="public-security-title">{labels(card.title)}</h3>
+                  <p className="public-security-copy">{labels(card.text)}</p>
                 </div>
               );
             })}
@@ -403,16 +335,16 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section id="pricing" style={{ padding: "7rem 2rem", backgroundColor: "var(--ghost-white)", color: "var(--pitch-black)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-            <h2 style={{ fontSize: "3.5rem", marginBottom: "1rem", textTransform: "uppercase" }}>
+      <section id="pricing" className="public-section public-section--light">
+        <div className="public-section-inner">
+          <div className="public-section-copy">
+            <h2 className="public-section-title">
               {labels("public.pricing.title")}
             </h2>
-            <p style={{ fontSize: "1.25rem" }}>{labels("public.pricing.description")}</p>
+            <p>{labels("public.pricing.description")}</p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "2rem" }}>
+          <div className="public-card-grid public-card-grid--pricing">
             {pricingPlans.map((plan) => {
               const planHref = plan.title === "public.pricing.free" ? onboardingHref : pricingHref;
               const planLabel =
@@ -423,40 +355,27 @@ export default async function LandingPage({
               return (
                 <div
                   key={plan.title ?? plan.price}
-                  className="card"
-                  style={{
-                    backgroundColor: "white",
-                    border: plan.featured ? "4px solid var(--pitch-black)" : undefined,
-                    transform: plan.featured ? "translateY(-10px)" : undefined,
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: "430px",
-                  }}
+                  className={`card public-card public-pricing-card ${plan.featured ? "public-card-accent" : ""} ${plan.darkBadge ? "public-pricing-card--dark-badge" : ""}`.trim()}
                 >
-                  <div style={{ marginBottom: "2rem" }}>
+                  <div className="public-pricing-header">
                     <div
-                      className={`status-badge ${plan.featured ? "active" : ""}`}
-                      style={{
-                        marginBottom: "1rem",
-                        backgroundColor: plan.darkBadge ? "var(--pitch-black)" : undefined,
-                        color: plan.darkBadge ? "white" : undefined,
-                      }}
+                      className={`status-badge ${plan.featured ? "active" : ""} public-pricing-badge ${plan.darkBadge ? "public-pricing-badge--dark" : ""}`}
                     >
-                      {labels(plan.badge)}
+                    {labels(plan.badge)}
                     </div>
-                    <h3 style={{ fontSize: "2.35rem" }}>
+                    <h3 className="public-pricing-title">
                       {plan.price ?? labels(plan.title ?? "public.pricing.free")}
-                      {plan.suffix ? <span style={{ fontSize: "1rem" }}>{labels(plan.suffix)}</span> : null}
+                      {plan.suffix ? <span className="public-pricing-suffix">{labels(plan.suffix)}</span> : null}
                     </h3>
                   </div>
-                  <ul style={{ listStyle: "none", marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem", flex: 1 }}>
+                  <ul className="public-pricing-list">
                     {plan.items.map((item) => (
-                      <li key={item} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <li key={item} className="public-pricing-item">
                         <CheckCircle2 size={18} color="green" /> {labels(item)}
                       </li>
                     ))}
                   </ul>
-                  <Link href={planHref} className="button" style={{ width: "100%" }}>
+                  <Link href={planHref} className="button public-pricing-action">
                     {planLabel}
                   </Link>
                 </div>
@@ -466,36 +385,21 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <section
-        id="cta"
-        style={{
-          padding: "6.5rem 2rem",
-          backgroundColor: "#0f0f0f",
-          borderTop: "4px solid var(--amber-flame)",
-          borderBottom: "4px solid var(--amber-flame)",
-        }}
-      >
-        <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "3.25rem", marginBottom: "1.25rem", textTransform: "uppercase" }}>
+      <section id="cta" className="public-section public-section--dark public-cta-section">
+        <div className="public-section-inner public-section-inner--narrow public-cta-inner">
+          <h2 className="public-section-title">
             {labels("public.finalCta.title")}
           </h2>
-          <p style={{ fontSize: "1.2rem", maxWidth: "780px", margin: "0 auto 2.5rem", opacity: 0.9 }}>
+          <p className="public-cta-copy">
             {labels("public.finalCta.description")}
           </p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href={demoHref} className="button" style={{ padding: "1rem 1.75rem", fontSize: "1rem" }}>
-              {labels("public.finalCta.primary")} <ArrowRight size={20} style={{ marginLeft: "0.5rem" }} />
+          <div className="public-section-actions">
+            <Link href={demoHref} className="button public-cta-primary">
+              {labels("public.finalCta.primary")} <ArrowRight size={20} className="public-cta-arrow" />
             </Link>
             <Link
               href={loginHref}
-              className="button button-secondary"
-              style={{
-                padding: "1rem 1.75rem",
-                fontSize: "1rem",
-                backgroundColor: "transparent",
-                border: "2px solid var(--ghost-white)",
-                color: "var(--ghost-white)",
-              }}
+              className="button public-cta-secondary"
             >
               {labels("public.finalCta.secondary")}
             </Link>
@@ -503,37 +407,30 @@ export default async function LandingPage({
         </div>
       </section>
 
-      <footer
-        style={{
-          padding: "5rem 2rem",
-          borderTop: "4px solid var(--amber-flame)",
-          backgroundColor: "var(--pitch-black)",
-          textAlign: "center",
-        }}
-      >
-        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--amber-flame)", marginBottom: "2rem" }}>
+      <footer className="public-footer">
+        <div className="public-footer-inner">
+          <div className="public-footer-brand">
             ORI CRUIT HUB
           </div>
-          <p style={{ opacity: 0.65, marginBottom: "3rem" }}>{labels("public.footer.description")}</p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "2rem", marginBottom: "3rem", flexWrap: "wrap" }}>
-            <Link href="#features" style={{ color: "inherit", textDecoration: "none" }}>
+          <p className="public-footer-copy">{labels("public.footer.description")}</p>
+          <div className="public-footer-links">
+            <Link href="#features" className="public-footer-link">
               {labels("public.nav.features")}
             </Link>
-            <Link href={demoHref} style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={demoHref} className="public-footer-link">
               {labels("public.nav.demo")}
             </Link>
-            <Link href={securityHref} style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={securityHref} className="public-footer-link">
               {labels("public.nav.security")}
             </Link>
-            <Link href={pricingHref} style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={pricingHref} className="public-footer-link">
               {labels("public.nav.pricing")}
             </Link>
-            <Link href={loginHref} style={{ color: "inherit", textDecoration: "none" }}>
+            <Link href={loginHref} className="public-footer-link">
               {labels("public.nav.login")}
             </Link>
           </div>
-          <div style={{ fontSize: "0.8rem", opacity: 0.45 }}>
+          <div className="public-footer-rights">
             {labels("public.footer.rights")}
           </div>
         </div>

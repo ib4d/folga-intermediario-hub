@@ -105,22 +105,13 @@ export default async function PlatformAutomationActivityPage({
     },
     include: {
       organization: {
-        select: {
-          name: true,
-          slug: true,
-        },
+        select: { name: true, slug: true },
       },
       candidate: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
+        select: { firstName: true, lastName: true },
       },
       user: {
-        select: {
-          name: true,
-          email: true,
-        },
+        select: { name: true, email: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -134,23 +125,20 @@ export default async function PlatformAutomationActivityPage({
     return acc;
   }, {});
 
+  const activityFilters: AutomationActivityFilter[] = ["all", "doc-expiring", "billing-attention", "plan-pressure"];
+
   return (
-    <div style={{ padding: "2rem" }}>
-      <div className="hero-section" style={{ marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+    <div className="automation-activity-page">
+      <div className="hero-section automation-activity-hero">
+        <div className="automation-activity-hero-top">
           <div>
             <h1>{labels("platform.automationActivityTitle")}</h1>
             <p>{labels("platform.automationActivityDescription")}</p>
-            <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {(["all", "doc-expiring", "billing-attention", "plan-pressure"] as AutomationActivityFilter[]).map((filter) => (
-                <Link
-                  key={filter}
-                  href={buildFilterHref(filter)}
-                  className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
-                  style={{ textDecoration: "none" }}
-                >
+            <div className="automation-filter-row">
+              {activityFilters.map((filter) => (
+                <Link key={filter} href={buildFilterHref(filter)} className={`status-badge automation-chip ${selectedFilter === filter ? "active" : ""}`}>
                   {getActivityFilterLabel(filter, labels)}
-                  <span style={{ marginLeft: "0.45rem", fontWeight: 900 }}>
+                  <span className="automation-chip-count">
                     {filter === "all"
                       ? totalActivities
                       : filter === "doc-expiring"
@@ -163,64 +151,64 @@ export default async function PlatformAutomationActivityPage({
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignSelf: "start" }}>
-            <Link href="/platform/automation" className="button button-secondary" style={{ textDecoration: "none" }}>
+          <div className="automation-activity-actions">
+            <Link href="/platform/automation" className="button button-secondary automation-back-link">
               {labels("platform.automationBackToPlatform")}
             </Link>
-            <Link href={buildNotificationsHref(selectedFilter)} className="button button-secondary" style={{ textDecoration: "none" }}>
+            <Link href={buildNotificationsHref(selectedFilter)} className="button button-secondary automation-back-link">
               {labels("platform.automationOpenNotifications")}
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
+      <div className="dashboard-grid automation-activity-metric-grid">
+        <div className="card automation-activity-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationActivityTotal")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalActivities}</div>
+          <div className="automation-activity-value">{totalActivities}</div>
         </div>
-        <div className="card">
+        <div className="card automation-activity-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationPageStatus")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{unreadActivities}</div>
+          <div className="automation-activity-value">{unreadActivities}</div>
         </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
+      <div className="dashboard-grid automation-activity-metric-grid">
+        <div className="card automation-activity-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationTriggerDocExpiring")}</h3>
             <Activity size={20} />
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.DOC_EXPIRING ?? 0}</div>
+          <div className="automation-activity-subvalue">{activitiesByType.DOC_EXPIRING ?? 0}</div>
         </div>
-        <div className="card">
+        <div className="card automation-activity-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationTriggerBillingAttention")}</h3>
             <Activity size={20} />
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.BILLING_SUBSCRIPTION_ATTENTION ?? 0}</div>
+          <div className="automation-activity-subvalue">{activitiesByType.BILLING_SUBSCRIPTION_ATTENTION ?? 0}</div>
         </div>
-        <div className="card">
+        <div className="card automation-activity-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationTriggerPlanPressure")}</h3>
             <Activity size={20} />
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{activitiesByType.BILLING_USAGE_PRESSURE ?? 0}</div>
+          <div className="automation-activity-subvalue">{activitiesByType.BILLING_USAGE_PRESSURE ?? 0}</div>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card automation-activity-table-card">
         <div className="card-header">
           <h2>{labels("platform.automationActivityTitle")}</h2>
           <Activity size={20} />
         </div>
-        <div className="table-container">
+        <div className="table-container table-container--responsive">
           <table>
             <thead>
               <tr>
@@ -237,38 +225,27 @@ export default async function PlatformAutomationActivityPage({
               {activities.length > 0 ? (
                 activities.map((activity) => (
                   <tr key={activity.id}>
-                    <td style={{ fontWeight: "bold" }}>
+                    <td className="automation-activity-title-cell">
                       <div>{activity.title}</div>
-                      <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{activity.message}</div>
+                      <div className="automation-subtext">{activity.message}</div>
                     </td>
                     <td>
-                      <Link
-                        href={buildWorkflowHrefFromActivityType(activity.type)}
-                        className="status-badge active"
-                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)", textDecoration: "none" }}
-                      >
+                      <Link href={buildWorkflowHrefFromActivityType(activity.type)} className="status-badge automation-trigger-badge">
                         {getActivityTriggerLabel(activity.type, labels)}
                       </Link>
                     </td>
                     <td>
                       {activity.organization.name}
-                      <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{activity.organization.slug}</div>
+                      <div className="automation-subtext">{activity.organization.slug}</div>
                     </td>
-                    <td>
-                      {activity.user.name ?? activity.user.email ?? labels("billing.notAvailable")}
-                    </td>
+                    <td>{activity.user.name ?? activity.user.email ?? labels("billing.notAvailable")}</td>
                     <td>
                       {activity.candidate && activity.candidateId ? (
-                        <div style={{ display: "grid", gap: "0.35rem" }}>
-                          <Link href={`/candidatos/${activity.candidateId}`} style={{ fontWeight: 700, textDecoration: "none" }}>
-                            {getDisplayCandidateName(activity.candidate.firstName, activity.candidate.lastName) ||
-                              labels("billing.notAvailable")}
+                        <div className="automation-activity-candidate-stack">
+                          <Link href={`/candidatos/${activity.candidateId}`} className="automation-activity-candidate-link">
+                            {getDisplayCandidateName(activity.candidate.firstName, activity.candidate.lastName) || labels("billing.notAvailable")}
                           </Link>
-                          <Link
-                            href={`/candidatos/${activity.candidateId}`}
-                            className="button button-secondary"
-                            style={{ textDecoration: "none", width: "fit-content", paddingInline: "0.8rem", paddingBlock: "0.45rem" }}
-                          >
+                          <Link href={`/candidatos/${activity.candidateId}`} className="button button-secondary automation-activity-button">
                             {labels("documents.openCandidate")}
                           </Link>
                         </div>
@@ -286,7 +263,7 @@ export default async function PlatformAutomationActivityPage({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={7} className="automation-empty-state">
                     {labels("platform.automationActivityNoActivity")}
                   </td>
                 </tr>

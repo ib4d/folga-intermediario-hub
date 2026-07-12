@@ -24,16 +24,8 @@ export default async function BrokerPrintPage({
   if (!broker) redirect("/brokers");
 
   return (
-    <div className="main-content" style={{ maxWidth: 1200 }}>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .print-card { box-shadow: none !important; border-color: #ccc !important; }
-        }
-      `}</style>
-
-      <div className="no-print" style={{ marginBottom: "1rem" }}>
+    <div className="main-content print-page-shell">
+      <div className="no-print print-page-back">
         <a className="button button-secondary" href={`/brokers/${broker.id}`}>
           Volver
         </a>
@@ -41,36 +33,31 @@ export default async function BrokerPrintPage({
 
       <h1>{broker.displayName}</h1>
       <p>{broker.legalOrBillingName || broker.displayName}</p>
-      <BrokerModuleNav />
+      <div className="no-print">
+        <BrokerModuleNav />
+      </div>
       <PrintActionsClient guideLabel="Puedes guardar esta ficha como PDF desde la impresión del navegador." />
 
-      <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
+      <div className="dashboard-grid print-page-grid">
         <div className="card print-card">
           <h3>Status</h3>
           <BrokerStatusBadge value={broker.status} />
         </div>
         <div className="card print-card">
           <h3>Referrals</h3>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{broker.metrics.totalReferrals}</div>
+          <div className="print-page-metric-value">{broker.metrics.totalReferrals}</div>
         </div>
         <div className="card print-card">
           <h3>Elegibles</h3>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>{broker.metrics.eligibleReferrals}</div>
+          <div className="print-page-metric-value">{broker.metrics.eligibleReferrals}</div>
         </div>
         <div className="card print-card">
           <h3>Total final</h3>
-          <div style={{ fontSize: "2rem", fontWeight: 900 }}>PLN {broker.metrics.finalAmountTotal.toFixed(2)}</div>
+          <div className="print-page-metric-value">PLN {broker.metrics.finalAmountTotal.toFixed(2)}</div>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1rem",
-        }}
-      >
+      <div className="print-page-section-grid">
         <div className="card print-card">
           <h3>Datos generales</h3>
           <p><strong>País:</strong> {broker.country || "-"}</p>
@@ -91,7 +78,7 @@ export default async function BrokerPrintPage({
         </div>
       </div>
 
-      <div className="card print-card" style={{ marginBottom: "1rem" }}>
+      <div className="card print-card print-page-section">
         <h3>Leads asociados</h3>
         <div className="table-container">
           <table className="broker-table">
@@ -114,7 +101,7 @@ export default async function BrokerPrintPage({
               ))}
               {broker.leads.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", opacity: 0.6 }}>
+                  <td colSpan={4} className="print-page-empty">
                     Sin leads vinculados.
                   </td>
                 </tr>
@@ -124,7 +111,7 @@ export default async function BrokerPrintPage({
         </div>
       </div>
 
-      <div className="card print-card" style={{ marginBottom: "1rem" }}>
+      <div className="card print-card print-page-section">
         <h3>Referrals asociados</h3>
         <div className="table-container">
           <table className="broker-table">
@@ -151,7 +138,7 @@ export default async function BrokerPrintPage({
               ))}
               {broker.referrals.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", opacity: 0.6 }}>
+                  <td colSpan={6} className="print-page-empty">
                     Sin referrals asociados.
                   </td>
                 </tr>
@@ -191,7 +178,7 @@ export default async function BrokerPrintPage({
               ))}
               {broker.invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", opacity: 0.6 }}>
+                  <td colSpan={6} className="print-page-empty">
                     Sin facturas asociadas.
                   </td>
                 </tr>

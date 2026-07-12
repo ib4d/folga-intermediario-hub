@@ -1,15 +1,15 @@
-﻿import { auth } from "@/auth";
+import { auth } from "@/auth";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity } from "lucide-react";
 import Link from "next/link";
 
+type AutomationWorkflowFilter = "all" | "doc-expiring" | "billing-attention" | "plan-pressure";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
-type AutomationWorkflowFilter = "all" | "doc-expiring" | "billing-attention" | "plan-pressure";
 
 function getWorkflowTriggerLabel(triggerType: string, labels: (key: TranslationKey) => string) {
   switch (triggerType) {
@@ -66,22 +66,16 @@ function summarizeWorkflowStep(type: string, config: unknown) {
   if (!isRecord(config)) return "";
 
   switch (type) {
-    case "SEND_NOTIFICATION": {
-      if (typeof config.userId === "string") return config.userId;
-      return "";
-    }
-    case "WEBHOOK_CALL": {
+    case "SEND_NOTIFICATION":
+      return typeof config.userId === "string" ? config.userId : "";
+    case "WEBHOOK_CALL":
       return typeof config.url === "string" ? config.url : "";
-    }
-    case "CONDITION": {
-      if (typeof config.field === "string") {
-        return `${config.field}${"value" in config ? ` = ${String(config.value)}` : ""}`;
-      }
-      return "";
-    }
-    case "UPDATE_CANDIDATE": {
+    case "CONDITION":
+      return typeof config.field === "string"
+        ? `${config.field}${"value" in config ? ` = ${String(config.value)}` : ""}`
+        : "";
+    case "UPDATE_CANDIDATE":
       return isRecord(config.data) ? Object.keys(config.data).join(", ") : "";
-    }
     default:
       return "";
   }
@@ -112,10 +106,7 @@ export default async function PlatformAutomationPage({
             : undefined,
     include: {
       organization: {
-        select: {
-          name: true,
-          slug: true,
-        },
+        select: { name: true, slug: true },
       },
       steps: {
         orderBy: { order: "asc" },
@@ -128,40 +119,37 @@ export default async function PlatformAutomationPage({
   const activeWorkflows = workflows.filter((workflow) => workflow.isActive).length;
   const totalTriggers = new Set(workflows.map((workflow) => workflow.triggerType)).size;
   const totalSteps = workflows.reduce((sum, workflow) => sum + workflow.steps.length, 0);
+
   const recentActivityStart = new Date();
   recentActivityStart.setDate(recentActivityStart.getDate() - 30);
+
   const recentActivityCounts = await prisma.notification.groupBy({
     by: ["type"],
     where: {
       createdAt: { gte: recentActivityStart },
       type: {
-        in: [
-          "DOC_EXPIRING",
-          "BILLING_SUBSCRIPTION_ATTENTION",
-          "BILLING_USAGE_PRESSURE",
-        ],
+        in: ["DOC_EXPIRING", "BILLING_SUBSCRIPTION_ATTENTION", "BILLING_USAGE_PRESSURE"],
       },
     },
     _count: { _all: true },
   });
+
   const recentActivityByType = recentActivityCounts.reduce<Record<string, number>>((acc, item) => {
     acc[item.type] = item._count._all;
     return acc;
   }, {});
+
   const recentActivityLast = await prisma.notification.groupBy({
     by: ["type"],
     where: {
       createdAt: { gte: recentActivityStart },
       type: {
-        in: [
-          "DOC_EXPIRING",
-          "BILLING_SUBSCRIPTION_ATTENTION",
-          "BILLING_USAGE_PRESSURE",
-        ],
+        in: ["DOC_EXPIRING", "BILLING_SUBSCRIPTION_ATTENTION", "BILLING_USAGE_PRESSURE"],
       },
     },
     _max: { createdAt: true },
   });
+
   const recentActivityLastByType = recentActivityLast.reduce<Record<string, Date | null>>((acc, item) => {
     acc[item.type] = item._max.createdAt;
     return acc;
@@ -193,69 +181,71 @@ export default async function PlatformAutomationPage({
     return date ? date.toLocaleDateString(locale) : labels("billing.notAvailable");
   }
 
+  const workflowFilters: AutomationWorkflowFilter[] = ["all", "doc-expiring", "billing-attention", "plan-pressure"];
+
   return (
-    <div style={{ padding: "2rem" }}>
-      <div className="hero-section" style={{ marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+    <div className="automation-page">
+      <div className="hero-section automation-hero">
+        <div className="automation-hero-top">
           <div>
             <h1>{labels("platform.automationPageTitle")}</h1>
             <p>{labels("platform.automationPageDescription")}</p>
-            <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {(["all", "doc-expiring", "billing-attention", "plan-pressure"] as AutomationWorkflowFilter[]).map((filter) => (
-                <Link
-                  key={filter}
-                  href={buildWorkflowFilterHref(filter)}
-                  className={`status-badge ${selectedFilter === filter ? "active" : ""}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  {getWorkflowFilterLabel(filter, labels)}
-                </Link>
-              ))}
-            </div>
           </div>
-          <Link href="/platform" className="button button-secondary" style={{ textDecoration: "none", alignSelf: "start" }}>
+          <Link href="/platform" className="button button-secondary automation-back-link">
             {labels("platform.automationBackToPlatform")}
           </Link>
         </div>
+
+        <div className="automation-filter-row">
+          {workflowFilters.map((filter) => (
+            <Link
+              key={filter}
+              href={buildWorkflowFilterHref(filter)}
+              className={`status-badge automation-chip ${selectedFilter === filter ? "active" : ""}`}
+            >
+              {getWorkflowFilterLabel(filter, labels)}
+            </Link>
+          ))}
+        </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
+      <div className="dashboard-grid automation-metric-grid">
+        <div className="card automation-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationPageTotal")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalWorkflows}</div>
+          <div className="automation-metric-value">{totalWorkflows}</div>
         </div>
-        <div className="card">
+        <div className="card automation-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationPageActive")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{activeWorkflows}</div>
+          <div className="automation-metric-value">{activeWorkflows}</div>
         </div>
-        <div className="card">
+        <div className="card automation-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationTriggers")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalTriggers}</div>
+          <div className="automation-metric-value">{totalTriggers}</div>
         </div>
-        <div className="card">
+        <div className="card automation-metric-card">
           <div className="card-header">
             <h3>{labels("platform.automationPageSteps")}</h3>
             <Activity size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalSteps}</div>
+          <div className="automation-metric-value">{totalSteps}</div>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card automation-table-card">
         <div className="card-header">
           <h2>{labels("platform.automationPageTitle")}</h2>
           <Activity size={20} />
         </div>
-        <div className="table-container">
+        <div className="table-container table-container--responsive">
           <table>
             <thead>
               <tr>
@@ -273,19 +263,15 @@ export default async function PlatformAutomationPage({
               {workflows.length > 0 ? (
                 workflows.map((workflow) => (
                   <tr key={workflow.id}>
-                    <td style={{ fontWeight: "bold" }}>
-                      <Link href={`/platform/automation/${workflow.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                    <td className="automation-workflow-cell">
+                      <Link href={`/platform/automation/${workflow.id}`} className="automation-workflow-link">
                         {workflow.name}
                       </Link>
-                      <div style={{ marginTop: "0.4rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                      <div className="automation-step-summary-list">
                         {workflow.steps.map((step) => {
                           const summary = summarizeWorkflowStep(step.type, step.config);
                           return (
-                            <span
-                              key={step.id}
-                              className="status-badge"
-                              style={{ backgroundColor: "rgba(255,255,255,0.88)", color: "var(--pitch-black)" }}
-                            >
+                            <span key={step.id} className="status-badge automation-step-summary">
                               {getWorkflowStepLabel(step.type, labels)}
                               {summary ? ` · ${summary}` : ""}
                             </span>
@@ -295,33 +281,30 @@ export default async function PlatformAutomationPage({
                     </td>
                     <td>
                       {workflow.organization.name}
-                      <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{workflow.organization.slug}</div>
+                      <div className="automation-subtext">{workflow.organization.slug}</div>
                     </td>
                     <td>
                       <span
-                        className={`status-badge ${workflow.isActive ? "active" : ""}`}
-                        style={workflow.isActive ? {} : { backgroundColor: "rgba(185, 28, 28, 0.1)", color: "#991b1b" }}
+                        className={`status-badge ${workflow.isActive ? "active" : "automation-status--inactive"}`}
                       >
                         {workflow.isActive ? labels("platform.active") : labels("platform.inactive")}
                       </span>
                     </td>
                     <td>
-                      <span className="status-badge active" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
-                        <Link
-                          href={buildWorkflowFilterHref(
-                            workflow.triggerType === "DOC_EXPIRING_DETECTED"
-                              ? "doc-expiring"
-                              : workflow.triggerType === "BILLING_ATTENTION_DETECTED"
-                                ? "billing-attention"
-                                : workflow.triggerType === "PLAN_PRESSURE_DETECTED"
-                                  ? "plan-pressure"
-                                  : "all",
-                          )}
-                          style={{ textDecoration: "none", color: "inherit" }}
-                        >
-                          {getWorkflowTriggerLabel(workflow.triggerType, labels)}
-                        </Link>
-                      </span>
+                      <Link
+                        href={buildWorkflowFilterHref(
+                          workflow.triggerType === "DOC_EXPIRING_DETECTED"
+                            ? "doc-expiring"
+                            : workflow.triggerType === "BILLING_ATTENTION_DETECTED"
+                              ? "billing-attention"
+                              : workflow.triggerType === "PLAN_PRESSURE_DETECTED"
+                                ? "plan-pressure"
+                                : "all",
+                        )}
+                        className="status-badge automation-trigger-badge"
+                      >
+                        {getWorkflowTriggerLabel(workflow.triggerType, labels)}
+                      </Link>
                     </td>
                     <td>{workflow.steps.length}</td>
                     <td>{getRecentActivityCount(workflow.triggerType)}</td>
@@ -331,7 +314,7 @@ export default async function PlatformAutomationPage({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={8} className="automation-empty-state">
                     {labels("platform.automationPageNoWorkflows")}
                   </td>
                 </tr>
@@ -343,5 +326,3 @@ export default async function PlatformAutomationPage({
     </div>
   );
 }
-
-

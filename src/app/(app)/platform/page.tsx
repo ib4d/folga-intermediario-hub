@@ -189,8 +189,8 @@ export default async function PlatformAdminPage() {
   });
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <div className="hero-section" style={{ marginBottom: "2rem" }}>
+    <div className="platform-admin-page">
+      <div className="hero-section platform-admin-hero">
         <h1>{labels("platform.title")}</h1>
         <p>{labels("platform.description")}</p>
       </div>
@@ -309,56 +309,54 @@ export default async function PlatformAdminPage() {
             id: item.triggerType,
             label: getAutomationTriggerLabel(item.triggerType, labels),
             value: item._count._all.toString(),
-        }))}
+          }))}
         openAutomationLabel={labels("platform.automationOpenWorkflows")}
         openActivityLabel={labels("platform.automationOpenActivity")}
         openNotificationsLabel={labels("platform.automationOpenNotifications")}
         openDashboardLabel={labels("platform.automationOpenDashboard")}
       />
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
+      <div className="dashboard-grid platform-admin-kpi-grid">
+        <div className="card platform-admin-kpi-card">
           <div className="card-header">
             <h3>{labels("platform.organizations")}</h3>
             <Building2 size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{stats._count._all}</div>
+          <div className="platform-admin-kpi-value">{stats._count._all}</div>
         </div>
-        <div className="card">
+        <div className="card platform-admin-kpi-card">
           <div className="card-header">
             <h3>{labels("platform.totalUsers")}</h3>
             <Users size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalUsers}</div>
+          <div className="platform-admin-kpi-value">{totalUsers}</div>
         </div>
-        <div className="card">
+        <div className="card platform-admin-kpi-card">
           <div className="card-header">
             <h3>{labels("platform.totalCandidates")}</h3>
             <FileText size={24} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: "900" }}>{totalCandidates}</div>
+          <div className="platform-admin-kpi-value">{totalCandidates}</div>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: "2rem" }}>
+      <div className="card platform-admin-section">
         <div className="card-header">
           <h2>{labels("platform.billingAttentionTitle")}</h2>
           <Activity size={20} />
         </div>
-        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.billingAttentionDescription")}</p>
-        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{billingAttentionOrgs.length}</div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingAttentionCount")}</div>
+        <p className="platform-admin-section-copy">{labels("platform.billingAttentionDescription")}</p>
+        <div className="dashboard-grid platform-admin-mini-grid">
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-kpi-value">{billingAttentionOrgs.length}</div>
+            <div className="platform-admin-kpi-label">{labels("platform.billingAttentionCount")}</div>
           </div>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "0.45rem" }}>
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-mini-title">
               {billingAttentionOrgs.length > 0 ? labels("platform.billingAttentionTenant") : labels("platform.billingAttentionNone")}
             </div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700, lineHeight: 1.45 }}>
-              {billingAttentionOrgs.length > 0
-                ? labels("platform.billingAttentionDescription")
-                : labels("platform.billingAttentionNone")}
+            <div className="platform-admin-mini-copy">
+              {billingAttentionOrgs.length > 0 ? labels("platform.billingAttentionDescription") : labels("platform.billingAttentionNone")}
             </div>
           </div>
         </div>
@@ -376,25 +374,18 @@ export default async function PlatformAdminPage() {
               {billingAttentionOrgs.length > 0 ? (
                 billingAttentionOrgs.slice(0, 6).map((org) => {
                   const status = org.subscription?.status?.toLowerCase() ?? "missing";
+
                   return (
                     <tr key={org.id}>
-                      <td style={{ fontWeight: "bold" }}>
+                      <td className="platform-admin-table-name">
                         {org.name}
-                        <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
+                        <div className="platform-admin-table-meta">{org.slug}</div>
                       </td>
                       <td>
-                        <span
-                          className="status-badge active"
-                          style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
-                        >
-                          {org.plan}
-                        </span>
+                        <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
                       </td>
                       <td>
-                        <span
-                          className="status-badge"
-                          style={{ backgroundColor: "rgba(185, 28, 28, 0.1)", color: "#991b1b" }}
-                        >
+                        <span className="status-badge platform-admin-badge-danger">
                           {getBillingAttentionStatusLabel(status, labels)}
                         </span>
                       </td>
@@ -408,7 +399,7 @@ export default async function PlatformAdminPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={4} className="platform-admin-table-empty">
                     {labels("platform.billingAttentionNone")}
                   </td>
                 </tr>
@@ -416,32 +407,32 @@ export default async function PlatformAdminPage() {
             </tbody>
           </table>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "1rem" }}>
-          <Link href="/billing" className="button button-secondary" style={{ textDecoration: "none" }}>
+        <div className="platform-admin-actions">
+          <Link href="/billing" className="button button-secondary">
             {labels("platform.billingAttentionOpenBilling")}
           </Link>
-          <Link href="/billing/plans" className="button button-secondary" style={{ textDecoration: "none" }}>
+          <Link href="/billing/plans" className="button button-secondary">
             {labels("platform.billingAttentionOpenPlans")}
           </Link>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: "2rem" }}>
+      <div className="card platform-admin-section">
         <div className="card-header">
           <h2>{labels("platform.planPressureTitle")}</h2>
           <Activity size={20} />
         </div>
-        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.planPressureDescription")}</p>
-        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{planPressureOrgs.length}</div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.planPressureCount")}</div>
+        <p className="platform-admin-section-copy">{labels("platform.planPressureDescription")}</p>
+        <div className="dashboard-grid platform-admin-mini-grid">
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-kpi-value">{planPressureOrgs.length}</div>
+            <div className="platform-admin-kpi-label">{labels("platform.planPressureCount")}</div>
           </div>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "0.45rem" }}>
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-mini-title">
               {planPressureOrgs.length > 0 ? labels("platform.planPressureTenant") : labels("platform.planPressureNone")}
             </div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700, lineHeight: 1.45 }}>
+            <div className="platform-admin-mini-copy">
               {planPressureOrgs.length > 0 ? labels("platform.planPressureDescription") : labels("platform.planPressureNone")}
             </div>
           </div>
@@ -460,22 +451,18 @@ export default async function PlatformAdminPage() {
               {planPressureOrgs.length > 0 ? (
                 planPressureOrgs.slice(0, 6).map(({ org, maxRatio, pressureLabel, pressureType }) => (
                   <tr key={org.id}>
-                    <td style={{ fontWeight: "bold" }}>
+                    <td className="platform-admin-table-name">
                       {org.name}
-                      <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
+                      <div className="platform-admin-table-meta">{org.slug}</div>
+                    </td>
+                    <td>
+                      <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
                     </td>
                     <td>
                       <span
-                        className="status-badge active"
-                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
-                      >
-                        {org.plan}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className="status-badge"
-                        style={{ backgroundColor: pressureType === "users" ? "rgba(59, 130, 246, 0.12)" : "rgba(245, 158, 11, 0.14)", color: "var(--pitch-black)" }}
+                        className={`status-badge ${
+                          pressureType === "users" ? "platform-admin-badge-blue" : "platform-admin-badge-orange"
+                        }`}
                       >
                         {pressureLabel}
                       </span>
@@ -485,7 +472,7 @@ export default async function PlatformAdminPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ color: "var(--muted-foreground)" }}>
+                  <td colSpan={4} className="platform-admin-table-empty">
                     {labels("platform.planPressureNone")}
                   </td>
                 </tr>
@@ -495,20 +482,20 @@ export default async function PlatformAdminPage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: "2rem" }}>
+      <div className="card platform-admin-section">
         <div className="card-header">
           <h2>{labels("platform.billingPulseTitle")}</h2>
           <Activity size={20} />
         </div>
-        <p style={{ marginTop: 0, color: "var(--muted-foreground)" }}>{labels("platform.billingPulseDescription")}</p>
-        <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{totalSubscriptions}</div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingSubscriptions")}</div>
+        <p className="platform-admin-section-copy">{labels("platform.billingPulseDescription")}</p>
+        <div className="dashboard-grid platform-admin-mini-grid">
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-kpi-value">{totalSubscriptions}</div>
+            <div className="platform-admin-kpi-label">{labels("platform.billingSubscriptions")}</div>
           </div>
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{activeSubscriptions}</div>
-            <div style={{ color: "var(--muted-foreground)", fontWeight: 700 }}>{labels("platform.billingActiveSubscriptions")}</div>
+          <div className="card platform-admin-kpi-card">
+            <div className="platform-admin-kpi-value">{activeSubscriptions}</div>
+            <div className="platform-admin-kpi-label">{labels("platform.billingActiveSubscriptions")}</div>
           </div>
         </div>
         <div className="table-container">
@@ -525,20 +512,15 @@ export default async function PlatformAdminPage() {
                 .map((item) => (
                   <tr key={item.plan}>
                     <td>
-                      <span
-                        className="status-badge active"
-                        style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
-                      >
-                        {item.plan}
-                      </span>
+                      <span className="status-badge active platform-admin-badge-amber">{item.plan}</span>
                     </td>
                     <td>{item._count._all}</td>
                   </tr>
                 ))}
             </tbody>
-              </table>
+          </table>
         </div>
-        <div style={{ height: "1rem" }} />
+        <div className="platform-admin-spacer" />
         <div className="table-container">
           <table>
             <thead>
@@ -553,9 +535,7 @@ export default async function PlatformAdminPage() {
                 .map((item) => (
                   <tr key={item.status}>
                     <td>
-                      <span className="status-badge" style={{ backgroundColor: "rgba(0,0,0,0.06)", color: "var(--pitch-black)" }}>
-                        {item.status.toUpperCase()}
-                      </span>
+                      <span className="status-badge platform-admin-badge-neutral">{item.status.toUpperCase()}</span>
                     </td>
                     <td>{item._count._all}</td>
                   </tr>
@@ -586,17 +566,12 @@ export default async function PlatformAdminPage() {
             <tbody>
               {orgs.map((org) => (
                 <tr key={org.id}>
-                  <td style={{ fontWeight: "bold" }}>
+                  <td className="platform-admin-table-name">
                     {org.name}
-                    <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{org.slug}</div>
+                    <div className="platform-admin-table-meta">{org.slug}</div>
                   </td>
                   <td>
-                    <span
-                      className="status-badge active"
-                      style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}
-                    >
-                      {org.plan}
-                    </span>
+                    <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
                   </td>
                   <td>
                     <span className={`status-badge ${org.isActive ? "active" : ""}`}>

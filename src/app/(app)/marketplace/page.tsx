@@ -1,9 +1,9 @@
 import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
-import { redirect } from "next/navigation";
 import { marketplacePlugins } from "@/plugins";
 import { Puzzle, ShieldCheck, Zap } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function MarketplacePage() {
   const session = await auth();
@@ -12,37 +12,29 @@ export default async function MarketplacePage() {
   if (!canAccessModule(tenant.role, "marketplace")) redirect("/sin-permisos");
 
   return (
-    <div className="main-content">
-      <div style={{ marginBottom: '2rem' }}>
+    <div className="main-content marketplace-page">
+      <div className="marketplace-hero">
         <h1>ORI-OS Marketplace</h1>
         <p>Extiende las capacidades de ORI CRUIT HUB con plugins y agentes de terceros.</p>
       </div>
 
-      <div className="dashboard-grid">
-        {marketplacePlugins.map(plugin => (
-          <div key={plugin.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ padding: '0.75rem', backgroundColor: 'var(--amber-flame)', borderRadius: '8px' }}>
-                  <Puzzle size={24} />
-                </div>
-                <span className="status-badge" style={{ fontSize: '0.7rem' }}>v{plugin.version}</span>
+      <div className="dashboard-grid marketplace-grid">
+        {marketplacePlugins.map((plugin) => (
+          <div key={plugin.id} className="card marketplace-card">
+            <div className="marketplace-card-top">
+              <div className="marketplace-plugin-icon">
+                <Puzzle size={24} />
               </div>
-              <h3>{plugin.name}</h3>
-              <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '0.5rem' }}>
-                {plugin.description}
-              </p>
+              <span className="status-badge marketplace-version">v{plugin.version}</span>
             </div>
-            
-            <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', opacity: 0.6 }}>
+            <h3>{plugin.name}</h3>
+            <p className="marketplace-description">{plugin.description}</p>
+
+            <div className="marketplace-card-footer">
+              <div className="marketplace-verification">
                 <ShieldCheck size={14} color="#4ade80" /> Verificado
               </div>
-              <button 
-                className={`button ${plugin.isEnabled ? 'button-secondary' : ''}`}
-                style={{ fontSize: '0.8rem' }}
-                disabled={plugin.isEnabled}
-              >
+              <button className={`button ${plugin.isEnabled ? "button-secondary" : ""}`} disabled={plugin.isEnabled}>
                 {plugin.isEnabled ? "Instalado" : "Instalar"}
               </button>
             </div>
@@ -50,14 +42,14 @@ export default async function MarketplacePage() {
         ))}
       </div>
 
-      <div className="card" style={{ marginTop: '3rem', border: '1px dashed var(--pitch-black)', backgroundColor: 'transparent' }}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <Zap size={32} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+      <div className="card marketplace-cta-card">
+        <div className="marketplace-cta">
+          <Zap size={32} className="marketplace-cta-icon" />
           <h3>¿Eres Desarrollador?</h3>
-          <p style={{ maxWidth: '500px', margin: '0.5rem auto' }}>
+          <p>
             Crea tus propios plugins usando el SDK de ORI-OS y monetiza tus integraciones en nuestro marketplace.
           </p>
-          <button className="button button-secondary" style={{ marginTop: '1rem' }}>
+          <button className="button button-secondary marketplace-cta-button">
             Leer Documentación del SDK
           </button>
         </div>

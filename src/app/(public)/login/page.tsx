@@ -71,65 +71,32 @@ export default function LoginPage() {
       badge={labels("login.badge")}
       title={labels("login.shellTitle")}
       description={labels("login.shellDescription")}
-      footer={
-        <span>
-          {labels("login.footer")}
-        </span>
-      }
+      footer={<span>{labels("login.footer")}</span>}
     >
-      <div style={{ display: "grid", gap: "1.25rem" }}>
-        <div
-          style={{
-            border: "1px solid rgba(11, 5, 0, 0.12)",
-            background: "rgba(255, 255, 255, 0.72)",
-            padding: "0.95rem 1rem",
-            display: "grid",
-            gap: "0.75rem",
-          }}
-        >
-          <div style={{ fontSize: "0.95rem", fontWeight: 800 }}>{contextTitle}</div>
-          <div style={{ fontSize: "0.9rem", lineHeight: 1.55 }}>{contextDescription}</div>
+      <div className="public-login-stack">
+        <div className="public-login-context">
+          <div className="public-login-context-title">{contextTitle}</div>
+          <div className="public-login-context-copy">{contextDescription}</div>
           {contextActionLabel ? (
-            <Link
-              href={callbackUrl}
-              style={{
-                fontSize: "0.9rem",
-                fontWeight: 800,
-                color: "var(--pitch-black)",
-                width: "fit-content",
-              }}
-            >
+            <Link href={callbackUrl} className="public-login-context-link">
               {contextActionLabel}
             </Link>
           ) : null}
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+
+        <div className="public-login-language">
           <LanguageSwitcher currentLanguage={language} />
         </div>
-        <div style={{ display: "grid", gap: "0.5rem" }}>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>{labels("login.title")}</div>
-          <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
-            {labels("login.description")}
-          </p>
+
+        <div className="public-login-heading">
+          <div className="public-login-heading-title">{labels("login.title")}</div>
+          <p className="public-login-heading-copy">{labels("login.description")}</p>
         </div>
 
-        {error ? (
-          <div
-            style={{
-              padding: "0.85rem 1rem",
-              backgroundColor: "#fee2e2",
-              color: "#991b1b",
-              border: "2px solid #991b1b",
-              fontSize: "0.875rem",
-              fontWeight: 700,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
+        {error ? <div className="public-login-error">{error}</div> : null}
 
-        <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
-          <div className="input-group" style={{ marginBottom: 0 }}>
+        <form onSubmit={handleSubmit} className="public-login-form">
+          <div className="input-group public-login-field">
             <label className="label" htmlFor="email">
               {labels("login.email")}
             </label>
@@ -146,7 +113,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group public-login-field">
             <label className="label" htmlFor="password">
               {labels("login.password")}
             </label>
@@ -163,23 +130,13 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="button"
-            style={{ width: "100%", marginTop: "0.5rem" }}
-            disabled={loading}
-          >
+          <button type="submit" className="button public-login-submit" disabled={loading}>
             {loading ? labels("login.submitting") : labels("login.submit")}
           </button>
         </form>
 
         <form action={clearSessionAction}>
-          <button
-            type="submit"
-            className="button button-secondary"
-            style={{ width: "100%" }}
-            disabled={loading}
-          >
+          <button type="submit" className="button button-secondary public-login-submit" disabled={loading}>
             {labels("login.clearSession")}
           </button>
         </form>

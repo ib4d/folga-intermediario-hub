@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Candidate, Document, Role, User } from "@prisma/client";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
@@ -9,7 +10,6 @@ import { AlertCircle, FileText, MapPin, ShieldAlert, User as UserIcon } from "lu
 import { useState } from "react";
 import ExpandableText from "@/components/ui/ExpandableText";
 import LegalDecisionModal from "./LegalDecisionModal";
-import Link from "next/link";
 
 interface Props {
   candidate: Candidate & {
@@ -44,46 +44,37 @@ export default function LegalCandidateCard({ candidate, viewerRole, language }: 
   };
 
   return (
-    <div className="card equal-card" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "2px solid var(--pitch-black)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+    <div className="card equal-card legal-candidate-card">
+      <div className="legal-candidate-card-section legal-candidate-card-header">
+        <div className="legal-candidate-card-header-main">
           <div>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+            <h3 className="legal-candidate-card-title">
               {candidate.firstName} {candidate.lastName}
             </h3>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", fontSize: "0.8rem", fontWeight: "bold", color: "var(--muted)" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+            <div className="legal-candidate-card-meta">
+              <span className="legal-candidate-card-pill">
                 <MapPin size={14} />
                 {candidate.country}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <span className="legal-candidate-card-pill">
                 <UserIcon size={14} />
                 {candidate.intermediary.name}
               </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
+          <div className="legal-candidate-card-status-stack">
             {canViewPayment ? (
-              <span
-                className="status-badge"
-                style={{
-                  backgroundColor: candidate.paid400pln ? "#4ade80" : "var(--primary)",
-                  fontSize: "0.65rem",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <span className={`status-badge legal-candidate-card-status-badge ${candidate.paid400pln ? "legal-candidate-card-status-badge--paid" : "legal-candidate-card-status-badge--pending"}`}>
                 {candidate.paid400pln ? "400 PLN OK" : "PENDIENTE PAGO"}
               </span>
             ) : null}
             <span
-              className="status-badge"
-              style={{
-                backgroundColor: checklist.isReadyForLegal ? "#d1fae5" : "#fee2e2",
-                color: checklist.isReadyForLegal ? "#065f46" : "#991b1b",
-                fontSize: "0.65rem",
-                whiteSpace: "nowrap",
-              }}
+              className={`status-badge legal-candidate-card-status-badge ${
+                checklist.isReadyForLegal
+                  ? "legal-candidate-card-status-badge--ready"
+                  : "legal-candidate-card-status-badge--blocked"
+              }`}
             >
               {checklist.isReadyForLegal ? "LISTO PARA DECISION" : `${checklist.blockers.length} BLOQUEOS`}
             </span>
@@ -91,62 +82,42 @@ export default function LegalCandidateCard({ candidate, viewerRole, language }: 
         </div>
       </div>
 
-      <div
-        style={{
-          padding: "1.25rem 1.5rem",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
-          borderBottom: "2px solid var(--pitch-black)",
-        }}
-      >
+      <div className="legal-candidate-card-section legal-candidate-card-grid">
         <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.25rem" }}>
-            PASAPORTE
-          </div>
-          <div style={{ fontWeight: "900", fontSize: "0.9rem" }}>{candidate.passportNumber || "N/A"}</div>
-          <div
-            style={{
-              fontSize: "0.7rem",
-              fontWeight: "bold",
-              color: isExpiringSoon(candidate.passportExpiry) ? "#e63946" : "var(--muted)",
-            }}
-          >
+          <div className="legal-candidate-card-kicker">PASAPORTE</div>
+          <div className="legal-candidate-card-value">{candidate.passportNumber || "N/A"}</div>
+          <div className={`legal-candidate-card-subvalue ${isExpiringSoon(candidate.passportExpiry) ? "legal-candidate-card-subvalue--danger" : "legal-candidate-card-subvalue--muted"}`}>
             EXP: {formatDate(candidate.passportExpiry)}
           </div>
         </div>
 
         <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.25rem" }}>
-            KARTA POBYTU
-          </div>
-          <div style={{ fontWeight: "900", fontSize: "0.9rem" }}>{candidate.kartaPobytuNumber || "NO TIENE"}</div>
+          <div className="legal-candidate-card-kicker">KARTA POBYTU</div>
+          <div className="legal-candidate-card-value">{candidate.kartaPobytuNumber || "NO TIENE"}</div>
           {candidate.kartaPobytuExpiry ? (
-            <div style={{ fontSize: "0.7rem", fontWeight: "bold", color: "var(--muted)" }}>
+            <div className="legal-candidate-card-subvalue">
               EXP: {formatDate(candidate.kartaPobytuExpiry)}
             </div>
           ) : null}
         </div>
 
         <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.25rem" }}>
+          <div className="legal-candidate-card-kicker">
             PESEL / VOIVODATO
           </div>
-          <div style={{ fontWeight: "900", fontSize: "0.9rem" }}>{candidate.peselNumber || "N/A"}</div>
-          <div style={{ fontSize: "0.7rem", fontWeight: "bold", color: "var(--muted)" }}>
+          <div className="legal-candidate-card-value">{candidate.peselNumber || "N/A"}</div>
+          <div className="legal-candidate-card-subvalue">
             {candidate.voivodatoStatus || "SIN TRAMITE"}
           </div>
         </div>
 
         <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.25rem" }}>
-            DOCUMENTOS
-          </div>
-          <div style={{ fontWeight: "900", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+          <div className="legal-candidate-card-kicker">DOCUMENTOS</div>
+          <div className="legal-candidate-card-value legal-candidate-card-value--with-icon">
             <FileText size={14} />
             {checklist.stats.verifiedDocuments}/{checklist.stats.totalDocuments} VERIFICADOS
           </div>
-          <div style={{ fontSize: "0.7rem", fontWeight: "900", color: checklist.missing.length > 0 ? "#e63946" : "var(--muted)" }}>
+          <div className={`legal-candidate-card-subvalue ${checklist.missing.length > 0 ? "legal-candidate-card-subvalue--danger" : "legal-candidate-card-subvalue--muted"}`}>
             {checklist.missing.length > 0
               ? `FALTAN: ${checklist.missing.join(", ")}`
               : `${checklist.stats.pendingReviewDocuments} POR REVISAR`}
@@ -155,108 +126,90 @@ export default function LegalCandidateCard({ candidate, viewerRole, language }: 
       </div>
 
       {checklist.blockers.length > 0 ? (
-        <div style={{ padding: "0.75rem 1.5rem", backgroundColor: "#fee2e2", borderBottom: "2px solid var(--pitch-black)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+        <div className="legal-candidate-card-alert legal-candidate-card-alert--danger">
+          <div className="legal-candidate-card-alert-title">
             <ShieldAlert size={14} strokeWidth={3} />
             BLOQUEOS LEGALES
           </div>
-          <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
+          <ExpandableText maxLength={120} className="legal-candidate-card-alert-text legal-candidate-card-alert-text--danger">
             {checklist.blockers.map((blocker) => `- ${blocker}`).join(" | ")}
           </ExpandableText>
         </div>
       ) : null}
 
       {checklist.duplicates.length > 0 ? (
-        <div style={{ padding: "0.75rem 1.5rem", backgroundColor: "#fff7ed", borderBottom: "2px solid var(--pitch-black)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+        <div className="legal-candidate-card-alert legal-candidate-card-alert--warning">
+          <div className="legal-candidate-card-alert-title">
             <ShieldAlert size={14} strokeWidth={3} />
             {labels("legal.duplicateReviewTitle")}
           </div>
-          <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "#9a3412", marginBottom: "0.45rem", lineHeight: 1.5 }}>
+          <div className="legal-candidate-card-alert-text legal-candidate-card-alert-text--warning legal-candidate-card-alert-text--gap-sm">
             {labels("legal.duplicateReviewDescription")}
           </div>
-          <ExpandableText maxLength={130} style={{ display: "block", fontSize: "0.72rem", fontWeight: "bold", lineHeight: 1.5, color: "#7c2d12" }}>
+          <ExpandableText maxLength={130} className="legal-candidate-card-alert-text legal-candidate-card-alert-text--warning">
             {checklist.duplicates
               .map((group) => `${labels("legal.duplicateDetected")}: ${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`)
               .join(" | ")}
           </ExpandableText>
-          <div style={{ marginTop: "0.45rem", fontSize: "0.7rem", fontWeight: "800", color: "#9a3412", lineHeight: 1.45 }}>
+          <div className="legal-candidate-card-alert-text legal-candidate-card-alert-text--warning legal-candidate-card-alert-text--gap-sm">
             {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(checklist.duplicates, labels)}
           </div>
         </div>
       ) : null}
 
       {visibleWarnings.length > 0 ? (
-        <div style={{ padding: "0.75rem 1.5rem", backgroundColor: "#ffccd5", borderBottom: "2px solid var(--pitch-black)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+        <div className="legal-candidate-card-alert legal-candidate-card-alert--danger">
+          <div className="legal-candidate-card-alert-title">
             <AlertCircle size={14} strokeWidth={3} />
             ALERTAS
           </div>
-          <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.7rem", fontWeight: "bold", lineHeight: 1.5 }}>
+          <ExpandableText maxLength={120} className="legal-candidate-card-alert-text legal-candidate-card-alert-text--danger">
             {visibleWarnings.map((warning) => `- ${warning}`).join(" | ")}
           </ExpandableText>
         </div>
       ) : null}
 
       {legalOutcome ? (
-        <div style={{ padding: "0.85rem 1.5rem", backgroundColor: "#eef2ff", borderBottom: "2px solid var(--pitch-black)" }}>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: "0.5rem",
-              marginBottom: "0.5rem",
-            }}
-          >
-            <span style={{ fontWeight: "900", fontSize: "0.7rem", textTransform: "uppercase", color: "#4338ca" }}>
+        <div className="legal-candidate-card-alert legal-candidate-card-alert--info">
+          <div className="legal-candidate-card-legal-header">
+            <span className="legal-candidate-card-alert-title legal-candidate-card-alert-title--info">
               Resultado legal
             </span>
             {legalOutcome.category ? (
-              <span
-                style={{
-                  padding: "0.15rem 0.45rem",
-                  backgroundColor: "#c7d2fe",
-                  color: "#312e81",
-                  fontSize: "0.65rem",
-                  fontWeight: "900",
-                }}
-              >
+              <span className="legal-candidate-card-legal-category">
                 {legalOutcome.category.toUpperCase()}
               </span>
             ) : null}
           </div>
 
           {legalOutcome.summary ? (
-            <ExpandableText maxLength={110} style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#3730a3", whiteSpace: "pre-line", margin: 0 }}>
+            <ExpandableText maxLength={110} className="legal-candidate-card-alert-text legal-candidate-card-alert-text--info legal-candidate-card-alert-text--preline">
               {legalOutcome.summary}
             </ExpandableText>
           ) : null}
 
           {legalOutcome.followUpActions.length > 0 ? (
-            <ExpandableText maxLength={110} style={{ display: "block", marginTop: "0.6rem", color: "#3730a3", fontSize: "0.65rem", fontWeight: 800 }}>
+            <ExpandableText maxLength={110} className="legal-candidate-card-alert-text legal-candidate-card-alert-text--info legal-candidate-card-alert-text--followup">
               {legalOutcome.followUpActions.join(" | ")}
             </ExpandableText>
           ) : null}
         </div>
       ) : null}
 
-      <div style={{ padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "var(--white-smoke)", marginTop: "auto" }}>
-        <div style={{ fontSize: "0.7rem", fontWeight: "bold", color: "var(--muted)" }}>
+      <div className="legal-candidate-card-footer">
+        <div className="legal-candidate-card-footer-timestamp">
           {new Date(candidate.updatedAt).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}
         </div>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
+        <div className="legal-candidate-card-footer-actions">
           <Link
             href={`/candidatos/${candidate.id}`}
-            className="button button-secondary"
-            style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}
+            className="button button-secondary legal-candidate-card-footer-button"
           >
             VER DETALLES
           </Link>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="button"
-            style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}
+            className="button legal-candidate-card-footer-button"
           >
             REVISAR
           </button>

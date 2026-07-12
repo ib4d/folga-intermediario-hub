@@ -7,6 +7,7 @@ export default function MetricCard({
   href,
   tone = "default",
   helper,
+  className,
 }: {
   title: string;
   value: string | number;
@@ -14,44 +15,38 @@ export default function MetricCard({
   href?: string;
   tone?: "default" | "accent" | "success" | "danger";
   helper?: string;
+  className?: string;
 }) {
   const backgroundColor =
     tone === "accent"
-      ? "var(--amber-flame)"
+      ? "metric-card-tone-accent"
       : tone === "success"
-        ? "#d1fae5"
+        ? "metric-card-tone-success"
         : tone === "danger"
-          ? "#fee2e2"
-          : undefined;
+          ? "metric-card-tone-danger"
+          : "";
 
   const content = (
-    <div
-      className="card"
-      style={{
-        backgroundColor,
-        textDecoration: "none",
-        color: "inherit",
-      }}
-    >
+    <article className={`card metric-card ${backgroundColor} ${className ?? ""}`.trim()}>
       <div className="card-header">
         <h3>{title}</h3>
         {icon}
       </div>
-      <div style={{ fontSize: "2.75rem", fontWeight: 900, lineHeight: 1 }}>
+      <div className="metric-card-value">
         {value}
       </div>
       {helper && (
-        <p style={{ margin: 0, marginTop: "0.5rem", fontSize: "0.875rem" }}>
+        <p className="metric-card-helper">
           {helper}
         </p>
       )}
-    </div>
+    </article>
   );
 
   if (!href) return content;
 
   return (
-    <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link href={href} className="metric-card-link" aria-label={title}>
       {content}
     </Link>
   );

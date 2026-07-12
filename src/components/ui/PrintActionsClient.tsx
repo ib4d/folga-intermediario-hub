@@ -1,7 +1,7 @@
 "use client";
 
 export default function PrintActionsClient({
-  guideLabel = "Usa la opcion del navegador para guardar como PDF.",
+  guideLabel = "Usa la opción del navegador para guardar como PDF.",
 }: {
   guideLabel?: string;
 }) {

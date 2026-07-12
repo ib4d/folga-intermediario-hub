@@ -11,11 +11,11 @@ export default function BrokerInvoicePrintClient() {
         Imprimir / Guardar PDF
       </button>
       <button className="button button-secondary" type="button" onClick={() => setReady((value) => !value)}>
-        {ready ? "Ocultar guia" : "Mostrar guia"}
+        {ready ? "Ocultar guía" : "Mostrar guía"}
       </button>
       {ready ? (
         <span style={{ alignSelf: "center", opacity: 0.75 }}>
-          Usa la opcion "Guardar como PDF" del navegador para archivarla.
+          Usa la opción "Guardar como PDF" del navegador para archivarla.
         </span>
       ) : null}
     </div>

@@ -19,11 +19,11 @@ function normalizeUploadErrorMessage(error: unknown) {
     message.includes("older or newer deployment") ||
     message.includes("was not found on the server")
   ) {
-    return "La aplicacion se actualizo mientras esta pagina estaba abierta. Recarga la pagina e intenta subir el documento otra vez.";
+    return "La aplicación se actualizó mientras esta página estaba abierta. Recarga la página e intenta subir el documento otra vez.";
   }
 
   if (message.toLowerCase().includes("fetch failed")) {
-    return "No se pudo completar la subida porque la conexion con el servidor se interrumpio. Recarga la pagina e intenta nuevamente.";
+    return "No se pudo completar la subida porque la conexión con el servidor se interrumpió. Recarga la página e intenta nuevamente.";
   }
 
   return `No se pudo completar la subida: ${message}`;
@@ -43,14 +43,14 @@ async function parseUploadResponse(response: Response) {
       return {
         success: true,
         message:
-          "Documento guardado. El servidor devolvio una respuesta inesperada, pero la subida probablemente ya quedo registrada. Recarga la pagina para confirmarlo.",
+          "Documento guardado. El servidor devolvió una respuesta inesperada, pero la subida probablemente ya quedó registrada. Recarga la página para confirmarlo.",
         ocrStatus: "manual_review",
       } satisfies UploadResponse;
     }
 
     throw new Error(
       raw.startsWith("<")
-        ? "El servidor devolvio una pagina inesperada en lugar de JSON."
+        ? "El servidor devolvió una página inesperada en lugar de JSON."
         : raw,
     );
   }
@@ -219,7 +219,7 @@ export default function DocumentUploadButton({
 
               {ocrMode === "manual" ? (
                 <div className="form-message-warning">
-                  El documento se guardara correctamente y quedara pendiente de revision manual.
+                  El documento se guardará correctamente y quedará pendiente de revisión manual.
                 </div>
               ) : null}
 

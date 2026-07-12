@@ -22,19 +22,19 @@ export default async function LeadsPage() {
   const leads: LeadWithOutreachCount[] = await prisma.lead.findMany({
     where: { organizationId: tenant.organizationId! },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { outreaches: true } } }
+    include: { _count: { select: { outreaches: true } } },
   });
 
   const leadsForOutreach = leads.filter((lead) => lead.status === "NEW" && lead.email);
 
   return (
     <div className="main-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="leads-page-header">
         <div>
           <h1>Gestión de Leads (Ventas)</h1>
           <p>Usa ORI CRUIT HUB para captar más agencias y partners.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="leads-page-actions">
           <button className="button">
             <Plus size={20} /> Nuevo Lead
           </button>
@@ -42,19 +42,19 @@ export default async function LeadsPage() {
       </div>
 
       {leadsForOutreach.length > 0 && (
-        <div style={{ marginBottom: '3rem' }}>
+        <div className="leads-page-outreach">
           <OutreachRunner leads={leadsForOutreach} />
         </div>
       )}
 
-      <div className="dashboard-grid" style={{ marginBottom: '3rem' }}>
+      <div className="dashboard-grid leads-page-metrics">
         <div className="card">
           <h3>Leads Totales</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.length}</div>
+          <div className="leads-page-metric-value">{leads.length}</div>
         </div>
-        <div className="card" style={{ backgroundColor: 'var(--amber-flame)' }}>
+        <div className="card leads-page-metric-card">
           <h3>Contactados</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{leads.filter((l) => l.status === "CONTACTED").length}</div>
+          <div className="leads-page-metric-value">{leads.filter((l) => l.status === "CONTACTED").length}</div>
         </div>
       </div>
 
@@ -74,26 +74,26 @@ export default async function LeadsPage() {
               {leads.map((lead) => (
                 <tr key={lead.id}>
                   <td>
-                    <div style={{ fontWeight: 'bold' }}>{lead.company || "Empresa Desconocida"}</div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{lead.name}</div>
+                    <div className="leads-page-company">{lead.company || "Empresa desconocida"}</div>
+                    <div className="leads-page-company-sub">{lead.name}</div>
                   </td>
                   <td>{lead.email}</td>
                   <td>
-                    <span className={`status-badge ${lead.status === 'CONTACTED' ? 'active' : lead.status === 'NEW' ? 'warning' : ''}`}>
+                    <span className={`status-badge ${lead.status === "CONTACTED" ? "active" : lead.status === "NEW" ? "warning" : ""}`}>
                       {lead.status}
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="leads-page-outreach-count">
                       <TrendingUp size={14} /> {lead._count.outreaches} pasos
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <Link href={`/leads/${lead.id}`} className="button button-secondary" style={{ padding: '0.5rem' }}>
+                    <div className="leads-page-row-actions">
+                      <Link href={`/leads/${lead.id}`} className="button button-secondary leads-page-icon-button">
                         <Mail size={16} />
                       </Link>
-                      <button className="button button-secondary" style={{ padding: '0.5rem' }}>
+                      <button className="button button-secondary leads-page-icon-button">
                         <MessageSquare size={16} />
                       </button>
                     </div>
@@ -102,7 +102,7 @@ export default async function LeadsPage() {
               ))}
               {leads.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
+                  <td colSpan={5} className="leads-page-empty">
                     No hay leads registrados aún. Empieza por añadir prospectos de LinkedIn.
                   </td>
                 </tr>

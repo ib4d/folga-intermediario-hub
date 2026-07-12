@@ -66,7 +66,7 @@ export default function WeeklyArrivals({ events, language }: Props) {
         pageSize={6}
         label={labels("logistics.weeklyTitle")}
         className="equal-card-grid logistics-card-grid"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
         renderItem={(event) => (
           <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} language={language} />
         )}
@@ -127,8 +127,8 @@ function WeeklyArrivalCard({
         borderColor: event.confirmed ? "#4ade80" : "var(--pitch-black)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", gap: "0.75rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", minWidth: 0, flex: "1 1 0" }}>
           <div
             style={{
               padding: "0.5rem",
@@ -138,8 +138,8 @@ function WeeklyArrivalCard({
           >
             <TransportIcon type={event.transportType} />
           </div>
-          <div>
-            <h4 style={{ fontWeight: "900", fontSize: "1rem", textTransform: "uppercase" }}>
+          <div style={{ minWidth: 0 }}>
+            <h4 style={{ fontWeight: "900", fontSize: "1rem", textTransform: "uppercase", overflowWrap: "anywhere" }}>
               {event.candidate.firstName} {event.candidate.lastName}
             </h4>
             <p style={{ fontSize: "0.75rem", fontWeight: "bold", color: "var(--muted)", margin: 0 }}>
@@ -232,7 +232,7 @@ function WeeklyArrivalCard({
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.8rem", fontWeight: "bold" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem", fontSize: "0.8rem", fontWeight: "bold", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <MapPin size={14} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -263,7 +263,7 @@ function WeeklyArrivalCard({
       </div>
 
       {isEditing ? (
-        <form action={handleSave} style={{ marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem", display: "grid", gap: "0.75rem" }}>
+        <form action={handleSave} style={{ marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem", display: "grid", gap: "0.75rem", minWidth: 0 }}>
           <div className="input-group" style={{ marginBottom: 0 }}>
             <label className="label">{labels("logistics.transportType")}</label>
             <select name="transportType" className="select" defaultValue={event.transportType ?? "AVION"}>
@@ -309,7 +309,7 @@ function WeeklyArrivalCard({
             />
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button type="submit" className="button" style={{ flex: 1 }} disabled={isSubmitting}>
               {isSubmitting ? labels("logistics.savingArrival") : labels("logistics.saveArrival")}
             </button>

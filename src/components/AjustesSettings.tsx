@@ -128,33 +128,32 @@ export default function AjustesSettings() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      <div className="card" style={{ backgroundColor: "var(--white-smoke)" }}>
-        <h3 style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <div className="ajustes-settings-shell">
+      <div className="card ajustes-settings-panel ajustes-settings-panel--soft">
+        <h3 className="ajustes-settings-section-title">
           <Shield size={20} /> {labels("settings.profileSecurity")}
         </h3>
 
-        <div className="input-group" style={{ marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: "1px solid #ccc" }}>
+        <div className="input-group ajustes-settings-avatar-group">
           <label className="label">{labels("settings.avatar")}</label>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <div style={{ width: "50px", height: "50px", borderRadius: "50%", backgroundColor: "var(--pitch-black)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+          <div className="ajustes-settings-avatar-row">
+            <div className="ajustes-settings-avatar">
               {settings.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings.avatarUrl} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={settings.avatarUrl} alt="Avatar" className="ajustes-settings-avatar-image" />
               ) : (
-                <span style={{ fontSize: "20px", fontWeight: "bold" }}>U</span>
+                <span className="ajustes-settings-avatar-fallback">U</span>
               )}
             </div>
-            <div style={{ flex: 1 }}>
+            <div className="ajustes-settings-avatar-field">
               <input
                 type="url"
-                className="input"
                 placeholder={labels("settings.avatarPlaceholder")}
                 value={settings.avatarUrl || ""}
                 onChange={(event) => setSettings({ ...settings, avatarUrl: event.target.value })}
-                style={{ marginBottom: "0.5rem" }}
+                className="input ajustes-settings-avatar-input"
               />
-              <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0 }}>
+              <p className="ajustes-settings-help">
                 {labels("settings.avatarHelp")}
               </p>
             </div>
@@ -163,38 +162,18 @@ export default function AjustesSettings() {
 
         <div className="input-group">
           <label className="label">{labels("settings.twoFactor")}</label>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "not-allowed", opacity: 0.7 }}>
-            <div
-              style={{
-                width: "48px",
-                height: "26px",
-                backgroundColor: "#ccc",
-                borderRadius: "13px",
-                position: "relative",
-                cursor: "not-allowed",
-                transition: "background 0.2s",
-                border: "2px solid var(--pitch-black)",
-              }}
-            >
-              <div style={{
-                position: "absolute",
-                top: "1px",
-                left: "1px",
-                width: "20px",
-                height: "20px",
-                backgroundColor: "white",
-                borderRadius: "50%",
-                transition: "left 0.2s",
-              }} />
+          <label className="ajustes-settings-toggle-label">
+            <div className="ajustes-settings-toggle">
+              <div className="ajustes-settings-toggle-thumb" />
             </div>
             <span>{labels("settings.disabled")}</span>
           </label>
-          <p style={{ fontSize: "0.75rem", color: "var(--muted)", margin: 0 }}>
+          <p className="ajustes-settings-help">
             {labels("settings.twoFactorHelp")}
           </p>
         </div>
 
-        <form className="input-group" style={{ marginTop: "1rem" }} onSubmit={handlePasswordUpdate}>
+        <form className="input-group ajustes-settings-password-form" onSubmit={handlePasswordUpdate}>
           <label className="label" htmlFor="current-password">{labels("settings.changePassword")}</label>
           <input
             id="current-password"
@@ -231,7 +210,7 @@ export default function AjustesSettings() {
               {passwordMessage.text}
             </p>
           ) : null}
-          <button className="button button-secondary" style={{ width: "100%" }} type="submit" disabled={isPasswordPending}>
+          <button className="button button-secondary ajustes-settings-button" type="submit" disabled={isPasswordPending}>
             {isPasswordPending ? <Loader2 size={18} className="animate-spin" /> : null}
             {labels("settings.changePassword")}
           </button>
@@ -239,7 +218,7 @@ export default function AjustesSettings() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: "1rem" }}>{labels("settings.interfaceLanguage")}</h3>
+        <h3 className="ajustes-settings-section-title">{labels("settings.interfaceLanguage")}</h3>
         <div className="input-group">
           <label className="label" htmlFor="interface-language">
             {labels("settings.preferredLanguage")}
@@ -261,31 +240,30 @@ export default function AjustesSettings() {
               </option>
             ))}
           </select>
-          <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.5rem" }}>
+          <p className="ajustes-settings-help ajustes-settings-help--top">
             {labels("settings.languageHelp")}
           </p>
         </div>
         <button
-          className="button"
-          style={{ width: "100%", marginTop: "0.75rem" }}
+          className="button ajustes-settings-button"
           onClick={handleSave}
           disabled={isPending}
         >
           {isPending ? labels("common.saving") : saved ? labels("common.saved") : labels("common.save")}
         </button>
         {settingsMessage ? (
-          <p className={settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+          <p className={`${settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} ajustes-settings-message`}>
             {settingsMessage.text}
           </p>
         ) : null}
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <h3 className="ajustes-settings-section-title">
           <Bell size={20} /> {labels("settings.emailNotifications")}
         </h3>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div className="ajustes-settings-notifications">
           {([
             { key: "notifyNewCandidates", label: labels("settings.notifyNewCandidates") },
             { key: "notifyLegalAlerts", label: labels("settings.notifyLegalAlerts") },
@@ -293,15 +271,14 @@ export default function AjustesSettings() {
           ] as { key: keyof Settings; label: string }[]).map(({ key, label }) => (
             <label
               key={key}
-              className="label"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}
+              className="label ajustes-settings-notification-item"
               onClick={() => toggle(key)}
             >
               <input
                 type="checkbox"
                 checked={settings[key] as boolean}
                 onChange={() => toggle(key)}
-                style={{ width: "20px", height: "20px", accentColor: "var(--pitch-black)" }}
+                className="ajustes-settings-checkbox"
               />
               <span>{label}</span>
             </label>
@@ -309,8 +286,7 @@ export default function AjustesSettings() {
         </div>
 
         <button
-          className="button"
-          style={{ width: "100%", marginTop: "1.5rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+          className="button ajustes-settings-button ajustes-settings-button--icon"
           onClick={handleSave}
           disabled={isPending}
         >
@@ -323,7 +299,7 @@ export default function AjustesSettings() {
           )}
         </button>
         {settingsMessage ? (
-          <p className={settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} style={{ marginTop: "0.75rem" }}>
+          <p className={`${settingsMessage.type === "success" ? "form-message-success" : "form-message-error"} ajustes-settings-message`}>
             {settingsMessage.text}
           </p>
         ) : null}

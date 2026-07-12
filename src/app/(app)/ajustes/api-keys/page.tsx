@@ -1,12 +1,12 @@
-import { requireTenant } from "@/lib/tenant";
-import { prisma } from "@/lib/prisma";
-import Link from "next/link";
-import { Key, Trash2 } from "lucide-react";
-import { canAccessModule } from "@/lib/permissions";
-import { redirect } from "next/navigation";
-import ApiKeyCreateForm from "@/components/ApiKeyCreateForm";
-import { normalizeLanguage, t } from "@/lib/i18n";
 import { auth } from "@/auth";
+import ApiKeyCreateForm from "@/components/ApiKeyCreateForm";
+import { canAccessModule } from "@/lib/permissions";
+import { normalizeLanguage, t } from "@/lib/i18n";
+import { prisma } from "@/lib/prisma";
+import { requireTenant } from "@/lib/tenant";
+import { Key, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function ApiKeysPage() {
   const session = await auth();
@@ -17,7 +17,7 @@ export default async function ApiKeysPage() {
   if (!canAccessModule(tenant.role, "apiKeys")) redirect("/sin-permisos");
 
   if (!["ADMIN", "SUPERADMIN"].includes(tenant.role)) {
-    return <div className="card" style={{ padding: "2rem" }}>Sin acceso a esta seccion.</div>;
+    return <div className="card settings-restricted-card">Sin acceso a esta sección.</div>;
   }
 
   const apiKeys = await prisma.apiKey.findMany({
@@ -36,24 +36,24 @@ export default async function ApiKeysPage() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "860px" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <Link href="/ajustes" style={{ color: "var(--muted)", textDecoration: "none", fontSize: "0.875rem" }}>
-          {labels("settings.backToSettings")}
-        </Link>
-        <h1 style={{ marginTop: "0.5rem" }}>{labels("settings.apiKeys")}</h1>
-        <p style={{ opacity: 0.7 }}>
-          {labels("settings.apiKeysDescription")}
-        </p>
+    <div className="settings-detail-page">
+      <div className="settings-detail-header">
+        <div>
+          <Link href="/ajustes" className="settings-back-link">
+            {labels("settings.backToSettings")}
+          </Link>
+          <h1>{labels("settings.apiKeys")}</h1>
+          <p>{labels("settings.apiKeysDescription")}</p>
+        </div>
       </div>
 
       <ApiKeyCreateForm />
 
-      <div className="card">
-        <h2 style={{ marginBottom: "1.5rem" }}>{labels("settings.activeKeys")}</h2>
+      <div className="card settings-keys-card">
+        <h2 className="settings-card-heading">{labels("settings.activeKeys")}</h2>
         {apiKeys.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "3rem", opacity: 0.5 }}>
-            <Key size={40} style={{ marginBottom: "1rem" }} />
+          <div className="settings-empty-state">
+            <Key size={40} />
             <p>{labels("settings.noActiveKeys")}</p>
           </div>
         ) : (
@@ -70,28 +70,17 @@ export default async function ApiKeysPage() {
               <tbody>
                 {apiKeys.map((key) => (
                   <tr key={key.id}>
-                    <td style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <td className="settings-key-name">
                       <Key size={14} /> {key.name}
                     </td>
-                    <td style={{ fontSize: "0.875rem" }}>{key.createdAt.toLocaleDateString()}</td>
-                    <td style={{ fontSize: "0.875rem" }}>
+                    <td className="settings-key-date">{key.createdAt.toLocaleDateString()}</td>
+                    <td className="settings-key-date">
                       {key.lastUsedAt ? key.lastUsedAt.toLocaleDateString() : labels("settings.never")}
                     </td>
-                    <td style={{ textAlign: "right" }}>
+                    <td className="settings-key-actions">
                       <form action={revokeKey}>
                         <input type="hidden" name="keyId" value={key.id} />
-                        <button
-                          type="submit"
-                          className="button button-secondary"
-                          style={{
-                            padding: "0.25rem 0.5rem",
-                            fontSize: "0.75rem",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.25rem",
-                            color: "#ef4444",
-                          }}
-                        >
+                        <button type="submit" className="button button-secondary settings-revoke-button">
                           <Trash2 size={12} /> {labels("settings.revoke")}
                         </button>
                       </form>
@@ -104,14 +93,14 @@ export default async function ApiKeysPage() {
         )}
       </div>
 
-      <div className="card" style={{ marginTop: "2rem", backgroundColor: "#fffbeb", border: "1px solid #fbbf24" }}>
-        <h3 style={{ color: "#92400e", marginBottom: "0.5rem" }}>{labels("settings.availableEndpoints")}</h3>
-        <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "0.5rem" }}>
-          <li style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>GET /api/v1/candidates - Listar candidatos</li>
-          <li style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>GET /api/v1/documents - Listar documentos</li>
-          <li style={{ fontFamily: "monospace", fontSize: "0.875rem" }}>GET /api/v1/status - Estado del sistema</li>
+      <div className="card settings-endpoints-card">
+        <h3 className="settings-endpoints-title">{labels("settings.availableEndpoints")}</h3>
+        <ul className="settings-endpoints-list">
+          <li>GET /api/v1/candidates - Listar candidatos</li>
+          <li>GET /api/v1/documents - Listar documentos</li>
+          <li>GET /api/v1/status - Estado del sistema</li>
         </ul>
-        <p style={{ fontSize: "0.75rem", marginTop: "1rem", opacity: 0.7 }}>
+        <p className="settings-endpoints-copy">
           {labels("settings.apiHeaderHelp")}: <code>Authorization: Bearer fhk_...</code>
         </p>
       </div>

@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 
 import { auth } from "@/auth";
 import LogisticsDashboard from "@/components/logistics/LogisticsDashboard";
+import PageHeader from "@/components/ui/PageHeader";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { LOGISTICS_BLOCKED_STATUSES } from "@/lib/logistics-policy";
 import { canManageLogistics, canViewCandidateAudit } from "@/lib/permissions";
@@ -80,27 +81,13 @@ export default async function LogisticaPage() {
   });
 
   return (
-    <>
-      <div className="hero-section" style={{ padding: "2rem", marginBottom: "2rem" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            marginBottom: "0.75rem",
-            fontSize: "0.875rem",
-            fontWeight: "900",
-            textTransform: "uppercase",
-          }}
-        >
-          <Truck size={20} strokeWidth={3} />
-          {labels("logistics.department")}
-        </div>
-        <h1 style={{ marginBottom: "0.5rem" }}>{labels("logistics.title")}</h1>
-        <p style={{ color: "var(--pitch-black)", fontSize: "1.1rem", margin: 0 }}>
-          {labels("logistics.description")}
-        </p>
-      </div>
+    <div className="logistics-page-shell">
+      <PageHeader
+        eyebrow={labels("logistics.department")}
+        title={labels("logistics.title")}
+        description={labels("logistics.description")}
+        icon={<Truck size={20} strokeWidth={3} />}
+      />
 
       <LogisticsDashboard
         pendingCandidates={pendingCandidates}
@@ -109,6 +96,6 @@ export default async function LogisticaPage() {
         canViewActivityActors={canViewCandidateAudit(tenant.role)}
         language={language}
       />
-    </>
+    </div>
   );
 }

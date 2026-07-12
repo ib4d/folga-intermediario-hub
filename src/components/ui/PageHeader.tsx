@@ -12,47 +12,26 @@ export default function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div
-      className="hero-section"
-      style={{
-        padding: "1.5rem 2rem",
-        marginBottom: "2rem",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "1.5rem",
-        flexWrap: "wrap",
-      }}
-    >
-      <div>
+    <header className="hero-section page-header-shell">
+      <div className="page-header-copy">
         {eyebrow && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "0.75rem",
-              fontSize: "0.75rem",
-              fontWeight: 900,
-              textTransform: "uppercase",
-            }}
-          >
+          <div className="page-header-eyebrow">
             {icon}
             {eyebrow}
           </div>
         )}
-        <h1 style={{ marginBottom: description ? "0.5rem" : 0 }}>{title}</h1>
+        <h1 className="page-header-title">{title}</h1>
         {description && (
-          <p style={{ color: "var(--pitch-black)", margin: 0 }}>
+          <p className="page-header-description">
             {description}
           </p>
         )}
       </div>
       {actions && (
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div className="page-header-actions">
           {actions}
         </div>
       )}
-    </div>
+    </header>
   );
 }

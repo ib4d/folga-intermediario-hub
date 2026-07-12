@@ -38,13 +38,12 @@ export default async function AjustesPage() {
     include: { user: { select: { name: true, email: true, isActive: true } } },
     orderBy: { role: "asc" },
   });
+
   const users = memberships.filter((membership) =>
     canViewMemberRole(tenant.role, membership.role, membership.userId === tenant.userId)
   );
   const canManageUsers = canInviteUsers(tenant.role);
-  const invitableRoles = getInvitableRoles(tenant.role).filter(
-    (role): role is InviteRole => role !== Role.SUPERADMIN
-  );
+  const invitableRoles = getInvitableRoles(tenant.role).filter((role): role is InviteRole => role !== Role.SUPERADMIN);
   const assignableRoles = tenant.role === Role.SUPERADMIN ? [Role.SUPERADMIN, ...invitableRoles] : invitableRoles;
   const currentRoleSummary = getLocalizedRolePermissionSummary(tenant.role, language);
   const accessibleModules = getAccessibleModules(tenant.role);
@@ -64,156 +63,94 @@ export default async function AjustesPage() {
 
   return (
     <>
-      <div
-        className="hero-section"
-        style={{
-          padding: "2rem",
-          backgroundColor: "var(--pitch-black)",
-          color: "var(--ghost-white)",
-          borderBottom: "2px solid var(--grey-olive)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <div>
-          <h1 style={{ color: "var(--ghost-white)" }}>{labels("settings.systemTitle")}</h1>
-          <p style={{ color: "var(--grey-olive)" }}>
-            {labels("settings.systemDescription")}
-          </p>
+      <div className="hero-section settings-hero">
+        <div className="settings-hero-copy">
+          <h1>{labels("settings.systemTitle")}</h1>
+          <p>{labels("settings.systemDescription")}</p>
         </div>
         {organization && (
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6, marginBottom: "0.25rem" }}>{labels("settings.organization")}</div>
-            <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>{organization.name}</div>
-            <span
-              style={{
-                display: "inline-block",
-                backgroundColor: "var(--amber-flame)",
-                color: "var(--pitch-black)",
-                padding: "2px 8px",
-                border: "2px solid var(--pitch-black)",
-                fontSize: "0.75rem",
-                fontWeight: "900",
-                marginTop: "0.25rem",
-                boxShadow: "2px 2px 0px var(--pitch-black)"
-              }}
-            >
-              {organization.plan}
-            </span>
+          <div className="settings-hero-org">
+            <div className="settings-hero-org-label">{labels("settings.organization")}</div>
+            <div className="settings-hero-org-name">{organization.name}</div>
+            <span className="settings-hero-plan-badge">{organization.plan}</span>
           </div>
         )}
       </div>
 
-      {/* Quick Links */}
       <div className="settings-quick-links">
         {canAccessModule(tenant.role, "branding") ? (
-        <Link
-          href="/ajustes/branding"
-          className="card"
-          style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem" }}
-        >
-          <Palette size={24} color="var(--amber-flame)" />
-          <div>
-            <div style={{ fontWeight: "bold" }}>{labels("settings.branding")}</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.logoColors")}</div>
-          </div>
-        </Link>
+          <Link href="/ajustes/branding" className="card settings-link-card">
+            <Palette size={24} color="var(--amber-flame)" />
+            <div>
+              <div className="settings-link-title">{labels("settings.branding")}</div>
+              <div className="settings-link-copy">{labels("settings.logoColors")}</div>
+            </div>
+          </Link>
         ) : null}
         {canAccessModule(tenant.role, "apiKeys") ? (
-        <Link
-          href="/ajustes/api-keys"
-          className="card"
-          style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem" }}
-        >
-          <Key size={24} color="var(--amber-flame)" />
-          <div>
-            <div style={{ fontWeight: "bold" }}>{labels("settings.apiKeys")}</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.integrations")}</div>
-          </div>
-        </Link>
+          <Link href="/ajustes/api-keys" className="card settings-link-card">
+            <Key size={24} color="var(--amber-flame)" />
+            <div>
+              <div className="settings-link-title">{labels("settings.apiKeys")}</div>
+              <div className="settings-link-copy">{labels("settings.integrations")}</div>
+            </div>
+          </Link>
         ) : null}
         {canAccessModule(tenant.role, "billing") ? (
-        <Link
-          href="/billing"
-          className="card"
-          style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem" }}
-        >
-          <CreditCard size={24} color="var(--amber-flame)" />
-          <div>
-            <div style={{ fontWeight: "bold" }}>{labels("settings.billing")}</div>
-            <div style={{ fontSize: "0.75rem", opacity: 0.6 }}>{labels("settings.planPayments")}</div>
-          </div>
-        </Link>
+          <Link href="/billing" className="card settings-link-card">
+            <CreditCard size={24} color="var(--amber-flame)" />
+            <div>
+              <div className="settings-link-title">{labels("settings.billing")}</div>
+              <div className="settings-link-copy">{labels("settings.planPayments")}</div>
+            </div>
+          </Link>
         ) : null}
       </div>
 
       <div className="settings-layout-grid">
         <div className="settings-main-stack">
           <div className="card">
-            <div
-              className="card-header"
-              style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-            >
+            <div className="card-header settings-section-header">
               <div>
-                <h2 style={{ margin: 0 }}>{labels("settings.currentAccess")}</h2>
-                <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontWeight: 700 }}>
-                  {labels("settings.currentAccessDescription")}
-                </p>
+                <h2 className="settings-section-title">{labels("settings.currentAccess")}</h2>
+                <p className="settings-section-copy">{labels("settings.currentAccessDescription")}</p>
               </div>
               <span className="status-badge active">{roleLabel(tenant.role, language)}</span>
             </div>
 
-            <div className="permission-matrix-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+            <div className="permission-matrix-grid settings-access-grid">
               <div className="permission-matrix-card">
                 <div className="permission-matrix-scope">{labels("settings.scope")}</div>
-                <h3 style={{ marginTop: 0 }}>{currentRoleSummary.scope}</h3>
-                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.access}</p>
+                <h3 className="settings-card-title">{currentRoleSummary.scope}</h3>
+                <p className="settings-card-copy">{currentRoleSummary.access}</p>
               </div>
               <div className="permission-matrix-card">
                 <div className="permission-matrix-scope">{labels("settings.management")}</div>
-                <h3 style={{ marginTop: 0 }}>{canManageUsers ? labels("settings.manageAccess") : labels("settings.readOnly")}</h3>
-                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.management}</p>
+                <h3 className="settings-card-title">
+                  {canManageUsers ? labels("settings.manageAccess") : labels("settings.readOnly")}
+                </h3>
+                <p className="settings-card-copy">{currentRoleSummary.management}</p>
               </div>
               <div className="permission-matrix-card">
                 <div className="permission-matrix-scope">{labels("settings.visibleUsers")}</div>
-                <h3 style={{ marginTop: 0 }}>{labels("settings.allowedDirectory")}</h3>
-                <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{currentRoleSummary.visibleUsers}</p>
+                <h3 className="settings-card-title">{labels("settings.allowedDirectory")}</h3>
+                <p className="settings-card-copy">{currentRoleSummary.visibleUsers}</p>
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: "0.75rem",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                marginTop: "1.25rem",
-              }}
-            >
+            <div className="settings-scope-grid">
               {[labels("settings.superadminScope"), labels("settings.adminScope"), labels("settings.operationalScope")].map((item) => (
-                <div
-                  key={item}
-                  style={{
-                    border: "1px solid var(--grey-olive)",
-                    padding: "0.85rem 1rem",
-                    backgroundColor: "rgba(255,255,255,0.6)",
-                    fontSize: "0.9rem",
-                    fontWeight: 800,
-                    lineHeight: 1.45,
-                  }}
-                >
+                <div key={item} className="settings-scope-card">
                   {item}
                 </div>
               ))}
             </div>
 
-            <div style={{ marginTop: "1.5rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.85rem" }}>
-                {labels("settings.enabledModules")}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div className="settings-enabled-modules">
+              <div className="settings-enabled-modules-label">{labels("settings.enabledModules")}</div>
+              <div className="settings-enabled-modules-list">
                 {accessibleModules.map((module) => (
-                  <span key={module} className="status-badge active" style={{ paddingInline: "0.85rem" }}>
+                  <span key={module} className="status-badge active settings-module-badge">
                     {getAppModuleLabel(module, language)}
                   </span>
                 ))}
@@ -224,11 +161,7 @@ export default async function AjustesPage() {
               title={labels("settings.providersTitle")}
               storageLabel={labels("settings.storageLabel")}
               storageValue={storage.mode === "local" ? labels("settings.storageLocal") : labels("settings.storageSupabase")}
-              storageNote={
-                storage.mode === "local"
-                  ? labels("settings.storageLocalNote")
-                  : labels("settings.storageSupabaseNote")
-              }
+              storageNote={storage.mode === "local" ? labels("settings.storageLocalNote") : labels("settings.storageSupabaseNote")}
               storageAvailableLabel={labels("settings.providersAvailable")}
               storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
               ocrLabel={labels("settings.ocrLabel")}
@@ -240,13 +173,12 @@ export default async function AjustesPage() {
           </div>
 
           <div className="card">
-            <div
-              className="card-header"
-              style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div className="card-header settings-section-header">
+              <div className="settings-header-with-icon">
                 <Users size={24} />
-                <h2 style={{ margin: 0 }}>{canManageUsers ? labels("settings.membersTitleManage") : labels("settings.membersTitleRead")}</h2>
+                <h2 className="settings-section-title">
+                  {canManageUsers ? labels("settings.membersTitleManage") : labels("settings.membersTitleRead")}
+                </h2>
               </div>
               {invitableRoles.length > 0 ? (
                 <InviteUserModal allowedRoles={invitableRoles} language={language} />
@@ -270,31 +202,15 @@ export default async function AjustesPage() {
                 </thead>
                 <tbody>
                   {users.map((membership) => {
-                    const canManage = canManageMemberRole(
-                      tenant.role,
-                      membership.role,
-                      membership.userId === tenant.userId
-                    );
+                    const canManage = canManageMemberRole(tenant.role, membership.role, membership.userId === tenant.userId);
                     const isActive = membership.user.isActive && membership.isActive;
 
                     return (
                       <tr key={membership.id}>
-                        <td style={{ fontWeight: "bold" }}>{membership.user.name}</td>
+                        <td className="settings-member-name">{membership.user.name}</td>
                         <td>{membership.user.email}</td>
                         <td>
-                          <span
-                            className="status-badge"
-                            style={{
-                              backgroundColor:
-                                membership.role === "SUPERADMIN"
-                                  ? "var(--pitch-black)"
-                                  : membership.role === "LEGAL"
-                                    ? "var(--amber-flame)"
-                                    : "var(--ghost-white)",
-                              color:
-                                membership.role === "SUPERADMIN" ? "var(--ghost-white)" : "var(--pitch-black)",
-                            }}
-                          >
+                          <span className={`status-badge ${membership.role === "SUPERADMIN" ? "settings-role-badge-dark" : membership.role === "LEGAL" ? "settings-role-badge-amber" : "settings-role-badge-light"}`}>
                             {roleLabel(membership.role, language)}
                           </span>
                         </td>
@@ -328,9 +244,7 @@ export default async function AjustesPage() {
                               </form>
                             </div>
                           ) : (
-                            <span style={{ color: "var(--muted)", fontSize: "0.8rem", fontWeight: 700 }}>
-                              {labels("settings.readOnly")}
-                            </span>
+                            <span className="settings-readonly-note">{labels("settings.readOnly")}</span>
                           )}
                         </td>
                       </tr>
@@ -339,23 +253,16 @@ export default async function AjustesPage() {
                 </tbody>
               </table>
             </div>
-            <div style={{ marginTop: "1rem", color: "var(--muted)", fontSize: "0.85rem", fontWeight: 700 }}>
-              {canManageUsers
-                ? labels("settings.activeMatrixAdmin")
-                : labels("settings.activeMatrixRead")}
+            <div className="settings-footer-note">
+              {canManageUsers ? labels("settings.activeMatrixAdmin") : labels("settings.activeMatrixRead")}
             </div>
           </div>
 
           <div className="card">
-            <div
-              className="card-header"
-              style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-            >
+            <div className="card-header settings-section-header">
               <div>
-                <h2 style={{ margin: 0 }}>{labels("settings.permissionMatrix")}</h2>
-                <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontWeight: 700 }}>
-                  {labels("settings.permissionMatrixDescription")}
-                </p>
+                <h2 className="settings-section-title">{labels("settings.permissionMatrix")}</h2>
+                <p className="settings-section-copy">{labels("settings.permissionMatrixDescription")}</p>
               </div>
             </div>
             <div className="permission-matrix-grid">
@@ -364,22 +271,18 @@ export default async function AjustesPage() {
                   key={item.role}
                   className={`permission-matrix-card${item.role === Role.SUPERADMIN ? " permission-matrix-card-primary" : ""}`}
                 >
-                  <div
-                    className="permission-matrix-scope"
-                  >
-                    {item.scope}
-                  </div>
-                <h3 style={{ marginTop: 0 }}>{roleLabel(item.role, language)}</h3>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.85rem" }}>
+                  <div className="permission-matrix-scope">{item.scope}</div>
+                  <h3 className="settings-card-title">{roleLabel(item.role, language)}</h3>
+                  <div className="settings-module-list">
                     {getAccessibleModules(item.role).map((module) => (
-                      <span key={`${item.role}-${module}`} className="status-badge active" style={{ paddingInline: "0.65rem" }}>
+                      <span key={`${item.role}-${module}`} className="status-badge active settings-module-badge">
                         {getAppModuleLabel(module, language)}
                       </span>
                     ))}
                   </div>
-                  <p style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{item.access}</p>
-                  <p style={{ fontSize: "0.85rem", lineHeight: 1.5, fontWeight: 800 }}>{item.management}</p>
-                  <p style={{ fontSize: "0.78rem", lineHeight: 1.45, fontWeight: 700, opacity: 0.82 }}>
+                  <p className="settings-card-copy">{item.access}</p>
+                  <p className="settings-card-copy settings-card-copy-strong">{item.management}</p>
+                  <p className="settings-card-copy settings-card-copy-small">
                     {labels("settings.visibleUsers")}: {item.visibleUsers}
                   </p>
                 </div>
@@ -388,17 +291,14 @@ export default async function AjustesPage() {
           </div>
 
           <div className="card">
-            <div
-              className="card-header"
-              style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div className="card-header settings-section-header">
+              <div className="settings-header-with-icon">
                 <Database size={24} />
-                <h2 style={{ margin: 0 }}>{labels("settings.dataExport")}</h2>
+                <h2 className="settings-section-title">{labels("settings.dataExport")}</h2>
               </div>
             </div>
-            <p>{labels("settings.dataExportDescription")}</p>
-            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+            <p className="settings-section-copy">{labels("settings.dataExportDescription")}</p>
+            <div className="settings-data-export-actions">
               <ExportButton />
             </div>
           </div>
@@ -411,4 +311,3 @@ export default async function AjustesPage() {
     </>
   );
 }
-

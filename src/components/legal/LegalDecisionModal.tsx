@@ -145,7 +145,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
     }
 
     if (decision === "REVISION_ADICIONAL" && !notes.trim()) {
-      setFormError("Debe agregar notas para la revision adicional.");
+      setFormError("Debe agregar notas para la revisión adicional.");
       return;
     }
 
@@ -179,86 +179,29 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100dvh",
-        padding: "0.5rem",
-        backgroundColor: "rgba(11, 5, 0, 0.75)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        className="card"
-        style={{
-          width: "100%",
-          maxWidth: "760px",
-          padding: 0,
-          overflow: "hidden",
-          boxShadow: "8px 8px 0px var(--pitch-black)",
-          maxHeight: "calc(100dvh - 1rem)",
-          display: "flex",
-          flexDirection: "column",
-          margin: 0,
-        }}
-      >
-        <div
-          style={{
-            padding: "1.25rem 1.5rem",
-            borderBottom: "2px solid var(--pitch-black)",
-            backgroundColor: "var(--pitch-black)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flex: "0 0 auto",
-          }}
-        >
-          <h2 style={{ color: "var(--primary)", fontWeight: "900", textTransform: "uppercase", margin: 0 }}>
+    <div className="legal-decision-overlay">
+      <div className="card legal-decision-modal">
+        <div className="legal-decision-modal-header">
+          <h2 className="legal-decision-title">
             Decision Legal
           </h2>
           <button
             onClick={onClose}
-            className="icon-button"
-            style={{ backgroundColor: "transparent", borderColor: "var(--primary)", color: "var(--primary)" }}
+            className="icon-button legal-decision-close"
           >
             <X size={20} strokeWidth={3} />
           </button>
         </div>
 
-        <div
-          style={{
-            padding: "1.5rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1.25rem",
-            backgroundColor: "var(--ghost-white)",
-            overflowY: "auto",
-            overscrollBehavior: "contain",
-            minHeight: 0,
-            flex: "1 1 auto",
-          }}
-        >
-          <div
-            style={{
-              padding: "0.75rem 1rem",
-              backgroundColor: "var(--white-smoke)",
-              border: "2px solid var(--pitch-black)",
-              fontSize: "0.875rem",
-              fontWeight: "bold",
-            }}
-          >
+        <div className="legal-decision-modal-body">
+          <div className="legal-decision-candidate">
             CANDIDATO:{" "}
-            <span style={{ fontWeight: "900" }}>
+            <span className="legal-decision-candidate-name">
               {candidate.firstName?.toUpperCase()} {candidate.lastName?.toUpperCase()}
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.75rem" }}>
+          <div className="legal-decision-summary-grid">
             <SummaryCard
               label="Documentos"
               value={`${checklist.stats.verifiedDocuments}/${checklist.stats.totalDocuments}`}
@@ -277,11 +220,11 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
           </div>
 
           {checklist.blockers.length > 0 ? (
-            <div style={{ padding: "1rem", backgroundColor: "#fee2e2", border: "2px solid #991b1b" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+            <div className="legal-decision-alert legal-decision-alert--danger">
+              <div className="legal-decision-alert-title">
                 <ShieldAlert size={16} /> Bloqueos que impiden aprobar
               </div>
-              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
+              <ul className="legal-decision-alert-list">
                 {checklist.blockers.map((blocker, index) => (
                   <li key={`${blocker}-${index}`}>{blocker}</li>
                 ))}
@@ -290,11 +233,11 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
           ) : null}
 
           {visibleWarnings.length > 0 ? (
-            <div style={{ padding: "1rem", backgroundColor: "#fef3c7", border: "2px solid #92400e" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+            <div className="legal-decision-alert legal-decision-alert--warning">
+              <div className="legal-decision-alert-title">
                 <AlertTriangle size={16} /> Alertas operativas
               </div>
-              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700 }}>
+              <ul className="legal-decision-alert-list">
                 {visibleWarnings.slice(0, 4).map((warning, index) => (
                   <li key={`${warning}-${index}`}>{warning}</li>
                 ))}
@@ -303,11 +246,11 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
           ) : null}
 
           {checklist.duplicates.length > 0 ? (
-            <div style={{ padding: "1rem", backgroundColor: "#fff7ed", border: "2px solid #c2410c" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: "900", marginBottom: "0.5rem" }}>
+            <div className="legal-decision-alert legal-decision-alert--duplicate">
+              <div className="legal-decision-alert-title">
                 <AlertTriangle size={16} /> Duplicados por clasificar
               </div>
-              <ul style={{ margin: 0, paddingLeft: "1rem", fontSize: "0.8rem", fontWeight: 700, lineHeight: 1.55, color: "#7c2d12" }}>
+              <ul className="legal-decision-alert-list legal-decision-alert-list--duplicate">
                 {checklist.duplicates.map((group) => (
                   <li key={group.key}>
                     {group.type}
@@ -322,19 +265,19 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
             </div>
           ) : null}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem" }}>
+          <div className="legal-decision-actions-grid">
             <button
               onClick={() => handleDecisionChange("APROBADO")}
               disabled={!checklist.isReadyForLegal}
-              style={decisionButtonStyle(decision === "APROBADO", "#4ade80", !checklist.isReadyForLegal)}
+              className={`legal-decision-action-button legal-decision-action-button--approve${decision === "APROBADO" ? " is-active" : ""}`}
             >
-              <CheckCircle size={24} strokeWidth={2.5} color={decision === "APROBADO" ? "var(--pitch-black)" : "#4ade80"} />
+              <CheckCircle size={24} strokeWidth={2.5} />
               APROBAR
             </button>
 
             <button
               onClick={() => handleDecisionChange("RECHAZADO")}
-              style={decisionButtonStyle(decision === "RECHAZADO", "#e63946", false, true)}
+              className={`legal-decision-action-button legal-decision-action-button--reject${decision === "RECHAZADO" ? " is-active" : ""}`}
             >
               <XCircle size={24} strokeWidth={2.5} />
               RECHAZAR
@@ -342,7 +285,7 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
 
             <button
               onClick={() => handleDecisionChange("REVISION_ADICIONAL")}
-              style={decisionButtonStyle(decision === "REVISION_ADICIONAL", "var(--primary)", false)}
+              className={`legal-decision-action-button legal-decision-action-button--review${decision === "REVISION_ADICIONAL" ? " is-active" : ""}`}
             >
               <AlertTriangle size={24} strokeWidth={2.5} />
               REVISION
@@ -364,21 +307,13 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
           ) : null}
 
           {decision ? (
-            <div className="input-group" style={{ marginBottom: 0 }}>
+            <div className="input-group legal-decision-field-group">
               <label className="label">Acciones de seguimiento</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
+              <div className="legal-decision-followup-grid">
                 {FOLLOW_UP_ACTIONS.map((action) => (
                   <label
                     key={action}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      padding: "0.75rem",
-                      border: "1px solid var(--grey-olive)",
-                      backgroundColor: followUpActions.includes(action) ? "rgba(252, 186, 4, 0.14)" : "white",
-                      fontWeight: 700,
-                    }}
+                    className={`legal-decision-followup-item${followUpActions.includes(action) ? " is-selected" : ""}`}
                   >
                     <input
                       type="checkbox"
@@ -398,65 +333,39 @@ export default function LegalDecisionModal({ isOpen, onClose, candidate, viewerR
                 {decision === "RECHAZADO"
                   ? "Detalles adicionales"
                   : decision === "REVISION_ADICIONAL"
-                    ? "Notas de revision requerida"
-                    : "Notas de aprobacion"}
+                    ? "Notas de revisión requerida"
+                    : "Notas de aprobación"}
               </label>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Escriba aqui los detalles..."
-                className="input"
-                style={{ height: "112px", resize: "none" }}
+                className="input legal-decision-notes"
               />
             </div>
           ) : null}
 
           {formError ? (
-            <div
-              role="alert"
-              style={{
-                padding: "0.85rem 1rem",
-                backgroundColor: "#fee2e2",
-                border: "2px solid #991b1b",
-                color: "#7f1d1d",
-                fontSize: "0.85rem",
-                fontWeight: 800,
-              }}
-            >
+            <div role="alert" className="legal-decision-error">
               {formError}
             </div>
           ) : null}
         </div>
 
-        <div
-          style={{
-            padding: "1.25rem 1.5rem",
-            backgroundColor: "var(--white-smoke)",
-            borderTop: "2px solid var(--pitch-black)",
-            display: "flex",
-            gap: "1rem",
-            flex: "0 0 auto",
-          }}
-        >
-          <button onClick={onClose} className="button button-secondary" style={{ flex: 1 }}>
+        <div className="legal-decision-modal-footer">
+          <button onClick={onClose} className="button button-secondary legal-decision-footer-button">
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!decision || isSubmitting}
-            className="button"
-            style={{
-              flex: 1,
-              opacity: !decision || isSubmitting ? 0.5 : 1,
-              cursor: !decision || isSubmitting ? "not-allowed" : "pointer",
-              backgroundColor:
-                decision === "APROBADO"
-                  ? "#4ade80"
-                  : decision === "RECHAZADO"
-                    ? "#e63946"
-                    : "var(--primary)",
-              color: decision === "RECHAZADO" ? "white" : "var(--pitch-black)",
-            }}
+            className={`button legal-decision-confirm-button${
+              decision === "APROBADO"
+                ? " legal-decision-confirm-button--approve"
+                : decision === "RECHAZADO"
+                  ? " legal-decision-confirm-button--reject"
+                  : " legal-decision-confirm-button--review"
+            }`}
           >
             {isSubmitting ? "Procesando..." : "Confirmar decision"}
           </button>
@@ -475,39 +384,10 @@ function SummaryCard({
   value: string;
   tone: "neutral" | "warning" | "danger" | "success";
 }) {
-  const backgroundColor =
-    tone === "danger"
-      ? "#fee2e2"
-      : tone === "warning"
-        ? "#fef3c7"
-        : tone === "success"
-          ? "#d1fae5"
-          : "var(--white-smoke)";
-
   return (
-    <div style={{ padding: "0.85rem", border: "2px solid var(--pitch-black)", backgroundColor }}>
-      <div style={{ fontSize: "0.65rem", fontWeight: 900, textTransform: "uppercase", marginBottom: "0.35rem" }}>{label}</div>
-      <div style={{ fontSize: "1.4rem", fontWeight: 900, lineHeight: 1 }}>{value}</div>
+    <div className={`legal-decision-summary-card legal-decision-summary-card--${tone}`}>
+      <div className="legal-decision-summary-label">{label}</div>
+      <div className="legal-decision-summary-value">{value}</div>
     </div>
   );
-}
-
-function decisionButtonStyle(active: boolean, activeBackground: string, disabled: boolean, invertText = false) {
-  return {
-    padding: "1rem",
-    fontWeight: "900",
-    fontSize: "0.8rem",
-    textTransform: "uppercase" as const,
-    border: "2px solid var(--pitch-black)",
-    cursor: disabled ? "not-allowed" : "pointer",
-    backgroundColor: active ? activeBackground : "var(--background)",
-    color: active && invertText ? "white" : "var(--foreground)",
-    boxShadow: active ? "4px 4px 0px var(--pitch-black)" : "2px 2px 0px var(--pitch-black)",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center" as const,
-    gap: "0.5rem",
-    transition: "all 0.15s",
-    opacity: disabled ? 0.45 : 1,
-  };
 }

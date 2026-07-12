@@ -103,30 +103,23 @@ export default async function Header() {
   return (
     <div>
       {organization?.billingAttention ? (
-        <div
-          style={{
-            borderBottom: "1px solid rgba(185, 28, 28, 0.2)",
-            background: "linear-gradient(90deg, rgba(254, 242, 242, 0.95), rgba(255, 247, 237, 0.95))",
-            padding: "0.75rem 1rem",
-            color: "var(--pitch-black)",
-          }}
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "grid", gap: "0.15rem" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", color: "#991b1b" }}>
+        <div className="billing-alert">
+          <div className="billing-alert-inner">
+            <div className="billing-alert-copy">
+              <div className="billing-alert-kicker">
                 {labels("billing.subscriptionAttentionTitle")}
               </div>
-              <div style={{ fontWeight: 700, lineHeight: 1.45 }}>
+              <div className="billing-alert-message">
                 {labels("billing.subscriptionAttentionMessage")}
               </div>
-              <div style={{ fontSize: "0.8rem", color: "rgba(0,0,0,0.72)" }}>
+              <div className="billing-alert-meta">
                 {labels("billing.subscriptionAttentionStatus").replace(
                   "{status}",
                   getBillingAttentionStatusLabel(organization.billingAttention.status, language),
                 )}
               </div>
               {organization.billingAttention.currentPeriodEnd ? (
-                <div style={{ fontSize: "0.8rem", color: "rgba(0,0,0,0.72)" }}>
+                <div className="billing-alert-meta">
                   {labels("billing.subscriptionAttentionPeriodEnd").replace(
                     "{date}",
                     dateFormatter.format(organization.billingAttention.currentPeriodEnd),
@@ -134,7 +127,7 @@ export default async function Header() {
                 </div>
               ) : null}
             </div>
-            <Link href="/billing" className="button" style={{ textDecoration: "none" }}>
+            <Link href="/billing" className="button button-link">
               {labels("billing.manageStripe")}
             </Link>
           </div>
@@ -154,46 +147,16 @@ export default async function Header() {
         <div className="header-actions">
           <NotificationsDropdown language={language} />
 
-          <div
-            className="user-chip"
-            style={{
-              border: "1px solid var(--border-subtle)",
-              backgroundColor: "var(--surface)",
-              boxShadow: "var(--shadow-soft)",
-            }}
-          >
-            <div
-              className="user-chip-text"
-              style={{
-                textAlign: "right",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.1rem",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  lineHeight: 1,
-                }}
-              >
+          <div className="user-chip user-chip-panel">
+            <div className="user-chip-text">
+              <div className="user-chip-name">
                 {session.user.name}
               </div>
-              <div
-                style={{
-                  fontSize: "0.65rem",
-                  fontWeight: 700,
-                  color: "var(--muted-foreground)",
-                  textTransform: "uppercase",
-                  lineHeight: 1,
-                }}
-              >
+              <div className="user-chip-role">
                 {getRoleLabel(session.user.role, language)}
               </div>
             </div>
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <div className="user-chip-avatar">
               <UserCircle size={28} strokeWidth={2.2} />
             </div>
           </div>
@@ -206,9 +169,8 @@ export default async function Header() {
           >
             <button
               type="submit"
-              className="icon-button"
+              className="icon-button icon-button-danger"
               title={t(language, "header.logout")}
-              style={{ backgroundColor: "#fff1f2", color: "#991b1b" }}
             >
               <LogOut size={18} strokeWidth={3} />
             </button>

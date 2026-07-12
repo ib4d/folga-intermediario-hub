@@ -33,27 +33,36 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="md:hidden p-4 fixed top-0 left-0 z-50">
-        <button className="button" onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="button md:hidden sidebar-menu-toggle"
+        aria-label={isOpen ? "Cerrar menÄ‚Ĺź" : "Abrir menÄ‚Ĺź"}
+        aria-expanded={isOpen}
+        aria-controls="app-sidebar"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
 
-      <aside className={`sidebar ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed h-full z-40 transition-transform duration-300 ease-in-out`}>
+      {isOpen ? (
+        <button
+          type="button"
+          className="sidebar-backdrop md:hidden"
+          aria-label="Cerrar menÄ‚Ĺź"
+          onClick={() => setIsOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        id="app-sidebar"
+        className={`sidebar ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed h-full z-40 transition-transform duration-300 ease-in-out`}
+      >
         <div className="sidebar-header">
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              backgroundColor: "var(--pitch-black)",
-              border: "1px solid rgba(11, 5, 0, 0.12)",
-              boxShadow: "inset 0 0 0 4px var(--primary)",
-            }}
-          />
-          <span>ORI CRUIT HUB</span>
+          <div className="sidebar-brand-mark" />
+          <span className="sidebar-brand-text">ORI CRUIT HUB</span>
         </div>
 
-        <nav style={{ flex: 1, padding: "1rem 0" }}>
+        <nav className="sidebar-nav">
           {visibleLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -73,8 +82,7 @@ export default function Sidebar() {
           {isPlatformAdmin ? (
             <Link
               href="/platform"
-              className={`nav-link ${pathname.startsWith("/platform") ? "active" : ""}`}
-              style={{ marginTop: "1rem", borderTop: "1px solid rgba(111, 104, 99, 0.16)", paddingTop: "1rem" }}
+              className={`nav-link sidebar-platform-link ${pathname.startsWith("/platform") ? "active" : ""}`}
               onClick={() => setIsOpen(false)}
             >
               <Globe size={18} />
@@ -83,11 +91,11 @@ export default function Sidebar() {
           ) : null}
         </nav>
 
-        <div style={{ padding: "1.25rem 1.5rem", borderTop: "1px solid rgba(111, 104, 99, 0.16)", backgroundColor: "rgba(243, 243, 243, 0.7)" }}>
-          <div style={{ fontSize: "0.78rem", fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-title">
             {labels("nav.saasVersion")}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", marginTop: "0.2rem" }}>
+          <div className="sidebar-footer-copy">
             {labels("nav.multiTenantReady")}
           </div>
         </div>

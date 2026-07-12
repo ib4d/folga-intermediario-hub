@@ -8,6 +8,7 @@ import RequestLegalReview from "@/components/RequestLegalReview";
 import UpdateNotes from "@/components/UpdateNotes";
 import UpdatePaymentStatus from "@/components/UpdatePaymentStatus";
 import ExpandableText from "@/components/ui/ExpandableText";
+import PageHeader from "@/components/ui/PageHeader";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { DOCUMENT_REVIEW_PENDING_STATUSES, getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import {
@@ -194,31 +195,29 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
 
   return (
     <div className="candidate-detail-shell">
-      <div className="candidate-detail-toolbar">
-        <Link href="/candidatos" className="candidate-back-link">
-          <ArrowLeft size={18} />
-          {labels("candidateDetail.backToCandidates")}
-        </Link>
-
-        <div className="candidate-detail-actions">
-          {candidate.registrationToken ? <CopyRegistrationLink token={candidate.registrationToken} /> : null}
-          {role !== "LEGAL" ? (
-            <Link href={`/candidatos/${candidate.id}/edit`} className="button button-secondary flex items-center gap-2">
-              {labels("candidateDetail.editProfile")}
+      <PageHeader
+        eyebrow="Candidatos"
+        title="Detalle del candidato"
+        description="Revisa documentos, estado legal, pagos y señales operativas sin dispersión."
+        icon={<ArrowLeft size={18} />}
+        actions={
+          <>
+            <Link href="/candidatos" className="button button-secondary">
+              <ArrowLeft size={16} />
+              {labels("candidateDetail.backToCandidates")}
             </Link>
-          ) : null}
-        </div>
-      </div>
+            {candidate.registrationToken ? <CopyRegistrationLink token={candidate.registrationToken} /> : null}
+            {role !== "LEGAL" ? (
+              <Link href={`/candidatos/${candidate.id}/edit`} className="button button-secondary flex items-center gap-2">
+                {labels("candidateDetail.editProfile")}
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
       <div className="candidate-profile-hero card">
-        <div
-          style={{
-            padding: "2rem 2rem 1.75rem",
-            background:
-              "linear-gradient(135deg, rgba(252, 186, 4, 0.14), rgba(255, 255, 255, 0.92))",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
-        >
+        <div className="candidate-profile-hero-inner">
           <div className="candidate-hero-content">
             <div className="candidate-hero-main">
               <div className="candidate-status-row">
@@ -236,7 +235,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                   {candidate.status.replace(/_/g, " ")}
                 </span>
                 {candidate.selfRegistered ? (
-                  <span className="status-badge" style={{ backgroundColor: "var(--surface)", color: "var(--pitch-black)" }}>
+                  <span className="status-badge candidate-self-registered-badge">
                     {labels("candidateDetail.selfRegistered")}
                   </span>
                 ) : null}
@@ -246,7 +245,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 {candidate.firstName} {candidate.lastName}
               </h1>
 
-              <div className="candidate-meta-row" style={{ color: "var(--muted-foreground)" }}>
+              <div className="candidate-meta-row candidate-meta-row--muted">
                 <span>
                   <Info size={18} /> {candidate.country}
                 </span>
@@ -261,23 +260,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               </div>
             </div>
 
-            <div
-              style={{
-                minWidth: "260px",
-                padding: "1.25rem",
-                backgroundColor: "rgba(255,255,255,0.75)",
-                border: "1px solid var(--border-subtle)",
-                boxShadow: "var(--shadow-soft)",
-              }}
-            >
-              <div className="candidate-owner-label" style={{ color: "var(--muted)" }}>{labels("candidateDetail.intermediary")}</div>
+            <div className="candidate-owner-card card">
+              <div className="candidate-owner-label candidate-owner-label--muted">{labels("candidateDetail.intermediary")}</div>
               <div className="candidate-owner-row">
-                <div className="candidate-owner-avatar" style={{ backgroundColor: "var(--amber-flame)", color: "var(--pitch-black)" }}>
+                <div className="candidate-owner-avatar candidate-owner-avatar--amber">
                   {candidate.intermediary.name?.[0]}
                 </div>
                 <div>
-                  <div className="font-bold text-lg" style={{ color: "var(--pitch-black)" }}>{candidate.intermediary.name}</div>
-                  <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>{candidate.intermediary.email}</div>
+                  <div className="candidate-owner-name">{candidate.intermediary.name}</div>
+                  <div className="candidate-owner-email">{candidate.intermediary.email}</div>
                 </div>
               </div>
             </div>
@@ -769,7 +760,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       <div className="text-[10px] font-black uppercase tracking-widest text-orange-600">
                         {labels("candidateDetail.duplicateDetected")}
                       </div>
-                      <ExpandableText maxLength={72} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", fontWeight: 800, color: "#9a3412" }}>
+                      <ExpandableText maxLength={72} className="candidate-duplicate-text">
                         {`${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`}
                       </ExpandableText>
                     </div>
@@ -787,16 +778,16 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <div className="text-xs font-black uppercase tracking-widest text-gray-500">{labels("candidateDetail.arrivalReadiness")}</div>
                 <div className="flex flex-wrap gap-2">
                   <span
-                    className="status-badge"
-                    style={{
-                      backgroundColor: arrivalReadiness.isReadyForArrival ? "#dcfce7" : "#fef3c7",
-                      color: arrivalReadiness.isReadyForArrival ? "#166534" : "#92400e",
-                    }}
+                    className={`status-badge candidate-arrival-status ${
+                      arrivalReadiness.isReadyForArrival
+                        ? "candidate-arrival-status--ready"
+                        : "candidate-arrival-status--blocked"
+                    }`}
                   >
                     {arrivalReadiness.statusLabel.toUpperCase()}
                   </span>
                   {arrivalReadiness.legalFollowUpOpen ? (
-                    <span className="status-badge" style={{ backgroundColor: "#eef2ff", color: "#4338ca" }}>
+                    <span className="status-badge candidate-legal-followup-badge">
                       {labels("candidateDetail.legalFollowUp").toUpperCase()}
                     </span>
                   ) : null}

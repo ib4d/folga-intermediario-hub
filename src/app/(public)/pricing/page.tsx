@@ -55,12 +55,15 @@ const pricingPlans: readonly PricingPlan[] = [
   },
 ] as const;
 
-function getPlanAction(plan: PricingPlan, language: Parameters<typeof t>[0], demoHref: string, loginHref: string, onboardingHref: string) {
+function getPlanAction(
+  plan: PricingPlan,
+  language: Parameters<typeof t>[0],
+  demoHref: string,
+  loginHref: string,
+  onboardingHref: string
+) {
   const paymentLink = plan.plan === Plan.FREE ? null : getStripePaymentLink(plan.plan);
-  const href =
-    plan.plan === Plan.FREE
-      ? onboardingHref
-      : paymentLink ?? (plan.plan === Plan.ENTERPRISE ? demoHref : loginHref);
+  const href = plan.plan === Plan.FREE ? onboardingHref : paymentLink ?? (plan.plan === Plan.ENTERPRISE ? demoHref : loginHref);
 
   const label =
     plan.plan === Plan.FREE
@@ -86,125 +89,78 @@ export default async function PricingPage({
   const onboardingHref = localizedHref("/onboarding", language);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--pitch-black)",
-        color: "var(--ghost-white)",
-      }}
-    >
-      <nav
-        style={{
-          padding: "1.5rem 2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "4px solid var(--amber-flame)",
-          position: "sticky",
-          top: 0,
-          backgroundColor: "rgba(11, 5, 0, 0.9)",
-          backdropFilter: "blur(10px)",
-          zIndex: 100,
-        }}
-      >
-        <div style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--amber-flame)" }}>
-          ORI CRUIT <span style={{ color: "var(--ghost-white)" }}>HUB</span>
+    <div className="public-landing">
+      <nav className="public-topbar">
+        <div className="public-brand">
+          ORI CRUIT <span className="public-brand-accent">HUB</span>
         </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <Link href={demoHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+        <div className="public-nav-links">
+          <Link href={demoHref} className="public-nav-link">
             {labels("public.nav.demo")}
           </Link>
-          <Link href={securityHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={securityHref} className="public-nav-link">
             {labels("public.nav.security")}
           </Link>
           <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button" style={{ fontSize: "0.8rem", padding: "0.5rem 1.25rem" }}>
+          <Link href={loginHref} className="button public-login-link">
             {labels("public.nav.login")}
           </Link>
         </div>
       </nav>
 
-      <header style={{ padding: "6rem 2rem 3rem", textAlign: "center", maxWidth: "1100px", margin: "0 auto" }}>
-        <div className="badge" style={{ marginBottom: "1rem" }}>
+      <header className="public-hero">
+        <div className="badge public-pricing-badge-anchor">
           {labels("public.pricing.title")}
         </div>
-        <h1 style={{ fontSize: "clamp(2.8rem, 6vw, 5rem)", lineHeight: 1, textTransform: "uppercase", marginBottom: "1.25rem" }}>
-          {labels("public.pricing.title")}
-        </h1>
-        <p style={{ fontSize: "1.15rem", maxWidth: "820px", margin: "0 auto", opacity: 0.88, lineHeight: 1.6 }}>
-          {labels("public.pricing.description")}
-        </p>
-        <div
-          style={{
-            margin: "1.5rem auto 0",
-            maxWidth: "760px",
-            border: "1px solid rgba(255, 255, 255, 0.14)",
-            backgroundColor: "#111111",
-            padding: "1rem 1.1rem",
-            textAlign: "left",
-          }}
-        >
-          <div style={{ fontWeight: 900, marginBottom: "0.35rem" }}>
-            {labels("public.pricing.guidedTitle")}
+        <h1 className="public-hero-title">{labels("public.pricing.title")}</h1>
+        <p className="public-hero-copy">{labels("public.pricing.description")}</p>
+
+        <div className="card public-card-dark public-pricing-guided">
+          <div className="card-header public-pricing-guided-header">
+            <div className="public-hero-card-title">{labels("public.pricing.guidedTitle")}</div>
           </div>
-          <div style={{ opacity: 0.84, lineHeight: 1.6 }}>
-            {labels("public.pricing.guidedDescription")}
-          </div>
+          <div className="public-hero-card-copy">{labels("public.pricing.guidedDescription")}</div>
         </div>
       </header>
 
-      <section style={{ padding: "2rem 2rem 6rem" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.25rem" }}>
-            {pricingPlans.map((plan) => {
-              const { href, label, paymentLink } = getPlanAction(plan, language, demoHref, loginHref, onboardingHref);
+      <section className="public-section">
+        <div className="public-card-grid public-card-grid--pricing">
+          {pricingPlans.map((plan) => {
+            const { href, label, paymentLink } = getPlanAction(plan, language, demoHref, loginHref, onboardingHref);
+            const featuredClass = plan.featured ? "public-card-accent public-pricing-card--dark-badge" : "";
 
-              return (
-              <div
-                key={plan.badge}
-                className="card"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  minHeight: "430px",
-                  border: plan.featured ? "2px solid var(--amber-flame)" : "1px solid rgba(255, 255, 255, 0.12)",
-                  backgroundColor: "#111111",
-                  boxShadow: plan.featured ? "8px 8px 0 var(--amber-flame)" : "none",
-                }}
-              >
-                <div style={{ marginBottom: "2rem" }}>
+            return (
+              <article key={plan.badge} className={`card public-card-dark public-pricing-card ${featuredClass}`.trim()}>
+                <div className="public-pricing-header">
                   <div
-                    className={plan.featured ? "status-badge active" : "status-badge"}
-                    style={{
-                      marginBottom: "1rem",
-                      backgroundColor: plan.featured ? "var(--amber-flame)" : "rgba(255,255,255,0.12)",
-                      color: plan.featured ? "var(--pitch-black)" : "var(--ghost-white)",
-                    }}
+                    className={`status-badge public-pricing-badge ${plan.featured ? "active public-pricing-badge--dark" : ""}`.trim()}
                   >
                     {labels(plan.badge)}
                   </div>
                   {plan.price ? (
-                    <div style={{ fontSize: "2.35rem", fontWeight: 900 }}>
-                      {plan.price.startsWith("billing.") ? labels(plan.price as Parameters<typeof labels>[0]) : plan.price}
-                      <span style={{ fontSize: "1rem" }}>{plan.suffix ? labels(plan.suffix) : ""}</span>
+                    <div className="public-pricing-title">
+                      {plan.price.startsWith("billing.")
+                        ? labels(plan.price as Parameters<typeof labels>[0])
+                        : plan.price}
+                      <span className="public-pricing-suffix">{plan.suffix ? labels(plan.suffix) : ""}</span>
                     </div>
                   ) : (
-                    <div style={{ fontSize: "2.35rem", fontWeight: 900 }}>{labels("public.pricing.free")}</div>
+                    <div className="public-pricing-title">{labels("public.pricing.free")}</div>
                   )}
                 </div>
 
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "1rem", flex: 1 }}>
+                <ul className="public-pricing-list">
                   {plan.items.map((item) => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <li key={item} className="public-pricing-item">
                       <CheckCircle2 size={18} color="var(--amber-flame)" />
                       {labels(item)}
                     </li>
                   ))}
-                  <li style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <li className="public-pricing-item">
                     <ShieldCheck size={18} color="var(--amber-flame)" />
                     {labels("billing.feature.dashboardOps")}
                   </li>
-                  <li style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <li className="public-pricing-item">
                     <CreditCard size={18} color="var(--amber-flame)" />
                     {labels("billing.feature.emailSupport")}
                   </li>
@@ -212,43 +168,29 @@ export default async function PricingPage({
 
                 <Link
                   href={href}
-                  className="button"
-                  style={{ width: "100%", marginTop: "1.5rem", textDecoration: "none" }}
+                  className="button public-pricing-action"
                   {...(paymentLink ? { target: "_blank", rel: "noreferrer" } : {})}
                 >
                   {label}
                 </Link>
-              </div>
-              );
-            })}
-          </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section style={{ padding: "0 2rem 6rem" }}>
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            padding: "2rem",
-            borderTop: "4px solid var(--amber-flame)",
-            borderBottom: "4px solid var(--amber-flame)",
-            backgroundColor: "#111111",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ fontSize: "2.4rem", textTransform: "uppercase", marginBottom: "1rem" }}>
+      <section className="public-section public-section--dark public-cta-section">
+        <div className="public-cta-inner">
+          <h2 className="public-hero-title public-pricing-guided-title">
             {labels("public.finalCta.title")}
           </h2>
-          <p style={{ maxWidth: "760px", margin: "0 auto 2rem", opacity: 0.88, lineHeight: 1.6 }}>
-            {labels("public.finalCta.description")}
-          </p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href={demoHref} className="button" style={{ textDecoration: "none" }}>
+          <p className="public-cta-copy">{labels("public.finalCta.description")}</p>
+          <div className="public-section-actions">
+            <Link href={demoHref} className="button">
               {labels("public.finalCta.primary")}
-              <ArrowRight size={18} style={{ marginLeft: "0.5rem" }} />
+              <ArrowRight size={18} className="public-cta-arrow" />
             </Link>
-            <Link href={securityHref} className="button button-secondary" style={{ textDecoration: "none" }}>
+            <Link href={securityHref} className="button button-secondary">
               {labels("public.nav.security")}
             </Link>
           </div>

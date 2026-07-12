@@ -7,6 +7,8 @@ import DashboardCharts from "@/components/DashboardCharts";
 import ExportButton from "@/components/ExportButton";
 import DashboardOverview from "@/components/DashboardOverview";
 import ExpandableText from "@/components/ui/ExpandableText";
+import MetricCard from "@/components/ui/MetricCard";
+import PageHeader from "@/components/ui/PageHeader";
 import ProviderStatusCard from "@/components/ProviderStatusCard";
 import { getArrivalReadiness } from "@/lib/arrival-readiness";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
@@ -198,16 +200,16 @@ export default async function DashboardPage() {
 
   if (total === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-        <h1 style={{ fontSize: "3rem", marginBottom: "1rem", fontWeight: 900 }}>{labels("dashboard.emptyTitle")}</h1>
-        <p style={{ fontSize: "1.25rem", opacity: 0.7, marginBottom: "2.5rem" }}>
+      <div className="dashboard-empty-state">
+        <h1 className="dashboard-empty-title">{labels("dashboard.emptyTitle")}</h1>
+        <p className="dashboard-empty-copy">
           {labels("dashboard.emptyDescription")}
         </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/candidatos/nuevo" className="button" style={{ padding: '1rem 2rem' }}>
+        <div className="dashboard-empty-actions">
+          <Link href="/candidatos/nuevo" className="button dashboard-empty-button">
             {labels("dashboard.emptyPrimary")}
           </Link>
-          <Link href="/ajustes/branding" className="button button-secondary" style={{ padding: '1rem 2rem', border: '1px solid var(--pitch-black)' }}>
+          <Link href="/ajustes/branding" className="button button-secondary dashboard-empty-button dashboard-empty-button-secondary">
             {labels("dashboard.emptySecondary")}
           </Link>
         </div>
@@ -215,29 +217,68 @@ export default async function DashboardPage() {
     );
   }
 
+  const dashboardIntro = `${labels("dashboard.welcomePending")
+    .replace("{name}", session.user.name ?? "")
+    .replace("{count}", recopilando.toString())} ${labels("dashboard.focusDescription")}`;
+
   return (
     <>
-      <div
-        className="hero-section"
-        style={{
-          padding: "2rem",
-          marginBottom: "2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}
-      >
-        <div>
-          <h1 style={{ marginBottom: "0.5rem" }}>{labels("dashboard.title")}</h1>
-          <p style={{ margin: 0, color: "var(--pitch-black)" }}>
-            {labels("dashboard.welcomePending")
-              .replace("{name}", session.user.name ?? "")
-              .replace("{count}", recopilando.toString())}
-          </p>
+      <PageHeader
+        title={labels("dashboard.title")}
+        eyebrow={labels("dashboard.focusTitle")}
+        icon={<AlertTriangle size={14} />}
+        description={dashboardIntro}
+        actions={<ExportButton />}
+      />
+
+      <div className="dashboard-secondary-grid dashboard-metric-band">
+        <MetricCard
+          title={labels("dashboard.queueDocuments")}
+          value={recopilando}
+          href="/candidatos?status=RECOPILANDO_DOCS"
+          tone="accent"
+        />
+        <MetricCard
+          title={labels("dashboard.queueLegal")}
+          value={enRevision}
+          href="/legal"
+          tone="default"
+        />
+        <MetricCard
+          title={labels("dashboard.queueOcr")}
+          value={pendingOcr}
+          href="/documentos?status=REVIEW_REQUIRED"
+          tone="danger"
+        />
+        <MetricCard
+          title={labels("dashboard.queueLogistics")}
+          value={readyForArrival}
+          href="/logistica"
+          tone="success"
+        />
+      </div>
+
+      <div className="card dashboard-section-card">
+        <div className="dashboard-section-header">
+          <div>
+            <h2 className="dashboard-section-title">{labels("dashboard.quickActionsTitle")}</h2>
+            <p className="dashboard-section-description">{labels("dashboard.quickActionsDescription")}</p>
+          </div>
         </div>
-        <ExportButton />
+        <div className="page-section-actions">
+          <Link href="/candidatos/nuevo" className="button">
+            {labels("dashboard.quickActionCandidate")}
+          </Link>
+          <Link href="/documentos" className="button button-secondary">
+            {labels("dashboard.quickActionDocuments")}
+          </Link>
+          <Link href="/legal" className="button button-secondary">
+            {labels("dashboard.quickActionLegal")}
+          </Link>
+          <Link href="/logistica" className="button button-secondary">
+            {labels("dashboard.quickActionLogistics")}
+          </Link>
+        </div>
       </div>
 
       <ProviderStatusCard
@@ -417,36 +458,23 @@ export default async function DashboardPage() {
       />
 
       {(topOutcomeCategories.length > 0 || recentFollowUps.length > 0) ? (
-        <div className="card" style={{ marginTop: "2rem" }}>
-          <div
-            className="card-header"
-            style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-          >
+        <div className="card dashboard-section-card">
+          <div className="dashboard-section-header">
             <div>
-              <h2 style={{ marginBottom: "0.25rem" }}>Pulso Legal</h2>
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--muted)" }}>
+              <h2 className="dashboard-section-title">Pulso Legal</h2>
+              <p className="dashboard-section-description">
                 Categorias recientes y carga de seguimiento para el equipo.
               </p>
             </div>
-            <Link href="/legal" className="button" style={{ fontSize: "0.875rem" }}>
+            <Link href="/legal" className="button dashboard-section-link">
               {labels("dashboard.openLegal")}
             </Link>
           </div>
 
           {topOutcomeCategories.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.25rem" }}>
+            <div className="dashboard-pill-list">
               {topOutcomeCategories.map(([category, count]) => (
-                <div
-                  key={category}
-                  style={{
-                    padding: "0.6rem 0.9rem",
-                    border: "1px solid var(--border-subtle)",
-                    borderRadius: "999px",
-                    backgroundColor: "var(--white-smoke)",
-                    fontWeight: 800,
-                    fontSize: "0.8rem",
-                  }}
-                >
+                <div key={category} className="dashboard-pill">
                   {category}: {count}
                 </div>
               ))}
@@ -459,35 +487,35 @@ export default async function DashboardPage() {
                 <Link
                   key={candidate.id}
                   href={`/candidatos/${candidate.id}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
+                  className="dashboard-pulse-link"
                 >
                   <div className="card dashboard-pulse-card">
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.6rem" }}>
-                      <div style={{ fontWeight: 900 }}>
+                    <div className="dashboard-pulse-card-head">
+                      <div className="dashboard-pulse-name">
                         {candidate.firstName} {candidate.lastName}
                       </div>
-                      <span className="status-badge" style={{ fontSize: "0.65rem" }}>
+                      <span className="status-badge dashboard-pulse-status">
                         {candidate.status.replace(/_/g, " ")}
                       </span>
                     </div>
                     {outcome?.category ? (
-                      <div style={{ marginBottom: "0.45rem", fontSize: "0.72rem", fontWeight: 900, textTransform: "uppercase", color: "#4338ca" }}>
+                      <div className="dashboard-pulse-category">
                         {outcome.category}
                       </div>
                     ) : null}
                     {outcome?.summary ? (
-                      <ExpandableText maxLength={120} style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)", marginBottom: "0.7rem" }}>
+                      <ExpandableText maxLength={120} className="dashboard-pulse-summary">
                         {outcome.summary}
                       </ExpandableText>
                     ) : null}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.7rem" }}>
+                    <div className="dashboard-pulse-actions">
                       {outcome?.followUpActions.length ? (
-                        <ExpandableText maxLength={96} style={{ fontSize: "0.72rem", fontWeight: 800, color: "#4338ca" }}>
+                        <ExpandableText maxLength={96} className="dashboard-pulse-actions-text">
                           {outcome.followUpActions.join(" | ")}
                         </ExpandableText>
                       ) : null}
                     </div>
-                    <div style={{ marginTop: "auto", fontSize: "0.72rem", fontWeight: 700, color: checklist.isReadyForLegal ? "#15803d" : "#b91c1c" }}>
+                    <div className={`dashboard-pulse-footer ${checklist.isReadyForLegal ? "dashboard-pulse-footer--ready" : "dashboard-pulse-footer--blocked"}`}>
                       {checklist.isReadyForLegal ? "Listo para volver a legal" : `${checklist.blockers.length} bloqueos activos`}
                     </div>
                   </div>
@@ -499,18 +527,15 @@ export default async function DashboardPage() {
       ) : null}
 
       {logisticsAttention.length > 0 ? (
-        <div className="card" style={{ marginTop: "2rem" }}>
-          <div
-            className="card-header"
-            style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-          >
+        <div className="card dashboard-section-card">
+          <div className="dashboard-section-header">
             <div>
-              <h2 style={{ marginBottom: "0.25rem" }}>Pulso de Llegadas</h2>
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--muted)" }}>
+              <h2 className="dashboard-section-title">Pulso de Llegadas</h2>
+              <p className="dashboard-section-description">
                 Casos con handoff incompleto antes de aterrizar en logistica.
               </p>
             </div>
-            <Link href="/logistica" className="button" style={{ fontSize: "0.875rem" }}>
+            <Link href="/logistica" className="button dashboard-section-link">
               {labels("dashboard.openLogistics")}
             </Link>
           </div>
@@ -520,29 +545,29 @@ export default async function DashboardPage() {
               <Link
                 key={candidate.id}
                 href={`/candidatos/${candidate.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
+                className="dashboard-pulse-link"
               >
                 <div className="card dashboard-pulse-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.6rem" }}>
-                    <div style={{ fontWeight: 900 }}>
+                  <div className="dashboard-pulse-card-head">
+                    <div className="dashboard-pulse-name">
                       {candidate.firstName} {candidate.lastName}
                     </div>
-                    <span className="status-badge" style={{ fontSize: "0.65rem" }}>
+                    <span className="status-badge dashboard-pulse-status">
                       {arrivalReadiness.statusLabel.toUpperCase()}
                     </span>
                   </div>
                   {arrivalReadiness.blockers.length > 0 ? (
-                    <ExpandableText maxLength={110} style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#991b1b", marginBottom: "0.55rem" }}>
+                    <ExpandableText maxLength={110} className="dashboard-pulse-summary dashboard-pulse-summary--danger">
                       {arrivalReadiness.blockers.join(" | ")}
                     </ExpandableText>
                   ) : null}
                   {arrivalReadiness.warnings.length > 0 ? (
-                    <ExpandableText maxLength={96} style={{ display: "block", marginTop: "auto", fontSize: "0.78rem", fontWeight: 700, color: "#92400e" }}>
+                    <ExpandableText maxLength={96} className="dashboard-pulse-summary dashboard-pulse-summary--warning">
                       {arrivalReadiness.warnings.join(" | ")}
                     </ExpandableText>
                   ) : null}
                   {operationalAlerts.length > 0 ? (
-                    <ExpandableText maxLength={100} style={{ display: "block", marginTop: "0.55rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400e" }}>
+                    <ExpandableText maxLength={100} className="dashboard-pulse-alerts">
                       {operationalAlerts.map((alert) => alert.title).join(" · ")}
                     </ExpandableText>
                   ) : null}
@@ -556,19 +581,19 @@ export default async function DashboardPage() {
       <DashboardCharts data={chartData} />
  
       {stuckCandidates.length > 0 && (
-        <div className="card" style={{ marginTop: "2rem", backgroundColor: "#ffccd5" }}>
-          <div className="card-header" style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 900 }}>
+          <div className="card dashboard-section-card dashboard-alert-card">
+          <div className="card-header dashboard-alert-header">
+            <h3 className="dashboard-alert-title">
               <AlertTriangle size={28} strokeWidth={3} /> CANDIDATOS ESTANCADOS (INACTIVOS {'>'} 7 DIAS)
             </h3>
           </div>
           <div className="dashboard-pulse-grid">
             {stuckCandidates.map((c) => (
-              <Link key={c.id} href={`/candidatos/${c.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="card dashboard-pulse-card" style={{ backgroundColor: 'white' }}>
-                  <div style={{ fontWeight: '900', fontSize: '1.1rem', marginBottom: '0.25rem' }}>{c.firstName} {c.lastName}</div>
-                  <div className="status-badge" style={{ marginBottom: '0.5rem', fontSize: '0.65rem' }}>{c.status.replace(/_/g, ' ')}</div>
-                  <div style={{ marginTop: "auto", fontSize: '0.75rem', fontWeight: 'bold', color: '#b91c1c' }}>SIN CAMBIOS DESDE {new Date(c.updatedAt).toLocaleDateString()}</div>
+              <Link key={c.id} href={`/candidatos/${c.id}`} className="dashboard-pulse-link">
+                <div className="card dashboard-pulse-card dashboard-pulse-card--white">
+                  <div className="dashboard-pulse-name dashboard-pulse-name--stuck">{c.firstName} {c.lastName}</div>
+                  <div className="status-badge dashboard-pulse-status">{c.status.replace(/_/g, ' ')}</div>
+                  <div className="dashboard-pulse-footer dashboard-pulse-footer--blocked">SIN CAMBIOS DESDE {new Date(c.updatedAt).toLocaleDateString()}</div>
                 </div>
               </Link>
             ))}
@@ -576,13 +601,10 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="card" style={{ marginTop: "2rem" }}>
-        <div
-          className="card-header"
-          style={{ borderBottom: "2px solid var(--pitch-black)", paddingBottom: "1rem", marginBottom: "1.5rem" }}
-        >
+      <div className="card dashboard-section-card">
+          <div className="dashboard-section-header">
           <h2>{labels("dashboard.recentCandidates")}</h2>
-          <Link href="/candidatos" className="button" style={{ fontSize: "0.875rem" }}>
+          <Link href="/candidatos" className="button dashboard-section-link">
             {labels("dashboard.viewAll")}
           </Link>
         </div>
@@ -600,7 +622,7 @@ export default async function DashboardPage() {
             <tbody>
             {recientes.map((candidate) => (
                 <tr key={candidate.id}>
-                  <td style={{ fontWeight: "bold" }}>
+                  <td className="dashboard-table-name">
                     {candidate.firstName} {candidate.lastName}
                   </td>
                   <td>{candidate.country}</td>
@@ -609,11 +631,10 @@ export default async function DashboardPage() {
                       {candidate.status.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td style={{ textAlign: "right" }}>
+                  <td className="dashboard-table-actions">
                     <Link
                       href={`/candidatos/${candidate.id}`}
-                      className="button button-secondary"
-                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                      className="button button-secondary dashboard-table-action"
                     >
                       {labels("dashboard.view")}
                     </Link>

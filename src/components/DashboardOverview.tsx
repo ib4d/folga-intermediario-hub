@@ -130,8 +130,8 @@ export default function DashboardOverview({ metrics }: { metrics: DashboardMetri
       <div className="card dashboard-preferences-panel">
         <div className="dashboard-preferences-header">
           <div>
-            <h2 style={{ marginBottom: "0.2rem" }}>Vista del tablero</h2>
-            <p style={{ margin: 0 }}>
+            <h2 className="dashboard-preferences-title">Vista del tablero</h2>
+            <p className="dashboard-preferences-copy">
               Elige cuales indicadores ocupan la franja principal y cuales siguen visibles debajo.
             </p>
           </div>

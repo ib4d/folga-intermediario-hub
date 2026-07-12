@@ -49,7 +49,9 @@ export default function CandidateTable({
     summaryPluralSuffix: string;
     summaryView: string;
     summaryAll: string;
+    visibleRange: string;
     bulkDelete: string;
+    clearSelection: string;
     bulkDeleted: string;
     singleDeleted: string;
     deleteFailed: string;
@@ -91,6 +93,9 @@ export default function CandidateTable({
   const searchParams = useSearchParams();
 
   const allSelected = candidates.length > 0 && selectedIds.length === candidates.length;
+  const pageSize = currentLimit === "ALL" ? totalCandidates || candidates.length : Number(currentLimit) || candidates.length;
+  const visibleStart = totalCandidates === 0 ? 0 : (pageNumber - 1) * pageSize + 1;
+  const visibleEnd = totalCandidates === 0 ? 0 : Math.min(pageNumber * pageSize, totalCandidates);
   const pageOptions = useMemo(
     () => Array.from({ length: totalPages }, (_, index) => index + 1),
     [totalPages]
@@ -172,18 +177,33 @@ export default function CandidateTable({
           <div className="candidate-list-subtle">
             {labels.summaryView.replace("{limit}", currentLimit === "ALL" ? labels.summaryAll : currentLimit)}
           </div>
+          <div className="candidate-list-subtle">
+            {labels.visibleRange
+              .replace("{start}", String(visibleStart))
+              .replace("{end}", String(visibleEnd))
+              .replace("{total}", String(totalCandidates))}
+          </div>
         </div>
         {canManageCandidates && selectedIds.length > 0 ? (
-          <button
-            type="button"
-            className="button button-secondary"
-            style={{ color: "#991b1b", borderColor: "#fca5a5", backgroundColor: "#fef2f2" }}
-            onClick={handleDeleteBulk}
-            disabled={isPending}
-          >
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-            {labels.bulkDelete} ({selectedIds.length})
-          </button>
+          <div className="candidate-summary-actions">
+            <button
+              type="button"
+              className="button button-secondary candidate-bulk-delete"
+              onClick={handleDeleteBulk}
+              disabled={isPending}
+            >
+              {isPending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              {labels.bulkDelete} ({selectedIds.length})
+            </button>
+            <button
+              type="button"
+              className="button button-outline"
+              onClick={() => setSelectedIds([])}
+              disabled={isPending}
+            >
+              {labels.clearSelection}
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -193,12 +213,12 @@ export default function CandidateTable({
         </p>
       ) : null}
 
-      <div className="table-container">
+      <div className="table-container table-container--responsive">
         <table className="candidate-table">
           <thead>
             <tr>
               {canManageCandidates ? (
-                <th style={{ width: "52px" }}>
+                <th className="candidate-table-select-col">
                   <button type="button" className="icon-button" onClick={toggleAll} aria-label={labels.selectAll}>
                     {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
@@ -209,7 +229,7 @@ export default function CandidateTable({
               <th>{labels.tableDocs}</th>
               <th>{labels.tableIntermediary}</th>
               <th>{labels.tableStatus}</th>
-              <th style={{ width: "270px" }}>{labels.tableActions}</th>
+              <th className="candidate-table-actions-col">{labels.tableActions}</th>
             </tr>
           </thead>
           <tbody>
@@ -301,10 +321,9 @@ export default function CandidateTable({
               {labels.pageOf.replace("{page}", String(pageNumber)).replace("{total}", String(totalPages))}
             </span>
             <select
-              className="select"
               value={String(pageNumber)}
               onChange={(event) => setPage(Number(event.target.value))}
-              style={{ width: "160px" }}
+              className="select candidate-table-pagination-select"
             >
               {pageOptions.map((page) => (
                 <option key={page} value={page}>

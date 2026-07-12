@@ -147,25 +147,25 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      <div className="card" style={{ padding: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: "280px" }}>
+    <div className="module-page-shell legal-queue-shell">
+      <div className="card module-panel module-toolbar">
+        <div className="legal-queue-toolbar-search">
           <Search
             size={20}
             strokeWidth={2.5}
-            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--pitch-black)" }}
+            className="legal-queue-toolbar-search-icon"
           />
           <input
             type="text"
+            aria-label={labels("legal.searchPlaceholder")}
             placeholder={labels("legal.searchPlaceholder")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="input"
-            style={{ paddingLeft: "2.75rem", fontWeight: "bold", fontSize: "0.8rem" }}
+            className="input legal-queue-toolbar-search-input"
           />
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div className="module-toolbar-actions">
           <FilterChip
             label={`${labels("legal.filterAll")} (${filterCounts.all})`}
             active={activeFilter === "all"}
@@ -196,7 +196,20 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
           />
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0, width: "190px" }}>
+        <button
+          type="button"
+          onClick={() => {
+            setSearch("");
+            setActiveFilter("all");
+            setSortBy("priority");
+            setView("grid");
+          }}
+          className="button button-secondary legal-queue-toolbar-reset"
+        >
+          Limpiar filtros
+        </button>
+
+        <div className="input-group legal-queue-toolbar-sort">
           <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value as QueueSort)}>
             <option value="priority">{labels("legal.sortPriority")}</option>
             <option value="updated">{labels("legal.sortUpdated")}</option>
@@ -204,31 +217,24 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
           </select>
         </div>
 
-        <div style={{ display: "flex", border: "2px solid var(--pitch-black)", overflow: "hidden" }}>
+        <div className="legal-queue-toolbar-toggle">
           <button
+            type="button"
+            aria-label="Vista en cuadrícula"
+            title="Vista en cuadrícula"
             onClick={() => setView("grid")}
-            style={{
-              padding: "0.5rem 0.75rem",
-              backgroundColor: view === "grid" ? "var(--primary)" : "var(--background)",
-              border: "none",
-              borderRight: "2px solid var(--pitch-black)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-            }}
+            data-active={view === "grid"}
+            className="legal-queue-toolbar-toggle-button legal-queue-toggle-icon legal-queue-toggle"
           >
             <LayoutGrid size={18} strokeWidth={2.5} />
           </button>
           <button
+            type="button"
+            aria-label="Vista en lista"
+            title="Vista en lista"
             onClick={() => setView("list")}
-            style={{
-              padding: "0.5rem 0.75rem",
-              backgroundColor: view === "list" ? "var(--primary)" : "var(--background)",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-            }}
+            data-active={view === "list"}
+            className="legal-queue-toolbar-toggle-button legal-queue-toggle-icon legal-queue-toggle"
           >
             <List size={18} strokeWidth={2.5} />
           </button>
@@ -236,95 +242,81 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
       </div>
 
       {filteredCandidates.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "4rem 2rem" }}>
-          <div
-            style={{
-              width: "64px",
-              height: "64px",
-              backgroundColor: "var(--white-smoke)",
-              border: "2px solid var(--pitch-black)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.5rem",
-            }}
-          >
+        <div className="card module-empty-state">
+          <div className="module-empty-graphic">
             <Search size={32} strokeWidth={2.5} />
           </div>
-          <h3 style={{ fontSize: "1.5rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+          <h3 className="legal-queue-empty-title">
             {labels("legal.emptyTitle")}
           </h3>
-          <p style={{ fontWeight: "bold", textTransform: "uppercase", fontSize: "0.875rem" }}>
+          <p className="legal-queue-empty-description">
             {labels("legal.emptyDescription")}
           </p>
         </div>
       ) : (
         <>
           {duplicatePriorityRows.length > 0 ? (
-            <div className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+            <div className="card module-panel legal-queue-panel">
+              <div className="legal-queue-section-header">
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.45rem" }}>
+                  <div className="legal-queue-section-title">
                     <AlertTriangle size={16} strokeWidth={2.75} />
                     {labels("legal.duplicateQueueTitle")}
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "bold", color: "var(--muted)", maxWidth: "720px" }}>
+                  <p className="legal-queue-section-description">
                     {labels("legal.duplicateQueueDescription")}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="button button-secondary"
                   onClick={() => setActiveFilter("duplicates")}
-                  style={{ whiteSpace: "nowrap" }}
+                  className="button button-secondary legal-queue-section-button"
                 >
                   {labels("legal.focusDuplicates")}
                 </button>
               </div>
 
-              <div className="equal-card-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+              <div className="equal-card-grid legal-queue-grid">
                 {duplicatePriorityRows.map((row) => (
-                  <div key={row.candidate.id} className="card equal-card" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+                  <div key={row.candidate.id} className="card equal-card legal-queue-card">
+                    <div className="legal-queue-card-header">
                       <div>
-                        <div style={{ fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase", lineHeight: 1.25 }}>
+                        <div className="legal-queue-card-title">
                           {row.candidate.firstName} {row.candidate.lastName}
                         </div>
-                        <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "var(--muted)", marginTop: "0.2rem" }}>
+                        <div className="legal-queue-card-meta">
                           {row.candidate.country} · {row.checklist.stats.duplicateGroups} {labels("legal.summaryDuplicates").toLowerCase()}
                         </div>
                       </div>
                       <span
-                        className="status-badge"
-                        style={{
-                          backgroundColor: row.checklist.blockers.length > 0 ? "#fee2e2" : "#fef3c7",
-                          color: row.checklist.blockers.length > 0 ? "#991b1b" : "#92400e",
-                          fontSize: "0.62rem",
-                          whiteSpace: "nowrap",
-                        }}
+                        className={`legal-queue-card-badge ${
+                          row.checklist.blockers.length > 0
+                            ? "legal-queue-card-badge--danger"
+                            : "legal-queue-card-badge--warning"
+                        }`}
                       >
                         {labels("legal.duplicatePriorityBadge")}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "#7c2d12", lineHeight: 1.55, minHeight: "4.2rem" }}>
+                    <div className="legal-queue-card-summary legal-queue-card-summary--compact">
                       {row.checklist.duplicates
                         .slice(0, 3)
                         .map((group) => `${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`)
                         .join(" · ")}
                     </div>
 
-                    <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "var(--muted)", lineHeight: 1.45 }}>
+                    <div className="legal-queue-card-action">
                       {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(row.checklist.duplicates, labels)}
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginTop: "auto", alignItems: "center" }}>
-                      <div style={{ fontSize: "0.68rem", fontWeight: "900", color: "var(--muted)", textTransform: "uppercase" }}>
+                    <div className="legal-queue-card-footer">
+                      <div className="legal-queue-card-action">
                         {row.checklist.blockers.length > 0
                           ? `${row.checklist.blockers.length} ${labels("legal.blocked").toLowerCase()}`
                           : labels("legal.filterReady")}
                       </div>
-                      <Link href={`/candidatos/${row.candidate.id}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
+                      <Link href={`/candidatos/${row.candidate.id}`} className="button button-secondary legal-queue-card-footer-button">
                         {labels("legal.openCandidate")}
                       </Link>
                     </div>
@@ -335,14 +327,14 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
           ) : null}
 
           {duplicateQueueItems.length > 0 ? (
-            <div className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
+            <div className="card module-panel legal-queue-panel">
+              <div className="legal-queue-section-header">
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", marginBottom: "0.45rem" }}>
+                  <div className="legal-queue-section-title">
                     <AlertTriangle size={16} strokeWidth={2.75} />
                     {labels("legal.duplicateWorkbenchTitle")}
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "bold", color: "var(--muted)", maxWidth: "720px" }}>
+                  <p className="legal-queue-section-description">
                     {labels("legal.duplicateWorkbenchDescription")}
                   </p>
                 </div>
@@ -352,41 +344,40 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
                 items={duplicateQueueItems}
                 pageSize={4}
                 label={labels("legal.duplicateWorkbenchPagination")}
-                className="equal-card-grid legal-duplicate-grid"
-                style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}
+                className="equal-card-grid legal-duplicate-grid legal-queue-grid legal-queue-grid--workbench"
                 renderItem={(item) => (
-                  <div key={item.candidateId} className="card equal-card" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "flex-start" }}>
+                  <div key={item.candidateId} className="card equal-card legal-queue-card">
+                    <div className="legal-queue-card-header">
                       <div>
-                        <div style={{ fontSize: "0.95rem", fontWeight: "900", textTransform: "uppercase", lineHeight: 1.25 }}>
+                        <div className="legal-queue-card-title">
                           {item.candidateName}
                         </div>
-                        <div style={{ fontSize: "0.72rem", fontWeight: "bold", color: "var(--muted)", marginTop: "0.2rem" }}>
+                        <div className="legal-queue-card-meta">
                           {item.country ?? "N/A"} · {item.groups.length} {labels("legal.summaryDuplicates").toLowerCase()}
                         </div>
                       </div>
-                      <span className="status-badge" style={{ backgroundColor: "#fef3c7", color: "#92400e", fontSize: "0.62rem", whiteSpace: "nowrap" }}>
+                      <span className="status-badge legal-queue-card-badge legal-queue-card-badge--warning">
                         {labels("legal.duplicateWorkbenchBadge")}
                       </span>
                     </div>
 
-                    <div style={{ minHeight: "4.8rem", fontSize: "0.72rem", fontWeight: "bold", color: "#7c2d12", lineHeight: 1.55 }}>
+                    <div className="legal-queue-card-summary legal-queue-card-summary--workbench">
                       {item.groups.slice(0, 4).join(" · ")}
                     </div>
 
-                    <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "var(--muted)", lineHeight: 1.45 }}>
+                    <div className="legal-queue-card-action">
                       {labels("legal.duplicateSuggestedAction")}: {getDuplicateSuggestion(item.groupCounts, labels)}
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginTop: "auto", alignItems: "center" }}>
-                      <div style={{ fontSize: "0.68rem", fontWeight: "900", color: "var(--muted)", textTransform: "uppercase" }}>
+                    <div className="legal-queue-card-footer">
+                      <div className="legal-queue-card-action">
                         {item.blockers > 0
                           ? `${item.blockers} ${labels("legal.blocked").toLowerCase()}`
                           : item.warnings > 0
                             ? `${item.warnings} ${labels("candidateDetail.warnings").toLowerCase()}`
                             : labels("legal.filterReady")}
                       </div>
-                      <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary" style={{ padding: "0.35rem 0.75rem", fontSize: "0.7rem" }}>
+                      <Link href={`/candidatos/${item.candidateId}`} className="button button-secondary legal-queue-card-footer-button">
                         {labels("legal.openCandidate")}
                       </Link>
                     </div>
@@ -396,7 +387,7 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
             </div>
           ) : null}
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="legal-queue-summary-list">
             <QueueSummary icon={<ShieldAlert size={16} />} label={labels("legal.summaryBlocked")} value={String(filterCounts.blocked)} tone="danger" />
             <QueueSummary icon={<TimerReset size={16} />} label={labels("legal.summaryExpiring")} value={String(filterCounts.expiring)} tone="warning" />
             <QueueSummary icon={<AlertTriangle size={16} />} label={labels("legal.summaryDuplicates")} value={String(filterCounts.duplicates)} tone="neutral" />
@@ -406,11 +397,7 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
             items={filteredCandidates}
             pageSize={view === "grid" ? 6 : 8}
             label={labels("legal.paginationLabel")}
-            className={view === "grid" ? "equal-card-grid legal-card-grid" : "legal-list-grid"}
-            style={{
-              display: "grid",
-              gridTemplateColumns: view === "grid" ? "repeat(auto-fill, minmax(320px, 1fr))" : "1fr",
-            }}
+            className={view === "grid" ? "equal-card-grid legal-card-grid legal-queue-grid" : "legal-list-grid"}
             renderItem={(row) => (
               <LegalCandidateCard
                 key={row.candidate.id}
@@ -451,28 +438,13 @@ function FilterChip({
   onClick: () => void;
   tone?: "neutral" | "success" | "warning" | "danger";
 }) {
-  const palette =
-    tone === "success"
-      ? { activeBg: "#d1fae5", activeColor: "#065f46" }
-      : tone === "warning"
-        ? { activeBg: "#fef3c7", activeColor: "#92400e" }
-        : tone === "danger"
-          ? { activeBg: "#fee2e2", activeColor: "#991b1b" }
-          : { activeBg: "var(--primary)", activeColor: "var(--pitch-black)" };
-
   return (
     <button
+      type="button"
       onClick={onClick}
-      style={{
-        border: "2px solid var(--pitch-black)",
-        backgroundColor: active ? palette.activeBg : "var(--background)",
-        color: active ? palette.activeColor : "var(--foreground)",
-        fontWeight: 900,
-        fontSize: "0.72rem",
-        textTransform: "uppercase",
-        padding: "0.55rem 0.75rem",
-        cursor: "pointer",
-      }}
+      data-active={active}
+      data-tone={tone}
+      className="legal-queue-chip"
     >
       {label}
     </button>
@@ -490,24 +462,12 @@ function QueueSummary({
   value: string;
   tone: "neutral" | "warning" | "danger";
 }) {
-  const backgroundColor =
-    tone === "danger" ? "#fee2e2" : tone === "warning" ? "#fef3c7" : "var(--white-smoke)";
-
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.75rem",
-        padding: "0.8rem 1rem",
-        backgroundColor,
-        border: "2px solid var(--pitch-black)",
-      }}
-    >
+    <div className={`legal-queue-summary legal-queue-summary--${tone}`}>
       {icon}
       <div>
-        <div style={{ fontSize: "0.65rem", fontWeight: 900, textTransform: "uppercase" }}>{label}</div>
-        <div style={{ fontSize: "1.1rem", fontWeight: 900 }}>{value}</div>
+        <div className="legal-queue-summary-label">{label}</div>
+        <div className="legal-queue-summary-value">{value}</div>
       </div>
     </div>
   );

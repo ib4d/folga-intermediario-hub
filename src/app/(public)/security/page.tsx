@@ -39,105 +39,56 @@ export default async function SecurityPage({
   const pricingHref = localizedHref("/pricing", language);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--pitch-black)",
-        color: "var(--ghost-white)",
-      }}
-    >
-      <nav
-        style={{
-          padding: "1.5rem 2rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "4px solid var(--amber-flame)",
-          position: "sticky",
-          top: 0,
-          backgroundColor: "rgba(11, 5, 0, 0.9)",
-          backdropFilter: "blur(10px)",
-          zIndex: 100,
-        }}
-      >
-        <div style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--amber-flame)" }}>
-          ORI CRUIT <span style={{ color: "var(--ghost-white)" }}>HUB</span>
+    <div className="public-landing">
+      <nav className="public-topbar">
+        <div className="public-brand">
+          ORI CRUIT <span className="public-brand-accent">HUB</span>
         </div>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-          <Link href={demoHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+        <div className="public-nav-links">
+          <Link href={demoHref} className="public-nav-link">
             {labels("public.nav.demo")}
           </Link>
-          <Link href={pricingHref} style={{ color: "inherit", textDecoration: "none", fontWeight: 800 }}>
+          <Link href={pricingHref} className="public-nav-link">
             {labels("public.nav.pricing")}
           </Link>
           <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button" style={{ fontSize: "0.8rem", padding: "0.5rem 1.25rem" }}>
+          <Link href={loginHref} className="button public-login-link">
             {labels("public.nav.login")}
           </Link>
         </div>
       </nav>
 
-      <header style={{ padding: "6rem 2rem 3rem", textAlign: "center", maxWidth: "1100px", margin: "0 auto" }}>
-        <div className="badge" style={{ marginBottom: "1rem" }}>
-          {labels("public.security.title")}
-        </div>
-        <h1 style={{ fontSize: "clamp(2.8rem, 6vw, 5rem)", lineHeight: 1, textTransform: "uppercase", marginBottom: "1.25rem" }}>
-          {labels("public.security.title")}
-        </h1>
-        <p style={{ fontSize: "1.15rem", maxWidth: "820px", margin: "0 auto", opacity: 0.88, lineHeight: 1.6 }}>
-          {labels("public.security.description")}
-        </p>
+      <header className="public-hero">
+        <div className="badge public-pricing-badge-anchor">{labels("public.security.title")}</div>
+        <h1 className="public-hero-title">{labels("public.security.title")}</h1>
+        <p className="public-hero-copy">{labels("public.security.description")}</p>
       </header>
 
-      <section style={{ padding: "2rem 2rem 6rem" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
-            {trustCards.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.title}
-                  className="card"
-                  style={{
-                    backgroundColor: "#111111",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    minHeight: "200px",
-                  }}
-                >
-                  <Icon size={28} style={{ color: "var(--amber-flame)", marginBottom: "1rem" }} />
-                  <h3 style={{ marginBottom: "0.75rem", color: "var(--ghost-white)" }}>{labels(item.title)}</h3>
-                  <p style={{ margin: 0, opacity: 0.8, lineHeight: 1.6 }}>{labels(item.text)}</p>
-                </div>
-              );
-            })}
-          </div>
+      <section className="public-section">
+        <div className="public-card-grid public-security-card-grid">
+          {trustCards.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="card public-card-dark public-security-card">
+                <Icon size={28} className="public-security-icon" />
+                <h3 className="public-security-title">{labels(item.title)}</h3>
+                <p className="public-security-copy">{labels(item.text)}</p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section style={{ padding: "0 2rem 6rem" }}>
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            padding: "2rem",
-            borderTop: "4px solid var(--amber-flame)",
-            borderBottom: "4px solid var(--amber-flame)",
-            backgroundColor: "#111111",
-            textAlign: "center",
-          }}
-        >
-          <h2 style={{ fontSize: "2.4rem", textTransform: "uppercase", marginBottom: "1rem" }}>
-            {labels("public.finalCta.title")}
-          </h2>
-          <p style={{ maxWidth: "760px", margin: "0 auto 2rem", opacity: 0.88, lineHeight: 1.6 }}>
-            {labels("public.finalCta.description")}
-          </p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href={demoHref} className="button" style={{ textDecoration: "none" }}>
+      <section className="public-section public-section--dark public-cta-section">
+        <div className="public-cta-inner">
+          <h2 className="public-hero-title public-pricing-guided-title">{labels("public.finalCta.title")}</h2>
+          <p className="public-cta-copy">{labels("public.finalCta.description")}</p>
+          <div className="public-section-actions">
+            <Link href={demoHref} className="button">
               {labels("public.finalCta.primary")}
-              <ArrowRight size={18} style={{ marginLeft: "0.5rem" }} />
+              <ArrowRight size={18} className="public-cta-arrow" />
             </Link>
-            <Link href={loginHref} className="button button-secondary" style={{ textDecoration: "none" }}>
+            <Link href={loginHref} className="button button-secondary">
               {labels("public.finalCta.secondary")}
             </Link>
           </div>

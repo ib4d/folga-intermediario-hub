@@ -1,13 +1,13 @@
-import { requireTenant } from "@/lib/tenant";
-import { prisma } from "@/lib/prisma";
-import { CalendarClock, CreditCard, ExternalLink, Zap } from "lucide-react";
-import Link from "next/link";
+import { auth } from "@/auth";
 import { getPlanLimits } from "@/lib/billing/limits";
 import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
 import { canAccessModule } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { requireTenant } from "@/lib/tenant";
+import { CalendarClock, CreditCard, ExternalLink, Zap } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { normalizeLanguage, t, type AppLanguage, type TranslationKey } from "@/lib/i18n";
-import { auth } from "@/auth";
 
 function formatLimit(value: number, language: AppLanguage) {
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
@@ -69,15 +69,13 @@ export default async function BillingPage() {
       ? null
       : (() => {
           const status = organization.subscription?.status?.toLowerCase() ?? "missing";
-          if (["active", "trialing"].includes(status)) {
-            return null;
-          }
-
+          if (["active", "trialing"].includes(status)) return null;
           return {
             status,
             currentPeriodEnd: organization.subscription?.currentPeriodEnd ?? null,
           };
         })();
+
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -114,28 +112,19 @@ export default async function BillingPage() {
       : null;
 
   return (
-    <div className="content-shell">
+    <div className="content-shell billing-page-shell">
       <section className="hero-section">
         <h1>{labels("billing.title")}</h1>
         <p>{labels("billing.description")}</p>
       </section>
 
       {billingAttention ? (
-        <div
-          className="card"
-          style={{
-            marginBottom: "2rem",
-            border: "1px solid rgba(185, 28, 28, 0.18)",
-            background: "linear-gradient(90deg, rgba(254, 242, 242, 0.96), rgba(255, 247, 237, 0.96))",
-          }}
-        >
-          <div className="card-header" style={{ marginBottom: "0.75rem" }}>
-            <h3 style={{ color: "#991b1b" }}>{labels("billing.subscriptionAttentionTitle")}</h3>
+        <section className="card billing-alert billing-alert--danger">
+          <div className="card-header billing-alert-header">
+            <h3 className="billing-alert-title">{labels("billing.subscriptionAttentionTitle")}</h3>
           </div>
-          <p style={{ marginTop: 0, marginBottom: "0.5rem", fontWeight: 700 }}>
-            {labels("billing.subscriptionAttentionMessage")}
-          </p>
-          <div style={{ display: "grid", gap: "0.35rem", marginBottom: "1rem", color: "rgba(0,0,0,0.75)" }}>
+          <p className="billing-alert-copy">{labels("billing.subscriptionAttentionMessage")}</p>
+          <div className="billing-alert-details">
             <div>
               {labels("billing.subscriptionAttentionStatus").replace(
                 "{status}",
@@ -151,7 +140,7 @@ export default async function BillingPage() {
               )}
             </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div className="billing-actions">
             {portalUrl ? (
               <a className="button" href={portalUrl} target="_blank" rel="noreferrer">
                 <ExternalLink size={16} />
@@ -162,25 +151,16 @@ export default async function BillingPage() {
               {labels("billing.changePlan")}
             </Link>
           </div>
-        </div>
+        </section>
       ) : null}
 
       {usagePressure ? (
-        <div
-          className="card"
-          style={{
-            marginBottom: "2rem",
-            border: "1px solid rgba(245, 158, 11, 0.2)",
-            background: "linear-gradient(90deg, rgba(255, 251, 235, 0.96), rgba(254, 243, 199, 0.7))",
-          }}
-        >
-          <div className="card-header" style={{ marginBottom: "0.75rem" }}>
-            <h3 style={{ color: "#92400e" }}>{labels("billing.usagePressureTitle")}</h3>
+        <section className="card billing-alert billing-alert--warning">
+          <div className="card-header billing-alert-header">
+            <h3 className="billing-alert-title">{labels("billing.usagePressureTitle")}</h3>
           </div>
-          <p style={{ marginTop: 0, marginBottom: "0.5rem", fontWeight: 700 }}>
-            {labels("billing.usagePressureMessage")}
-          </p>
-          <div style={{ display: "grid", gap: "0.35rem", marginBottom: "1rem", color: "rgba(0,0,0,0.75)" }}>
+          <p className="billing-alert-copy">{labels("billing.usagePressureMessage")}</p>
+          <div className="billing-alert-details">
             <div>
               {labels("billing.usagePressureCurrent").replace(
                 "{usage}",
@@ -189,34 +169,32 @@ export default async function BillingPage() {
             </div>
             <div>{labels("billing.usagePressureAction")}</div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+          <div className="billing-actions">
             <Link href="/billing/plans" className="button">
               {labels("billing.changePlan")}
             </Link>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div className="dashboard-grid" style={{ marginBottom: "2rem" }}>
-        <div className="card">
+      <div className="dashboard-grid billing-metric-grid">
+        <div className="card billing-summary-card">
           <div className="card-header">
             <h3>{labels("billing.currentPlan")}</h3>
             <Zap size={24} color="var(--amber-flame)" />
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 900, color: "var(--pitch-black)", marginBottom: "1rem" }}>
-            {organization.plan}
-          </div>
-          <Link href="/billing/plans" className="button" style={{ width: "100%" }}>
+          <div className="billing-summary-value">{organization.plan}</div>
+          <Link href="/billing/plans" className="button billing-full-width">
             {labels("billing.changePlan")}
           </Link>
         </div>
 
-        <div className="card">
+        <div className="card billing-summary-card">
           <div className="card-header">
             <h3>{labels("billing.paymentMethod")}</h3>
             <CreditCard size={24} />
           </div>
-          <div style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--muted-foreground)" }}>
+          <div className="billing-summary-copy">
             {organization.subscription?.provider
               ? labels("billing.managedVia").replace("{provider}", organization.subscription.provider)
               : stripeConfigured
@@ -224,25 +202,25 @@ export default async function BillingPage() {
                 : labels("billing.stripePendingConfig")}
           </div>
           {portalUrl ? (
-            <a className="button button-secondary" style={{ width: "100%" }} href={portalUrl} target="_blank" rel="noreferrer">
+            <a className="button button-secondary billing-full-width" href={portalUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={16} />
               {labels("billing.manageStripe")}
             </a>
           ) : (
-            <button className="button button-secondary" style={{ width: "100%" }} disabled>
+            <button className="button button-secondary billing-full-width" disabled>
               {labels("billing.stripePortalUnavailable")}
             </button>
           )}
         </div>
 
-        <div className="card">
+        <div className="card billing-summary-card">
           <div className="card-header">
             <h3>{labels("billing.subscriptionDetails")}</h3>
             <CalendarClock size={24} />
           </div>
 
           {organization.subscription ? (
-            <div style={{ display: "grid", gap: "0.85rem" }}>
+            <div className="billing-detail-list">
               <BillingDetailRow label={labels("billing.subscriptionStatus")} value={organization.subscription.status.toUpperCase()} />
               <BillingDetailRow
                 label={labels("billing.periodStart")}
@@ -262,18 +240,16 @@ export default async function BillingPage() {
               />
             </div>
           ) : (
-            <p style={{ color: "var(--muted-foreground)", margin: 0 }}>
-              {labels("billing.noSubscriptionRecord")}
-            </p>
+            <p className="billing-empty-note">{labels("billing.noSubscriptionRecord")}</p>
           )}
         </div>
       </div>
 
-      <div className="card">
+      <div className="card billing-limits-card">
         <div className="card-header">
           <h2>{labels("billing.usageLimits")}</h2>
         </div>
-        <div style={{ display: "grid", gap: "1.5rem", marginTop: "1.5rem" }}>
+        <div className="billing-limit-stack">
           <UsageBar language={language} label={labels("billing.candidates")} used={candidateUsage} limit={limits.candidates} />
           <UsageBar language={language} label={labels("billing.users")} used={userUsage} limit={limits.users} />
           <UsageBar language={language} label={labels("billing.documentsCycle")} used={documentUsage} limit={limits.documentsPerMonth} />
@@ -284,24 +260,28 @@ export default async function BillingPage() {
   );
 }
 
-function UsageBar({ language, label, used, limit }: { language: AppLanguage; label: string; used: number; limit: number }) {
+function UsageBar({
+  language,
+  label,
+  used,
+  limit,
+}: {
+  language: AppLanguage;
+  label: string;
+  used: number;
+  limit: number;
+}) {
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", gap: "1rem" }}>
-        <span style={{ fontWeight: 800 }}>{label}</span>
-        <span style={{ fontWeight: 800 }}>
+    <div className="billing-usage-row">
+      <div className="billing-usage-head">
+        <span>{label}</span>
+        <span>
           {used.toLocaleString(locale)} / {formatLimit(limit, language)}
         </span>
       </div>
-      <div style={{ height: "8px", backgroundColor: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
-        <div
-          style={{
-            height: "100%",
-            backgroundColor: "var(--amber-flame)",
-            width: `${usagePercent(used, limit)}%`,
-          }}
-        />
+      <div className="billing-usage-bar">
+        <div className="billing-usage-fill" style={{ width: `${usagePercent(used, limit)}%` }} />
       </div>
     </div>
   );
@@ -309,11 +289,9 @@ function UsageBar({ language, label, used, limit }: { language: AppLanguage; lab
 
 function BillingDetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "grid", gap: "0.25rem" }}>
-      <span style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase", color: "var(--muted-foreground)" }}>
-        {label}
-      </span>
-      <span style={{ fontWeight: 700, wordBreak: "break-word" }}>{value}</span>
+    <div className="billing-detail-row">
+      <span className="billing-detail-label">{label}</span>
+      <span className="billing-detail-value">{value}</span>
     </div>
   );
 }

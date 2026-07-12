@@ -74,13 +74,11 @@ export default function DocumentIntegrityCard({ labels }: { labels: Labels }) {
   };
 
   return (
-    <div className="card" style={{ marginBottom: "2rem", padding: "1.25rem 1.5rem" }}>
-      <div className="card-header" style={{ marginBottom: "1rem" }}>
-        <div>
-          <h2 style={{ marginBottom: "0.35rem" }}>{labels.title}</h2>
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.875rem", maxWidth: "760px" }}>
-            {labels.description}
-          </p>
+    <div className="card module-panel">
+      <div className="page-section-header">
+        <div className="page-section-copy">
+          <h2 className="page-section-title">{labels.title}</h2>
+          <p className="page-section-description">{labels.description}</p>
         </div>
         <button className="button button-secondary" onClick={runCheck} disabled={loading}>
           {loading ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
@@ -89,93 +87,69 @@ export default function DocumentIntegrityCard({ labels }: { labels: Labels }) {
       </div>
 
       {error ? (
-        <p className="form-message-error" style={{ marginBottom: "1rem" }}>
+        <p className="form-message-error document-integrity-error">
           {error}
         </p>
       ) : null}
 
-      <div className="dashboard-grid" style={{ marginBottom: "1rem" }}>
-        <div className="card" style={{ padding: "1rem", backgroundColor: "#ecfdf5" }}>
+      <div className="dashboard-grid document-integrity-grid">
+        <div className="card metric-card metric-card-tone-success document-integrity-metric">
           <div className="card-header">
             <h3>{labels.accessible}</h3>
             <CheckCircle2 size={20} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900, lineHeight: 1 }}>
-            {result ? result.accessibleDocuments : "-"}
-          </div>
+          <div className="metric-card-value">{result ? result.accessibleDocuments : "-"}</div>
         </div>
 
-        <div className="card" style={{ padding: "1rem", backgroundColor: "#fff7ed" }}>
+        <div className="card metric-card metric-card-tone-danger document-integrity-metric">
           <div className="card-header">
             <h3>{labels.broken}</h3>
             <AlertTriangle size={20} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900, lineHeight: 1 }}>
-            {result ? result.brokenDocuments : "-"}
-          </div>
+          <div className="metric-card-value">{result ? result.brokenDocuments : "-"}</div>
         </div>
 
-        <div className="card" style={{ padding: "1rem" }}>
+        <div className="card metric-card document-integrity-metric">
           <div className="card-header">
             <h3>{labels.verified}</h3>
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900, lineHeight: 1 }}>
-            {result ? result.verifiedDocuments : "-"}
-          </div>
-          <p style={{ margin: "0.35rem 0 0", color: "var(--muted)", fontSize: "0.8rem" }}>
+          <div className="metric-card-value">{result ? result.verifiedDocuments : "-"}</div>
+          <p className="metric-card-helper">
             {labels.manual}: {result ? result.manualReviewDocuments : "-"} | {labels.pending}: {result ? result.pendingReviewDocuments : "-"}
           </p>
         </div>
       </div>
 
       {result ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.8rem", fontWeight: 700 }}>
+        <div className="document-integrity-body">
+          <p className="document-integrity-timestamp">
             {labels.lastChecked}: {new Date(result.checkedAt).toLocaleString()}
           </p>
           {hasIssues ? (
-            <div style={{ display: "grid", gap: "0.65rem" }}>
+            <div className="document-integrity-issues">
               {result.issues.map((issue) => (
-                <div
-                  key={issue.id}
-                  style={{
-                    border: "1px solid #fca5a5",
-                    background: "#fff1f2",
-                    padding: "0.85rem 1rem",
-                    display: "grid",
-                    gap: "0.35rem",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                    <strong style={{ fontSize: "0.9rem" }}>
+                <div key={issue.id} className="document-integrity-issue">
+                  <div className="document-integrity-issue-head">
+                    <strong className="document-integrity-issue-title">
                       {labels.issueLabel}:{" "}
                       {issue.type}
                       {issue.number ? ` (${issue.number})` : ""}
                     </strong>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#991b1b" }}>
+                    <span className="document-integrity-issue-reason">
                       {issue.reason}
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "var(--muted)" }}>
+                  <div className="document-integrity-issue-meta">
                     {labels.candidateLabel}: {issue.candidateName} | {labels.statusLabel}: {issue.ocrStatus || "PENDING"}
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "var(--muted)", wordBreak: "break-all" }}>
+                  <div className="document-integrity-issue-url">
                     {labels.urlLabel}: {issue.url}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div
-              style={{
-                border: "1px solid #86efac",
-                background: "#f0fdf4",
-                padding: "0.9rem 1rem",
-                color: "#166534",
-                fontWeight: 700,
-                fontSize: "0.875rem",
-              }}
-            >
+            <div className="document-integrity-ok">
               {labels.emptyIssues}
             </div>
           )}

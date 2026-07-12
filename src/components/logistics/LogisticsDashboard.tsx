@@ -12,6 +12,7 @@ import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { type AppLanguage, t } from "@/lib/i18n";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
+import MetricCard from "@/components/ui/MetricCard";
 import ExpandableText from "@/components/ui/ExpandableText";
 
 import ArrivalReadinessEditor from "./ArrivalReadinessEditor";
@@ -88,67 +89,45 @@ export default function LogisticsDashboard({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
-      <div className="dashboard-grid">
-        <StatCard
-          icon={<UserCheck size={28} strokeWidth={2.5} />}
-          iconBg="var(--primary)"
-          value={String(candidatesWithoutLogistics.length)}
-          label={labels("logistics.metricNoLogistics")}
-        />
-        <StatCard
-          icon={<Truck size={28} strokeWidth={2.5} color="var(--primary)" />}
-          iconBg="var(--pitch-black)"
-          value={String(weeklyEvents.length)}
-          label={labels("logistics.metricWeeklyArrivals")}
-        />
-        <StatCard
-          icon={<CheckCircle size={28} strokeWidth={2.5} color="#4ade80" />}
-          iconBg="var(--pitch-black)"
-          value={String(confirmedCount)}
-          label={labels("logistics.metricConfirmed")}
-          cardBg="#4ade80"
-          labelColor="var(--pitch-black)"
-        />
-        <StatCard
-          icon={<AlertTriangle size={28} strokeWidth={2.5} color="white" />}
-          iconBg="#e63946"
-          value={String(pendingConfirm)}
-          label={labels("logistics.metricPendingConfirm")}
-          cardBg={pendingConfirm > 0 ? "#ffccd5" : "var(--background)"}
-        />
+    <div className="logistics-shell">
+      <div className="card logistics-panel">
+        <div className="page-section-header" style={{ marginBottom: "0.75rem" }}>
+          <div className="page-section-copy">
+            <h2 className="page-section-title" style={{ fontSize: "1.35rem" }}>
+              {labels("logistics.title")}
+            </h2>
+            <p className="page-section-description">{labels("logistics.description")}</p>
+          </div>
+        </div>
+        <div className="dashboard-grid">
+          <MetricCard title={labels("logistics.metricNoLogistics")} value={candidatesWithoutLogistics.length} tone="accent" icon={<UserCheck size={18} />} />
+          <MetricCard title={labels("logistics.metricWeeklyArrivals")} value={weeklyEvents.length} tone="accent" icon={<Truck size={18} />} />
+          <MetricCard title={labels("logistics.metricConfirmed")} value={confirmedCount} tone="success" icon={<CheckCircle size={18} />} />
+          <MetricCard title={labels("logistics.metricPendingConfirm")} value={pendingConfirm} tone={pendingConfirm > 0 ? "danger" : "default"} icon={<AlertTriangle size={18} />} />
+          <MetricCard
+            title="Candidatos operativos"
+            value={candidateSummaries.length}
+            helper="Candidatos con seguimiento logístico visible."
+          />
+        </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginTop: "-1rem" }}>
-        <MiniMetric
-          title={labels("logistics.metricApprovedClean")}
-          value={String(candidatesReadyNow.length)}
-          helper={labels("logistics.helperNoDocsBlocks")}
-        />
-        <MiniMetric
-          title={labels("logistics.metricOperationalFollowUp")}
-          value={String(candidatesWithFollowUp.length)}
-          helper={labels("logistics.helperPendingLegal")}
-          backgroundColor={candidatesWithFollowUp.length > 0 ? "#fef3c7" : "var(--background)"}
-        />
-        <MiniMetric
-          title={labels("logistics.metricReadyForArrival")}
-          value={String(readyForArrivalCount)}
-          helper={labels("logistics.helperResolvedHandoff")}
-          backgroundColor={readyForArrivalCount > 0 ? "#dcfce7" : "var(--background)"}
-        />
-        <MiniMetric
+      <div className="dashboard-grid">
+        <MetricCard title={labels("logistics.metricApprovedClean")} value={candidatesReadyNow.length} tone="success" helper={labels("logistics.helperNoDocsBlocks")} />
+        <MetricCard title={labels("logistics.metricOperationalFollowUp")} value={candidatesWithFollowUp.length} tone={candidatesWithFollowUp.length > 0 ? "accent" : "default"} helper={labels("logistics.helperPendingLegal")} />
+        <MetricCard title={labels("logistics.metricReadyForArrival")} value={readyForArrivalCount} tone="success" helper={labels("logistics.helperResolvedHandoff")} />
+        <MetricCard
           title={labels("logistics.metricIncompleteHandoff")}
-          value={String(missingAccommodationCount + missingPickupCount)}
+          value={missingAccommodationCount + missingPickupCount}
+          tone={missingAccommodationCount > 0 || missingPickupCount > 0 ? "danger" : "default"}
           helper={labels("logistics.helperMissingPickup")
             .replace("{accommodation}", String(missingAccommodationCount))
             .replace("{pickup}", String(missingPickupCount))}
-          backgroundColor={missingAccommodationCount > 0 || missingPickupCount > 0 ? "#fee2e2" : "var(--background)"}
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "2.5rem", alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+      <div className="logistics-grid">
+        <div className="logistics-stack">
           <section>
             <SectionTitle title={labels("logistics.weeklyTitle")} />
             <WeeklyArrivals events={weeklyEvents} language={language} />
@@ -156,8 +135,8 @@ export default function LogisticsDashboard({
 
           <section>
             <SectionTitle title={labels("logistics.approvedTitle")} />
-            <div className="table-container">
-              <table>
+            <div className="table-container table-container--responsive">
+              <table className="logistics-table">
                 <thead>
                   <tr>
                     <th>{labels("logistics.tableCandidate")}</th>
@@ -249,31 +228,31 @@ export default function LogisticsDashboard({
 
         <aside>
           <LogisticsEventForm candidates={pendingCandidates} />
-          <div className="card" style={{ marginTop: "1.5rem", padding: "1.25rem" }}>
-            <div style={{ fontSize: "0.85rem", fontWeight: 900, textTransform: "uppercase", marginBottom: "1rem" }}>
+          <div className="card logistics-activity-card">
+            <div className="logistics-activity-title">
               {labels("logistics.recentActivity")}
             </div>
             {recentActivity.length === 0 ? (
-              <div style={{ fontSize: "0.82rem", color: "var(--muted)", fontWeight: 700 }}>
+              <div className="logistics-activity-empty">
                 {labels("logistics.noRecentChanges")}
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+              <div className="logistics-activity-list">
                 {visibleActivity.map((entry) => (
-                  <div key={entry.id} style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "0.9rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.25rem" }}>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 900, textTransform: "uppercase" }}>
+                  <div key={entry.id} className="logistics-activity-item">
+                    <div className="logistics-activity-item-header">
+                      <div className="logistics-activity-item-label">
                         {getActivityLabel(entry.action, labels)}
                       </div>
-                      <div style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
+                      <div className="logistics-activity-item-time">
                         {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true, locale: es })}
                       </div>
                     </div>
-                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--pitch-black)" }}>
+                    <div className="logistics-activity-item-summary">
                       {getActivitySummary(entry, labels)}
                     </div>
                     {canViewActivityActors ? (
-                      <div style={{ marginTop: "0.2rem", fontSize: "0.74rem", color: "var(--muted)" }}>
+                      <div className="logistics-activity-item-actor">
                         {labels("logistics.activityBy")
                           .replace("{name}", entry.User?.name || labels("logistics.system"))
                           .replace("{role}", entry.User?.role || "SYSTEM")}
@@ -343,72 +322,8 @@ function PaginationControls({
 
 function SectionTitle({ title }: { title: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
-      <h2 style={{ whiteSpace: "nowrap", fontSize: "1.75rem", fontWeight: "900", textTransform: "uppercase" }}>{title}</h2>
-      <div style={{ flex: 1, height: "2px", backgroundColor: "var(--pitch-black)" }} />
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  iconBg,
-  value,
-  label,
-  cardBg = "var(--background)",
-  labelColor = "var(--muted)",
-}: {
-  icon: React.ReactNode;
-  iconBg: string;
-  value: string;
-  label: string;
-  cardBg?: string;
-  labelColor?: string;
-}) {
-  return (
-    <div className="card logistics-stat-card" style={{ backgroundColor: cardBg }}>
-      <div
-        style={{
-          width: "56px",
-          height: "56px",
-          backgroundColor: iconBg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "2px solid var(--pitch-black)",
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontSize: "3rem", fontWeight: "900", lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", color: labelColor, marginTop: "0.25rem" }}>
-          {label}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MiniMetric({
-  title,
-  value,
-  helper,
-  backgroundColor = "var(--background)",
-}: {
-  title: string;
-  value: string;
-  helper: string;
-  backgroundColor?: string;
-}) {
-  return (
-    <div className="card logistics-mini-card" style={{ backgroundColor }}>
-      <div style={{ fontSize: "0.75rem", fontWeight: "900", textTransform: "uppercase", color: "var(--muted)", marginBottom: "0.35rem" }}>
-        {title}
-      </div>
-      <div style={{ fontSize: "2rem", fontWeight: "900", lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--muted)", marginTop: "0.35rem" }}>{helper}</div>
+    <div className="page-section-header logistics-section-header">
+      <h2 className="page-section-title logistics-section-title">{title}</h2>
     </div>
   );
 }

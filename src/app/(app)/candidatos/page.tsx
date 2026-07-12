@@ -82,8 +82,7 @@ export default async function CandidatosPage({
             {canCreateCandidates(tenant.role) ? (
               <Link
                 href="/candidatos/nuevo"
-                className="button"
-                style={{ backgroundColor: "var(--pitch-black)", color: "var(--amber-flame)" }}
+                className="button candidate-create-button"
               >
                 <PlusCircle size={20} />
                 {labels("candidates.add")}
@@ -96,6 +95,14 @@ export default async function CandidatosPage({
       <CandidateSearch
         labels={{
           placeholder: labels("candidates.searchPlaceholder"),
+          statusFilterLabel: labels("candidates.statusFilterLabel"),
+          statusAll: labels("candidates.statusAll"),
+          statusCollectingDocs: labels("candidates.statusCollectingDocs"),
+          statusInLegalReview: labels("candidates.statusInLegalReview"),
+          statusApproved: labels("candidates.statusApproved"),
+          statusRejected: labels("candidates.statusRejected"),
+          statusAdditionalReview: labels("candidates.statusAdditionalReview"),
+          clearFilters: "Limpiar filtros",
           option20: labels("candidates.perPage20"),
           option10: labels("candidates.perPage10"),
           option50: labels("candidates.perPage50"),
@@ -138,7 +145,9 @@ export default async function CandidatosPage({
             summaryPluralSuffix: labels("candidates.summarySuffixPlural"),
             summaryView: labels("candidates.summaryView"),
             summaryAll: labels("candidates.summaryAll"),
+            visibleRange: labels("candidates.visibleRange"),
             bulkDelete: labels("candidates.bulkDelete"),
+            clearSelection: labels("candidates.clearSelection"),
             bulkDeleted: labels("candidates.bulkDeleted"),
             singleDeleted: labels("candidates.singleDeleted"),
             deleteFailed: labels("candidates.deleteFailed"),

@@ -39,12 +39,12 @@ export default async function RevenueDashboardPage() {
 
   return (
     <div className="main-content">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", gap: "1rem" }}>
-        <div>
+      <div className="revenue-page-header">
+        <div className="revenue-page-copy">
           <h1>{labels("revenue.title")}</h1>
           <p>{labels("revenue.description")}</p>
         </div>
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div className="revenue-page-actions">
           <button className="button button-secondary">{labels("revenue.export")}</button>
           <Link href="/leads" className="button">
             {labels("revenue.outreach")}
@@ -53,84 +53,82 @@ export default async function RevenueDashboardPage() {
       </div>
 
       <div className="dashboard-grid">
-        <div className="card">
+        <div className="card revenue-metric-card">
           <div className="card-header">
             <h3>{labels("revenue.mrr")}</h3>
             <Banknote size={20} color="var(--amber-flame)" />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>€0</div>
-          <p style={{ opacity: 0.6, fontSize: "0.8rem" }}>{labels("revenue.goal30").replace("{amount}", "€1,000")}</p>
+          <div className="revenue-metric-value">€0</div>
+          <p className="revenue-metric-copy">{labels("revenue.goal30").replace("{amount}", "€1,000")}</p>
         </div>
 
-        <div className="card">
+        <div className="card revenue-metric-card">
           <div className="card-header">
             <h3>{labels("revenue.activeLeads")}</h3>
             <Target size={20} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{leadsCount}</div>
-          <p style={{ opacity: 0.6, fontSize: "0.8rem" }}>{labels("revenue.contacted").replace("{count}", String(contactedCount))}</p>
+          <div className="revenue-metric-value">{leadsCount}</div>
+          <p className="revenue-metric-copy">{labels("revenue.contacted").replace("{count}", String(contactedCount))}</p>
         </div>
 
-        <div className="card">
+        <div className="card revenue-metric-card">
           <div className="card-header">
             <h3>{labels("revenue.totalOutreach")}</h3>
             <Calendar size={20} />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{outreachCount}</div>
-          <p style={{ opacity: 0.6, fontSize: "0.8rem" }}>{labels("revenue.messagesSent")}</p>
+          <div className="revenue-metric-value">{outreachCount}</div>
+          <p className="revenue-metric-copy">{labels("revenue.messagesSent")}</p>
         </div>
 
-        <div className="card">
+        <div className="card revenue-metric-card">
           <div className="card-header">
             <h3>{labels("revenue.conversion")}</h3>
             <TrendingUp size={20} color="#4ade80" />
           </div>
-          <div style={{ fontSize: "2.5rem", fontWeight: 900 }}>{conversionRate.toFixed(1)}%</div>
-          <p style={{ opacity: 0.6, fontSize: "0.8rem" }}>{labels("revenue.leadToContacted")}</p>
+          <div className="revenue-metric-value">{conversionRate.toFixed(1)}%</div>
+          <p className="revenue-metric-copy">{labels("revenue.leadToContacted")}</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "2rem", marginTop: "2rem" }}>
+      <div className="revenue-bottom-grid">
         <div className="card">
           <h2>{labels("revenue.salesFunnel")}</h2>
-          <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-            <div style={{ width: "100%", height: "40px", backgroundColor: "var(--amber-flame)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold" }}>
+          <div className="revenue-funnel">
+            <div className="revenue-funnel-step revenue-funnel-step--primary">
               {labels("revenue.leads")} ({leadsCount})
             </div>
-            <div style={{ width: "80%", height: "40px", backgroundColor: "#f59e0b", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", opacity: 0.9 }}>
+            <div className="revenue-funnel-step revenue-funnel-step--secondary">
               {labels("revenue.contacted").replace("{count}", String(contactedCount))}
             </div>
-            <div style={{ width: "60%", height: "40px", backgroundColor: "#d97706", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", opacity: 0.8 }}>
+            <div className="revenue-funnel-step revenue-funnel-step--tertiary">
               {labels("revenue.demos")} (0)
             </div>
-            <div style={{ width: "40%", height: "40px", backgroundColor: "#b45309", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", opacity: 0.7 }}>
+            <div className="revenue-funnel-step revenue-funnel-step--quaternary">
               {labels("revenue.closures")} (0)
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        <div className="revenue-side-column">
           <ReferralWidget code={org?.referralCode || null} />
 
-          <div className="card" style={{ border: "2px solid var(--pitch-black)" }}>
+          <div className="card revenue-checklist-card">
             <h3>{labels("revenue.growthChecklist")}</h3>
-            <ul style={{ listStyle: "none", padding: 0, marginTop: "1rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <ul className="revenue-checklist">
+              <li className="revenue-checklist-item">
                 <input type="checkbox" defaultChecked /> {labels("revenue.checklist.icp")}
               </li>
-              <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <li className="revenue-checklist-item">
                 <input type="checkbox" /> {labels("revenue.checklist.linkedin")}
               </li>
-              <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <li className="revenue-checklist-item">
                 <input type="checkbox" /> {labels("revenue.checklist.demos")}
               </li>
-              <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <li className="revenue-checklist-item">
                 <input type="checkbox" /> {labels("revenue.checklist.publish")}
               </li>
             </ul>
-            <button className="button" style={{ width: "100%", marginTop: "2rem" }}>
-              {labels("revenue.saveProgress")}
-            </button>
+            <button className="button revenue-checklist-button">{labels("revenue.saveProgress")}</button>
           </div>
         </div>
       </div>
