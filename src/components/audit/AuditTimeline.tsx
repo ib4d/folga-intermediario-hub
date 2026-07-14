@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -101,7 +101,7 @@ function renderStructuredDetails(details: Record<string, unknown>) {
 
       {category ? (
         <div>
-          <span className="font-black uppercase tracking-wide text-slate-500">Categoria</span>
+          <span className="font-black uppercase tracking-wide text-slate-500">Categoría</span>
           <p className="mt-1 font-semibold text-slate-800">{category}</p>
         </div>
       ) : null}
@@ -344,3 +344,5 @@ export default function AuditTimeline({ logs }: Props) {
     </div>
   );
 }
+
+

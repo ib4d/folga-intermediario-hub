@@ -47,8 +47,8 @@ export default function BrokerImportForms() {
       <form action={leadAction} className="card broker-import-card">
         <h3 className="broker-import-section-title">Importar leads de brokers</h3>
         <p className="broker-import-copy">
-          Usa POŚREDNICY LATAM o tu plantilla por país. Puedes escribir el nombre exacto del tab para adaptar
-          Polonia, Perú, México u otros países.
+          Usa POŚREDNICY LATAM o tu plantilla por país. Si el tab cambia, escribe el nombre exacto del tab de origen
+          para adaptar Polonia, Perú, México u otros países.
         </p>
         <label className="input-group">
           <span>Nombre exacto del tab</span>
@@ -79,25 +79,21 @@ export default function BrokerImportForms() {
           {leadPending ? "Importando..." : "Importar leads"}
         </button>
         {leadState.message ? (
-          <div className={`broker-import-message ${leadState.success ? "success" : "error"}`}>
-            {leadState.message}
-          </div>
+          <div className={`broker-import-message ${leadState.success ? "success" : "error"}`}>{leadState.message}</div>
         ) : null}
       </form>
 
       <form action={invoiceAction} className="card broker-import-card">
         <h3 className="broker-import-section-title">Importar facturación de brokers</h3>
         <p className="broker-import-copy">
-          Importa el Excel FV, detecta umbral 100h/200h y contrasta RESUMEN_FV.
+          Importa el Excel FV, detecta umbral 100h/200h y contrasta RESUMEN_FV antes de consolidar el resultado.
         </p>
         <input className="input" type="file" name="file" accept=".xlsx,.xls" required />
         <button className="button" type="submit" disabled={invoicePending}>
           {invoicePending ? "Importando..." : "Importar facturación"}
         </button>
         {invoiceState.message ? (
-          <div className={`broker-import-message ${invoiceState.success ? "success" : "error"}`}>
-            {invoiceState.message}
-          </div>
+          <div className={`broker-import-message ${invoiceState.success ? "success" : "error"}`}>{invoiceState.message}</div>
         ) : null}
       </form>
     </div>

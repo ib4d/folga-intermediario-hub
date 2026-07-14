@@ -36,7 +36,7 @@ export default function Sidebar() {
       <button
         type="button"
         className="button md:hidden sidebar-menu-toggle"
-        aria-label={isOpen ? "Cerrar menÄ‚Ĺź" : "Abrir menÄ‚Ĺź"}
+        aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
         aria-expanded={isOpen}
         aria-controls="app-sidebar"
         onClick={() => setIsOpen(!isOpen)}
@@ -48,7 +48,7 @@ export default function Sidebar() {
         <button
           type="button"
           className="sidebar-backdrop md:hidden"
-          aria-label="Cerrar menÄ‚Ĺź"
+          aria-label="Cerrar menú"
           onClick={() => setIsOpen(false)}
         />
       ) : null}
@@ -92,12 +92,8 @@ export default function Sidebar() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-footer-title">
-            {labels("nav.saasVersion")}
-          </div>
-          <div className="sidebar-footer-copy">
-            {labels("nav.multiTenantReady")}
-          </div>
+          <div className="sidebar-footer-title">{labels("nav.saasVersion")}</div>
+          <div className="sidebar-footer-copy">{labels("nav.multiTenantReady")}</div>
         </div>
       </aside>
     </>

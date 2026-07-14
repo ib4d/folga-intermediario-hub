@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState, useTransition } from "react";
 import { CheckSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Loader2, Square, Trash2 } from "lucide-react";
@@ -316,7 +316,7 @@ export default function CandidateTable({
             </button>
           </div>
 
-        <div className="candidate-pagination-meta">
+      <div className="candidate-pagination-meta">
             <span className="candidate-list-subtle">
               {labels.pageOf.replace("{page}", String(pageNumber)).replace("{total}", String(totalPages))}
             </span>
@@ -365,3 +365,4 @@ export default function CandidateTable({
     </div>
   );
 }
+

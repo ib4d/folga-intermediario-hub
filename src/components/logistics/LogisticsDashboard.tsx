@@ -91,9 +91,9 @@ export default function LogisticsDashboard({
   return (
     <div className="logistics-shell">
       <div className="card logistics-panel">
-        <div className="page-section-header" style={{ marginBottom: "0.75rem" }}>
+        <div className="page-section-header logistics-page-section-header">
           <div className="page-section-copy">
-            <h2 className="page-section-title" style={{ fontSize: "1.35rem" }}>
+            <h2 className="page-section-title logistics-page-section-title">
               {labels("logistics.title")}
             </h2>
             <p className="page-section-description">{labels("logistics.description")}</p>
@@ -148,61 +148,54 @@ export default function LogisticsDashboard({
                 <tbody>
                   {candidateSummaries.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: "center", padding: "3rem", color: "var(--muted)", fontWeight: "bold", fontSize: "0.875rem" }}>
+                      <td colSpan={4} className="logistics-empty-cell">
                         {labels("logistics.noApprovedCandidates")}
                       </td>
                     </tr>
                   ) : (
                     visibleCandidateSummaries.map(({ candidate, checklist, legalOutcome, arrivalReadiness, operationalAlerts }) => (
                       <tr key={candidate.id}>
-                        <td style={{ fontWeight: "900" }}>{candidate.firstName} {candidate.lastName}</td>
-                        <td style={{ fontWeight: "bold" }}>{candidate.country}</td>
+                        <td className="logistics-candidate-cell logistics-candidate-cell--name">{candidate.firstName} {candidate.lastName}</td>
+                        <td className="logistics-candidate-cell logistics-candidate-cell--country">{candidate.country}</td>
                         <td>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                          <div className="logistics-status-stack">
                             <span
-                              className="status-badge"
-                              style={{
-                                fontSize: "0.65rem",
-                                width: "fit-content",
-                                backgroundColor: getReadinessBadgeBackground(arrivalReadiness),
-                                color: getReadinessBadgeColor(arrivalReadiness),
-                              }}
+                              className={`status-badge ${getReadinessBadgeClass(arrivalReadiness)}`}
                             >
                               {arrivalReadiness.statusLabel.toUpperCase()}
                             </span>
                             {arrivalReadiness.blockers.length > 0 ? (
-                              <ExpandableText maxLength={80} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#991b1b" }}>
+                              <ExpandableText maxLength={80} className="logistics-status-note logistics-status-note--danger">
                                 {arrivalReadiness.blockers.join(" | ")}
                               </ExpandableText>
                             ) : null}
                             {legalOutcome?.category ? (
-                              <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#4338ca" }}>
+                              <span className="logistics-status-note logistics-status-note--category">
                                 {legalOutcome.category}
                               </span>
                             ) : null}
                             {legalOutcome?.followUpActions.length ? (
-                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--muted)" }}>
+                              <ExpandableText maxLength={90} className="logistics-status-note logistics-status-note--muted">
                                 {legalOutcome.followUpActions.join(" · ")}
                               </ExpandableText>
                             ) : null}
                             {operationalAlerts.length > 0 ? (
-                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#92400e" }}>
+                              <ExpandableText maxLength={90} className="logistics-status-note logistics-status-note--warning">
                                 {operationalAlerts.map((alert) => alert.title).join(" · ")}
                               </ExpandableText>
                             ) : null}
                             {checklist.duplicates.length > 0 ? (
-                              <ExpandableText maxLength={90} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#7c2d12" }}>
+                              <ExpandableText maxLength={90} className="logistics-status-note logistics-status-note--duplicate">
                                 {`${labels("logistics.duplicateReviewLabel")}: ${checklist.duplicates.map((group) => `${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`).join(" · ")}`}
                               </ExpandableText>
                             ) : null}
                           </div>
                         </td>
                         <td>
-                          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <div className="logistics-action-row">
                             <Link
                               href={`/candidatos/${candidate.id}`}
-                              className="button button-secondary"
-                              style={{ padding: "0.25rem 0.75rem", fontSize: "0.75rem" }}
+                              className="button button-secondary logistics-action-button"
                             >
                               {labels("logistics.viewCandidate")}
                             </Link>
@@ -226,7 +219,7 @@ export default function LogisticsDashboard({
           </section>
         </div>
 
-        <aside>
+        <aside className="logistics-aside">
           <LogisticsEventForm candidates={pendingCandidates} />
           <div className="card logistics-activity-card">
             <div className="logistics-activity-title">
@@ -298,7 +291,7 @@ function PaginationControls({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="pagination-bar" style={{ marginTop: compact ? "1rem" : "0.75rem", padding: compact ? "0.7rem" : undefined }}>
+    <div className={`pagination-bar ${compact ? "pagination-bar--compact" : ""}`}>
       <div className="pagination-controls">
         <button type="button" className="button button-outline pagination-button" onClick={() => onPageChange(1)} disabled={page <= 1}>
           {labels("logistics.pageFirst")}
@@ -328,18 +321,11 @@ function SectionTitle({ title }: { title: string }) {
   );
 }
 
-function getReadinessBadgeBackground(readiness: ReturnType<typeof getArrivalReadiness>) {
-  if (readiness.isReadyForArrival) return "#dcfce7";
-  if (!readiness.accommodationAssigned || !readiness.pickupAssigned) return "#fee2e2";
-  if (readiness.legalFollowUpOpen || !readiness.arrivalNotesPresent) return "#fef3c7";
-  return "#dbeafe";
-}
-
-function getReadinessBadgeColor(readiness: ReturnType<typeof getArrivalReadiness>) {
-  if (readiness.isReadyForArrival) return "#166534";
-  if (!readiness.accommodationAssigned || !readiness.pickupAssigned) return "#991b1b";
-  if (readiness.legalFollowUpOpen || !readiness.arrivalNotesPresent) return "#92400e";
-  return "#1d4ed8";
+function getReadinessBadgeClass(readiness: ReturnType<typeof getArrivalReadiness>) {
+  if (readiness.isReadyForArrival) return "logistics-badge--success";
+  if (!readiness.accommodationAssigned || !readiness.pickupAssigned) return "logistics-badge--danger";
+  if (readiness.legalFollowUpOpen || !readiness.arrivalNotesPresent) return "logistics-badge--warning";
+  return "logistics-badge--info";
 }
 
 function getActivityLabel(action: string, labels: (key: Parameters<typeof t>[1]) => string) {

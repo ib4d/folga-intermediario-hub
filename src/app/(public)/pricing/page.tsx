@@ -123,59 +123,61 @@ export default async function PricingPage({
         </div>
       </header>
 
-      <section className="public-section">
-        <div className="public-card-grid public-card-grid--pricing">
-          {pricingPlans.map((plan) => {
-            const { href, label, paymentLink } = getPlanAction(plan, language, demoHref, loginHref, onboardingHref);
-            const featuredClass = plan.featured ? "public-card-accent public-pricing-card--dark-badge" : "";
+      <section className="public-section public-pricing-section">
+        <div className="public-section-inner public-section-inner--wide public-pricing-section-inner">
+          <div className="public-card-grid public-card-grid--pricing">
+            {pricingPlans.map((plan) => {
+              const { href, label, paymentLink } = getPlanAction(plan, language, demoHref, loginHref, onboardingHref);
+              const featuredClass = plan.featured ? "public-card-accent public-pricing-card--dark-badge" : "";
 
-            return (
-              <article key={plan.badge} className={`card public-card-dark public-pricing-card ${featuredClass}`.trim()}>
-                <div className="public-pricing-header">
-                  <div
-                    className={`status-badge public-pricing-badge ${plan.featured ? "active public-pricing-badge--dark" : ""}`.trim()}
-                  >
-                    {labels(plan.badge)}
-                  </div>
-                  {plan.price ? (
-                    <div className="public-pricing-title">
-                      {plan.price.startsWith("billing.")
-                        ? labels(plan.price as Parameters<typeof labels>[0])
-                        : plan.price}
-                      <span className="public-pricing-suffix">{plan.suffix ? labels(plan.suffix) : ""}</span>
+              return (
+                <article key={plan.badge} className={`card public-card-dark public-pricing-card ${featuredClass}`.trim()}>
+                  <div className="public-pricing-header">
+                    <div
+                      className={`status-badge public-pricing-badge ${plan.featured ? "active public-pricing-badge--dark" : ""}`.trim()}
+                    >
+                      {labels(plan.badge)}
                     </div>
-                  ) : (
-                    <div className="public-pricing-title">{labels("public.pricing.free")}</div>
-                  )}
-                </div>
+                    {plan.price ? (
+                      <div className="public-pricing-title">
+                        {plan.price.startsWith("billing.")
+                          ? labels(plan.price as Parameters<typeof labels>[0])
+                          : plan.price}
+                        <span className="public-pricing-suffix">{plan.suffix ? labels(plan.suffix) : ""}</span>
+                      </div>
+                    ) : (
+                      <div className="public-pricing-title">{labels("public.pricing.free")}</div>
+                    )}
+                  </div>
 
-                <ul className="public-pricing-list">
-                  {plan.items.map((item) => (
-                    <li key={item} className="public-pricing-item">
-                      <CheckCircle2 size={18} color="var(--amber-flame)" />
-                      {labels(item)}
+                  <ul className="public-pricing-list">
+                    {plan.items.map((item) => (
+                      <li key={item} className="public-pricing-item">
+                        <CheckCircle2 size={18} color="var(--amber-flame)" />
+                        {labels(item)}
+                      </li>
+                    ))}
+                    <li className="public-pricing-item">
+                      <ShieldCheck size={18} color="var(--amber-flame)" />
+                      {labels("billing.feature.dashboardOps")}
                     </li>
-                  ))}
-                  <li className="public-pricing-item">
-                    <ShieldCheck size={18} color="var(--amber-flame)" />
-                    {labels("billing.feature.dashboardOps")}
-                  </li>
-                  <li className="public-pricing-item">
-                    <CreditCard size={18} color="var(--amber-flame)" />
-                    {labels("billing.feature.emailSupport")}
-                  </li>
-                </ul>
+                    <li className="public-pricing-item">
+                      <CreditCard size={18} color="var(--amber-flame)" />
+                      {labels("billing.feature.emailSupport")}
+                    </li>
+                  </ul>
 
-                <Link
-                  href={href}
-                  className="button public-pricing-action"
-                  {...(paymentLink ? { target: "_blank", rel: "noreferrer" } : {})}
-                >
-                  {label}
-                </Link>
-              </article>
-            );
-          })}
+                  <Link
+                    href={href}
+                    className="button public-pricing-action"
+                    {...(paymentLink ? { target: "_blank", rel: "noreferrer" } : {})}
+                  >
+                    {label}
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 

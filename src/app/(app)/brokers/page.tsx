@@ -8,8 +8,8 @@ import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import QueryPagination from "@/components/ui/QueryPagination";
-import { canAccessModule } from "@/lib/permissions";
 import { listBrokers } from "@/lib/brokers/queries";
+import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 
 export default async function BrokersPage({

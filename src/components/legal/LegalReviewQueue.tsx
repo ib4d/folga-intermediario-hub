@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Candidate, Document, Role, User } from "@prisma/client";
 import { AlertTriangle, LayoutGrid, List, Search, ShieldAlert, TimerReset } from "lucide-react";
@@ -472,3 +472,4 @@ function QueueSummary({
     </div>
   );
 }
+

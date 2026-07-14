@@ -71,31 +71,16 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
     .slice(0, 12);
 
   return (
-    <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem" }}>
-      <h3
-        style={{
-          fontSize: "1.5rem",
-          fontWeight: "900",
-          textTransform: "uppercase",
-          marginBottom: "1.25rem",
-          overflowWrap: "anywhere",
-        }}
-      >
+    <form onSubmit={handleSubmit} className="card logistics-event-form">
+      <h3 className="logistics-event-form-title">
         Programar Nueva Llegada
       </h3>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1rem",
-        }}
-      >
-        <div className="input-group" style={{ marginBottom: 0 }}>
+      <div className="logistics-event-form-grid">
+        <div className="input-group logistics-event-form-group">
           <label className="label">Candidato</label>
           <input type="hidden" name="candidateId" value={selectedCandidateId} />
-          <div style={{ position: "relative" }}>
+          <div className="logistics-event-form-search">
             <input
               type="search"
               className="input"
@@ -112,48 +97,24 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
               autoComplete="off"
             />
             {isCandidatePickerOpen && candidates.length > 0 ? (
-                <div
-                  style={{
-                    position: "absolute",
-                    zIndex: 20,
-                    top: "calc(100% + 4px)",
-                    left: 0,
-                    right: 0,
-                    maxHeight: "260px",
-                    overflowY: "auto",
-                    overflowX: "hidden",
-                    border: "1px solid var(--border)",
-                    backgroundColor: "var(--background)",
-                    boxShadow: "8px 8px 0 var(--shadow)",
-                  }}
-                >
+                <div className="logistics-event-form-picker">
                 {filteredCandidates.length > 0 ? (
                   filteredCandidates.map((candidate) => (
-                    <button
-                      key={candidate.id}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        setSelectedCandidateId(candidate.id);
-                        setCandidateQuery(candidateLabel(candidate));
-                        setIsCandidatePickerOpen(false);
-                      }}
-                      style={{
-                        width: "100%",
-                        border: 0,
-                        borderBottom: "1px solid var(--border-subtle)",
-                        background: selectedCandidateId === candidate.id ? "var(--primary)" : "var(--background)",
-                        color: "var(--foreground)",
-                        padding: "0.8rem",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      <strong style={{ display: "block", textTransform: "uppercase" }}>
+            <button
+              key={candidate.id}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                setSelectedCandidateId(candidate.id);
+                setCandidateQuery(candidateLabel(candidate));
+                setIsCandidatePickerOpen(false);
+              }}
+              className={`logistics-event-form-picker-item ${selectedCandidateId === candidate.id ? "is-selected" : ""}`}
+            >
+                       <strong className="logistics-event-form-picker-title">
                         {candidateLabel(candidate)}
                       </strong>
-                      <span style={{ display: "block", fontSize: "0.78rem", color: "var(--muted-foreground)" }}>
+                      <span className="logistics-event-form-picker-meta">
                         {candidate.country?.toUpperCase() ?? "SIN PAIS"} - {candidate.status.replaceAll("_", " ")}
                         {candidate.passportNumber ? ` - PAS ${candidate.passportNumber}` : ""}
                         {candidate.peselNumber ? ` - PESEL ${candidate.peselNumber}` : ""}
@@ -161,7 +122,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
                     </button>
                   ))
                 ) : (
-                  <div style={{ padding: "0.9rem", fontSize: "0.82rem", color: "var(--muted-foreground)" }}>
+                  <div className="logistics-event-form-picker-empty">
                     Sin coincidencias. Prueba con nombre, pasaporte, PESEL o país.
                   </div>
                 )}
@@ -169,17 +130,17 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
             ) : null}
           </div>
           {candidates.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
+            <p className="logistics-event-form-help">
               No hay candidatos activos disponibles para programar.
             </p>
           ) : !selectedCandidateId ? (
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
+            <p className="logistics-event-form-help">
               Escribe para filtrar y selecciona un candidato de la lista.
             </p>
           ) : null}
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0 }}>
+        <div className="input-group logistics-event-form-group">
           <label className="label">Medio de Transporte</label>
           <select
             name="transportType"
@@ -195,12 +156,12 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
           </select>
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0 }}>
+        <div className="input-group logistics-event-form-group">
           <label className="label">Fecha y Hora de Llegada</label>
           <input type="datetime-local" name="arrivalDate" className="input" required />
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0 }}>
+        <div className="input-group logistics-event-form-group">
           <label className="label">Terminal / Estacion</label>
           <input
             type="text"
@@ -211,7 +172,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
           />
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0 }}>
+        <div className="input-group logistics-event-form-group">
           <label className="label">Vuelo / Tren / Placa</label>
           <input
             type="text"
@@ -221,7 +182,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
           />
         </div>
 
-        <div className="input-group" style={{ marginBottom: 0 }}>
+        <div className="input-group logistics-event-form-group">
           <label className="label">Recoge</label>
           <input
             type="text"
@@ -233,76 +194,58 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       </div>
 
       {selectedCandidate ? (
-        <div
-          style={{
-            marginBottom: "1rem",
-            padding: "1rem",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: "12px",
-            backgroundColor: "var(--white-smoke)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-          }}
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            <span className="status-badge" style={{ backgroundColor: selectedChecklist?.isReadyForLegal ? "#dcfce7" : "#fee2e2", color: selectedChecklist?.isReadyForLegal ? "#166534" : "#991b1b" }}>
+        <div className="logistics-event-form-summary">
+          <div className="logistics-event-form-badges">
+            <span className={`status-badge logistics-event-form-badge ${selectedChecklist?.isReadyForLegal ? "logistics-event-form-badge--success" : "logistics-event-form-badge--danger"}`}>
               {selectedChecklist?.isReadyForLegal ? "LISTO LEGAL" : "REVISAR DOCUMENTOS"}
             </span>
             {selectedArrivalReadiness ? (
-              <span
-                className="status-badge"
-                style={{
-                  backgroundColor: selectedArrivalReadiness.isReadyForArrival ? "#dcfce7" : "#fef3c7",
-                  color: selectedArrivalReadiness.isReadyForArrival ? "#166534" : "#92400e",
-                }}
-              >
+              <span className={`status-badge logistics-event-form-badge ${selectedArrivalReadiness.isReadyForArrival ? "logistics-event-form-badge--success" : "logistics-event-form-badge--warning"}`}>
                 {selectedArrivalReadiness.statusLabel.toUpperCase()}
               </span>
             ) : null}
             {selectedCandidate.logistics.length > 0 ? (
-              <span className="status-badge" style={{ backgroundColor: "#dbeafe", color: "#1d4ed8" }}>
+              <span className="status-badge logistics-event-form-badge logistics-event-form-badge--info">
                 {selectedCandidate.logistics.length} EVENTO(S) PREVIOS
               </span>
             ) : null}
           </div>
 
           {selectedOutcome?.category ? (
-            <div style={{ fontSize: "0.78rem", fontWeight: 900, color: "#4338ca", textTransform: "uppercase" }}>
+            <div className="logistics-event-form-category">
               {selectedOutcome.category}
             </div>
           ) : null}
 
           {selectedOutcome?.followUpActions.length ? (
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--muted-foreground)" }}>
+            <div className="logistics-event-form-note">
               Seguimiento: {selectedOutcome.followUpActions.join(", ")}
             </div>
           ) : (
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--muted-foreground)" }}>
+            <div className="logistics-event-form-note">
               Sin acciones de seguimiento pendientes registradas por legal.
             </div>
           )}
 
           {selectedArrivalReadiness?.blockers.length ? (
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#991b1b" }}>
+            <div className="logistics-event-form-note logistics-event-form-note--danger">
               Bloqueos de llegada: {selectedArrivalReadiness.blockers.join(", ")}
             </div>
           ) : null}
 
           {selectedArrivalReadiness?.warnings.length ? (
-            <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#92400e" }}>
+            <div className="logistics-event-form-note logistics-event-form-note--warning">
               Alertas: {selectedArrivalReadiness.warnings.join(", ")}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      <div className="input-group" style={{ marginBottom: 0 }}>
+      <div className="input-group logistics-event-form-group">
         <label className="label">Notas Adicionales</label>
         <textarea
           name="notes"
-          className="input"
-          style={{ minHeight: "88px", resize: "vertical" }}
+          className="input logistics-event-form-notes"
           placeholder="Cualquier detalle relevante..."
         />
       </div>
@@ -310,8 +253,7 @@ export default function LogisticsEventForm({ candidates, onSuccess }: Props) {
       <button
         type="submit"
         disabled={isSubmitting || candidates.length === 0 || !selectedCandidateId}
-        className="button"
-        style={{ width: "100%", marginTop: "1rem" }}
+        className="button logistics-event-form-submit"
       >
         {isSubmitting ? "Programando..." : "Programar Llegada"}
       </button>

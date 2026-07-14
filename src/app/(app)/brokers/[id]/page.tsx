@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -130,7 +129,15 @@ export default async function BrokerDetailPage({
             </label>
             <label className="broker-detail-field">
               <span>Quality rating</span>
-              <input className="input" name="qualityRating" type="number" min="0" max="100" step="1" defaultValue={broker.qualityRating ?? ""} />
+              <input
+                className="input"
+                name="qualityRating"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                defaultValue={broker.qualityRating ?? ""}
+              />
             </label>
             <label className="broker-detail-field">
               <span>Declared supply</span>
@@ -162,7 +169,13 @@ export default async function BrokerDetailPage({
           >
             <label className="broker-detail-field">
               <span>Periodo</span>
-              <input className="input" type="month" name="period" defaultValue={new Date().toISOString().slice(0, 7)} required />
+              <input
+                className="input"
+                type="month"
+                name="period"
+                defaultValue={new Date().toISOString().slice(0, 7)}
+                required
+              />
             </label>
             <label className="broker-detail-field">
               <span>Umbral horas</span>

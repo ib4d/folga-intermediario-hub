@@ -55,7 +55,7 @@ export default async function BrokerLeadsPage({
 
       <BrokerModuleNav />
 
-      <form className="card module-panel dashboard-grid broker-filters-panel">
+      <form className="card module-panel broker-filters-grid">
         <input
           className="input"
           type="text"

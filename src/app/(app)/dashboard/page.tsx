@@ -321,7 +321,7 @@ export default async function DashboardPage() {
           },
           {
             id: "en-revision-legal",
-            title: "En Revision Legal",
+            title: "En revisión legal",
             value: enRevision,
             href: "/legal",
             tone: "default",
@@ -339,7 +339,7 @@ export default async function DashboardPage() {
           },
           {
             id: "listos-legal",
-            title: "Listos Para Legal",
+            title: "Listos para legal",
             value: readyForLegal,
             href: "/legal",
             tone: "success",
@@ -352,7 +352,7 @@ export default async function DashboardPage() {
             value: blockedForLegal,
             href: "/legal",
             tone: "danger",
-            helper: "Faltantes o validacion",
+            helper: "Faltantes o validación",
             icon: "alert",
           },
           {
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
           },
           {
             id: "docs-vencer",
-            title: "Docs Por Vencer",
+            title: "Docs por vencer",
             value: expiringSoon,
             href: "/documentos",
             tone: "default",
@@ -384,7 +384,7 @@ export default async function DashboardPage() {
           },
           {
             id: "revision-adicional",
-            title: "Revision Adicional",
+            title: "Revisión adicional",
             value: reviewAdditionalCount,
             href: "/legal?filter=blocked",
             tone: "danger",
@@ -433,7 +433,7 @@ export default async function DashboardPage() {
             value: missingAccommodation,
             href: "/logistica",
             tone: "danger",
-            helper: "Falta asignacion",
+            helper: "Falta asignación",
             icon: "alert",
           },
           {
@@ -447,11 +447,11 @@ export default async function DashboardPage() {
           },
           {
             id: "llegadas-vencidas",
-            title: "Llegadas Vencidas",
+            title: "Llegadas vencidas",
             value: overdueArrivals,
             href: "/logistica",
             tone: overdueArrivals > 0 ? "danger" : "default",
-            helper: "Sin confirmacion operativa",
+            helper: "Sin confirmación operativa",
             icon: "alert",
           },
         ]}
@@ -461,9 +461,9 @@ export default async function DashboardPage() {
         <div className="card dashboard-section-card">
           <div className="dashboard-section-header">
             <div>
-              <h2 className="dashboard-section-title">Pulso Legal</h2>
+              <h2 className="dashboard-section-title">Pulso legal</h2>
               <p className="dashboard-section-description">
-                Categorias recientes y carga de seguimiento para el equipo.
+                Categorías recientes y carga de seguimiento para el equipo.
               </p>
             </div>
             <Link href="/legal" className="button dashboard-section-link">
@@ -530,9 +530,9 @@ export default async function DashboardPage() {
         <div className="card dashboard-section-card">
           <div className="dashboard-section-header">
             <div>
-              <h2 className="dashboard-section-title">Pulso de Llegadas</h2>
+              <h2 className="dashboard-section-title">Pulso de llegadas</h2>
               <p className="dashboard-section-description">
-                Casos con handoff incompleto antes de aterrizar en logistica.
+                Casos con handoff incompleto antes de aterrizar en logística.
               </p>
             </div>
             <Link href="/logistica" className="button dashboard-section-link">
@@ -584,7 +584,7 @@ export default async function DashboardPage() {
           <div className="card dashboard-section-card dashboard-alert-card">
           <div className="card-header dashboard-alert-header">
             <h3 className="dashboard-alert-title">
-              <AlertTriangle size={28} strokeWidth={3} /> CANDIDATOS ESTANCADOS (INACTIVOS {'>'} 7 DIAS)
+              <AlertTriangle size={28} strokeWidth={3} /> CANDIDATOS ESTANCADOS (INACTIVOS {'>'} 7 DÍAS)
             </h3>
           </div>
           <div className="dashboard-pulse-grid">

@@ -246,7 +246,7 @@ export default async function LandingPage({
       </section>
 
       <section id="features" className="public-section public-section--light">
-        <div className="public-section-inner">
+        <div className="public-section-inner public-section-inner--narrow">
           <div className="public-section-copy">
             <h2 className="public-section-title">
               {labels("public.features.title")}
@@ -262,7 +262,7 @@ export default async function LandingPage({
               return (
                 <div
                   key={card.title}
-                  className="card public-card public-card-dark public-card-accent"
+                  className="card public-card public-card-light public-card-accent"
                 >
                   <Icon size={32} className="public-feature-icon" />
                   <h3 className="public-feature-title">{labels(card.title)}</h3>
@@ -309,7 +309,7 @@ export default async function LandingPage({
       </section>
 
       <section id="security" className="public-section public-section--light">
-        <div className="public-section-inner">
+        <div className="public-section-inner public-section-inner--narrow">
           <div className="public-section-copy">
             <h2 className="public-section-title">
               {labels("public.security.title")}
@@ -323,7 +323,7 @@ export default async function LandingPage({
               return (
                 <div
                   key={card.title}
-                  className="card public-card"
+                  className="card public-card public-card-light"
                 >
                   <Icon size={30} className="public-security-icon" />
                   <h3 className="public-security-title">{labels(card.title)}</h3>

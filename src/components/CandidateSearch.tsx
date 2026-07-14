@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import FilterToolbar from "@/components/ui/FilterToolbar";
 import { Search } from "lucide-react";
@@ -134,3 +134,4 @@ export default function CandidateSearch({
     </FilterToolbar>
   );
 }
+

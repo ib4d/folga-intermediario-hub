@@ -48,8 +48,8 @@ export default function WeeklyArrivals({ events, language }: Props) {
 
   if (events.length === 0) {
     return (
-      <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--muted)" }}>
-        <p style={{ fontWeight: "bold", textTransform: "uppercase" }}>{labels("logistics.noWeeklyArrivals")}</p>
+      <div className="card logistics-weekly-empty">
+        <p className="logistics-weekly-empty-title">{labels("logistics.noWeeklyArrivals")}</p>
       </div>
     );
   }
@@ -65,8 +65,7 @@ export default function WeeklyArrivals({ events, language }: Props) {
         items={events}
         pageSize={6}
         label={labels("logistics.weeklyTitle")}
-        className="equal-card-grid logistics-card-grid"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
+        className="equal-card-grid logistics-card-grid logistics-weekly-grid"
         renderItem={(event) => (
           <WeeklyArrivalCard key={event.id} event={event} onConfirm={handleConfirm} language={language} />
         )}
@@ -120,53 +119,39 @@ function WeeklyArrivalCard({
   };
 
   return (
-    <div
-      className="card equal-card"
-      style={{
-        backgroundColor: event.confirmed ? "#f0fdf4" : "var(--background)",
-        borderColor: event.confirmed ? "#4ade80" : "var(--pitch-black)",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", minWidth: 0, flex: "1 1 0" }}>
-          <div
-            style={{
-              padding: "0.5rem",
-              backgroundColor: event.confirmed ? "#4ade80" : "var(--primary)",
-              border: "2px solid var(--pitch-black)",
-            }}
-          >
+    <div className={`card equal-card logistics-weekly-card ${event.confirmed ? "logistics-weekly-card--confirmed" : ""}`}>
+      <div className="logistics-weekly-card-header">
+        <div className="logistics-weekly-card-header-main">
+          <div className={`logistics-weekly-card-icon ${event.confirmed ? "logistics-weekly-card-icon--confirmed" : ""}`}>
             <TransportIcon type={event.transportType} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <h4 style={{ fontWeight: "900", fontSize: "1rem", textTransform: "uppercase", overflowWrap: "anywhere" }}>
+          <div className="logistics-weekly-card-title-wrap">
+            <h4 className="logistics-weekly-card-title">
               {event.candidate.firstName} {event.candidate.lastName}
             </h4>
-            <p style={{ fontSize: "0.75rem", fontWeight: "bold", color: "var(--muted)", margin: 0 }}>
+            <p className="logistics-weekly-card-date">
               {event.arrivalDate
                 ? new Date(event.arrivalDate).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })
                 : labels("logistics.pendingDate")}
             </p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="logistics-weekly-card-actions">
           {event.confirmed ? (
-            <span className="status-badge active" style={{ fontSize: "0.65rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+            <span className="status-badge active logistics-weekly-card-status-badge">
               <CheckCircle size={10} /> CONFIRMADO
             </span>
           ) : (
             <button
               onClick={() => onConfirm(event.id)}
-              className="button"
-              style={{ padding: "0.25rem 0.75rem", fontSize: "0.7rem" }}
+              className="button logistics-weekly-card-button"
             >
               Confirmar
             </button>
           )}
           <button
             type="button"
-            className="button button-secondary"
-            style={{ padding: "0.25rem 0.75rem", fontSize: "0.7rem" }}
+            className="button button-secondary logistics-weekly-card-button"
             onClick={() => setIsEditing((current) => !current)}
           >
             {isEditing ? labels("logistics.close") : labels("logistics.edit")}
@@ -175,17 +160,8 @@ function WeeklyArrivalCard({
       </div>
 
       {outcome?.followUpActions.length ? (
-        <div
-          style={{
-            marginBottom: "0.9rem",
-            padding: "0.65rem 0.75rem",
-            border: "1px solid #fcd34d",
-            backgroundColor: "#fffbeb",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-          }}
-        >
-          <div style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.25rem" }}>
+        <div className="logistics-weekly-card-callout logistics-weekly-card-callout--followup">
+          <div className="logistics-weekly-card-callout-title">
             {labels("logistics.operationalFollowUpTitle")}
           </div>
           <ExpandableText maxLength={96}>
@@ -195,76 +171,50 @@ function WeeklyArrivalCard({
       ) : null}
 
       <div
-        style={{
-          marginBottom: "0.9rem",
-          padding: "0.55rem 0.75rem",
-          border: "1px solid var(--border-subtle)",
-          backgroundColor: arrivalReadiness.isReadyForArrival ? "#f0fdf4" : "#fff7ed",
-          fontSize: "0.75rem",
-          fontWeight: 700,
-        }}
+        className="logistics-weekly-card-callout"
       >
-        <div style={{ fontWeight: 900, textTransform: "uppercase", marginBottom: "0.25rem" }}>
+        <div className="logistics-weekly-card-callout-title">
           {labels("logistics.arrivalStatusTitle")}
         </div>
         <div>{arrivalReadiness.statusLabel}</div>
         {arrivalReadiness.blockers.length > 0 ? (
-          <ExpandableText maxLength={92} style={{ display: "block", marginTop: "0.2rem", color: "#991b1b" }}>
+          <ExpandableText maxLength={92} className="logistics-weekly-card-blockers">
             {arrivalReadiness.blockers.join(" | ")}
           </ExpandableText>
         ) : null}
       </div>
 
       {operationalAlerts.length > 0 ? (
-        <div
-          style={{
-            marginTop: "0.9rem",
-            padding: "0.65rem 0.75rem",
-            border: "1px solid #fca5a5",
-            backgroundColor: "#fff1f2",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-          }}
-        >
+        <div className="logistics-weekly-card-callout logistics-weekly-card-callout--alert">
           <ExpandableText maxLength={110}>
             {operationalAlerts.map((alert) => alert.title).join(" | ")}
           </ExpandableText>
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem", fontSize: "0.8rem", fontWeight: "bold", minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <div className="logistics-weekly-card-meta">
+        <div className="logistics-weekly-card-meta-item">
           <MapPin size={14} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="logistics-weekly-card-meta-value">
             {event.terminal || labels("logistics.tba")}
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div className="logistics-weekly-card-meta-item">
           <User size={14} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="logistics-weekly-card-meta-value">
             {event.pickedUpBy || labels("logistics.unassignedShort")}
           </span>
         </div>
         {event.flightOrTrain ? (
-          <div
-            style={{
-              gridColumn: "1 / -1",
-              marginTop: "0.5rem",
-              padding: "0.25rem 0.5rem",
-              backgroundColor: "var(--white-smoke)",
-              border: "1px solid var(--pitch-black)",
-              fontFamily: "monospace",
-              fontSize: "0.75rem",
-            }}
-          >
+          <div className="logistics-weekly-card-reference">
             REF: {event.flightOrTrain}
           </div>
         ) : null}
       </div>
 
       {isEditing ? (
-        <form action={handleSave} style={{ marginTop: "1rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem", display: "grid", gap: "0.75rem", minWidth: 0 }}>
-          <div className="input-group" style={{ marginBottom: 0 }}>
+        <form action={handleSave} className="logistics-weekly-card-edit">
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.transportType")}</label>
             <select name="transportType" className="select" defaultValue={event.transportType ?? "AVION"}>
               <option value="AVION">Avion</option>
@@ -274,7 +224,7 @@ function WeeklyArrivalCard({
             </select>
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.arrivalDateTime")}</label>
             <input
               type="datetime-local"
@@ -284,39 +234,37 @@ function WeeklyArrivalCard({
             />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.terminal")}</label>
             <input type="text" name="terminal" className="input" defaultValue={event.terminal ?? ""} />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.reference")}</label>
             <input type="text" name="flightOrTrain" className="input" defaultValue={event.flightOrTrain ?? ""} />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.pickupResponsible")}</label>
             <input type="text" name="pickedUpBy" className="input" defaultValue={event.pickedUpBy ?? ""} />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
+          <div className="input-group logistics-event-form-group">
             <label className="label">{labels("logistics.operationalNotes")}</label>
             <textarea
               name="description"
-              className="input"
+              className="input logistics-event-form-notes"
               defaultValue={event.description ?? ""}
-              style={{ minHeight: "88px", resize: "vertical" }}
             />
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button type="submit" className="button" style={{ flex: 1 }} disabled={isSubmitting}>
+          <div className="logistics-weekly-card-form-actions">
+            <button type="submit" className="button logistics-weekly-card-submit" disabled={isSubmitting}>
               {isSubmitting ? labels("logistics.savingArrival") : labels("logistics.saveArrival")}
             </button>
             <button
               type="button"
-              className="button button-secondary"
-              style={{ flex: 1 }}
+              className="button button-secondary logistics-weekly-card-submit"
               onClick={() => setIsEditing(false)}
             >
               {labels("logistics.cancel")}
