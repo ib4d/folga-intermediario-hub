@@ -15,7 +15,7 @@ export default function BrokerInvoicePrintClient() {
       </button>
       {ready ? (
         <span style={{ alignSelf: "center", opacity: 0.75 }}>
-          Usa la opción "Guardar como PDF" del navegador para archivarla.
+          Usa la opción &quot;Guardar como PDF&quot; del navegador para archivarla.
         </span>
       ) : null}
     </div>
