@@ -8,6 +8,7 @@ const source = readFileSync(permissionSourcePath, "utf8");
 const roles = ["SUPERADMIN", "ADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"];
 const modules = [
   "dashboard",
+  "brokers",
   "candidates",
   "documents",
   "logistics",

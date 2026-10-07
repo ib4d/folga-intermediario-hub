@@ -17,6 +17,7 @@ This document mirrors `src/lib/permissions.ts` and describes the current v1 role
 | Module | Superadmin | Admin | Intermediario | Legal | Logistica |
 | --- | --- | --- | --- | --- | --- |
 | Dashboard | Yes | Yes | Yes | Yes | Yes |
+| Brokers | Yes | Yes | No | No | No |
 | Candidates | Yes | Yes | Yes | Yes | Yes |
 | Documents | Yes | Yes | Yes | Yes | No |
 | Logistics | Yes | Yes | No | No | Yes |
@@ -25,6 +26,9 @@ This document mirrors `src/lib/permissions.ts` and describes the current v1 role
 | Billing | Yes | Yes | No | No | No |
 | API Keys | Yes | Yes | No | No | No |
 | Branding | Yes | Yes | No | No | No |
+| Leads | Yes | Yes | No | No | No |
+| Revenue | Yes | Yes | No | No | No |
+| Marketplace | Yes | Yes | No | No | No |
 
 ## Operational Rules
 
