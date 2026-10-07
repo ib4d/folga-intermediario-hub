@@ -1,12 +1,33 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getRuntimeMetadata } from "@/lib/operational-status";
 import { getProviderStatus } from "@/lib/provider-status";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  let isPlatformAdmin = false;
+
   try {
-    // Check DB connection
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (userId) {
+      const account = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { isActive: true, isPlatformAdmin: true },
+      });
+      isPlatformAdmin = Boolean(account?.isActive && account.isPlatformAdmin);
+    }
+
     await prisma.$queryRaw`SELECT 1`;
+
+    if (!isPlatformAdmin) {
+      return NextResponse.json(
+        { status: "ok", timestamp: new Date().toISOString() },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
     const providerStatus = getProviderStatus();
     const runtime = getRuntimeMetadata();
     const { storageProvider, storage, ocr } = providerStatus;
@@ -41,12 +62,15 @@ export async function GET() {
       release: runtime.release,
       timestamp: new Date().toISOString(),
       version: runtime.version,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (err: unknown) {
-    return NextResponse.json({
-      status: "error",
-      message: err instanceof Error ? err.message : "Error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        status: "error",
+        ...(isPlatformAdmin && err instanceof Error ? { message: err.message } : {}),
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }

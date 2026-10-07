@@ -1,7 +1,25 @@
 const baseUrl = normalizeBaseUrl(process.env.SMOKE_BASE_URL || process.env.AUTH_URL || "http://127.0.0.1:3000");
 
 const checks = [
-  { path: "/api/health", label: "Health API", allow: [200], mustContain: '"status":"ok"' },
+  {
+    path: "/api/health",
+    label: "Public health API hides operational details",
+    allow: [200],
+    mustContain: '"status":"ok"',
+    mustNotContain: [
+      '"db":',
+      '"storage":',
+      '"providers":',
+      '"email":',
+      '"jobs":',
+      '"cronConfigured":',
+      '"smtpConfigured":',
+      '"externalMonitoringConfigured":',
+      '"stripeConfigured":',
+      '"release":',
+      '"version":',
+    ],
+  },
   { path: "/api/providers/status", label: "Providers status API", allow: [200], mustContain: '"current"' },
   { path: "/", label: "Marketing/onboarding entry", allow: [200, 302, 307, 308] },
   { path: "/marketing", label: "Marketing explicit entry", allow: [200] },
@@ -37,6 +55,12 @@ for (const check of checks) {
 
     if (check.mustContain && !body.includes(check.mustContain)) {
       failures.push(`${check.label}: response did not include ${check.mustContain}`);
+      continue;
+    }
+
+    const leakedField = check.mustNotContain?.find((field) => body.includes(field));
+    if (leakedField) {
+      failures.push(`${check.label}: response unexpectedly included ${leakedField}`);
       continue;
     }
 
