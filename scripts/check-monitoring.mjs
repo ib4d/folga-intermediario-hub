@@ -16,19 +16,17 @@ try {
     throw new Error(`Health endpoint reported non-ok status: ${health.status}`);
   }
 
-  if (health.db !== "connected") {
-    throw new Error(`Database status is not connected: ${health.db}`);
-  }
+  await verifyDatabaseConnection();
 
-  if (!health.cronConfigured) {
+  if (health.cronConfigured === false) {
     warnings.push("CRON_SECRET is not wired into the live runtime.");
   }
 
-  if (!health.smtpConfigured) {
+  if (health.smtpConfigured === false) {
     warnings.push("SMTP is not fully configured in the live runtime.");
   }
 
-  if (!health.externalMonitoringConfigured) {
+  if (health.externalMonitoringConfigured === false) {
     warnings.push("External uptime monitoring is not marked as active in the live runtime.");
   }
 
@@ -44,16 +42,16 @@ try {
 
   console.log("Monitoring check passed.");
   console.log(`Base URL: ${baseUrl}`);
-  console.log(`Release: ${health.release || "unknown"}`);
-  console.log(`Version: ${health.version || "unknown"}`);
-  console.log(`Database: ${health.db}`);
+  console.log(`Release: ${health.release || process.env.APP_RELEASE || "private"}`);
+  console.log(`Version: ${health.version || "private"}`);
+  console.log("Database: connected (internal query)");
   console.log(`Storage: ${providers.current.storage.statusLabel}`);
   console.log(`OCR: ${providers.current.ocr.statusLabel}`);
-  console.log(`Email: ${health.email}`);
-  console.log(`Jobs: ${health.jobs}`);
-  console.log(`Cron configured: ${String(Boolean(health.cronConfigured))}`);
-  console.log(`SMTP configured: ${String(Boolean(health.smtpConfigured))}`);
-  console.log(`External monitoring configured: ${String(Boolean(health.externalMonitoringConfigured))}`);
+  console.log(`Email: ${health.email || "private"}`);
+  console.log(`Jobs: ${health.jobs || "private"}`);
+  console.log(`Cron configured: ${formatPrivateSignal(health.cronConfigured)}`);
+  console.log(`SMTP configured: ${formatPrivateSignal(health.smtpConfigured)}`);
+  console.log(`External monitoring configured: ${formatPrivateSignal(health.externalMonitoringConfigured)}`);
 
   if (warnings.length > 0) {
     console.warn("\nMonitoring warnings:");
@@ -93,6 +91,21 @@ function stripTrailingSlash(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function formatPrivateSignal(value) {
+  return typeof value === "boolean" ? String(value) : "private";
+}
+
+async function verifyDatabaseConnection() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 function enforceStrictSignals(health, warnings) {
   const strictSignals = new Set(
     (process.env.MONITORING_STRICT_SIGNALS || "")
@@ -110,28 +123,52 @@ function enforceStrictSignals(health, warnings) {
 
   const signalFailures = [];
 
-  if (strictSignals.has("cron") && !health.cronConfigured) {
-    signalFailures.push("CRON_SECRET is not wired into the live runtime.");
+  if (strictSignals.has("cron")) {
+    if (typeof health.cronConfigured !== "boolean") {
+      signalFailures.push("Cron configuration is private on this health endpoint.");
+    } else if (!health.cronConfigured) {
+      signalFailures.push("CRON_SECRET is not wired into the live runtime.");
+    }
   }
 
-  if (strictSignals.has("smtp") && !health.smtpConfigured) {
-    signalFailures.push("SMTP is not fully configured in the live runtime.");
+  if (strictSignals.has("smtp")) {
+    if (typeof health.smtpConfigured !== "boolean") {
+      signalFailures.push("SMTP configuration is private on this health endpoint.");
+    } else if (!health.smtpConfigured) {
+      signalFailures.push("SMTP is not fully configured in the live runtime.");
+    }
   }
 
-  if (strictSignals.has("external-monitoring") && !health.externalMonitoringConfigured) {
-    signalFailures.push("External uptime monitoring is not marked as active in the live runtime.");
+  if (strictSignals.has("external-monitoring")) {
+    if (typeof health.externalMonitoringConfigured !== "boolean") {
+      signalFailures.push("External monitoring configuration is private on this health endpoint.");
+    } else if (!health.externalMonitoringConfigured) {
+      signalFailures.push("External uptime monitoring is not marked as active in the live runtime.");
+    }
   }
 
-  if (strictSignals.has("stripe-core") && !health.stripeConfigured) {
-    signalFailures.push("Stripe core configuration is not active in the live runtime.");
+  if (strictSignals.has("stripe-core")) {
+    if (typeof health.stripeConfigured !== "boolean") {
+      signalFailures.push("Stripe configuration is private on this health endpoint.");
+    } else if (!health.stripeConfigured) {
+      signalFailures.push("Stripe core configuration is not active in the live runtime.");
+    }
   }
 
-  if (strictSignals.has("stripe-portal") && !health.stripePortalConfigured) {
-    signalFailures.push("Stripe customer portal is not active in the live runtime.");
+  if (strictSignals.has("stripe-portal")) {
+    if (typeof health.stripePortalConfigured !== "boolean") {
+      signalFailures.push("Stripe portal configuration is private on this health endpoint.");
+    } else if (!health.stripePortalConfigured) {
+      signalFailures.push("Stripe customer portal is not active in the live runtime.");
+    }
   }
 
-  if (strictSignals.has("stripe-payment-links") && !health.stripePaymentLinksConfigured) {
-    signalFailures.push("Stripe payment links are not active in the live runtime.");
+  if (strictSignals.has("stripe-payment-links")) {
+    if (typeof health.stripePaymentLinksConfigured !== "boolean") {
+      signalFailures.push("Stripe payment-link configuration is private on this health endpoint.");
+    } else if (!health.stripePaymentLinksConfigured) {
+      signalFailures.push("Stripe payment links are not active in the live runtime.");
+    }
   }
 
   if (signalFailures.length > 0) {
