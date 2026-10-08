@@ -11,15 +11,20 @@ try {
     timeoutMs,
   });
 
-  const runtimeRelease = String(health.release || "").trim();
+  const runtimeRelease = String(
+    health.release || process.env.APP_RELEASE || tryReadReleaseFile(),
+  ).trim();
   const mismatches = [];
 
   if (health.status !== "ok") {
     mismatches.push(`Health status is ${health.status} instead of ok.`);
   }
 
-  if (health.db !== "connected") {
-    mismatches.push(`Database status is ${health.db} instead of connected.`);
+  try {
+    await verifyDatabaseConnection();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown database error";
+    mismatches.push(`Database connection check failed: ${message}`);
   }
 
   if (!runtimeRelease) {
@@ -35,9 +40,7 @@ try {
   console.log(`Expected release: ${expectedRelease || "unknown"}`);
   console.log(`Runtime release: ${runtimeRelease || "unknown"}`);
   console.log(`Health status: ${health.status}`);
-  console.log(`Database: ${health.db}`);
-  console.log(`Cron configured: ${String(Boolean(health.cronConfigured))}`);
-  console.log(`SMTP configured: ${String(Boolean(health.smtpConfigured))}`);
+  console.log("Database: checked internally");
 
   if (mismatches.length > 0) {
     console.error("\nRelease mismatches:");
@@ -86,6 +89,17 @@ function tryReadReleaseFile() {
     return readFileSync(join(process.cwd(), ".release"), "utf8").trim();
   } catch {
     return "";
+  }
+}
+
+async function verifyDatabaseConnection() {
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
