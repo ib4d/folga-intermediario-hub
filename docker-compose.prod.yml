@@ -15,11 +15,7 @@ services:
       retries: 10
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        APP_RELEASE: ${APP_RELEASE:-local}
+    image: ${WEB_IMAGE:?Set WEB_IMAGE to an immutable GHCR digest reference}
     command: sh -c "node scripts/check-production-env.mjs && node server.js"
     restart: unless-stopped
     environment:

@@ -48,6 +48,11 @@ RUN npm run build
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
+ARG APP_RELEASE=local
+
+LABEL org.opencontainers.image.title="ORI CRUIT HUB" \
+      org.opencontainers.image.source="https://github.com/ib4d/folga-intermediario-hub" \
+      org.opencontainers.image.revision="${APP_RELEASE}"
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1

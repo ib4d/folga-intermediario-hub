@@ -63,9 +63,10 @@ CRON_SECRET=use-a-long-random-secret
 JOB_PROVIDER=inline
 NODE_ENV=production
 
-# Optional override only. The recommended deploy helper writes the current release
-# automatically into .release and syncs APP_RELEASE for backwards compatibility.
-# APP_RELEASE=main-2026-06-09
+# Copy these two values from the `release.env` artifact attached to a successful
+# Quality run on main. Keep them together when promoting to staging or production.
+WEB_IMAGE=ghcr.io/ib4d/folga-intermediario-hub@sha256:replace-with-workflow-digest
+APP_RELEASE=replace-with-the-matching-40-character-commit-sha
 
 # Only set this for an intentional first production bootstrap.
 ALLOW_DEMO_SEED=false
@@ -81,7 +82,7 @@ Use Ubuntu 24.04 LTS.
 
 ```bash
 sudo apt update
-sudo apt install -y ca-certificates curl git nginx
+sudo apt install -y ca-certificates curl nginx
 ```
 
 Install Docker:
@@ -93,19 +94,34 @@ sudo usermod -aG docker $USER
 
 Log out and back in after adding the Docker group.
 
-Clone the repo:
+Clone the repo for the Compose file, environment, and operational scripts:
 
 ```bash
 git clone https://github.com/ib4d/folga-intermediario-hub.git
 cd folga-intermediario-hub
 ```
 
-Create `.env` from the production values above.
+Create `.env` from the production values above. Obtain `WEB_IMAGE` and
+`APP_RELEASE` together from the `release.env` artifact of the successful
+GitHub Actions `Quality` run for the commit being promoted; do not substitute a
+tag or choose a digest from another run.
 
-Build and start:
+The GHCR package is private. On the VPS, log in once using a GitHub account
+that can read the package and a classic personal access token with only
+`read:packages`. Keep the token out of `.env` and shell history; enter it at the
+password prompt:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+read -rsp 'GitHub token: ' GHCR_READ_TOKEN; echo
+printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io --username YOUR_GITHUB_USERNAME --password-stdin
+unset GHCR_READ_TOKEN
+```
+
+Pull and start the selected image:
+
+```bash
+docker compose -f docker-compose.prod.yml pull web
+docker compose -f docker-compose.prod.yml up -d --no-build
 ```
 
 The web container runs a production environment preflight before starting.
@@ -249,40 +265,45 @@ or continue passing an explicit recipient:
 docker compose -f docker-compose.prod.yml exec web npm run check:smtp -- your-email@example.com
 ```
 
-## Update flow
+## Promote the same image between environments
 
-```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
-docker compose -f docker-compose.prod.yml exec web npm run check:smoke
-docker compose -f docker-compose.prod.yml logs --tail=100 web
-```
+Every successful `Quality` run on `main` publishes one production image tagged
+with its full commit SHA and retains a `release.env` manifest containing the
+immutable `ghcr.io/...@sha256:...` reference and matching `APP_RELEASE`. Pull
+that manifest from the run, then use the exact same two values in staging and
+production `.env` files. The digest, rather than the descriptive tag, identifies
+the artifact. Pull requests build and validate an image but do not publish one.
+
+To promote a release, update `WEB_IMAGE` and `APP_RELEASE` together in the
+target environment's `.env`, then run the helper below. It pulls the digest,
+checks the image's embedded source revision against `APP_RELEASE`, and starts
+that already-built image without rebuilding it. To roll back, restore the
+previous pair from that environment's release manifest and run the helper
+again.
 
 ## Recommended VPS deploy helper
 
-To avoid drifting `APP_RELEASE` values between the code currently deployed and
-the runtime metadata exposed by `/api/health`, use the bundled deploy helper on
-the VPS host:
+Use the bundled deploy helper on the VPS host to deploy the selected immutable
+image:
 
 ```bash
 cd /opt/folga-intermediario-hub
 chmod +x scripts/deploy-prod.sh
-git pull origin main
 ./scripts/deploy-prod.sh
 ```
 
 What it does:
 
-- syncs `APP_RELEASE` in `.env` to the current `git rev-parse --short HEAD`
-- writes the same git revision into `.release` so the built artifact carries its own release marker
-- rebuilds and restarts the production containers
+- pulls exactly `WEB_IMAGE` from the paired release manifest
+- rejects an image whose embedded commit does not match `APP_RELEASE`
+- records the deployed revision in `.release`
+- restarts the web container without rebuilding or following a mutable tag
 - runs `npx prisma migrate deploy`
 - runs `npm run check:monitoring`
 - runs `npm run check:release`
 - calls `/api/health` when `AUTH_URL` is set
 
-This is now the preferred production deploy path for the Hostinger VPS.
+This is the preferred production deploy path for the Hostinger VPS.
 
 ## Quick post-deploy release verification
 
