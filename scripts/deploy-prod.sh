@@ -23,28 +23,6 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git is required on the production host." >&2
-  exit 1
-fi
-
-RELEASE_SHA="$(git rev-parse --short HEAD)"
-
-sync_release_in_env() {
-  local release="$1"
-
-  if grep -q '^APP_RELEASE=' "${ENV_FILE}"; then
-    sed -i "s/^APP_RELEASE=.*/APP_RELEASE=${release}/" "${ENV_FILE}"
-  else
-    printf '\nAPP_RELEASE=%s\n' "${release}" >> "${ENV_FILE}"
-  fi
-}
-
-sync_release_file() {
-  local release="$1"
-  printf '%s\n' "${release}" > "${RELEASE_FILE}"
-}
-
 read_env_value() {
   local key="$1"
   local line
@@ -52,16 +30,32 @@ read_env_value() {
   printf '%s' "${line#*=}"
 }
 
-echo "==> Sync APP_RELEASE with current git revision"
-sync_release_in_env "${RELEASE_SHA}"
-sync_release_file "${RELEASE_SHA}"
+WEB_IMAGE="$(read_env_value WEB_IMAGE)"
+RELEASE_SHA="$(read_env_value APP_RELEASE)"
+
+if [[ ! "${WEB_IMAGE}" =~ ^ghcr\.io/ib4d/folga-intermediario-hub@sha256:[a-f0-9]{64}$ ]]; then
+  echo "WEB_IMAGE must be the immutable ghcr.io/ib4d/folga-intermediario-hub@sha256:<digest> from a successful Quality run." >&2
+  exit 1
+fi
+
+if [[ ! "${RELEASE_SHA}" =~ ^[a-f0-9]{40}$ ]]; then
+  echo "APP_RELEASE must be the full 40-character commit SHA from the same release manifest as WEB_IMAGE." >&2
+  exit 1
+fi
+
+echo "==> Pull the selected immutable image"
+docker pull "${WEB_IMAGE}"
+IMAGE_RELEASE="$(docker image inspect "${WEB_IMAGE}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+if [ "${IMAGE_RELEASE}" != "${RELEASE_SHA}" ]; then
+  echo "Image revision ${IMAGE_RELEASE:-missing} does not match APP_RELEASE ${RELEASE_SHA}." >&2
+  exit 1
+fi
+
 echo "APP_RELEASE=${RELEASE_SHA}"
-echo "RELEASE_FILE=${RELEASE_FILE}"
 
 echo
-echo "==> Rebuild and restart containers"
-docker compose -f "${COMPOSE_FILE}" down
-docker compose -f "${COMPOSE_FILE}" up -d --build
+echo "==> Start the exact image without rebuilding or pulling a moving tag"
+docker compose -f "${COMPOSE_FILE}" up -d --no-build
 
 echo
 echo "==> Apply Prisma migrations"
@@ -78,6 +72,9 @@ docker compose -f "${COMPOSE_FILE}" exec -e EXPECTED_RELEASE="${RELEASE_SHA}" we
 echo
 echo "==> Run public smoke check"
 docker compose -f "${COMPOSE_FILE}" exec web npm run check:smoke
+
+printf '%s\n' "${RELEASE_SHA}" > "${RELEASE_FILE}"
+echo "RELEASE_FILE=${RELEASE_FILE}"
 
 BASE_URL="$(read_env_value AUTH_URL)"
 if [ -n "${BASE_URL}" ] && command -v curl >/dev/null 2>&1; then
