@@ -1543,7 +1543,7 @@ async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buff
       } as never).promise;
       return canvas.toBuffer("image/png");
     } finally {
-      await pdf.destroy();
+      await loadingTask.destroy();
     }
   } catch (error) {
     console.error("[OCR] PDF render failed for local OCR:", error);

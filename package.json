@@ -37,17 +37,23 @@
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.468.0",
-    "next": "16.2.4",
-    "next-auth": "^5.0.0-beta.31",
+    "next": "^16.3.8",
+    "next-auth": "^5.0.0-beta.32",
     "papaparse": "^5.5.3",
-    "pdfjs-dist": "^5.7.284",
+    "pdfjs-dist": "^6.4.299",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.74.0",
     "recharts": "^3.8.1",
     "tesseract.js": "^7.0.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.1"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    },
+    "source-map-js": "^1.2.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -58,7 +64,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^16.3.8",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
