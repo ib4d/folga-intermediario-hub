@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Lint, permissions, OCR and production image
+    name: Audit, lint, types, regression checks and production image
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -40,6 +40,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+
       - name: Lint
         run: npm run lint
 
@@ -54,6 +57,9 @@ jobs:
 
       - name: Run OCR regression checks
         run: npm run check:ocr
+
+      - name: Run broker regression checks
+        run: npm run check:broker
 
       - name: Build production Docker image
         run: docker build --tag ori-cruit-hub:ci --build-arg APP_RELEASE=ci-${GITHUB_SHA} .
