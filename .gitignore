@@ -53,6 +53,8 @@ tmp-*
 next-env.d.ts
 
 /src/generated/prisma
+/private-uploads/
+/public/uploads/
 lint-results.json
 /migration.sql
 .release

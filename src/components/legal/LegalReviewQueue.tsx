@@ -210,7 +210,8 @@ export default function LegalReviewQueue({ initialCandidates, viewerRole, langua
         </button>
 
         <div className="input-group legal-queue-toolbar-sort">
-          <select className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value as QueueSort)}>
+          <label className="sr-only" htmlFor="legal-queue-sort">Ordenar candidatos</label>
+          <select id="legal-queue-sort" className="select" value={sortBy} onChange={(event) => setSortBy(event.target.value as QueueSort)}>
             <option value="priority">{labels("legal.sortPriority")}</option>
             <option value="updated">{labels("legal.sortUpdated")}</option>
             <option value="name">{labels("legal.sortName")}</option>

@@ -19,8 +19,7 @@ const initialInviteState = {
   error: "",
   success: "",
   emailSent: false,
-  tempPassword: "",
-  deliveryDetail: "",
+  inviteUrl: "",
 };
 
 type InviteUserModalProps = {
@@ -76,9 +75,9 @@ function InviteUserModalPanel({
   }, [state.success]);
 
   const handleCopy = async () => {
-    if (!state.tempPassword) return;
+    if (!state.inviteUrl) return;
     try {
-      await navigator.clipboard.writeText(state.tempPassword);
+      await navigator.clipboard.writeText(state.inviteUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -115,6 +114,7 @@ function InviteUserModalPanel({
         </h2>
 
         <form ref={formRef} action={formAction} className="compact-stack">
+          <input type="hidden" name="language" value={language} />
           {state.error ? (
             <div
               style={{
@@ -143,22 +143,10 @@ function InviteUserModalPanel({
                 {state.emailSent ? <CheckCircle2 size={18} /> : <MailWarning size={18} />}
                 <div style={{ flex: 1 }}>
                   <div>{state.success}</div>
-                  {state.deliveryDetail ? (
-                    <div
-                      style={{
-                        marginTop: "0.5rem",
-                        fontWeight: 500,
-                        fontSize: "0.8rem",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {state.deliveryDetail}
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
-              {state.tempPassword ? (
+              {state.inviteUrl ? (
                 <div
                   style={{
                     marginTop: "0.85rem",
@@ -201,7 +189,7 @@ function InviteUserModalPanel({
                         fontWeight: 700,
                       }}
                     >
-                      {state.tempPassword}
+                      {state.inviteUrl}
                     </code>
                     <button
                       type="button"
@@ -210,7 +198,7 @@ function InviteUserModalPanel({
                       style={{ minWidth: "140px", paddingInline: "0.9rem" }}
                     >
                       <Copy size={16} style={{ marginRight: "0.45rem" }} />
-                      {copied ? labels("invite.copied") : labels("invite.copyPassword")}
+                      {copied ? labels("invite.copied") : labels("invite.copyLink")}
                     </button>
                   </div>
                 </div>
@@ -246,6 +234,23 @@ function InviteUserModalPanel({
               placeholder={labels("invite.emailPlaceholder")}
               disabled={isPending}
             />
+          </div>
+
+          <div>
+            <label className="label" htmlFor="invite-email-language">
+              {labels("invite.emailLanguage")}
+            </label>
+            <select
+              id="invite-email-language"
+              name="emailLanguage"
+              className="select"
+              defaultValue={language}
+              disabled={isPending}
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="pl">Polski</option>
+            </select>
           </div>
 
           <div>

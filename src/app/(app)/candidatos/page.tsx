@@ -13,6 +13,7 @@ import { normalizeLanguage, t } from "@/lib/i18n";
 import {
   canCreateCandidates,
   canDeleteCandidates,
+  canGenerateRegistrationLinks,
   canImportCandidates,
   canViewCandidateContact,
 } from "@/lib/permissions";
@@ -56,6 +57,17 @@ export default async function CandidatosPage({
   const skip = limitNumber ? (pageNumber - 1) * limitNumber : undefined;
 
   const totalCandidates = await prisma.candidate.count({ where: whereClause });
+  // The queue overview is tenant scoped and deliberately independent of the
+  // current search, so it remains a useful entry point while filters are active.
+  const statusCounts = await prisma.candidate.groupBy({
+    by: ["status"],
+    where: candidateVisibilityWhere(tenant),
+    _count: { _all: true },
+  });
+  const countFor = (...statuses: CandidateStatus[]) =>
+    statusCounts
+      .filter((entry) => statuses.includes(entry.status))
+      .reduce((total, entry) => total + entry._count._all, 0);
   const totalPages = limitNumber ? Math.ceil(totalCandidates / limitNumber) : 1;
 
   const candidates = await prisma.candidate.findMany({
@@ -72,8 +84,9 @@ export default async function CandidatosPage({
   });
 
   return (
-    <>
+    <div className="module-page-shell candidates-page-shell">
       <PageHeader
+        eyebrow={labels("module.candidates")}
         title={labels("candidates.title")}
         description={labels("candidates.description")}
         actions={
@@ -92,6 +105,45 @@ export default async function CandidatosPage({
         }
       />
 
+      <nav className="candidate-status-overview" aria-label={labels("candidates.statusFilterLabel")}>
+        <StatusOverviewCard
+          href="/candidatos"
+          label={labels("candidates.statusAll")}
+          count={statusCounts.reduce((total, entry) => total + entry._count._all, 0)}
+          active={!status}
+        />
+        <StatusOverviewCard
+          href="/candidatos?status=RECOPILANDO_DOCS"
+          label={labels("candidates.statusCollectingDocs")}
+          count={countFor(CandidateStatus.RECOPILANDO_DOCS)}
+          active={status === "RECOPILANDO_DOCS"}
+        />
+        <StatusOverviewCard
+          href="/candidatos?status=EN_REVISION_LEGAL"
+          label={labels("candidates.statusInLegalReview")}
+          count={countFor(CandidateStatus.EN_REVISION_LEGAL)}
+          active={status === "EN_REVISION_LEGAL"}
+        />
+        <StatusOverviewCard
+          href="/candidatos?status=APROBADO"
+          label={labels("candidates.statusApproved")}
+          count={countFor(CandidateStatus.APROBADO)}
+          active={status === "APROBADO"}
+        />
+        <StatusOverviewCard
+          href="/candidatos?status=RECHAZADO"
+          label={labels("candidates.statusRejected")}
+          count={countFor(CandidateStatus.RECHAZADO)}
+          active={status === "RECHAZADO"}
+        />
+        <StatusOverviewCard
+          href="/candidatos?status=REVISION_ADICIONAL"
+          label={labels("candidates.statusAdditionalReview")}
+          count={countFor(CandidateStatus.REVISION_ADICIONAL)}
+          active={status === "REVISION_ADICIONAL"}
+        />
+      </nav>
+
       <CandidateSearch
         labels={{
           placeholder: labels("candidates.searchPlaceholder"),
@@ -102,7 +154,7 @@ export default async function CandidatosPage({
           statusApproved: labels("candidates.statusApproved"),
           statusRejected: labels("candidates.statusRejected"),
           statusAdditionalReview: labels("candidates.statusAdditionalReview"),
-          clearFilters: "Limpiar filtros",
+          clearFilters: labels("candidates.clearFilters"),
           option20: labels("candidates.perPage20"),
           option10: labels("candidates.perPage10"),
           option50: labels("candidates.perPage50"),
@@ -132,13 +184,18 @@ export default async function CandidatosPage({
             intermediaryName: candidate.intermediary.name,
             status: candidate.status,
             selfRegistered: candidate.selfRegistered,
-            registrationToken: candidate.registrationToken,
+            // Do not serialize public registration credentials into the client
+            // payload for roles that cannot create or distribute them.
+            registrationToken: canGenerateRegistrationLinks(tenant.role)
+              ? candidate.registrationToken
+              : null,
           }))}
           pageNumber={pageNumber}
           totalPages={totalPages}
           totalCandidates={totalCandidates}
           currentLimit={limit}
           canManageCandidates={canDeleteCandidates(tenant.role)}
+          canGenerateLinks={canGenerateRegistrationLinks(tenant.role)}
           canViewContact={canViewCandidateContact(tenant.role)}
           labels={{
             summaryCount: labels("candidates.summaryCount"),
@@ -150,6 +207,7 @@ export default async function CandidatosPage({
             clearSelection: labels("candidates.clearSelection"),
             bulkDeleted: labels("candidates.bulkDeleted"),
             singleDeleted: labels("candidates.singleDeleted"),
+            storageCleanupPending: labels("documents.storageCleanupPending"),
             deleteFailed: labels("candidates.deleteFailed"),
             deleteOneFailed: labels("candidates.deleteOneFailed"),
             selectAll: labels("candidates.selectAll"),
@@ -177,6 +235,25 @@ export default async function CandidatosPage({
           }}
         />
       )}
-    </>
+    </div>
+  );
+}
+
+function StatusOverviewCard({
+  href,
+  label,
+  count,
+  active,
+}: {
+  href: string;
+  label: string;
+  count: number;
+  active: boolean;
+}) {
+  return (
+    <Link href={href} className={`candidate-status-overview-card${active ? " is-active" : ""}`} aria-current={active ? "page" : undefined}>
+      <span>{label}</span>
+      <strong>{count}</strong>
+    </Link>
   );
 }

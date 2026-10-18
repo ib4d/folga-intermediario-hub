@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { getCurrentPlatformAdmin, getCurrentTenant } from "@/lib/tenant";
 
 export default async function AppLayout({
   children,
@@ -13,17 +14,22 @@ export default async function AppLayout({
   const session = await auth();
   if (!session) redirect("/login");
 
-  if (!session.user.organizationId) {
-    redirect("/onboarding");
+  const tenant = await getCurrentTenant();
+  if (!tenant) {
+    if (await getCurrentPlatformAdmin()) redirect("/platform");
+    if (!session.user.organizationId) redirect("/onboarding");
+    redirect("/login?access=inactive");
   }
 
   return (
     <div className="app-layout">
-      <div className="desktop-only">
-        <Sidebar />
-      </div>
+      <Sidebar
+        role={tenant.role}
+        interfaceLanguage={session.user.interfaceLanguage}
+        isPlatformAdmin={tenant.isPlatformAdmin}
+      />
       <div className="main-container">
-        <Header />
+        <Header role={tenant.role} organizationId={tenant.organizationId} />
         <main className="main-content">
           <ErrorBoundary>
             {children}
@@ -31,7 +37,7 @@ export default async function AppLayout({
         </main>
       </div>
       <div className="mobile-only">
-        <BottomNav />
+        <BottomNav role={tenant.role} interfaceLanguage={session.user.interfaceLanguage} />
       </div>
     </div>
   );

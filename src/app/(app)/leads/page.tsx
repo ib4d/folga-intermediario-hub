@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { redirect } from "next/navigation";
-import { Plus, Mail, MessageSquare, TrendingUp } from "lucide-react";
-import Link from "next/link";
+import { Plus, Mail, Phone, TrendingUp } from "lucide-react";
 import OutreachRunner from "@/components/sales/OutreachRunner";
 import { Prisma } from "@prisma/client";
+import { createLead } from "@/app/actions/sales";
 
 type LeadWithOutreachCount = Prisma.LeadGetPayload<{
   include: { _count: { select: { outreaches: true } } };
@@ -28,16 +28,24 @@ export default async function LeadsPage() {
   const leadsForOutreach = leads.filter((lead) => lead.status === "NEW" && lead.email);
 
   return (
-    <div className="main-content">
+    <div className="module-page-shell leads-page-shell">
       <div className="leads-page-header">
         <div>
           <h1>Gestión de Leads (Ventas)</h1>
           <p>Usa ORI CRUIT HUB para captar más agencias y partners.</p>
         </div>
         <div className="leads-page-actions">
-          <button className="button">
-            <Plus size={20} /> Nuevo Lead
-          </button>
+          <details className="leads-create-disclosure">
+            <summary className="button"><Plus size={18} /> Nuevo lead</summary>
+            <form action={createLead} className="leads-create-form">
+              <h2>Añadir contacto</h2>
+              <label>Nombre<input className="input" name="name" required maxLength={160} /></label>
+              <label>Empresa<input className="input" name="company" maxLength={160} /></label>
+              <label>Correo electrónico<input className="input" name="email" type="email" maxLength={254} /></label>
+              <label>Origen<input className="input" name="source" maxLength={120} placeholder="p. ej. LinkedIn" /></label>
+              <button className="button" type="submit">Guardar lead</button>
+            </form>
+          </details>
         </div>
       </div>
 
@@ -90,12 +98,17 @@ export default async function LeadsPage() {
                   </td>
                   <td>
                     <div className="leads-page-row-actions">
-                      <Link href={`/leads/${lead.id}`} className="button button-secondary leads-page-icon-button">
-                        <Mail size={16} />
-                      </Link>
-                      <button className="button button-secondary leads-page-icon-button">
-                        <MessageSquare size={16} />
-                      </button>
+                      {lead.email ? (
+                        <a href={`mailto:${lead.email}`} aria-label={`Escribir a ${lead.name}`} className="button button-secondary leads-page-icon-button">
+                          <Mail size={16} />
+                        </a>
+                      ) : null}
+                      {lead.phone ? (
+                        <a href={`tel:${lead.phone}`} aria-label={`Llamar a ${lead.name}`} className="button button-secondary leads-page-icon-button">
+                          <Phone size={16} />
+                        </a>
+                      ) : null}
+                      {!lead.email && !lead.phone ? <span className="leads-page-no-contact">Sin contacto</span> : null}
                     </div>
                   </td>
                 </tr>
@@ -103,7 +116,7 @@ export default async function LeadsPage() {
               {leads.length === 0 && (
                 <tr>
                   <td colSpan={5} className="leads-page-empty">
-                    No hay leads registrados aún. Empieza por añadir prospectos de LinkedIn.
+                    No hay leads registrados aún. Usa «Nuevo lead» para añadir el primer contacto.
                   </td>
                 </tr>
               )}

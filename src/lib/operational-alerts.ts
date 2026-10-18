@@ -67,132 +67,76 @@ export async function syncCandidateOperationalAlerts(params: {
   organizationId: string;
 }) {
   const { candidateId, organizationId } = params;
+  return prisma.$transaction(async (tx) => {
+    // Serialize the read/reconcile/write cycle across app instances. Hashing the
+    // scoped key to one advisory-lock id keeps the lock stable per candidate.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`ori-cruit:operational-alerts:${organizationId}:${candidateId}`}, 0))::text`;
 
-  const candidate = await prisma.candidate.findFirst({
-    where: {
-      id: candidateId,
-      organizationId,
-    },
-    include: {
-      documents: true,
-      logistics: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
+    const candidate = await tx.candidate.findFirst({
+      where: { id: candidateId, organizationId },
+      include: {
+        documents: true,
+        logistics: { orderBy: { createdAt: "desc" }, take: 5 },
       },
-    },
-  });
+    });
+    if (!candidate) return [];
 
-  if (!candidate) {
-    return [];
-  }
-
-  const alerts = getCandidateOperationalAlerts(candidate);
-  const memberships = await prisma.membership.findMany({
-    where: {
-      organizationId,
-      role: { in: COMPLIANCE_ALERT_RECIPIENT_ROLES },
-      isActive: true,
-    },
-    select: {
-      userId: true,
-      role: true,
-    },
-  });
-
-  const existingNotifications = await prisma.notification.findMany({
-    where: {
-      organizationId,
-      candidateId,
-      type: {
-        in: TRACKED_OPERATIONAL_ALERT_TYPES,
+    const alerts = getCandidateOperationalAlerts(candidate);
+    const memberships = await tx.membership.findMany({
+      where: {
+        organizationId,
+        role: { in: COMPLIANCE_ALERT_RECIPIENT_ROLES },
+        isActive: true,
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const duplicateNotificationIds: string[] = [];
-  const activeKeys = new Set<string>();
-  const createData: Prisma.NotificationCreateManyInput[] = [];
-  const updateOperations: Prisma.PrismaPromise<unknown>[] = [];
-
-  for (const alert of alerts) {
-    const recipientIds = buildRecipientIds({ candidate, memberships, type: alert.type });
-
-    for (const userId of recipientIds) {
-      const activeKey = toActiveAlertKey(userId, alert.type);
-      activeKeys.add(activeKey);
-
-      const matchingUnread = existingNotifications.filter(
-        (notification) =>
-          notification.userId === userId &&
-          notification.type === alert.type &&
-          !notification.isRead,
-      );
-
-      const primaryUnread = matchingUnread[0] ?? null;
-      for (const duplicate of matchingUnread.slice(1)) {
-        duplicateNotificationIds.push(duplicate.id);
-      }
-
-      if (primaryUnread) {
-        if (
-          primaryUnread.title !== alert.title ||
-          primaryUnread.message !== alert.message
-        ) {
-          updateOperations.push(
-            prisma.notification.update({
-              where: { id: primaryUnread.id },
-              data: {
-                title: alert.title,
-                message: alert.message,
-              },
-            }),
-          );
-        }
-        continue;
-      }
-
-      createData.push({
-        userId,
+      select: { userId: true, role: true },
+    });
+    const existingNotifications = await tx.notification.findMany({
+      where: {
         organizationId,
         candidateId,
-        type: alert.type,
-        title: alert.title,
-        message: alert.message,
-      });
+        type: { in: TRACKED_OPERATIONAL_ALERT_TYPES },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const duplicateNotificationIds: string[] = [];
+    const activeKeys = new Set<string>();
+    const createData: Prisma.NotificationCreateManyInput[] = [];
+    const updates: Array<{ id: string; title: string; message: string }> = [];
+
+    for (const alert of alerts) {
+      for (const userId of buildRecipientIds({ candidate, memberships, type: alert.type })) {
+        const activeKey = toActiveAlertKey(userId, alert.type);
+        activeKeys.add(activeKey);
+        const matchingUnread = existingNotifications.filter(
+          (notification) => notification.userId === userId && notification.type === alert.type && !notification.isRead,
+        );
+        const primaryUnread = matchingUnread[0] ?? null;
+        duplicateNotificationIds.push(...matchingUnread.slice(1).map((notification) => notification.id));
+
+        if (primaryUnread) {
+          if (primaryUnread.title !== alert.title || primaryUnread.message !== alert.message) {
+            updates.push({ id: primaryUnread.id, title: alert.title, message: alert.message });
+          }
+        } else {
+          createData.push({ userId, organizationId, candidateId, type: alert.type, title: alert.title, message: alert.message });
+        }
+      }
     }
-  }
 
-  const staleUnreadIds = existingNotifications
-    .filter(
-      (notification) =>
-        !notification.isRead &&
-        !activeKeys.has(toActiveAlertKey(notification.userId, notification.type)),
-    )
-    .map((notification) => notification.id);
+    const staleUnreadIds = existingNotifications
+      .filter((notification) => !notification.isRead && !activeKeys.has(toActiveAlertKey(notification.userId, notification.type)))
+      .map((notification) => notification.id);
+    const unreadIdsToClose = [...new Set([...duplicateNotificationIds, ...staleUnreadIds])];
 
-  const unreadIdsToClose = [...new Set([...duplicateNotificationIds, ...staleUnreadIds])];
+    for (const update of updates) {
+      await tx.notification.update({ where: { id: update.id }, data: { title: update.title, message: update.message } });
+    }
+    if (createData.length > 0) await tx.notification.createMany({ data: createData });
+    if (unreadIdsToClose.length > 0) {
+      await tx.notification.updateMany({ where: { id: { in: unreadIdsToClose }, organizationId, candidateId }, data: { isRead: true } });
+    }
 
-  if (createData.length > 0) {
-    updateOperations.push(prisma.notification.createMany({ data: createData }));
-  }
-
-  if (unreadIdsToClose.length > 0) {
-    updateOperations.push(
-      prisma.notification.updateMany({
-        where: {
-          id: { in: unreadIdsToClose },
-        },
-        data: {
-          isRead: true,
-        },
-      }),
-    );
-  }
-
-  if (updateOperations.length > 0) {
-    await prisma.$transaction(updateOperations);
-  }
-
-  return alerts;
+    return alerts;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 15_000 });
 }

@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 
 export default function Loading() {
   return (
-    <div style={{
+    <div role="status" aria-live="polite" aria-busy="true" aria-label="Cargando ORI CRUIT HUB" style={{
       position: 'fixed',
       inset: 0,
       backgroundColor: 'rgba(251, 249, 255, 0.7)',
@@ -15,7 +15,7 @@ export default function Loading() {
       zIndex: 9999,
       backdropFilter: 'blur(4px)'
     }}>
-      <div style={{
+      <div aria-hidden="true" style={{
         backgroundColor: 'var(--pitch-black)',
         padding: '2rem',
         boxShadow: '8px 8px 0px var(--amber-flame)',

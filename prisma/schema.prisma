@@ -123,6 +123,7 @@ model Organization {
 
   users                 User[]
   memberships           Membership[]
+  invitations           OrganizationInvitation[]
   candidates            Candidate[]
   documents             Document[]
   auditLogs             AuditLog[]
@@ -130,6 +131,8 @@ model Organization {
   notifications         Notification[]
   statusHistories       StatusHistory[]
   subscription          Subscription?
+  stripeBillingIncidents StripeBillingIncident[]
+  stripeBillingReviews   StripeBillingReview[]
   apiKeys               ApiKey[]
   workflows             Workflow[]
   leads                 Lead[]
@@ -158,6 +161,42 @@ model Membership {
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
+}
+
+model OrganizationInvitation {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  name           String
+  role           Role
+  tokenHash      String   @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId, acceptedAt, revokedAt, expiresAt], map: "OrganizationInvitation_orgId_expiry_idx")
+}
+
+model PendingOrganizationSignup {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  fullName         String
+  organizationName String
+  workspaceMode   String   @default("standard")
+  language         String   @default("es")
+  tokenHash        String   @unique
+  expiresAt        DateTime
+  lastSentAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model User {
@@ -293,6 +332,23 @@ model Document {
   @@unique([id, organizationId])
 }
 
+model StorageDeletionJob {
+  // No cascading organization relation: cleanup work must survive tenant row deletion.
+  id                        String   @id @default(cuid())
+  organizationId            String
+  objectPaths               Json
+  storageConfigFingerprint  String
+  attempts                  Int      @default(0)
+  nextAttemptAt             DateTime @default(now())
+  lockedAt                  DateTime?
+  lastErrorCode             String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([nextAttemptAt, lockedAt], map: "StorageDeletionJob_due_idx")
+  @@index([organizationId, createdAt], map: "StorageDeletionJob_org_created_idx")
+}
+
 model LogisticsEvent {
   id          String   @id @default(cuid())
   type        String
@@ -392,6 +448,70 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   @@unique([id, organizationId])
+}
+
+model StripeWebhookEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
+
+enum StripeBillingIncidentStatus {
+  OPEN
+  RECOVERED
+  CLOSED
+}
+
+enum StripeBillingReviewKind {
+  REFUND
+  DISPUTE
+  EARLY_FRAUD_WARNING
+}
+
+enum StripeBillingReviewStatus {
+  OPEN
+  ACKNOWLEDGED
+  CLOSED
+}
+
+model StripeBillingIncident {
+  id                    String                      @id @default(cuid())
+  organizationId        String
+  organization          Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoiceId             String?                     @unique
+  checkoutSessionId     String?                     @unique
+  providerSubscriptionId String?
+  status                StripeBillingIncidentStatus
+  lastEventId           String
+  lastEventType         String
+  lastEventCreatedAt    DateTime
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  @@index([organizationId, status, lastEventCreatedAt])
+}
+
+model StripeBillingReview {
+  id                  String                  @id @default(cuid())
+  organizationId      String
+  organization        Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kind                StripeBillingReviewKind
+  reviewStatus        StripeBillingReviewStatus @default(OPEN)
+  providerObjectId    String                  @unique
+  providerChargeId    String?
+  resourceStatus      String?
+  actionable          Boolean?
+  actionDueAt         DateTime?
+  reviewedAt          DateTime?
+  reviewedById        String?
+  reviewNote           String?
+  lastEventId         String
+  lastEventType       String
+  lastEventCreatedAt  DateTime
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([organizationId, actionDueAt, lastEventCreatedAt])
 }
 
 model ApiKey {
@@ -663,4 +783,13 @@ model BrokerInvoiceLine {
   @@unique([brokerInvoiceId, sourceRowHash])
   @@index([organizationId, brokerInvoiceId])
   @@index([brokerInvoiceId, workerFullName])
+}
+
+model RequestRateLimitBucket {
+  key       String   @id @db.VarChar(64)
+  count     Int      @default(0)
+  resetAt   DateTime @db.Timestamp(3)
+  updatedAt DateTime @updatedAt @db.Timestamp(3)
+
+  @@index([resetAt])
 }

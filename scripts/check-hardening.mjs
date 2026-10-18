@@ -69,13 +69,13 @@ if (process.env.CHECK_HARDENING_SKIP_MONITORING === "true") {
 }
 
 if (process.env.CHECK_HARDENING_RUN_BACKUP === "true") {
-  runNpmStep("Backup drill", ["run", "check:backup"]);
+  runNpmStep("PostgreSQL backup drill (documents excluded)", ["run", "check:backup"]);
 } else {
   console.warn("CHECK_HARDENING_RUN_BACKUP=true is not set. Skipping backup drill.");
 }
 
 if (process.env.CHECK_HARDENING_RUN_RESTORE === "true") {
-  runNpmStep("Restore drill", ["run", "check:restore"]);
+  runNpmStep("PostgreSQL restore drill (documents excluded)", ["run", "check:restore"]);
 } else {
   console.warn("CHECK_HARDENING_RUN_RESTORE=true is not set. Skipping restore drill.");
 }

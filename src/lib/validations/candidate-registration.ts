@@ -44,7 +44,7 @@ export const candidateRegistrationSchema = z.object({
   // Arrival
   arrivalDate: z.string().optional(),
   arrivalNotes: z.string().optional(),
-  accommodation: z.string().optional(),
+  accommodation: z.enum(["YES", "NO"]).or(z.literal("")).optional(),
   accommodationNotes: z.string().optional(),
 
   // Payment

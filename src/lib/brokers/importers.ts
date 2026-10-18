@@ -273,7 +273,7 @@ export async function importBrokerInvoicesWorkbook(input: {
 
     const invoice = existingInvoice
       ? await prisma.brokerInvoice.update({
-          where: { id: existingInvoice.id },
+          where: { id: existingInvoice.id, organizationId: input.organizationId },
           data: {
             brokerId: broker.id,
             sourceFileName: input.fileName,
@@ -342,7 +342,7 @@ export async function importBrokerInvoicesWorkbook(input: {
 
       const workerReferral = existingWorkerReferral
         ? await prisma.workerReferral.update({
-            where: { id: existingWorkerReferral.id },
+            where: { id: existingWorkerReferral.id, organizationId: input.organizationId },
             data: {
               workerStatusRaw: normalizeText(row[2]),
               cycleLengthDays: parseNumber(row[3]) ?? undefined,
@@ -437,7 +437,7 @@ export async function importBrokerInvoicesWorkbook(input: {
         : null;
 
     await prisma.brokerInvoice.update({
-      where: { id: invoice.id },
+      where: { id: invoice.id, organizationId: input.organizationId },
       data: {
         candidateCountEligible: eligibleCount,
         baseTotal,
@@ -511,7 +511,7 @@ export async function promoteBrokerLeadToBroker(input: {
   });
 
   await prisma.brokerLead.update({
-    where: { id: lead.id },
+    where: { id: lead.id, organizationId: input.organizationId },
     data: { brokerId: broker.id },
   });
 

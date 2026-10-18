@@ -9,7 +9,7 @@ import {
   buildBrokerInvoiceCsv,
   buildBrokerInvoiceWorkbook,
 } from "@/lib/brokers/invoice-export";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -66,7 +66,7 @@ export async function GET(
       contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 
-    await writeAuditLog({
+    await writeAuditLogOrThrow({
       userId: tenant.userId,
       organizationId: tenant.organizationId,
       action: "BROKER_INVOICE_EXPORTED",

@@ -1,4 +1,4 @@
-import { Candidate } from "@prisma/client";
+import { Candidate, Role } from "@prisma/client";
 
 /**
  * Masks sensitive data for display purposes.
@@ -27,13 +27,23 @@ export function maskSensitiveData(candidate: Partial<Candidate>) {
 
 /**
  * Checks if a user has permission to see full (unmasked) data.
+ * Callers must pass the effective role from the current tenant context;
+ * User.role and the session role are not authoritative for access decisions.
  * - SUPERADMIN: Always
  * - ADMIN/LEGAL: Always
  * - INTERMEDIARIO: Only if it's their own candidate
  */
-export function canViewFullData(user: { id: string; role: string }, candidate: Candidate) {
-  if (["SUPERADMIN", "ADMIN", "LEGAL"].includes(user.role)) return true;
-  if (user.role === "INTERMEDIARIO" && candidate.intermediaryId === user.id) return true;
+export function canViewFullData(
+  tenant: { userId: string; organizationId: string; role: Role },
+  candidate: Candidate
+) {
+  if (candidate.organizationId !== tenant.organizationId) return false;
+  if (
+    tenant.role === Role.SUPERADMIN ||
+    tenant.role === Role.ADMIN ||
+    tenant.role === Role.LEGAL
+  ) return true;
+  if (tenant.role === Role.INTERMEDIARIO && candidate.intermediaryId === tenant.userId) return true;
   return false;
 }
 

@@ -33,6 +33,18 @@ function loadEnvFile(path) {
   }
 }
 
+function getStripeSecretMode(value) {
+  if (/^(?:sk|rk)_test_/.test(value ?? "")) return "test";
+  if (/^(?:sk|rk)_live_/.test(value ?? "")) return "live";
+  return null;
+}
+
+function getStripePublishableMode(value) {
+  if (/^pk_test_/.test(value ?? "")) return "test";
+  if (/^pk_live_/.test(value ?? "")) return "live";
+  return null;
+}
+
 loadEnvFile(".env.production");
 loadEnvFile(".env");
 
@@ -91,6 +103,21 @@ for (const key of required) {
 
   if (placeholderPatterns.some((pattern) => pattern.test(value))) {
     errors.push(`${key} still looks like a placeholder.`);
+  }
+}
+
+const dbPassword = process.env.DB_PASSWORD?.trim();
+if (dbPassword && dbPassword.length < 32) {
+  errors.push("DB_PASSWORD must contain at least 32 characters.");
+}
+if (dbPassword && !/^[A-Za-z0-9._~-]+$/.test(dbPassword)) {
+  errors.push("DB_PASSWORD must use only URL-safe letters, digits, dot, underscore, tilde, and hyphen.");
+}
+
+for (const key of ["DB_USER", "DB_NAME"]) {
+  const value = process.env[key]?.trim();
+  if (value && !/^[A-Za-z0-9._-]+$/.test(value)) {
+    errors.push(`${key} must use only letters, digits, dot, underscore, and hyphen.`);
   }
 }
 
@@ -177,6 +204,41 @@ if (stripeKeys.length > 0 && stripeKeys.length < 3) {
   warnings.push("Stripe is partially configured. Set publishable key, secret key, and webhook secret before enabling billing.");
 }
 
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+const stripeSecretMode = getStripeSecretMode(stripeSecretKey);
+const stripePublishableMode = getStripePublishableMode(stripePublishableKey);
+const stripeExpectedMode = process.env.STRIPE_EXPECTED_MODE?.trim().toLowerCase();
+const stripePortalEnabled = process.env.STRIPE_CUSTOMER_PORTAL_ENABLED?.trim().toLowerCase();
+
+if (stripeSecretKey && !stripeSecretMode) {
+  errors.push("STRIPE_SECRET_KEY must use a recognized test/live secret or restricted key format; its value is never printed.");
+}
+if (stripePublishableKey && !stripePublishableMode) {
+  errors.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must use a recognized pk_test_/pk_live_ format; its value is never printed.");
+}
+if (stripeSecretMode && stripePublishableMode && stripeSecretMode !== stripePublishableMode) {
+  errors.push("Stripe secret and publishable keys use different modes.");
+}
+if (stripeExpectedMode && stripeExpectedMode !== "test" && stripeExpectedMode !== "live") {
+  errors.push("STRIPE_EXPECTED_MODE must be either test or live.");
+}
+if (stripeSecretKey && !stripeExpectedMode) {
+  errors.push("STRIPE_EXPECTED_MODE must be explicitly set to test or live whenever STRIPE_SECRET_KEY is configured.");
+}
+if (stripeExpectedMode && stripeSecretMode && stripeExpectedMode !== stripeSecretMode) {
+  errors.push("STRIPE_EXPECTED_MODE does not match STRIPE_SECRET_KEY.");
+}
+if (stripeWebhookSecret && !stripeWebhookSecret.startsWith("whsec_")) {
+  errors.push("STRIPE_WEBHOOK_SECRET must be a Stripe endpoint signing secret; its value is never printed.");
+}
+if (stripePortalEnabled && stripePortalEnabled !== "true" && stripePortalEnabled !== "false") {
+  errors.push("STRIPE_CUSTOMER_PORTAL_ENABLED must be either true or false.");
+}
+if (stripePortalEnabled === "true" && !stripeSecretMode) {
+  errors.push("STRIPE_CUSTOMER_PORTAL_ENABLED=true requires a recognized STRIPE_SECRET_KEY mode.");
+}
 const providerAllowlist = {
   STORAGE_PROVIDER: Object.keys(providerManifest.storage),
   OCR_PROVIDER: Object.keys(providerManifest.ocr),

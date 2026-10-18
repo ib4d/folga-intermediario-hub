@@ -3,6 +3,21 @@ import { ArrowRight, FileText, Globe2, LockKeyhole, PlayCircle, ShieldCheck } fr
 import { localizedHref, normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { auth } from "@/auth";
 import LanguageSwitcher from "@/components/public/LanguageSwitcher";
+import BrandLogo from "@/components/BrandLogo";
+import ScrollRevealObserver from "@/components/ScrollRevealObserver";
+import MarketingScrollTop from "@/components/public/MarketingScrollTop";
+import { publicPageMetadata } from "@/lib/public-seo";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
+  const { lang } = await searchParams;
+  const language = normalizeLanguage(lang);
+  const localized = {
+    es: { title: "Demo guiada | ORI CRUIT HUB", description: "Recorre el flujo de candidatos, documentos, revisión humana y coordinación en ORI CRUIT HUB." },
+    en: { title: "Guided product demo | ORI CRUIT HUB", description: "Walk through candidate, document, human review, and coordination workflows in ORI CRUIT HUB." },
+    pl: { title: "Prowadzone demo | ORI CRUIT HUB", description: "Poznaj proces kandydatów, dokumentów, weryfikacji przez człowieka i koordynacji w ORI CRUIT HUB." },
+  }[language];
+  return publicPageMetadata({ language, path: "/demo", ...localized });
+}
 
 const demoSteps = [
   {
@@ -44,6 +59,7 @@ export default async function DemoPage({
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang ?? session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const homeHref = localizedHref("/", language);
   const onboardingHref = localizedHref("/onboarding?mode=demo", language);
   const loginHref = `/login?${new URLSearchParams({
     callbackUrl: onboardingHref,
@@ -51,77 +67,54 @@ export default async function DemoPage({
   }).toString()}`;
 
   return (
-    <div className="public-landing">
-      <nav className="public-topbar">
-        <Link href={localizedHref("/", language)} className="public-brand public-nav-link">
-          ORI CRUIT HUB
-        </Link>
-        <div className="public-nav-links">
-          <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button button-secondary public-login-link">
-            {labels("public.finalCta.secondary")}
-          </Link>
-          <Link href={onboardingHref} className="button public-login-link">
-            {labels("public.demo.getStarted")}
-            <ArrowRight size={18} className="public-cta-arrow" />
-          </Link>
-        </div>
+    <div id="top" className="ori-landing">
+      <ScrollRevealObserver />
+      <MarketingScrollTop label={language === "es" ? "Volver arriba" : language === "pl" ? "Wróć na górę" : "Back to top"} />
+      <nav className="ori-nav" aria-label={labels("public.nav.main")}>
+        <Link href={localizedHref("/", language)} aria-label="ORI CRUIT HUB" className="ori-brand-link"><BrandLogo /></Link>
+        <div className="ori-nav-links"><Link href={localizedHref("/security", language)}>{labels("public.nav.security")}</Link><Link href={localizedHref("/pricing", language)}>{labels("public.nav.pricing")}</Link></div>
+        <div className="ori-nav-actions"><LanguageSwitcher currentLanguage={language} /><Link href={loginHref} className="ori-nav-login">{labels("public.finalCta.secondary")}</Link><Link href={onboardingHref} className="ori-nav-demo">{labels("public.demo.getStarted")}<ArrowRight size={15} /></Link></div>
       </nav>
 
-      <header className="public-hero">
-        <div className="badge public-pricing-badge-anchor">{labels("public.demo.badge")}</div>
-        <h1 className="public-hero-title">{labels("public.demo.pageTitle")}</h1>
-        <p className="public-hero-copy">{labels("public.demo.pageDescription")}</p>
+      <header className="ori-subpage-hero ori-demo-hero">
+        <div data-scroll-reveal><span className="ori-kicker"><i />{labels("public.demo.badge")}</span><h1>{labels("public.demo.pageTitle")}</h1><p>{labels("public.demo.pageDescription")}</p><Link href={onboardingHref} className="ori-action ori-action-lime">{labels("public.demo.getStarted")}<ArrowRight size={17} /></Link></div>
+        <div className="ori-subpage-hero-art" aria-hidden="true"><PlayCircle size={66} strokeWidth={1} /><span>{labels("public.demo.heroVisual")}</span></div>
       </header>
 
-      <section className="public-section">
-        <div className="public-card-grid public-demo-card-grid">
+      <section className="ori-section ori-demo-steps-section">
+        <div className="ori-section-label"><span>{labels("public.demo.walkthroughLabel")}</span><span>{labels("public.demo.stepsLabel")}</span></div>
+        <div className="ori-trust-intro" data-scroll-reveal><h2>{labels("public.demo.introTitle")}</h2><p>{labels("public.demo.introText")}</p></div>
+        <div className="ori-demo-step-grid">
           {demoSteps.map((step, index) => {
             const Icon = step.icon;
             return (
-              <article key={step.title} className="card public-card-dark public-demo-card">
-                <div className="public-demo-step-header">
-                  <span className="status-badge active public-demo-step-badge">0{index + 1}</span>
-                  <Icon size={28} className="public-hero-card-icon" />
-                </div>
-                <h3 className="public-demo-step-title">{labels(step.title)}</h3>
-                <p className="public-demo-step-copy">{labels(step.text)}</p>
+              <article key={step.title} className="ori-demo-step" data-scroll-reveal style={{ transitionDelay: `${index * 80}ms` }}>
+                <div className="ori-demo-step-top"><span>0{index + 1} / 03</span><Icon size={25} strokeWidth={1.6} /></div>
+                <h3>{labels(step.title)}</h3>
+                <p>{labels(step.text)}</p>
+                <ArrowRight className="ori-demo-step-arrow" size={18} />
               </article>
             );
           })}
         </div>
       </section>
 
-      <section className="public-section">
-        <div className="public-card-grid public-card-grid--3 public-security-card-grid">
+      <section className="ori-section ori-demo-sandbox-section">
+        <div className="ori-section-label"><span>{labels("public.demo.sandboxLabel")}</span><span>{labels("public.demo.sandboxType")}</span></div>
+        <div className="ori-demo-sandbox-grid">
           {sandboxGuards.map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.title} className="card public-card-dark public-security-card">
-                <Icon size={28} className="public-security-icon" />
-                <h3 className="public-security-title">{labels(item.title)}</h3>
-                <p className="public-security-copy">{labels(item.text)}</p>
+              <article key={item.title} className="ori-sandbox-card" data-scroll-reveal>
+                <span><Icon size={24} strokeWidth={1.6} /></span><h3>{labels(item.title)}</h3><p>{labels(item.text)}</p>
               </article>
             );
           })}
         </div>
       </section>
 
-      <section className="public-section public-section--dark public-cta-section">
-        <div className="public-cta-inner">
-          <h2 className="public-hero-title public-pricing-guided-title">{labels("public.demo.nextTitle")}</h2>
-          <p className="public-cta-copy">{labels("public.demo.nextDescription")}</p>
-          <div className="public-section-actions">
-            <Link href={loginHref} className="button">
-              {labels("public.demo.signIn")}
-              <ArrowRight size={18} className="public-cta-arrow" />
-            </Link>
-            <Link href={onboardingHref} className="button button-secondary">
-              {labels("public.demo.startWorkspace")}
-            </Link>
-          </div>
-        </div>
-      </section>
+      <section className="ori-final"><small data-scroll-reveal>{labels("public.demo.nextLabel")}</small><h2 data-scroll-reveal>{labels("public.demo.nextTitle")}</h2><p data-scroll-reveal>{labels("public.demo.nextDescription")}</p><div className="ori-hero-actions" data-scroll-reveal><Link href={loginHref} className="ori-action ori-action-lime">{labels("public.demo.signIn")}<ArrowRight size={18} /></Link><Link href={onboardingHref} className="ori-action ori-action-outline">{labels("public.demo.startWorkspace")}<ArrowRight size={18} /></Link></div></section>
+      <footer className="ori-footer"><Link href={homeHref} className="ori-brand-link" aria-label="ORI CRUIT HUB — inicio"><BrandLogo variant="green" /></Link><div><Link href={localizedHref("/security", language)}>{labels("public.nav.security")}</Link><Link href={localizedHref("/pricing", language)}>{labels("public.nav.pricing")}</Link><Link href={loginHref}>{labels("public.finalCta.secondary")}</Link></div><small>© 2026 ORI CRUIT HUB</small></footer>
     </div>
   );
 }

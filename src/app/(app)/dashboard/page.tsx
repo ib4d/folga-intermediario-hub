@@ -1,11 +1,12 @@
 ﻿import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import DashboardCharts from "@/components/DashboardCharts";
 import ExportButton from "@/components/ExportButton";
 import DashboardOverview from "@/components/DashboardOverview";
+import DashboardModules from "@/components/DashboardModules";
 import ExpandableText from "@/components/ui/ExpandableText";
 import MetricCard from "@/components/ui/MetricCard";
 import PageHeader from "@/components/ui/PageHeader";
@@ -17,6 +18,7 @@ import { getCandidateLegalOutcome } from "@/lib/legal-outcome";
 import { getCandidateOperationalAlerts } from "@/lib/operational-alerts-shared";
 import { getProviderStatus } from "@/lib/provider-status";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
+import { canInviteUsers } from "@/lib/permissions";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -199,16 +201,69 @@ export default async function DashboardPage() {
   };
 
   if (total === 0) {
+    const canManageTeam = canInviteUsers(tenant.role);
+
     return (
       <div className="dashboard-empty-state">
         <h1 className="dashboard-empty-title">{labels("dashboard.emptyTitle")}</h1>
         <p className="dashboard-empty-copy">
           {labels("dashboard.emptyDescription")}
         </p>
+        <section className="dashboard-onboarding" aria-labelledby="dashboard-onboarding-title">
+          <div className="dashboard-onboarding-header">
+            <div>
+              <span className="dashboard-onboarding-kicker">{labels("dashboard.setupKicker")}</span>
+              <h2 id="dashboard-onboarding-title">{labels("dashboard.setupTitle")}</h2>
+              <p>{labels("dashboard.setupDescription")}</p>
+            </div>
+            <span className="dashboard-onboarding-progress">{labels("dashboard.setupProgress")}</span>
+          </div>
+
+          <div className="dashboard-onboarding-grid">
+            <article className="dashboard-onboarding-card dashboard-onboarding-card--complete">
+              <span className="dashboard-onboarding-step-number"><CheckCircle2 size={18} /></span>
+              <div className="dashboard-onboarding-card-copy">
+                <strong>{labels("dashboard.setupWorkspaceTitle")}</strong>
+                <p>{labels("dashboard.setupWorkspaceDescription")}</p>
+              </div>
+              <span className="dashboard-onboarding-status">{labels("dashboard.setupComplete")}</span>
+            </article>
+
+            {canManageTeam ? (
+              <Link href="/ajustes#team-members" className="dashboard-onboarding-card">
+                <span className="dashboard-onboarding-step-number">02</span>
+                <div className="dashboard-onboarding-card-copy">
+                  <strong>{labels("dashboard.setupTeamTitle")}</strong>
+                  <p>{labels("dashboard.setupTeamDescription")}</p>
+                </div>
+                <ArrowRight className="dashboard-onboarding-arrow" size={18} />
+              </Link>
+            ) : (
+              <article className="dashboard-onboarding-card dashboard-onboarding-card--info">
+                <span className="dashboard-onboarding-step-number"><Users size={18} /></span>
+                <div className="dashboard-onboarding-card-copy">
+                  <strong>{labels("dashboard.setupTeamTitle")}</strong>
+                  <p>{labels("dashboard.setupTeamAdminDescription")}</p>
+                </div>
+              </article>
+            )}
+
+            <Link href="/candidatos/nuevo" className="dashboard-onboarding-card dashboard-onboarding-card--primary">
+              <span className="dashboard-onboarding-step-number">03</span>
+              <div className="dashboard-onboarding-card-copy">
+                <strong>{labels("dashboard.setupCandidateTitle")}</strong>
+                <p>{labels("dashboard.setupCandidateDescription")}</p>
+              </div>
+              <ArrowRight className="dashboard-onboarding-arrow" size={18} />
+            </Link>
+          </div>
+
+          <div className="dashboard-onboarding-next-step">
+            <strong>{labels("dashboard.setupNextTitle")}</strong>
+            <span>{labels("dashboard.setupNextDescription")}</span>
+          </div>
+        </section>
         <div className="dashboard-empty-actions">
-          <Link href="/candidatos/nuevo" className="button dashboard-empty-button">
-            {labels("dashboard.emptyPrimary")}
-          </Link>
           <Link href="/ajustes/branding" className="button button-secondary dashboard-empty-button dashboard-empty-button-secondary">
             {labels("dashboard.emptySecondary")}
           </Link>
@@ -230,6 +285,8 @@ export default async function DashboardPage() {
         description={dashboardIntro}
         actions={<ExportButton />}
       />
+
+      <DashboardModules role={tenant.role} language={language} />
 
       <div className="dashboard-secondary-grid dashboard-metric-band">
         <MetricCard
@@ -461,9 +518,9 @@ export default async function DashboardPage() {
         <div className="card dashboard-section-card">
           <div className="dashboard-section-header">
             <div>
-              <h2 className="dashboard-section-title">Pulso legal</h2>
+              <h2 className="dashboard-section-title">{labels("dashboard.legalPulseTitle")}</h2>
               <p className="dashboard-section-description">
-                Categorías recientes y carga de seguimiento para el equipo.
+                {labels("dashboard.legalPulseDescription")}
               </p>
             </div>
             <Link href="/legal" className="button dashboard-section-link">
@@ -516,7 +573,9 @@ export default async function DashboardPage() {
                       ) : null}
                     </div>
                     <div className={`dashboard-pulse-footer ${checklist.isReadyForLegal ? "dashboard-pulse-footer--ready" : "dashboard-pulse-footer--blocked"}`}>
-                      {checklist.isReadyForLegal ? "Listo para volver a legal" : `${checklist.blockers.length} bloqueos activos`}
+                      {checklist.isReadyForLegal
+                        ? labels("dashboard.legalReadyToReturn")
+                        : labels("dashboard.activeBlockersCount").replace("{count}", String(checklist.blockers.length))}
                     </div>
                   </div>
                 </Link>
@@ -530,9 +589,9 @@ export default async function DashboardPage() {
         <div className="card dashboard-section-card">
           <div className="dashboard-section-header">
             <div>
-              <h2 className="dashboard-section-title">Pulso de llegadas</h2>
+              <h2 className="dashboard-section-title">{labels("dashboard.arrivalsPulseTitle")}</h2>
               <p className="dashboard-section-description">
-                Casos con handoff incompleto antes de aterrizar en logística.
+                {labels("dashboard.arrivalsPulseDescription")}
               </p>
             </div>
             <Link href="/logistica" className="button dashboard-section-link">
@@ -578,7 +637,7 @@ export default async function DashboardPage() {
         </div>
       ) : null}
  
-      <DashboardCharts data={chartData} />
+      <DashboardCharts data={chartData} language={language} />
  
       {stuckCandidates.length > 0 && (
           <div className="card dashboard-section-card dashboard-alert-card">

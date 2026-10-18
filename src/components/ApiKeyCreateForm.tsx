@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { CheckCircle, Clipboard, Key, Loader2, Plus } from "lucide-react";
 import { createApiKeyFormAction } from "@/app/actions/settings";
+import { AppLanguage, t } from "@/lib/i18n";
 
 const initialState = {
   error: "",
@@ -10,9 +11,10 @@ const initialState = {
   name: "",
 };
 
-export default function ApiKeyCreateForm() {
+export default function ApiKeyCreateForm({ language }: { language: AppLanguage }) {
   const [state, formAction, isPending] = useActionState(createApiKeyFormAction, initialState);
   const [copied, setCopied] = useState(false);
+  const labels = t.bind(null, language);
 
   const copyKey = async () => {
     if (!state.key) return;
@@ -22,60 +24,46 @@ export default function ApiKeyCreateForm() {
   };
 
   return (
-    <div className="card" style={{ marginBottom: "2rem" }}>
-      <h2 style={{ marginBottom: "1.5rem" }}>Crear nueva API Key</h2>
-      <form action={formAction} style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 260px" }}>
-          <label htmlFor="keyName" style={{ display: "block", fontWeight: "bold", marginBottom: "0.5rem" }}>
-            Nombre descriptivo
-          </label>
+    <div className="card settings-form-card settings-api-create-card">
+      <h2 className="settings-card-heading">{labels("settings.createApiKey")}</h2>
+      <form action={formAction} className="settings-api-create-form">
+        <div className="settings-api-name-field">
+          <label htmlFor="keyName" className="label">{labels("settings.apiKeyName")}</label>
           <input
             id="keyName"
             name="name"
             type="text"
-            placeholder="Ej: Integracion CRM"
+            placeholder={labels("settings.apiKeyNameExample")}
             required
             className="input"
-            style={{ width: "100%" }}
           />
         </div>
-        <button type="submit" className="button" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }} disabled={isPending}>
+        <button type="submit" className="button settings-api-create-button" disabled={isPending}>
           {isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-          {isPending ? "Creando..." : "Crear Key"}
+          {isPending ? labels("settings.creatingKey") : labels("settings.createKey")}
         </button>
       </form>
 
       {state.error ? (
-        <div className="alert-card danger" style={{ marginTop: "1rem" }}>
+        <div className="alert-card danger settings-api-message" role="alert">
           {state.error}
         </div>
       ) : null}
 
       {state.key ? (
-        <div className="alert-card success" style={{ marginTop: "1rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontWeight: 900 }}>
+        <div className="alert-card success settings-api-result" role="status">
+          <div className="settings-api-result-title">
             <Key size={18} />
-            API key creada: {state.name}
+            {labels("settings.keyCreated")}: {state.name}
           </div>
-          <p style={{ marginTop: 0 }}>
-            Copia esta clave ahora. Por seguridad no volvera a mostrarse.
+          <p>
+            {labels("settings.copyKeyOnce")}
           </p>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "stretch", flexWrap: "wrap" }}>
-            <code
-              style={{
-                flex: "1 1 320px",
-                padding: "0.85rem",
-                border: "1px solid var(--border-subtle)",
-                backgroundColor: "white",
-                overflowX: "auto",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {state.key}
-            </code>
+          <div className="settings-api-key-copy-row">
+            <code>{state.key}</code>
             <button type="button" className="button button-secondary" onClick={copyKey}>
               {copied ? <CheckCircle size={16} /> : <Clipboard size={16} />}
-              {copied ? "Copiada" : "Copiar"}
+              {copied ? labels("settings.copied") : labels("settings.copy")}
             </button>
           </div>
         </div>

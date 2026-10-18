@@ -1715,11 +1715,18 @@ export default function DocumentReviewModal({
 
     return counts;
   }, [form, reviewSignalSources]);
-  const autoFilledCount =
-    sourceSummary.OCR + sourceSummary.MRZ + sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
+  // Candidate, filename and existing-record fallbacks may fill the form, but do not
+  // prove that this uploaded file was read successfully by OCR.
+  const autoFilledCount = sourceSummary.OCR + sourceSummary.MRZ;
+  const existingDataCount = sourceSummary.CANDIDATE + sourceSummary.FILE + sourceSummary.RECORD;
   const manualCount = sourceSummary.MANUAL;
-  const totalTrackedFields = autoFilledCount + manualCount;
-  const autofillCoverage = totalTrackedFields > 0 ? Math.round((autoFilledCount / totalTrackedFields) * 100) : 0;
+  const totalRequiredFields = reviewChecklist.items.filter((item) => item.required).length;
+  const autoRequiredFields = reviewChecklist.filledRequired.filter(
+    (item) => item.source === "OCR" || item.source === "MRZ",
+  ).length;
+  const autofillCoverage = totalRequiredFields > 0
+    ? Math.round((autoRequiredFields / totalRequiredFields) * 100)
+    : 0;
   const coverageLabel =
     autofillCoverage >= 80 ? "Alta" : autofillCoverage >= 50 ? "Media" : autofillCoverage > 0 ? "Baja" : "Sin datos";
 
@@ -1809,10 +1816,9 @@ export default function DocumentReviewModal({
       </button>
 
       {isOpen ? (
-        <div className="modal-overlay" onClick={() => setIsOpen(false)}>
+        <div className="modal-overlay ori-review-overlay" onClick={() => setIsOpen(false)}>
           <div
-            className="modal-panel card"
-            style={{ maxWidth: "720px" }}
+            className="modal-panel card ori-review-panel"
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -1824,17 +1830,26 @@ export default function DocumentReviewModal({
               <X size={20} />
             </button>
 
-            <h2 style={{ marginBottom: "0.5rem", paddingRight: "3rem" }}>
-              {isManualReviewDocument ? "Revision manual del documento" : "Revision OCR"}
-            </h2>
-            <p style={{ color: "var(--muted)", marginBottom: "1.25rem", fontSize: "0.875rem" }}>
-              {isManualReviewDocument
-                ? "Completa o corrige los datos manualmente y guarda la version confiable del documento."
-                : "Corrige los campos detectados y guarda la version confiable del documento."}
-            </p>
-            <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.8rem" }}>
-              Guardar esta revision actualiza el documento y la ficha del candidato con los datos confirmados.
-            </p>
+            <div className="ori-review-heading">
+              <span>DOCUMENTOS / REVISIÓN / {doc.id.slice(0, 8).toUpperCase()}</span>
+              <h2>{isManualReviewDocument ? "Revisión manual" : "Revisión documental"}</h2>
+              <p>Comprueba cada dato frente al archivo. Guardar conserva la revisión en el documento; la ficha del candidato se actualiza solo cuando verificas la identidad.</p>
+            </div>
+            <div className="ori-review-layout">
+              <aside className="ori-review-document" aria-label="Archivo original">
+                <div><span>ARCHIVO ORIGINAL / 01</span><span>{getReviewableDocumentName(doc)}</span></div>
+                <div className="ori-review-document-visual">
+                  {doc.url ? (
+                    <iframe src={`/api/documents/${doc.id}`} title={`Vista previa de ${getReviewableDocumentName(doc)}`} loading="lazy" />
+                  ) : (
+                    <div><span>DOCUMENTO / SIN ARCHIVO</span><strong>Vista previa no disponible</strong><i /></div>
+                  )}
+                </div>
+                <div>
+                  {doc.url ? <a href={`/api/documents/${doc.id}`} target="_blank" rel="noopener noreferrer">Abrir archivo en otra pestaña ↗</a> : "Archivo pendiente"}
+                </div>
+              </aside>
+              <div className="ori-review-fields">
             {isManualReviewDocument ? (
               <div
                 style={{
@@ -2009,8 +2024,9 @@ export default function DocumentReviewModal({
               </p>
               <p style={{ margin: "0 0 0.85rem", color: "#6b7280", fontSize: "0.8rem", fontWeight: 700 }}>
                 {autoFilledCount > 0
-                  ? `Auto completados: ${autoFilledCount}.`
-                  : "La revision llega sin autocompletado visible."}{" "}
+                  ? `Extraídos del documento: ${autoFilledCount}.`
+                  : "No hay campos extraídos del archivo en esta revisión."}{" "}
+                {existingDataCount > 0 ? `${existingDataCount} valores proceden de ficha, archivo o registro. ` : ""}
                 {manualCount > 0
                   ? `${manualCount} campos ya fueron tocados manualmente.`
                   : "Todavia no has modificado campos en este formulario."}
@@ -2031,7 +2047,7 @@ export default function DocumentReviewModal({
                 }}
               >
                 <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#374151" }}>
-                  Cobertura automatica
+                  Cobertura OCR de campos clave
                 </span>
                 <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
                   {autofillCoverage}% · {coverageLabel}
@@ -2058,10 +2074,10 @@ export default function DocumentReviewModal({
                 </span>
                 <span style={{ fontSize: "0.78rem", fontWeight: 900, color: "#374151" }}>
                   {autofillCoverage >= 80
-                    ? "Casi lista para guardar"
+                    ? "OCR cubre la mayoría; verifica cada dato"
                     : autofillCoverage >= 50
-                      ? "Requiere un repaso corto"
-                      : "Todavia necesita bastante ajuste"}
+                      ? "OCR parcial; verifica los datos restantes"
+                      : "OCR bajo o sin datos; completa y verifica manualmente"}
                 </span>
               </div>
               <div
@@ -2106,7 +2122,7 @@ export default function DocumentReviewModal({
                   Resumen rapido
                 </span>
                 <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "#374151" }}>
-                  Auto {autoFilledCount} · Manual {manualCount} · Pendientes clave {reviewChecklist.missingRequired.length}
+                  OCR/MRZ {autoFilledCount} · Ficha/archivo {existingDataCount} · Manual {manualCount} · Pendientes clave {reviewChecklist.missingRequired.length}
                 </span>
               </div>
               <p style={{ margin: "0 0 0.85rem", color: "#374151", fontSize: "0.78rem", fontWeight: 700 }}>
@@ -2263,10 +2279,16 @@ export default function DocumentReviewModal({
                 <input
                   type="checkbox"
                   checked={form.markVerified}
+                  disabled={reviewChecklist.missingRequired.length > 0}
                   onChange={(e) => setField("markVerified", e.target.checked)}
                 />
                 Marcar documento como verificado
               </label>
+              {reviewChecklist.missingRequired.length > 0 ? (
+                <p style={{ margin: "-0.35rem 0 0", color: "#92400e", fontSize: "0.8rem" }}>
+                  Completa los {reviewChecklist.missingRequired.length} campos clave pendientes para poder verificar.
+                </p>
+              ) : null}
 
               {errorMessage ? <p className="form-message-error">{errorMessage}</p> : null}
 
@@ -2279,6 +2301,8 @@ export default function DocumentReviewModal({
                   "Guardar revision"
                 )}
               </button>
+            </div>
+              </div>
             </div>
           </div>
         </div>

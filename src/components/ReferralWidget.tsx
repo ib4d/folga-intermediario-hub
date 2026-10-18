@@ -5,7 +5,7 @@ import { Share2, Copy, Check } from "lucide-react";
 
 export default function ReferralWidget({ code }: { code: string | null }) {
   const [copied, setCopied] = useState(false);
-  const referralLink = `${window.location.origin}/onboarding?ref=${code || "folga-early"}`;
+  const referralLink = `${window.location.origin}/onboarding?ref=${code || "ori-early"}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);

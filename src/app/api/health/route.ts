@@ -1,24 +1,14 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getRuntimeMetadata } from "@/lib/operational-status";
 import { getProviderStatus } from "@/lib/provider-status";
 import { NextResponse } from "next/server";
+import { getCurrentPlatformAdmin } from "@/lib/tenant";
 
 export async function GET() {
   let isPlatformAdmin = false;
 
   try {
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    if (userId) {
-      const account = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { isActive: true, isPlatformAdmin: true },
-      });
-      isPlatformAdmin = Boolean(account?.isActive && account.isPlatformAdmin);
-    }
-
+    isPlatformAdmin = Boolean(await getCurrentPlatformAdmin());
     await prisma.$queryRaw`SELECT 1`;
 
     if (!isPlatformAdmin) {

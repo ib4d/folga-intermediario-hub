@@ -44,12 +44,18 @@ RUN printf '%s\n' "${APP_RELEASE}" > .release
 
 RUN npx prisma generate
 RUN npm run build
+RUN npm run check:runtime-deps
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 ARG APP_RELEASE=local
 
+LABEL org.opencontainers.image.title="ORI CRUIT HUB" \
+      org.opencontainers.image.source="https://github.com/ib4d/folga-intermediario-hub" \
+      org.opencontainers.image.revision="${APP_RELEASE}"
+
+ARG APP_RELEASE=local
 LABEL org.opencontainers.image.title="ORI CRUIT HUB" \
       org.opencontainers.image.source="https://github.com/ib4d/folga-intermediario-hub" \
       org.opencontainers.image.revision="${APP_RELEASE}"
@@ -62,10 +68,18 @@ ENV NPM_CONFIG_CACHE /tmp/.npm
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Empty named volumes inherit ownership from these mount points. Keep both the
+# production default and synthetic local-storage path writable by the runtime
+# user before Compose mounts a fresh volume over either directory.
+RUN mkdir -p /app/private-uploads /tmp/ori-synthetic-private-uploads \
+  && chown nextjs:nodejs /app/private-uploads /tmp/ori-synthetic-private-uploads \
+  && chmod 700 /app/private-uploads /tmp/ori-synthetic-private-uploads
+
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/.release ./.release
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/migrations ./prisma/migrations
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
@@ -80,6 +94,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/zlibjs ./node_module
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-env.mjs ./scripts/check-production-env.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-permissions.mjs ./scripts/check-permissions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-production-smoke.mjs ./scripts/check-production-smoke.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-monitoring.mjs ./scripts/check-monitoring.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-release.mjs ./scripts/check-release.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-smtp.mjs ./scripts/check-smtp.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/check-broker-regressions.mjs ./scripts/check-broker-regressions.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/tenant-audit.mjs ./scripts/tenant-audit.mjs
@@ -97,7 +113,6 @@ RUN chown nextjs:nodejs .next-prod
 COPY --from=builder --chown=nextjs:nodejs /app/.next-prod/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next-prod/static ./.next-prod/static
 
-RUN mkdir -p public/uploads
 RUN chown -R nextjs:nodejs public
 
 USER nextjs
@@ -111,3 +126,9 @@ ENV HOSTNAME "0.0.0.0"
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
 CMD ["node", "server.js"]
+
+# The synthetic-only image is a separate target so the production runner never
+# contains the synthetic seed script.
+FROM runner AS synthetic-runner
+COPY --from=builder --chown=nextjs:nodejs /app/prisma/seed-synthetic.mjs ./prisma/seed-synthetic.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs

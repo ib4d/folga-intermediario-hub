@@ -119,7 +119,7 @@ export async function updateBrokerAction(brokerId: string, formData: FormData) {
   }
 
   await prisma.broker.update({
-    where: { id: broker.id },
+    where: { id: broker.id, organizationId: tenant.organizationId },
     data: {
       displayName: readText(formData, "displayName") || broker.displayName,
       legalOrBillingName: readOptionalText(formData, "legalOrBillingName"),
@@ -152,7 +152,7 @@ export async function updateBrokerLeadAction(leadId: string, formData: FormData)
   }
 
   await prisma.brokerLead.update({
-    where: { id: lead.id },
+    where: { id: lead.id, organizationId: tenant.organizationId },
     data: {
       firstName: readOptionalText(formData, "firstName"),
       lastName: readOptionalText(formData, "lastName"),
@@ -215,7 +215,7 @@ export async function generateBrokerInvoiceAction(brokerId: string, formData: Fo
 
   const invoice = existingInvoice
     ? await prisma.brokerInvoice.update({
-        where: { id: existingInvoice.id },
+        where: { id: existingInvoice.id, organizationId: tenant.organizationId },
         data: {
           sourceFileName: null,
           invoiceType,
@@ -294,7 +294,7 @@ export async function generateBrokerInvoiceAction(brokerId: string, formData: Fo
   const vatAmount = Number((finalAmount - baseTotal).toFixed(2));
 
   await prisma.brokerInvoice.update({
-    where: { id: invoice.id },
+    where: { id: invoice.id, organizationId: tenant.organizationId },
     data: {
       candidateCountEligible: eligibleCount,
       baseTotal,
@@ -324,7 +324,7 @@ export async function updateBrokerInvoiceStatusAction(invoiceId: string, status:
     throw new Error("Factura de broker no encontrada.");
   }
   await prisma.brokerInvoice.update({
-    where: { id: invoice.id },
+    where: { id: invoice.id, organizationId: tenant.organizationId },
     data: { status: status as never },
   });
 
@@ -344,7 +344,7 @@ export async function updateBrokerInvoiceAction(invoiceId: string, formData: For
   }
 
   await prisma.brokerInvoice.update({
-    where: { id: invoice.id },
+    where: { id: invoice.id, organizationId: tenant.organizationId },
     data: {
       invoiceType: readOptionalText(formData, "invoiceType"),
       ratePerPersonPln: readOptionalNumber(formData, "ratePerPersonPln"),

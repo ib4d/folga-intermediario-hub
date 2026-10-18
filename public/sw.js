@@ -1,4 +1,4 @@
-const CACHE_NAME = "folga-hub-v2";
+const CACHE_NAME = "ori-cruit-hub-v3";
 const OFFLINE_URL = "/offline.html";
 
 const ASSETS_TO_CACHE = [

@@ -143,6 +143,9 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
       <button
         className="icon-button"
         style={{ position: "relative" }}
+        aria-label={t(language, "notifications.toggle")}
+        aria-expanded={isOpen}
+        aria-controls="notifications-dropdown-panel"
         onClick={() => setIsOpen((current) => !current)}
         type="button"
       >
@@ -174,6 +177,9 @@ export default function NotificationsDropdown({ language }: { language: AppLangu
 
       {isOpen ? (
         <div
+          id="notifications-dropdown-panel"
+          role="region"
+          aria-label={t(language, "notifications.title")}
           style={{
             position: "absolute",
             top: "100%",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function AuthShell({
   badge,
@@ -19,8 +20,7 @@ export default function AuthShell({
         <section className="public-auth-shell-hero">
           <div className="public-auth-shell-brand">
             <Link href="/" className="public-auth-shell-brand-link">
-              <span className="public-auth-shell-brand-mark" />
-              ORI CRUIT HUB
+              <BrandLogo />
             </Link>
           </div>
 

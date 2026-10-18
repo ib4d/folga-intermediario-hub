@@ -73,68 +73,75 @@ export async function GET(request: Request) {
   const startOfRunDay = new Date();
   startOfRunDay.setHours(0, 0, 0, 0);
 
-  const existingNotifications =
-    pendingNotifications.length > 0
-      ? await prisma.notification.findMany({
-          where: {
-            type: "DOC_EXPIRING",
-            userId: { in: [...new Set(pendingNotifications.map((notification) => notification.userId))] },
-            candidateId: {
-              in: [...new Set(pendingNotifications.map((notification) => notification.candidateId))],
-            },
-            createdAt: {
-              gte: startOfRunDay,
-            },
-          },
-          select: {
-            userId: true,
-            candidateId: true,
-            title: true,
-            message: true,
-          },
-        })
-      : [];
+  const notificationsToCreate = await prisma.$transaction(async (tx) => {
+    // The read-then-create deduplication must be serialized across app instances.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('ori-cruit:cron:check-expiring'), 0)::text`;
 
-  const existingKeys = new Set(
-    existingNotifications.map((notification) =>
-      buildExpiringNotificationKey({
+    const existingNotifications =
+      pendingNotifications.length > 0
+        ? await tx.notification.findMany({
+            where: {
+              type: "DOC_EXPIRING",
+              organizationId: { in: [...new Set(pendingNotifications.map((notification) => notification.organizationId))] },
+              userId: { in: [...new Set(pendingNotifications.map((notification) => notification.userId))] },
+              candidateId: {
+                in: [...new Set(pendingNotifications.map((notification) => notification.candidateId))],
+              },
+              createdAt: {
+                gte: startOfRunDay,
+              },
+            },
+            select: {
+              userId: true,
+              candidateId: true,
+              title: true,
+              message: true,
+            },
+          })
+        : [];
+
+    const existingKeys = new Set(
+      existingNotifications.map((notification) =>
+        buildExpiringNotificationKey({
+          userId: notification.userId,
+          candidateId: notification.candidateId ?? "",
+          title: notification.title,
+          message: notification.message,
+        })
+      )
+    );
+
+    const toCreate = pendingNotifications.filter((notification) => {
+      const notificationKey = buildExpiringNotificationKey({
         userId: notification.userId,
-        candidateId: notification.candidateId ?? "",
+        candidateId: notification.candidateId,
         title: notification.title,
         message: notification.message,
-      })
-    )
-  );
+      });
 
-  const notificationsToCreate = pendingNotifications.filter((notification) => {
-    const notificationKey = buildExpiringNotificationKey({
-      userId: notification.userId,
-      candidateId: notification.candidateId,
-      title: notification.title,
-      message: notification.message,
+      if (existingKeys.has(notificationKey)) return false;
+      existingKeys.add(notificationKey);
+      return true;
     });
 
-    if (existingKeys.has(notificationKey)) {
-      return false;
+    if (toCreate.length > 0) {
+      await tx.notification.createMany({
+        data: toCreate.map((notification) => ({
+          userId: notification.userId,
+          organizationId: notification.organizationId,
+          candidateId: notification.candidateId,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+        })),
+      });
     }
 
-    existingKeys.add(notificationKey);
-    return true;
+    return toCreate;
   });
 
   if (notificationsToCreate.length > 0) {
     const docById = new Map(docsWithRecipients.map((item) => [item.document.id, item.document] as const));
-
-    await prisma.notification.createMany({
-      data: notificationsToCreate.map((notification) => ({
-        userId: notification.userId,
-        organizationId: notification.organizationId,
-        candidateId: notification.candidateId,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-      })),
-    });
 
     await Promise.all(
       notificationsToCreate.map((notification) => {

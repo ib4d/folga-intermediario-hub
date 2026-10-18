@@ -4,19 +4,29 @@ import { authenticateApiKey } from "@/lib/api-auth";
 
 function parsePositiveInteger(value: string | null, fallback: number) {
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export async function GET(req: NextRequest) {
   const { apiKey, response } = await authenticateApiKey(req);
   if (!apiKey) {
-    return response ?? NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return response ?? NextResponse.json(
+      { error: "No autorizado" },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   const { searchParams } = new URL(req.url);
   const page = parsePositiveInteger(searchParams.get("page"), 1);
   const limit = Math.min(parsePositiveInteger(searchParams.get("limit"), 50), 100);
   const skip = (page - 1) * limit;
+
+  if (!Number.isSafeInteger(skip)) {
+    return NextResponse.json(
+      { error: "La pagina solicitada excede el rango permitido" },
+      { status: 400, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
@@ -43,5 +53,5 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     data: documents,
     meta: { total, page, limit, pages: Math.ceil(total / limit) },
-  });
+  }, { headers: { "Cache-Control": "no-store" } });
 }

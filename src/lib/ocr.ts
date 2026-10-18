@@ -58,6 +58,53 @@ function compactSearchText(value: string): string {
   return normalizeSearchText(value).replace(/[^A-Z0-9]+/g, "");
 }
 
+function repairOcrDateDigits(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/[OQ]/g, "0")
+    .replace(/[IL|]/g, "1")
+    .replace(/Z/g, "2")
+    .replace(/S/g, "5")
+    .replace(/G/g, "6")
+    .replace(/B/g, "8");
+}
+
+function buildIsoCalendarDate(yearToken: string, monthToken: string, dayToken: string): string | undefined {
+  const year = Number.parseInt(yearToken, 10);
+  const month = Number.parseInt(monthToken, 10);
+  const day = Number.parseInt(dayToken, 10);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return undefined;
+  if (year < 1800 || year > 2199 || month < 1 || month > 12 || day < 1) return undefined;
+
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function normalizeOcrDateParts(rawYear: string, month: string, day: string): string | undefined {
+  const yearToken = repairOcrDateDigits(rawYear);
+  const yearCandidates = yearToken.length === 5 && yearToken.startsWith("20")
+    ? [yearToken.slice(0, 4), `20${yearToken.slice(-2)}`]
+    : [yearToken.slice(0, 4)];
+  const currentYear = new Date().getUTCFullYear();
+
+  return [...new Set(yearCandidates)]
+    .map((year) => buildIsoCalendarDate(year, month, day))
+    .filter((date): date is string => Boolean(date))
+    .sort((left, right) =>
+      Math.abs(Number(left.slice(0, 4)) - currentYear) - Math.abs(Number(right.slice(0, 4)) - currentYear),
+    )[0];
+}
+
 function normalizeHumanDate(value: string | undefined): string | undefined {
   if (!value) return undefined;
 
@@ -81,24 +128,29 @@ function normalizeHumanDate(value: string | undefined): string | undefined {
   };
 
   const compact = normalizeSearchText(value).replace(/\s+/g, " ");
-  const numeric = compact.match(/\b(\d{1,2})[./\s-]+(\d{1,2})[./\s-]+(\d{4,5})\b/);
+  const ocrDigit = "0-9OQIL|ZSGB";
+  const numeric = compact.match(new RegExp(`\\b([${ocrDigit}]{1,2})[./\\s-]+([${ocrDigit}]{1,2})[./\\s-]+([${ocrDigit}]{4,5})\\b`));
   if (numeric) {
-    const [, day, month, rawYear] = numeric;
-    const year = rawYear.length === 5 && rawYear.startsWith("20")
-      ? `20${rawYear.slice(-2)}`
-      : rawYear;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    const [, rawDay, rawMonth, rawYear] = numeric;
+    const day = repairOcrDateDigits(rawDay);
+    const month = repairOcrDateDigits(rawMonth);
+    const parsed = normalizeOcrDateParts(rawYear, month, day);
+    if (parsed) return parsed;
   }
 
-  const named = compact.match(/\b(\d{1,2})\s*([A-Z0-9]{3,})(?:[./]([A-Z0-9]{3,}))?\s*(\d{4})\b/);
+  const named = compact.match(new RegExp(`\\b([${ocrDigit}]{1,2})\\s*([A-Z0-9]{3,})(?:[./]([A-Z0-9]{3,}))?\\s*([${ocrDigit}]{4})\\b`));
   if (named) {
-    const [, day, rawMonth, alternateMonth, year] = named;
+    const [, rawDay, rawMonth, alternateMonth, rawYear] = named;
     const monthToken = [rawMonth, alternateMonth]
       .filter(Boolean)
       .map((item) => normalizeSearchText(item).replace(/^0/, "O").slice(0, 3))
       .find((item) => monthMap[item]);
     const month = monthToken ? monthMap[monthToken] : undefined;
-    if (month) return `${year}-${month}-${day.padStart(2, "0")}`;
+    if (month) {
+      const day = repairOcrDateDigits(rawDay);
+      const parsed = normalizeOcrDateParts(rawYear, month, day);
+      if (parsed) return parsed;
+    }
   }
 
   return normalizeDate(value);
@@ -1012,7 +1064,8 @@ function parseHeightCm(value: string | undefined): number | undefined {
 }
 
 function parseMrzDate(value: string | undefined, kind: "birth" | "expiry"): string | undefined {
-  const match = value?.match(/^(\d{2})(\d{2})(\d{2})$/);
+  const normalizedValue = value ? repairOcrDateDigits(value) : undefined;
+  const match = normalizedValue?.match(/^(\d{2})(\d{2})(\d{2})$/);
   if (!match) return undefined;
 
   const [, yy, mm, dd] = match;
@@ -1023,7 +1076,7 @@ function parseMrzDate(value: string | undefined, kind: "birth" | "expiry"): stri
       ? 1900 + yearNumber
       : 2000 + yearNumber;
 
-  return normalizeHumanDate(`${dd} ${mm} ${fullYear}`);
+  return buildIsoCalendarDate(String(fullYear), mm, dd);
 }
 
 function normalizeMrzPersonName(value: string | undefined): string | undefined {
@@ -1518,7 +1571,28 @@ export function parseIdentityDocumentText(rawText: string): OcrExtractedData {
   return mapAzureIdDocumentFields({}, rawText);
 }
 
-async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buffer | null> {
+function hasExtractedIdentityData(data: OcrExtractedData): boolean {
+  return Boolean(
+    data.documentNumber ||
+    data.personalNumber ||
+    data.firstName ||
+    data.lastName ||
+    data.dateOfBirth ||
+    data.dateOfExpiry ||
+    data.dateOfIssue ||
+    data.nationality ||
+    data.issuingCountry ||
+    data.placeOfBirth ||
+    data.issuingAuthority ||
+    data.kartaPobytuType ||
+    data.remarks ||
+    data.municipalityOffice ||
+    data.addressOfRegistration ||
+    data.heightCm
+  );
+}
+
+async function renderPdfPagesToImageBuffers(fileBuffer: Buffer): Promise<Buffer[] | null> {
   try {
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -1532,16 +1606,20 @@ async function renderPdfFirstPageToImageBuffer(fileBuffer: Buffer): Promise<Buff
     const pdf = await loadingTask.promise;
 
     try {
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 2 });
-      const canvas = createCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext("2d");
-      await page.render({
-        canvasContext: context as never,
-        canvas: canvas as never,
-        viewport,
-      } as never).promise;
-      return canvas.toBuffer("image/png");
+      const renderedPages: Buffer[] = [];
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        const page = await pdf.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = createCanvas(viewport.width, viewport.height);
+        const context = canvas.getContext("2d");
+        await page.render({
+          canvasContext: context as never,
+          canvas: canvas as never,
+          viewport,
+        } as never).promise;
+        renderedPages.push(canvas.toBuffer("image/png"));
+      }
+      return renderedPages;
     } finally {
       await loadingTask.destroy();
     }
@@ -1579,12 +1657,16 @@ function scoreRecognizedIdentityText(text: string | null | undefined): number {
   if (/I[A-Z<]?POL[A-Z0-9<]{15,}/.test(normalized.replace(/\s+/g, ""))) score += 30;
   return score;
 }
+
 async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise<string | null> {
   try {
-    const inputBuffer =
-      mimeType === "application/pdf"
-        ? (await renderPdfFirstPageToImageBuffer(fileBuffer)) ?? fileBuffer
-        : await shrinkImageForAzure(fileBuffer, mimeType);
+    const inputBuffers = mimeType === "application/pdf"
+      ? await renderPdfPagesToImageBuffers(fileBuffer)
+      : [await shrinkImageForAzure(fileBuffer, mimeType)];
+
+    if (!inputBuffers?.length) {
+      throw new Error("No se pudieron convertir las páginas del PDF para el OCR local.");
+    }
 
     const { createWorker, PSM } = await import("tesseract.js");
     const workerOptions: Record<string, string> = {
@@ -1594,31 +1676,38 @@ async function recognizeLocalText(fileBuffer: Buffer, mimeType: string): Promise
     const langPath = process.env.TESSERACT_LANG_PATH?.trim();
     if (langPath) workerOptions.langPath = langPath;
 
-    const worker = await createWorker("eng", 1, workerOptions);
+    const languages = process.env.TESSERACT_LANGUAGES?.trim() || "eng";
+    const worker = await createWorker(languages, 1, workerOptions);
 
     try {
-      const candidates: string[] = [];
-      await worker.setParameters({
-        tessedit_pageseg_mode: PSM.AUTO,
-        preserve_interword_spaces: "1",
-      });
-      const automaticResult = await worker.recognize(inputBuffer);
-      const automaticText = automaticResult?.data?.text?.trim();
-      if (automaticText) candidates.push(automaticText);
-
-      if (scoreRecognizedIdentityText(automaticText) < 25) {
+      const pageTexts: string[] = [];
+      for (const inputBuffer of inputBuffers) {
+        const pageCandidates: string[] = [];
         await worker.setParameters({
-          tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+          tessedit_pageseg_mode: PSM.AUTO,
           preserve_interword_spaces: "1",
         });
-        const sparseResult = await worker.recognize(inputBuffer);
-        const sparseText = sparseResult?.data?.text?.trim();
-        if (sparseText) candidates.push(sparseText);
+        const automaticResult = await worker.recognize(inputBuffer);
+        const automaticText = automaticResult?.data?.text?.trim();
+        if (automaticText) pageCandidates.push(automaticText);
+
+        if (scoreRecognizedIdentityText(automaticText) < 25) {
+          await worker.setParameters({
+            tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+            preserve_interword_spaces: "1",
+          });
+          const sparseResult = await worker.recognize(inputBuffer);
+          const sparseText = sparseResult?.data?.text?.trim();
+          if (sparseText) pageCandidates.push(sparseText);
+        }
+
+        const bestPageText = pageCandidates.sort(
+          (left, right) => scoreRecognizedIdentityText(right) - scoreRecognizedIdentityText(left),
+        )[0];
+        if (bestPageText) pageTexts.push(bestPageText);
       }
 
-      return candidates.sort(
-        (left, right) => scoreRecognizedIdentityText(right) - scoreRecognizedIdentityText(left),
-      )[0] ?? null;
+      return pageTexts.length > 0 ? pageTexts.join("\n") : null;
     } finally {
       await worker.terminate();
     }
@@ -1635,7 +1724,8 @@ export async function analyzeLocalDocument(
   const rawText = await recognizeLocalText(fileBuffer, mimeType);
   if (!rawText) return null;
 
-  return mapAzureIdDocumentFields({}, rawText);
+  const extracted = mapAzureIdDocumentFields({}, rawText);
+  return hasExtractedIdentityData(extracted) ? extracted : null;
 }
 
 async function shrinkImageForAzure(fileBuffer: Buffer, mimeType: string): Promise<Buffer> {
@@ -1698,10 +1788,11 @@ export async function analyzeDocument(
     const document = result.documents[0];
     if (!document.fields) return null;
 
-    return mapAzureIdDocumentFields(
+    const extracted = mapAzureIdDocumentFields(
       document.fields as Record<string, unknown>,
       result.content
     );
+    return hasExtractedIdentityData(extracted) ? extracted : null;
   } catch (error) {
     console.error("[OCR] analyzeDocument error:", error);
     return null;

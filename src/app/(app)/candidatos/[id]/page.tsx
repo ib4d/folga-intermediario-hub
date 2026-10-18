@@ -31,11 +31,14 @@ import type { ComponentProps } from "react";
 import {
   canMakeLegalDecision,
   canEditCandidateNotes,
+  canCreateCandidates,
+  canGenerateRegistrationLinks,
   canRequestLegalReview,
   canReviewCandidateDocuments,
   canUploadCandidateDocuments,
   canViewCandidateAudit,
   canViewCandidateContact,
+  canViewCandidateDocuments,
   canViewCandidateLogistics,
   canViewCandidatePayment,
 } from "@/lib/permissions";
@@ -92,6 +95,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   const canRequestReview = canRequestLegalReview(role);
   const canMakeLegalDecisions = canMakeLegalDecision(role);
   const canViewContact = canViewCandidateContact(role);
+  const canViewDocuments = canViewCandidateDocuments(role);
   const canViewPayment = canViewCandidatePayment(role);
   const canViewLogistics = canViewCandidateLogistics(role);
   const canViewAudit = canViewCandidateAudit(role);
@@ -188,6 +192,9 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
   );
 
   const checklist = getCandidateDocumentChecklist(candidate as Parameters<typeof getCandidateDocumentChecklist>[0]);
+  const visibleChecklistWarnings = canViewPayment
+    ? checklist.warnings
+    : checklist.warnings.filter((warning) => !/pago/i.test(warning));
   const legalOutcome = parseStructuredLegalOutcome(candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes);
   const arrivalReadiness = getArrivalReadiness(candidate);
   const operationalAlerts = getCandidateOperationalAlerts(candidate as Parameters<typeof getCandidateOperationalAlerts>[0]);
@@ -206,8 +213,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               <ArrowLeft size={16} />
               {labels("candidateDetail.backToCandidates")}
             </Link>
-            {candidate.registrationToken ? <CopyRegistrationLink token={candidate.registrationToken} /> : null}
-            {role !== "LEGAL" ? (
+            {candidate.registrationToken && canGenerateRegistrationLinks(role) ? (
+              <CopyRegistrationLink token={candidate.registrationToken} />
+            ) : null}
+            {canCreateCandidates(role) ? (
               <Link href={`/candidatos/${candidate.id}/edit`} className="button button-secondary flex items-center gap-2">
                 {labels("candidateDetail.editProfile")}
               </Link>
@@ -249,9 +258,11 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 <span>
                   <Info size={18} /> {candidate.country}
                 </span>
-                <span>
-                  <FileText size={18} /> {candidate.passportNumber || labels("candidateDetail.passportMissing")}
-                </span>
+                {canViewDocuments ? (
+                  <span>
+                    <FileText size={18} /> {candidate.passportNumber || labels("candidateDetail.passportMissing")}
+                  </span>
+                ) : null}
                 {canViewContact ? (
                   <span>
                     <ClipboardList size={18} /> {candidate.phone || labels("candidateDetail.phoneMissing")}
@@ -354,9 +365,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                     {legalOutcome.category}
                   </div>
                 ) : null}
-                <p className="text-lg font-medium whitespace-pre-line">
-                  {legalOutcome?.summary ?? (candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes)}
-                </p>
+                {role === "LOGISTICA" ? (
+                  <p className="text-sm font-medium">
+                    {labels("candidateDetail.legalFollowUp")}
+                  </p>
+                ) : (
+                  <p className="text-lg font-medium whitespace-pre-line">
+                    {legalOutcome?.summary ?? (candidate.status === "RECHAZADO" ? candidate.rejectionReason : candidate.reviewNotes)}
+                  </p>
+                )}
                 {legalOutcome && legalOutcome.followUpActions.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {legalOutcome.followUpActions.map((action) => (
@@ -510,27 +527,37 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </h2>
             <div className="candidate-info-grid">
               {[
-                { label: labels("candidateDetail.nationality"), val: candidate.nationality },
-                { label: labels("candidateDetail.birthDate"), val: candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : null },
-                { label: labels("candidateDetail.birthPlace"), val: candidate.birthPlace },
-                { label: labels("candidateDetail.passport"), val: candidate.passportNumber },
-                {
-                  label: labels("candidateDetail.passportBiometric"),
-                  val:
-                    typeof candidate.passportBiometric === "boolean"
-                      ? candidate.passportBiometric
-                        ? labels("candidateDetail.yes")
-                        : labels("candidateDetail.no")
-                      : null,
-                },
-                { label: labels("candidateDetail.passportExpiry"), val: candidate.passportExpiry ? new Date(candidate.passportExpiry).toLocaleDateString() : null },
-                { label: labels("candidateDetail.pesel"), val: candidate.peselNumber },
-                { label: labels("candidateDetail.kartaPobytu"), val: candidate.kartaPobytuNumber },
-                { label: labels("candidateDetail.kartaType"), val: candidate.kartaPobytuType },
-                { label: labels("candidateDetail.kartaExpiry"), val: candidate.kartaPobytuExpiry ? new Date(candidate.kartaPobytuExpiry).toLocaleDateString() : null },
-                { label: labels("candidateDetail.height"), val: candidate.heightCm ? `${candidate.heightCm} cm` : null },
-                { label: labels("candidateDetail.addressPl"), val: candidate.polishAddress },
-                { label: labels("candidateDetail.cityPl"), val: candidate.polishCity },
+                ...(canViewDocuments
+                  ? [
+                      { label: labels("candidateDetail.nationality"), val: candidate.nationality },
+                      { label: labels("candidateDetail.birthDate"), val: candidate.dateOfBirth ? new Date(candidate.dateOfBirth).toLocaleDateString() : null },
+                      { label: labels("candidateDetail.birthPlace"), val: candidate.birthPlace },
+                      { label: labels("candidateDetail.passport"), val: candidate.passportNumber },
+                      {
+                        label: labels("candidateDetail.passportBiometric"),
+                        val:
+                          typeof candidate.passportBiometric === "boolean"
+                            ? candidate.passportBiometric
+                              ? labels("candidateDetail.yes")
+                              : labels("candidateDetail.no")
+                            : null,
+                      },
+                      { label: labels("candidateDetail.passportExpiry"), val: candidate.passportExpiry ? new Date(candidate.passportExpiry).toLocaleDateString() : null },
+                      { label: labels("candidateDetail.pesel"), val: candidate.peselNumber },
+                      { label: labels("candidateDetail.kartaPobytu"), val: candidate.kartaPobytuNumber },
+                      { label: labels("candidateDetail.kartaType"), val: candidate.kartaPobytuType },
+                      { label: labels("candidateDetail.kartaExpiry"), val: candidate.kartaPobytuExpiry ? new Date(candidate.kartaPobytuExpiry).toLocaleDateString() : null },
+                    ]
+                  : []),
+                ...(canViewDocuments
+                  ? [{ label: labels("candidateDetail.height"), val: candidate.heightCm ? `${candidate.heightCm} cm` : null }]
+                  : []),
+                ...(canViewLogistics
+                  ? [
+                      { label: labels("candidateDetail.addressPl"), val: candidate.polishAddress },
+                      { label: labels("candidateDetail.cityPl"), val: candidate.polishCity },
+                    ]
+                  : []),
                 ...(canViewLogistics
                   ? [
                       { label: labels("candidateDetail.arrival"), val: candidate.arrivalDate ? new Date(candidate.arrivalDate).toLocaleDateString() : null },
@@ -546,7 +573,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
             </div>
           </div>
 
-          <div className="candidate-section-card candidate-documents-card">
+          {canViewDocuments ? <div className="candidate-section-card candidate-documents-card">
             <div className="candidate-section-header">
               <h2 className="candidate-section-title">
                 <FileText className="text-blue-600" />
@@ -664,7 +691,12 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                             >
                               {labels("candidateDetail.view")}
                             </a>
-                            {canManageDocuments ? <DeleteDocumentButton documentId={doc.id} /> : null}
+                            {canManageDocuments ? (
+                              <DeleteDocumentButton
+                                documentId={doc.id}
+                                storageCleanupPendingText={labels("documents.storageCleanupPending")}
+                              />
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -674,7 +706,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                 </tbody>
               </table>
             </div>
-          </div>
+          </div> : null}
         </div>
 
         <div className="candidate-side-column">
@@ -733,13 +765,13 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
               </div>
             ) : null}
 
-            {checklist.warnings.length > 0 ? (
+            {visibleChecklistWarnings.length > 0 ? (
               <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-2">
                 <div className="flex items-center gap-2 text-amber-700 font-bold text-xs uppercase">
                   <AlertTriangle size={14} /> {labels("candidateDetail.warnings")}
                 </div>
                 <ul className="text-xs text-amber-800 space-y-1">
-                  {checklist.warnings.map((warning, index) => (
+                  {visibleChecklistWarnings.map((warning, index) => (
                     <li key={`${warning}-${index}`}>- {warning}</li>
                   ))}
                 </ul>
@@ -761,7 +793,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                         {labels("candidateDetail.duplicateDetected")}
                       </div>
                       <ExpandableText maxLength={72} className="candidate-duplicate-text">
-                        {`${group.type}${group.number ? ` (${group.number})` : ""} x${group.count}`}
+                        {`${group.type}${canViewDocuments && group.number ? ` (${group.number})` : ""} x${group.count}`}
                       </ExpandableText>
                     </div>
                   ))}
@@ -853,7 +885,7 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                         <span className="text-xs font-bold text-gray-900">{entry.toStatus.replace(/_/g, " ")}</span>
                         <span className="text-[10px] text-gray-400">{new Date(entry.createdAt).toLocaleDateString()}</span>
                       </div>
-                      {entry.reason ? <p className="text-xs text-gray-500">{entry.reason}</p> : null}
+                      {canViewDocuments && entry.reason ? <p className="text-xs text-gray-500">{entry.reason}</p> : null}
                     </div>
                   </div>
                 ))
@@ -954,20 +986,20 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                           <div key={group.key} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                             <div className="font-semibold">
                               {group.type}
-                              {group.number ? ` ${group.number}` : ""} x{group.count}
+                              {canViewDocuments && group.number ? ` ${group.number}` : ""} x{group.count}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : null}
-                  {checklist.warnings.length > 0 ? (
+                  {visibleChecklistWarnings.length > 0 ? (
                     <div className="mt-4 rounded-xl border border-amber-100 bg-white/80 p-3">
                       <div className="text-[10px] font-black uppercase tracking-widest text-amber-600">
                         {labels("candidateDetail.warnings")}
                       </div>
                       <div className="mt-2 space-y-2">
-                        {checklist.warnings.slice(0, 3).map((warning, index) => (
+                        {visibleChecklistWarnings.slice(0, 3).map((warning, index) => (
                           <div key={`${warning}-${index}`} className="rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs text-slate-700">
                             {warning}
                           </div>
@@ -975,15 +1007,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       </div>
                     </div>
                   ) : null}
-                  <div className="mt-4">
+                  {canViewDocuments ? <div className="mt-4">
                     <Link
                       href={`/documentos?candidateId=${candidate.id}`}
                       className="button button-secondary inline-flex items-center gap-2"
                     >
                       {labels("candidateDetail.openDocuments")}
                     </Link>
-                  </div>
-                  {checklist.stats.pendingReviewDocuments > 0 ? (
+                  </div> : null}
+                  {canViewDocuments && checklist.stats.pendingReviewDocuments > 0 ? (
                     <div className="mt-3">
                       <Link
                         href={`/documentos?candidateId=${candidate.id}&status=REVIEW_REQUIRED`}

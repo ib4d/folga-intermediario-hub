@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 import { getBrokerLeadDetail } from "@/lib/brokers/queries";
 import { buildBrokerLeadDetailCsv, buildBrokerLeadDetailWorkbook } from "@/lib/brokers/export";
 
@@ -56,7 +56,7 @@ export async function GET(
       contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 
-    await writeAuditLog({
+    await writeAuditLogOrThrow({
       userId: tenant.userId,
       organizationId: tenant.organizationId,
       action: "BROKER_LEAD_EXPORTED",

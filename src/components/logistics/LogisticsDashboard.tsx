@@ -3,7 +3,7 @@
 import { Candidate, Document, LogisticsEvent } from "@prisma/client";
 import { AlertTriangle, CheckCircle, Truck, UserCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS, es, pl } from "date-fns/locale";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -21,6 +21,7 @@ import WeeklyArrivals from "./WeeklyArrivals";
 
 const CANDIDATE_PAGE_SIZE = 8;
 const ACTIVITY_PAGE_SIZE = 5;
+const dateLocales = { es, en: enUS, pl } as const;
 
 type LogisticsCandidate = Candidate & {
   documents: Document[];
@@ -59,7 +60,7 @@ export default function LogisticsDashboard({
 
   const candidateSummaries = pendingCandidates.map((candidate) => ({
     candidate,
-    checklist: getCandidateDocumentChecklist(candidate),
+    checklist: getCandidateDocumentChecklist(candidate, { includePaymentStatus: false }),
     legalOutcome: getCandidateLegalOutcome(candidate),
     arrivalReadiness: getArrivalReadiness(candidate),
     operationalAlerts: getCandidateOperationalAlerts(candidate),
@@ -67,7 +68,7 @@ export default function LogisticsDashboard({
 
   const candidatesWithoutLogistics = candidateSummaries.filter((entry) => entry.candidate.logistics.length === 0);
   const candidatesWithFollowUp = candidateSummaries.filter((entry) => (entry.legalOutcome?.followUpActions.length ?? 0) > 0);
-  const candidatesReadyNow = candidateSummaries.filter((entry) => entry.checklist.isReadyForLegal);
+  const candidatesReadyForLegal = candidateSummaries.filter((entry) => entry.checklist.isReadyForLegal);
   const readyForArrivalCount = candidateSummaries.filter((entry) => entry.arrivalReadiness.isReadyForArrival).length;
   const missingAccommodationCount = candidateSummaries.filter((entry) => !entry.arrivalReadiness.accommodationAssigned).length;
   const missingPickupCount = candidateSummaries.filter((entry) => !entry.arrivalReadiness.pickupAssigned).length;
@@ -90,30 +91,19 @@ export default function LogisticsDashboard({
 
   return (
     <div className="logistics-shell">
-      <div className="card logistics-panel">
-        <div className="page-section-header logistics-page-section-header">
-          <div className="page-section-copy">
-            <h2 className="page-section-title logistics-page-section-title">
-              {labels("logistics.title")}
-            </h2>
-            <p className="page-section-description">{labels("logistics.description")}</p>
-          </div>
-        </div>
+      <section className="card logistics-panel" aria-label={labels("logistics.title")}>
         <div className="dashboard-grid">
           <MetricCard title={labels("logistics.metricNoLogistics")} value={candidatesWithoutLogistics.length} tone="accent" icon={<UserCheck size={18} />} />
           <MetricCard title={labels("logistics.metricWeeklyArrivals")} value={weeklyEvents.length} tone="accent" icon={<Truck size={18} />} />
           <MetricCard title={labels("logistics.metricConfirmed")} value={confirmedCount} tone="success" icon={<CheckCircle size={18} />} />
           <MetricCard title={labels("logistics.metricPendingConfirm")} value={pendingConfirm} tone={pendingConfirm > 0 ? "danger" : "default"} icon={<AlertTriangle size={18} />} />
-          <MetricCard
-            title="Candidatos operativos"
-            value={candidateSummaries.length}
-            helper="Candidatos con seguimiento logístico visible."
-          />
         </div>
-      </div>
+      </section>
 
-      <div className="dashboard-grid">
-        <MetricCard title={labels("logistics.metricApprovedClean")} value={candidatesReadyNow.length} tone="success" helper={labels("logistics.helperNoDocsBlocks")} />
+      <section className="logistics-secondary-block" aria-label={labels("logistics.readinessTitle")}>
+        <SectionTitle title={labels("logistics.readinessTitle")} />
+        <div className="dashboard-grid logistics-secondary-metrics">
+        <MetricCard title={labels("logistics.metricDocumentsReady")} value={candidatesReadyForLegal.length} tone="success" helper={labels("logistics.helperDocumentsReady")} />
         <MetricCard title={labels("logistics.metricOperationalFollowUp")} value={candidatesWithFollowUp.length} tone={candidatesWithFollowUp.length > 0 ? "accent" : "default"} helper={labels("logistics.helperPendingLegal")} />
         <MetricCard title={labels("logistics.metricReadyForArrival")} value={readyForArrivalCount} tone="success" helper={labels("logistics.helperResolvedHandoff")} />
         <MetricCard
@@ -124,16 +114,18 @@ export default function LogisticsDashboard({
             .replace("{accommodation}", String(missingAccommodationCount))
             .replace("{pickup}", String(missingPickupCount))}
         />
-      </div>
+        </div>
+      </section>
 
-      <div className="logistics-grid">
-        <div className="logistics-stack">
-          <section>
+      <LogisticsEventForm candidates={pendingCandidates} language={language} />
+
+      <div className="logistics-workbench-grid">
+          <section className="logistics-arrivals-panel">
             <SectionTitle title={labels("logistics.weeklyTitle")} />
             <WeeklyArrivals events={weeklyEvents} language={language} />
           </section>
 
-          <section>
+          <section className="logistics-approvals-panel">
             <SectionTitle title={labels("logistics.approvedTitle")} />
             <div className="table-container table-container--responsive">
               <table className="logistics-table">
@@ -217,11 +209,9 @@ export default function LogisticsDashboard({
               onPageChange={setCandidatePage}
             />
           </section>
-        </div>
+      </div>
 
-        <aside className="logistics-aside">
-          <LogisticsEventForm candidates={pendingCandidates} />
-          <div className="card logistics-activity-card">
+      <section className="card logistics-activity-card logistics-activity-secondary">
             <div className="logistics-activity-title">
               {labels("logistics.recentActivity")}
             </div>
@@ -238,7 +228,7 @@ export default function LogisticsDashboard({
                         {getActivityLabel(entry.action, labels)}
                       </div>
                       <div className="logistics-activity-item-time">
-                        {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true, locale: es })}
+                        {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true, locale: dateLocales[language] })}
                       </div>
                     </div>
                     <div className="logistics-activity-item-summary">
@@ -264,9 +254,7 @@ export default function LogisticsDashboard({
               onPageChange={setActivityPage}
               compact
             />
-          </div>
-        </aside>
-      </div>
+      </section>
     </div>
   );
 }
@@ -355,7 +343,10 @@ function getActivitySummary(entry: Props["recentActivity"][number], labels: (key
   const accommodation = typeof details.accommodation === "string" ? details.accommodation : null;
 
   if (entry.action === "LOGISTICS_EVENT_CREATED") {
-    return labels("logistics.transportScheduled").replace("{transport}", transportType ?? "sin definir");
+    return labels("logistics.transportScheduled").replace(
+      "{transport}",
+      transportType ? getTransportLabel(transportType, labels) : labels("logistics.undefined"),
+    );
   }
 
   if (entry.action === "LOGISTICS_EVENT_CONFIRMED") {
@@ -367,10 +358,21 @@ function getActivitySummary(entry: Props["recentActivity"][number], labels: (key
   }
 
   const parts = [
-    terminal ? `Terminal: ${terminal}` : null,
-    pickedUpBy ? `Recoge: ${pickedUpBy}` : null,
-    accommodation ? `Alojamiento: ${accommodation}` : null,
+    terminal ? `${labels("logistics.activityTerminal")}: ${terminal}` : null,
+    pickedUpBy ? `${labels("logistics.activityPickup")}: ${pickedUpBy}` : null,
+    accommodation ? `${labels("logistics.activityAccommodation")}: ${accommodation}` : null,
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" · ") : labels("logistics.updatedFields");
+}
+
+function getTransportLabel(value: string, labels: (key: Parameters<typeof t>[1]) => string) {
+  const transportLabels: Record<string, Parameters<typeof t>[1]> = {
+    AVION: "logistics.transportPlane",
+    TREN: "logistics.transportTrain",
+    COCHE_EMPRESA: "logistics.transportCompanyCar",
+    PROPIO: "logistics.transportOther",
+  };
+  const key = transportLabels[value];
+  return key ? labels(key) : value;
 }

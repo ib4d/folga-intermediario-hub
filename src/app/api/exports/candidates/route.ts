@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { exportCandidatesXLSX, exportLegalReviewXLSX, exportLogisticsArrivalsXLSX } from "@/app/actions/exports";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
+import { getCurrentTenant } from "@/lib/tenant";
+import { canExportCandidates, canExportLegalReview, canExportLogistics } from "@/lib/permissions";
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -10,12 +12,23 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session) {
+  const tenant = await getCurrentTenant();
+  if (!session?.user?.id || !tenant) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || "full";
+
+  const canExport = type === "legal"
+    ? canExportLegalReview(tenant.role)
+    : type === "logistics"
+      ? canExportLogistics(tenant.role)
+      : canExportCandidates(tenant.role);
+
+  if (!canExport) {
+    return NextResponse.json({ error: "Prohibido" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
   
   try {
     let result: { base64: string; filename: string; error?: string } | null = null;
@@ -55,10 +68,10 @@ export async function GET(req: NextRequest) {
     }
 
     const buffer = Buffer.from(base64, "base64");
-    const organizationId = session.user.organizationId;
+    const organizationId = tenant.organizationId;
 
     if (session.user.id && organizationId) {
-      await writeAuditLog({
+      await writeAuditLogOrThrow({
         userId: session.user.id,
         organizationId,
         action: "CANDIDATES_EXPORTED",

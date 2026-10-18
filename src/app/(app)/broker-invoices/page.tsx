@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import BrokerModuleNav from "@/components/brokers/BrokerModuleNav";
 import BrokerStatusBadge from "@/components/brokers/BrokerStatusBadge";
-import MetricCard from "@/components/ui/MetricCard";
 import PageHeader from "@/components/ui/PageHeader";
 import QueryPagination from "@/components/ui/QueryPagination";
 import { getBrokerFilterOptions, listBrokerInvoices } from "@/lib/brokers/queries";
@@ -43,9 +42,11 @@ export default async function BrokerInvoicesPage({
       exportParams.set(key, String(value));
     }
   });
+  const pageFinalAmount = invoicesPage.items.reduce((sum, invoice) => sum + Number(invoice.finalAmount ?? 0), 0);
+  const pageEligibleCandidates = invoicesPage.items.reduce((sum, invoice) => sum + invoice.candidateCountEligible, 0);
 
   return (
-    <div className="main-content module-page-shell">
+    <div className="main-content module-page-shell brokers-page-shell broker-invoices-page-shell">
       <PageHeader
         title="Broker Invoices"
         description="Control mensual por intermediario, período y umbral de elegibilidad."
@@ -63,27 +64,39 @@ export default async function BrokerInvoicesPage({
 
       <BrokerModuleNav />
 
-      <div className="card module-panel">
-        <div className="page-section-header">
-          <div className="page-section-copy">
-            <h2 className="page-section-title broker-detail-section-title">Resumen de facturación</h2>
-            <p className="page-section-description">
-              Filtros por broker, estado, threshold y período. Exporta el corte actual cuando lo necesites.
-            </p>
+      <section className="broker-invoice-summary" aria-label="Resumen de facturación">
+        <div className="broker-invoice-summary-heading">
+          <div>
+            <p className="broker-leads-kicker">LIBRO DE FACTURAS</p>
+            <h2>Resumen de facturación</h2>
+            <p>Importes calculados sobre esta página de resultados.</p>
           </div>
+          <span className="broker-invoice-period-count">
+            Página {invoicesPage.pageNumber} de {invoicesPage.totalPages}
+          </span>
         </div>
-
-        <div className="dashboard-grid">
-          <MetricCard title="Facturas visibles" value={invoicesPage.totalItems} />
-          <MetricCard title="Páginas" value={invoicesPage.totalPages} tone="accent" />
-          <MetricCard title="Página actual" value={invoicesPage.pageNumber} tone="success" />
-          <MetricCard title="Límite por página" value={invoicesPage.pageSize} />
+        <div className="broker-invoice-summary-metrics">
+          <article>
+            <span>Facturas encontradas</span>
+            <strong>{invoicesPage.totalItems}</strong>
+            <small>Con los filtros actuales</small>
+          </article>
+          <article>
+            <span>Total final en página</span>
+            <strong>{new Intl.NumberFormat("es-ES", { style: "currency", currency: "PLN" }).format(pageFinalAmount)}</strong>
+            <small>{invoicesPage.items.length} facturas mostradas</small>
+          </article>
+          <article>
+            <span>Candidatos elegibles en página</span>
+            <strong>{pageEligibleCandidates}</strong>
+            <small>Suma de las facturas mostradas</small>
+          </article>
         </div>
-      </div>
+      </section>
 
       <div className="card module-panel broker-filters-grid">
         <form className="dashboard-grid broker-filters-grid">
-          <select className="input" name="brokerId" defaultValue={filters.brokerId ?? ""}>
+          <select className="input" name="brokerId" aria-label="Filtrar por broker" defaultValue={filters.brokerId ?? ""}>
             <option value="">Todos los brokers</option>
             {options.brokers.map((broker) => (
               <option key={broker.id} value={broker.id}>
@@ -91,7 +104,7 @@ export default async function BrokerInvoicesPage({
               </option>
             ))}
           </select>
-          <select className="input" name="status" defaultValue={filters.status ?? ""}>
+          <select className="input" name="status" aria-label="Filtrar por estado de factura" defaultValue={filters.status ?? ""}>
             <option value="">Todos los estados</option>
             {["DRAFT", "READY", "SENT", "PAID", "DISPUTED"].map((value) => (
               <option key={value} value={value}>
@@ -99,7 +112,7 @@ export default async function BrokerInvoicesPage({
               </option>
             ))}
           </select>
-          <select className="input" name="threshold" defaultValue={filters.threshold ?? ""}>
+          <select className="input" name="threshold" aria-label="Filtrar por umbral" defaultValue={filters.threshold ?? ""}>
             <option value="">Todos los thresholds</option>
             <option value="100">100h</option>
             <option value="200">200h</option>
@@ -118,7 +131,7 @@ export default async function BrokerInvoicesPage({
       </div>
 
       <div className="card module-panel">
-        <div className="table-container table-container--responsive">
+        <div className="table-container table-container--responsive" role="region" aria-label="Facturas de brokers" tabIndex={0}>
           <table className="broker-table broker-table--invoices">
             <thead>
               <tr>

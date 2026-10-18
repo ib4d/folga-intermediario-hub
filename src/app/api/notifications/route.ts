@@ -5,7 +5,7 @@ import { requireRoleApi } from "@/lib/security/requireRole";
 export async function GET() {
   const { session, errorResponse } = await requireRoleApi(["ADMIN", "SUPERADMIN", "INTERMEDIARIO", "LEGAL", "LOGISTICA"]);
   if (errorResponse) return errorResponse;
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401, headers: { "Cache-Control": "no-store" } });
 
   const notifications = await prisma.notification.findMany({
     where: { 
@@ -21,5 +21,5 @@ export async function GET() {
     take: 20,
   });
 
-  return NextResponse.json(notifications);
+  return NextResponse.json(notifications, { headers: { "Cache-Control": "no-store" } });
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 import { requireTenant } from "@/lib/tenant";
 import { canAccessModule } from "@/lib/permissions";
@@ -21,23 +20,34 @@ export async function createApiKey(name: string) {
     throw new Error("Sin permisos para crear API keys");
   }
 
+  if (typeof name !== "string" || !name.trim() || name.trim().length > 120) {
+    throw new Error("El nombre de la API key debe tener entre 1 y 120 caracteres.");
+  }
+
+  const normalizedName = name.trim();
+
   const { raw, hash } = generateApiKey();
 
-  await prisma.apiKey.create({
-    data: {
-      organizationId: tenant.organizationId!,
-      name,
-      keyHash: hash,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    const apiKey = await tx.apiKey.create({
+      data: {
+        organizationId: tenant.organizationId!,
+        name: normalizedName,
+        keyHash: hash,
+      },
+      select: { id: true },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "API_KEY_CREATED",
-    entityType: "ApiKey",
-    entityId: name,
-    details: { name } as Prisma.InputJsonValue,
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "API_KEY_CREATED",
+        entityType: "ApiKey",
+        entityId: apiKey.id,
+        details: { name: normalizedName } satisfies Prisma.InputJsonValue,
+      },
+    });
   });
 
   revalidatePath("/ajustes");
@@ -84,21 +94,25 @@ export async function revokeApiKey(keyId: string) {
     throw new Error("Sin permisos para revocar API keys");
   }
 
-  await prisma.apiKey.update({
-    where: {
-      id: keyId,
-      organizationId: tenant.organizationId!,
-    },
-    data: { revokedAt: new Date() },
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.apiKey.update({
+      where: {
+        id: keyId,
+        organizationId: tenant.organizationId!,
+      },
+      data: { revokedAt: new Date() },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "API_KEY_REVOKED",
-    entityType: "ApiKey",
-    entityId: keyId,
-    details: { keyId } as Prisma.InputJsonValue,
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "API_KEY_REVOKED",
+        entityType: "ApiKey",
+        entityId: keyId,
+        details: { keyId } satisfies Prisma.InputJsonValue,
+      },
+    });
   });
 
   revalidatePath("/ajustes");
@@ -117,12 +131,31 @@ export async function updateOrganizationBranding(data: {
     throw new Error("Sin permisos para actualizar branding");
   }
 
+  for (const color of [data.primaryColor, data.secondaryColor]) {
+    if (color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(color)) {
+      throw new Error("Color invalido");
+    }
+  }
+
+  if (data.logoUrl !== undefined) {
+    const logoUrl = data.logoUrl.trim();
+    if (logoUrl.length > 2048) throw new Error("URL de logo demasiado larga");
+    if (logoUrl) {
+      try {
+        const parsed = new URL(logoUrl);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error();
+      } catch {
+        throw new Error("URL de logo invalida");
+      }
+    }
+  }
+
   await prisma.organization.update({
     where: { id: tenant.organizationId! },
     data: {
       primaryColor: data.primaryColor,
       secondaryColor: data.secondaryColor,
-      logoUrl: data.logoUrl,
+      logoUrl: data.logoUrl?.trim() || null,
     },
   });
 

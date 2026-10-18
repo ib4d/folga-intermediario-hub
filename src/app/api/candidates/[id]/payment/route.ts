@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
 import { candidateAccessWhere, requireTenant } from "@/lib/tenant";
 import { canAccessCandidateByOwnership, canViewCandidatePayment } from "@/lib/permissions";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 function parsePaymentPayload(value: unknown) {
@@ -34,7 +33,7 @@ export async function PATCH(
   try {
     tenant = await requireTenant();
   } catch {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return NextResponse.json({ error: "No autorizado" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
   const { id } = await params;
@@ -45,7 +44,7 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Solicitud invalida" },
-      { status: 400 }
+      { status: 400, headers: { "Cache-Control": "no-store" } }
     );
   }
 
@@ -56,56 +55,66 @@ export async function PATCH(
   if (!candidate) {
     return NextResponse.json(
       { error: "Candidato no encontrado en esta organizacion" },
-      { status: 404 }
+      { status: 404, headers: { "Cache-Control": "no-store" } }
     );
   }
 
   if (!canAccessCandidateByOwnership(tenant.role, candidate.intermediaryId, tenant.userId)) {
     return NextResponse.json(
       { error: "Sin permisos sobre este candidato" },
-      { status: 403 }
+      { status: 403, headers: { "Cache-Control": "no-store" } }
     );
   }
 
   if (!canViewCandidatePayment(tenant.role)) {
     return NextResponse.json(
       { error: "Tu rol no puede modificar pagos de candidatos" },
-      { status: 403 }
+      { status: 403, headers: { "Cache-Control": "no-store" } }
     );
   }
 
   try {
-    const updated = await prisma.candidate.update({
-      where: { id: candidate.id },
-      data: {
-        paid400pln: body.paid400pln,
-        paymentDate: body.paymentDate,
-      },
-      select: {
-        id: true,
-        paid400pln: true,
-        paymentDate: true,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedCandidate = await tx.candidate.update({
+        where: {
+          id: candidate.id,
+          organizationId: tenant.organizationId,
+          ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+        },
+        data: {
+          paid400pln: body.paid400pln,
+          paymentDate: body.paymentDate,
+        },
+        select: {
+          id: true,
+          paid400pln: true,
+          paymentDate: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: tenant.userId,
+          organizationId: tenant.organizationId,
+          action: "PAYMENT_UPDATED",
+          entityType: "Candidate",
+          entityId: id,
+          details: {
+            paid400pln: body.paid400pln,
+            paymentDate: body.paymentDate?.toISOString() ?? null,
+          } satisfies Prisma.InputJsonValue,
+        },
+      });
+
+      return updatedCandidate;
     });
 
-    await writeAuditLog({
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "PAYMENT_UPDATED",
-      entityType: "Candidate",
-      entityId: id,
-      details: {
-        paid400pln: body.paid400pln,
-        paymentDate: body.paymentDate?.toISOString() ?? null,
-      } satisfies Prisma.InputJsonValue,
-    });
-
-    return NextResponse.json({ success: true, candidate: updated });
+    return NextResponse.json({ success: true, candidate: updated }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[Payment] Failed to update candidate payment", error);
     return NextResponse.json(
       { error: "No se pudo guardar el estado de pago. Intentalo de nuevo." },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

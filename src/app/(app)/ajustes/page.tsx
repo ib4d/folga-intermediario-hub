@@ -1,4 +1,4 @@
-import { Users, Database, Key, Palette, CreditCard } from "lucide-react";
+import { Users, Database, Key, Palette, CreditCard, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import ExportButton from "@/components/ExportButton";
 import AjustesSettings from "@/components/AjustesSettings";
@@ -22,6 +22,7 @@ import { updateMemberAccessAction, updateMemberRoleAction } from "@/app/actions/
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { getProviderStatus } from "@/lib/provider-status";
 import { auth } from "@/auth";
+import { resolveEffectivePlan } from "@/lib/billing/entitlements";
 
 type InviteRole = "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
@@ -58,13 +59,30 @@ export default async function AjustesPage() {
 
   const organization = await prisma.organization.findUnique({
     where: { id: tenant.organizationId },
-    select: { name: true, plan: true, slug: true },
+    select: {
+      name: true,
+      plan: true,
+      slug: true,
+      subscription: {
+        select: {
+          plan: true,
+          status: true,
+          provider: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+        },
+      },
+    },
   });
+  const effectivePlan = organization
+    ? resolveEffectivePlan(organization.plan, organization.subscription)
+    : "FREE";
 
   return (
-    <>
+    <div className="module-page-shell settings-page-shell">
       <div className="hero-section settings-hero">
         <div className="settings-hero-copy">
+          <div className="settings-hero-eyebrow">WORKSPACE / CONFIGURACIÓN</div>
           <h1>{labels("settings.systemTitle")}</h1>
           <p>{labels("settings.systemDescription")}</p>
         </div>
@@ -72,7 +90,7 @@ export default async function AjustesPage() {
           <div className="settings-hero-org">
             <div className="settings-hero-org-label">{labels("settings.organization")}</div>
             <div className="settings-hero-org-name">{organization.name}</div>
-            <span className="settings-hero-plan-badge">{organization.plan}</span>
+            <span className="settings-hero-plan-badge">{effectivePlan}</span>
           </div>
         )}
       </div>
@@ -80,7 +98,7 @@ export default async function AjustesPage() {
       <div className="settings-quick-links">
         {canAccessModule(tenant.role, "branding") ? (
           <Link href="/ajustes/branding" className="card settings-link-card">
-            <Palette size={24} color="var(--amber-flame)" />
+            <Palette size={24} />
             <div>
               <div className="settings-link-title">{labels("settings.branding")}</div>
               <div className="settings-link-copy">{labels("settings.logoColors")}</div>
@@ -89,7 +107,7 @@ export default async function AjustesPage() {
         ) : null}
         {canAccessModule(tenant.role, "apiKeys") ? (
           <Link href="/ajustes/api-keys" className="card settings-link-card">
-            <Key size={24} color="var(--amber-flame)" />
+            <Key size={24} />
             <div>
               <div className="settings-link-title">{labels("settings.apiKeys")}</div>
               <div className="settings-link-copy">{labels("settings.integrations")}</div>
@@ -98,7 +116,7 @@ export default async function AjustesPage() {
         ) : null}
         {canAccessModule(tenant.role, "billing") ? (
           <Link href="/billing" className="card settings-link-card">
-            <CreditCard size={24} color="var(--amber-flame)" />
+            <CreditCard size={24} />
             <div>
               <div className="settings-link-title">{labels("settings.billing")}</div>
               <div className="settings-link-copy">{labels("settings.planPayments")}</div>
@@ -146,8 +164,18 @@ export default async function AjustesPage() {
               ))}
             </div>
 
-            <div className="settings-enabled-modules">
-              <div className="settings-enabled-modules-label">{labels("settings.enabledModules")}</div>
+            <details className="settings-enabled-modules">
+              <summary className="settings-disclosure-summary">
+                <span className="settings-enabled-modules-label">{labels("settings.enabledModules")}</span>
+                <span className="settings-enabled-modules-preview">
+                  {accessibleModules.slice(0, 3).map((module) => (
+                    <span key={`preview-${module}`} className="settings-preview-chip">{getAppModuleLabel(module, language)}</span>
+                  ))}
+                  {accessibleModules.length > 3 ? (
+                    <span className="settings-preview-count">+{accessibleModules.length - 3}</span>
+                  ) : null}
+                </span>
+              </summary>
               <div className="settings-enabled-modules-list">
                 {accessibleModules.map((module) => (
                   <span key={module} className="status-badge active settings-module-badge">
@@ -155,8 +183,73 @@ export default async function AjustesPage() {
                   </span>
                 ))}
               </div>
-            </div>
+            </details>
+          </div>
 
+          <div className="card">
+            <div className="card-header settings-section-header">
+              <div>
+                <h2 className="settings-section-title">{labels("settings.permissionMatrix")}</h2>
+                <p className="settings-section-copy">{labels("settings.permissionMatrixDescription")}</p>
+              </div>
+            </div>
+            <p className="settings-permission-model-note">{labels("settings.permissionModelNote")}</p>
+            <div className="permission-matrix-grid">
+              {permissionReport.map((item) => {
+                const modules = getAccessibleModules(item.role);
+                return (
+                  <details
+                    key={item.role}
+                    className={`permission-matrix-card settings-role-disclosure${item.role === Role.SUPERADMIN ? " permission-matrix-card-primary" : ""}`}
+                  >
+                    <summary className="settings-role-summary">
+                      <span className="permission-matrix-scope">{item.scope}</span>
+                      <h3 className="settings-card-title">{roleLabel(item.role, language)}</h3>
+                      <span className="settings-role-preview">
+                        {modules.slice(0, 3).map((module) => (
+                          <span key={`preview-${item.role}-${module}`} className="settings-preview-chip">
+                            {getAppModuleLabel(module, language)}
+                          </span>
+                        ))}
+                        {modules.length > 3 ? <span className="settings-preview-count">+{modules.length - 3}</span> : null}
+                      </span>
+                    </summary>
+                    <div className="settings-role-details">
+                      <div className="settings-module-list">
+                        {modules.map((module) => (
+                          <span key={`${item.role}-${module}`} className="status-badge active settings-module-badge">
+                            {getAppModuleLabel(module, language)}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="settings-card-copy">{item.access}</p>
+                      <p className="settings-card-copy settings-card-copy-strong">{item.management}</p>
+                      <p className="settings-card-copy settings-card-copy-small">
+                        {labels("settings.visibleUsers")}: {item.visibleUsers}
+                      </p>
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+            <section className="settings-platform-privilege" aria-label={labels("settings.platformPrivilegeTitle")}>
+              <div className="settings-platform-privilege-icon" aria-hidden="true">
+                <ShieldCheck size={20} />
+              </div>
+              <div className="settings-platform-privilege-copy">
+                <div className="permission-matrix-scope">{labels("settings.platformPrivilegeLabel")}</div>
+                <h3>{labels("settings.platformPrivilegeTitle")}</h3>
+                <p>{labels("settings.platformPrivilegeDescription")}</p>
+              </div>
+              <span className={`status-badge${tenant.isPlatformAdmin ? " active" : ""}`}>
+                {tenant.isPlatformAdmin
+                  ? labels("settings.platformPrivilegeActive")
+                  : labels("settings.platformPrivilegeInactive")}
+              </span>
+            </section>
+          </div>
+
+          <section className="settings-provider-section">
             <ProviderStatusCard
               title={labels("settings.providersTitle")}
               storageLabel={labels("settings.storageLabel")}
@@ -169,10 +262,11 @@ export default async function AjustesPage() {
               ocrNote={manualOcrMode ? labels("settings.ocrManualNote") : labels("settings.ocrAutomaticNote")}
               ocrAvailableLabel={labels("settings.providersAvailable")}
               ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
+              collapsible
             />
-          </div>
+          </section>
 
-          <div className="card">
+          <div className="card" id="team-members">
             <div className="card-header settings-section-header">
               <div className="settings-header-with-icon">
                 <Users size={24} />
@@ -189,7 +283,7 @@ export default async function AjustesPage() {
               )}
             </div>
 
-            <div className="table-container">
+            <div className="table-container" role="region" aria-label="Usuarios de la organización" tabIndex={0}>
               <table>
                 <thead>
                   <tr>
@@ -260,38 +354,6 @@ export default async function AjustesPage() {
 
           <div className="card">
             <div className="card-header settings-section-header">
-              <div>
-                <h2 className="settings-section-title">{labels("settings.permissionMatrix")}</h2>
-                <p className="settings-section-copy">{labels("settings.permissionMatrixDescription")}</p>
-              </div>
-            </div>
-            <div className="permission-matrix-grid">
-              {permissionReport.map((item) => (
-                <div
-                  key={item.role}
-                  className={`permission-matrix-card${item.role === Role.SUPERADMIN ? " permission-matrix-card-primary" : ""}`}
-                >
-                  <div className="permission-matrix-scope">{item.scope}</div>
-                  <h3 className="settings-card-title">{roleLabel(item.role, language)}</h3>
-                  <div className="settings-module-list">
-                    {getAccessibleModules(item.role).map((module) => (
-                      <span key={`${item.role}-${module}`} className="status-badge active settings-module-badge">
-                        {getAppModuleLabel(module, language)}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="settings-card-copy">{item.access}</p>
-                  <p className="settings-card-copy settings-card-copy-strong">{item.management}</p>
-                  <p className="settings-card-copy settings-card-copy-small">
-                    {labels("settings.visibleUsers")}: {item.visibleUsers}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header settings-section-header">
               <div className="settings-header-with-icon">
                 <Database size={24} />
                 <h2 className="settings-section-title">{labels("settings.dataExport")}</h2>
@@ -308,6 +370,6 @@ export default async function AjustesPage() {
           <AjustesSettings />
         </div>
       </div>
-    </>
+    </div>
   );
 }

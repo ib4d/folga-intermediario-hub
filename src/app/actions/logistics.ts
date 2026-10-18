@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
 import { LocationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTenant, type TenantContext } from "@/lib/tenant";
@@ -54,6 +53,20 @@ async function refreshOperationalSurfaces(candidateId: string, organizationId: s
   revalidatePath(`/candidatos/${candidateId}`);
 }
 
+async function requireActiveLogisticsEvent(eventId: string, organizationId: string) {
+  const event = await prisma.logisticsEvent.findFirst({
+    where: { id: eventId, organizationId },
+    include: { candidate: { select: { status: true } } },
+  });
+
+  if (!event) throw new Error("Evento logistico no encontrado.");
+  if (!isLogisticsSchedulableStatus(event.candidate.status)) {
+    throw new Error("No se puede modificar la logistica de un candidato rechazado o retirado.");
+  }
+
+  return event;
+}
+
 export async function createLogisticsEvent(formData: FormData) {
   const tenant = await requireTenant();
   assertLogisticsAccess(tenant);
@@ -90,30 +103,36 @@ export async function createLogisticsEvent(formData: FormData) {
     throw new Error("No se puede programar logistica para candidatos rechazados o retirados");
   }
 
-  const event = await prisma.logisticsEvent.create({
-    data: {
-      candidateId,
-      organizationId: tenant.organizationId,
-      type: "PICKUP",
-      transportType,
-      arrivalDate,
-      terminal,
-      flightOrTrain,
-      pickedUpBy,
-      description: notes,
-    },
-  });
+  const event = await prisma.$transaction(async (tx) => {
+    const createdEvent = await tx.logisticsEvent.create({
+      data: {
+        candidateId,
+        organizationId: tenant.organizationId,
+        type: "PICKUP",
+        transportType,
+        arrivalDate,
+        terminal,
+        flightOrTrain,
+        pickedUpBy,
+        description: notes,
+      },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "LOGISTICS_EVENT_CREATED",
-    entityType: "LogisticsEvent",
-    entityId: event.id,
-    details: {
-      transportType,
-      arrivalDate: arrivalDate?.toISOString() ?? null,
-    } as Prisma.InputJsonValue,
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "LOGISTICS_EVENT_CREATED",
+        entityType: "LogisticsEvent",
+        entityId: createdEvent.id,
+        details: {
+          transportType,
+          arrivalDate: arrivalDate?.toISOString() ?? null,
+        } satisfies Prisma.InputJsonValue,
+      },
+    });
+
+    return createdEvent;
   });
 
   try {
@@ -145,20 +164,27 @@ export async function updateLogisticsEvent(
 ) {
   const tenant = await requireTenant();
   assertLogisticsAccess(tenant);
+  await requireActiveLogisticsEvent(eventId, tenant.organizationId);
 
-  const event = await prisma.logisticsEvent.update({
-    where: { id: eventId, organizationId: tenant.organizationId },
-    data: buildSafeLogisticsUpdate(data),
-    include: { candidate: true },
-  });
+  const event = await prisma.$transaction(async (tx) => {
+    const updatedEvent = await tx.logisticsEvent.update({
+      where: { id: eventId, organizationId: tenant.organizationId },
+      data: buildSafeLogisticsUpdate(data),
+      include: { candidate: true },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "LOGISTICS_EVENT_UPDATED",
-    entityType: "LogisticsEvent",
-    entityId: eventId,
-    details: data as Prisma.InputJsonValue,
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "LOGISTICS_EVENT_UPDATED",
+        entityType: "LogisticsEvent",
+        entityId: eventId,
+        details: data as Prisma.InputJsonValue,
+      },
+    });
+
+    return updatedEvent;
   });
 
   await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
@@ -168,23 +194,30 @@ export async function updateLogisticsEvent(
 export async function confirmLogisticsEvent(eventId: string) {
   const tenant = await requireTenant();
   assertLogisticsAccess(tenant);
+  await requireActiveLogisticsEvent(eventId, tenant.organizationId);
 
-  const event = await prisma.logisticsEvent.update({
-    where: { id: eventId, organizationId: tenant.organizationId },
-    data: { confirmed: true },
-  });
+  const event = await prisma.$transaction(async (tx) => {
+    const confirmedEvent = await tx.logisticsEvent.update({
+      where: { id: eventId, organizationId: tenant.organizationId },
+      data: { confirmed: true },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "LOGISTICS_EVENT_CONFIRMED",
-    entityType: "LogisticsEvent",
-    entityId: eventId,
-  });
+    await tx.candidate.update({
+      where: { id: confirmedEvent.candidateId, organizationId: tenant.organizationId },
+      data: { locationStatus: LocationStatus.EN_POLONIA },
+    });
 
-  await prisma.candidate.update({
-    where: { id: event.candidateId, organizationId: tenant.organizationId },
-    data: { locationStatus: LocationStatus.EN_POLONIA },
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "LOGISTICS_EVENT_CONFIRMED",
+        entityType: "LogisticsEvent",
+        entityId: eventId,
+      },
+    });
+
+    return confirmedEvent;
   });
 
   await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
@@ -194,17 +227,24 @@ export async function confirmLogisticsEvent(eventId: string) {
 export async function deleteLogisticsEvent(eventId: string) {
   const tenant = await requireTenant();
   assertLogisticsAccess(tenant);
+  await requireActiveLogisticsEvent(eventId, tenant.organizationId);
 
-  const event = await prisma.logisticsEvent.delete({
-    where: { id: eventId, organizationId: tenant.organizationId },
-  });
+  const event = await prisma.$transaction(async (tx) => {
+    const deletedEvent = await tx.logisticsEvent.delete({
+      where: { id: eventId, organizationId: tenant.organizationId },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "LOGISTICS_EVENT_DELETED",
-    entityType: "LogisticsEvent",
-    entityId: eventId,
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "LOGISTICS_EVENT_DELETED",
+        entityType: "LogisticsEvent",
+        entityId: eventId,
+      },
+    });
+
+    return deletedEvent;
   });
 
   await refreshOperationalSurfaces(event.candidateId, tenant.organizationId);
@@ -241,42 +281,50 @@ export async function updateArrivalReadinessDetails(formData: FormData) {
     throw new Error("Candidato no encontrado en esta organizacion");
   }
 
-  await prisma.candidate.update({
-    where: {
-      id: candidate.id,
-      organizationId: tenant.organizationId,
-    },
-    data: {
-      accommodation,
-      arrivalNotes,
-    },
-  });
+  if (!isLogisticsSchedulableStatus(candidate.status)) {
+    throw new Error("No se puede actualizar el handoff de un candidato rechazado o retirado.");
+  }
 
   const latestEvent = candidate.logistics[0];
-  if (latestEvent && pickedUpBy !== null) {
-    await prisma.logisticsEvent.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.candidate.update({
       where: {
-        id: latestEvent.id,
+        id: candidate.id,
         organizationId: tenant.organizationId,
       },
       data: {
-        pickedUpBy,
+        accommodation,
+        arrivalNotes,
       },
     });
-  }
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "LOGISTICS_EVENT_UPDATED",
-    entityType: "Candidate",
-    entityId: candidate.id,
-    details: {
-      accommodation,
-      arrivalNotes,
-      pickedUpBy,
-      latestEventId: latestEvent?.id ?? null,
-    } as Prisma.InputJsonValue,
+    if (latestEvent && pickedUpBy !== null) {
+      await tx.logisticsEvent.update({
+        where: {
+          id: latestEvent.id,
+          organizationId: tenant.organizationId,
+        },
+        data: {
+          pickedUpBy,
+        },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId,
+        action: "LOGISTICS_EVENT_UPDATED",
+        entityType: "Candidate",
+        entityId: candidate.id,
+        details: {
+          accommodation,
+          arrivalNotes,
+          pickedUpBy,
+          latestEventId: latestEvent?.id ?? null,
+        } satisfies Prisma.InputJsonValue,
+      },
+    });
   });
 
   await refreshOperationalSurfaces(candidate.id, tenant.organizationId);

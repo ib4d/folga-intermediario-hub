@@ -1,5 +1,5 @@
 -- =====================================================================
--- FOLGA HUB - P4 Multi-Tenant Migration
+-- ORI CRUIT HUB - P4 Multi-Tenant Migration
 -- Run this AFTER ensuring the current DB schema matches P0-P3 baseline.
 -- =====================================================================
 
@@ -110,8 +110,8 @@ ALTER TABLE "Notification"
 INSERT INTO "Organization" ("id", "name", "slug", "plan", "isActive", "updatedAt")
 VALUES (
   'org_default_migration',
-  'Folga Sp. z o.o.',
-  'folga-default',
+  'ORI CRUIT HUB',
+  'ori-default',
   'ENTERPRISE',
   true,
   CURRENT_TIMESTAMP

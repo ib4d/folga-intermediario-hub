@@ -47,3 +47,10 @@ export async function writeAuditLogWithClient(
 export async function writeAuditLog(input: AuditLogInput): Promise<boolean> {
   return writeAuditLogWithClient(prisma, input);
 }
+
+/** Block sensitive data disclosure when its audit record cannot be persisted. */
+export async function writeAuditLogOrThrow(input: AuditLogInput): Promise<void> {
+  if (!(await writeAuditLog(input))) {
+    throw new Error("No se pudo registrar la operación en auditoría.");
+  }
+}

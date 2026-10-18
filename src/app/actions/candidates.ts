@@ -6,7 +6,6 @@ import { CandidateStatus, Prisma, Role } from "@prisma/client";
 import * as XLSX from "xlsx";
 
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
 import { candidateSchema } from "@/lib/validations/candidate";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
@@ -14,11 +13,13 @@ import { emitEvent } from "@/core/events";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { getStorageProvider } from "@/lib/providers/storage";
+import { enqueueStoredObjectDeletion, processStorageDeletionJob } from "@/lib/storage-deletion-queue";
 import {
   canCreateCandidates,
   canDeleteCandidates,
   canGenerateRegistrationLinks,
   canImportCandidates,
+  canEditCandidateNotes,
   canMakeLegalDecision,
   canAccessCandidateByOwnership,
 } from "@/lib/permissions";
@@ -289,6 +290,7 @@ function parseCandidateStatus(value: string): CandidateStatus {
 }
 
 type SpreadsheetRow = Record<string, unknown>;
+type ParsedSpreadsheetRow = { rowNumber: number; values: SpreadsheetRow };
 
 function getCellValue(row: SpreadsheetRow, aliases: string[]): unknown {
   const keys = Object.keys(row);
@@ -308,22 +310,7 @@ function hasMeaningfulValue(value: unknown): boolean {
   return true;
 }
 
-async function removeCandidateStoredFiles(documents: Array<{ url: string }>) {
-  const storage = getStorageProvider();
-  const paths = documents
-    .map((document) => storage.getObjectPathFromPublicUrl(document.url))
-    .filter((path): path is string => Boolean(path));
-
-  if (paths.length === 0) return;
-
-  try {
-    await storage.removeObjects(paths);
-  } catch (error) {
-    console.error("[deleteCandidate] storage cleanup failed", error);
-  }
-}
-
-async function parseSpreadsheetRows(file: File): Promise<SpreadsheetRow[]> {
+async function parseSpreadsheetRows(file: File): Promise<ParsedSpreadsheetRow[]> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const workbook = XLSX.read(buffer, {
     type: "buffer",
@@ -359,20 +346,24 @@ async function parseSpreadsheetRows(file: File): Promise<SpreadsheetRow[]> {
     { index: 0, score: -1 }
   ).index;
 
+  if (scorePotentialHeaderRow(matrix[headerRowIndex] ?? []) < 1) {
+    throw new Error("No se detectaron encabezados reconocibles. Revisa la fila de títulos del archivo.");
+  }
+
   const headers = rowToHeaders(matrix[headerRowIndex] ?? []);
   const dataRows = matrix.slice(headerRowIndex + 1);
 
   return dataRows
-    .map((row) => {
+    .map((row, index) => {
       const mappedRow: SpreadsheetRow = {};
 
       headers.forEach((header, index) => {
         mappedRow[header] = row[index] ?? null;
       });
 
-      return mappedRow;
+      return { rowNumber: headerRowIndex + index + 2, values: mappedRow };
     })
-    .filter((row) => Object.values(row).some(hasMeaningfulValue));
+    .filter((row) => Object.values(row.values).some(hasMeaningfulValue));
 }
 
 function buildImportedCandidateBase(row: SpreadsheetRow) {
@@ -554,25 +545,28 @@ export async function createCandidate(formData: FormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const candidate = await prisma.candidate.create({
-    data: {
-      ...parsed.data,
-      intermediaryId: tenant.userId,
-      organizationId: tenant.organizationId!,
-      status: CandidateStatus.RECOPILANDO_DOCS,
-    },
-  });
+  const candidate = await prisma.$transaction(async (tx) => {
+    const createdCandidate = await tx.candidate.create({
+      data: {
+        ...parsed.data,
+        intermediaryId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        status: CandidateStatus.RECOPILANDO_DOCS,
+      },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "CANDIDATE_CREATED",
-    entityType: "Candidate",
-    entityId: candidate.id,
-    details: {
-      firstName: candidate.firstName,
-      lastName: candidate.lastName,
-    },
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "CANDIDATE_CREATED",
+        entityType: "Candidate",
+        entityId: createdCandidate.id,
+        details: { changedFields: Object.keys(parsed.data) } satisfies Prisma.InputJsonValue,
+      },
+    });
+
+    return createdCandidate;
   });
 
   await prisma.notification.create({
@@ -604,6 +598,10 @@ export async function createCandidate(formData: FormData) {
 
 export async function updateCandidate(candidateId: string, formData: FormData) {
   const tenant = await requireTenant();
+
+  if (!canCreateCandidates(tenant.role)) {
+    throw new Error("Tu rol no puede editar perfiles de candidatos.");
+  }
 
   const candidate = await prisma.candidate.findFirst({
     where: {
@@ -664,18 +662,29 @@ export async function updateCandidate(candidateId: string, formData: FormData) {
     if (!Number.isNaN(height)) updateData.heightCm = height;
   }
 
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: updateData,
-  });
+  await prisma.$transaction(async (tx) => {
+    const updatedCount = await tx.candidate.updateMany({
+      where: {
+        id: candidateId,
+        organizationId: tenant.organizationId,
+        ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+      },
+      data: updateData,
+    });
+    if (updatedCount.count !== 1) {
+      throw new Error("El candidato cambió de organización o propietario. Actualiza la página y vuelve a intentarlo.");
+    }
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "CANDIDATE_UPDATED",
-    entityType: "Candidate",
-    entityId: candidateId,
-    details: { fields: Object.keys(raw) },
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "CANDIDATE_UPDATED",
+        entityType: "Candidate",
+        entityId: candidateId,
+        details: { changedFields: Object.keys(updateData) } satisfies Prisma.InputJsonValue,
+      },
+    });
   });
 
   revalidatePath(`/candidatos/${candidateId}`);
@@ -714,6 +723,21 @@ export async function updateCandidateStatus(
 
   if (!candidate) throw new Error("Candidato no encontrado");
 
+  if (tenant.role === Role.LEGAL) {
+    const legalDecisions = [
+      CandidateStatus.APROBADO,
+      CandidateStatus.RECHAZADO,
+      CandidateStatus.REVISION_ADICIONAL,
+    ];
+
+    if (
+      candidate.status !== CandidateStatus.EN_REVISION_LEGAL ||
+      !legalDecisions.some((decision) => decision === parsedStatus)
+    ) {
+      throw new Error("Legal solo puede decidir candidatos en cola de revisión legal.");
+    }
+  }
+
   const checklist = getCandidateDocumentChecklist(candidate);
 
   if (parsedStatus === CandidateStatus.APROBADO && !checklist.isReadyForLegal) {
@@ -724,84 +748,88 @@ export async function updateCandidateStatus(
     throw new Error(`No se puede enviar a legal. Documentos faltantes: ${checklist.missing.join(", ")}`);
   }
 
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: {
-      status: parsedStatus,
-      rejectionReason: rejectionReason ?? null,
-      reviewNotes: reviewNotes ?? null,
-      dataRetentionUntil:
-        parsedStatus === CandidateStatus.RECHAZADO ||
-          parsedStatus === CandidateStatus.RETIRADO
-          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 183)
-          : candidate.dataRetentionUntil,
-    },
-  });
-
-  await prisma.statusHistory.create({
-    data: {
-      candidateId,
-      organizationId: tenant.organizationId!,
-      fromStatus: candidate.status,
-      toStatus: parsedStatus,
-      changedById: tenant.userId,
-      reason: rejectionReason ?? reviewNotes ?? null,
-    },
-  });
-
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "STATUS_CHANGED",
-    entityType: "Candidate",
-    entityId: candidateId,
-    details: {
-      from: candidate.status,
-      to: parsedStatus,
-      rejectionReason: rejectionReason ?? null,
-      reviewNotes: reviewNotes ?? null,
-      outcomeCategory: outcomeMeta?.category ?? null,
-      followUpActions: outcomeMeta?.followUpActions ?? [],
-    },
-  });
-
-  await prisma.notification.create({
-    data: {
-      userId: candidate.intermediaryId,
-      organizationId: tenant.organizationId!,
-      candidateId,
-      type: "STATUS_UPDATE",
-      title: "Actualización de estado",
-      message: `El estado de ${candidate.firstName ?? ""} ${candidate.lastName ?? ""
-        } cambió a ${parsedStatus.replace(/_/g, " ")}${outcomeMeta?.category ? ` - Categoria: ${outcomeMeta.category}` : ""}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""
-        }`.trim(),
-    },
-  });
-
-  if (parsedStatus === CandidateStatus.APROBADO) {
-    const adminLogistics = await prisma.membership.findMany({
+  await prisma.$transaction(async (tx) => {
+    const updatedCount = await tx.candidate.updateMany({
       where: {
-        organizationId: tenant.organizationId!,
-        role: { in: [Role.ADMIN, Role.SUPERADMIN, Role.LOGISTICA] },
-        isActive: true,
+        id: candidateId,
+        organizationId: tenant.organizationId,
+        status: candidate.status,
       },
-      select: { userId: true },
+      data: {
+        status: parsedStatus,
+        rejectionReason: rejectionReason ?? null,
+        reviewNotes: reviewNotes ?? null,
+        dataRetentionUntil:
+          parsedStatus === CandidateStatus.RECHAZADO ||
+            parsedStatus === CandidateStatus.RETIRADO
+            ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 183)
+            : candidate.dataRetentionUntil,
+      },
     });
 
-    if (adminLogistics.length > 0) {
-      await prisma.notification.createMany({
-        data: adminLogistics.map((membership) => ({
-          userId: membership.userId,
-          organizationId: tenant.organizationId!,
-          candidateId,
-          type: "CANDIDATE_APPROVED",
-          title: "Candidato aprobado",
-          message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""
-            } ha sido aprobado. Pendiente de logística.`.trim(),
-        })),
-      });
+    if (updatedCount.count !== 1) {
+      throw new Error("El estado del candidato cambió durante la revisión. Actualiza la página y vuelve a intentarlo.");
     }
-  }
+
+    await tx.statusHistory.create({
+      data: {
+        candidateId,
+        organizationId: tenant.organizationId,
+        fromStatus: candidate.status,
+        toStatus: parsedStatus,
+        changedById: tenant.userId,
+        reason: rejectionReason ?? reviewNotes ?? null,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "STATUS_CHANGED",
+        entityType: "Candidate",
+        entityId: candidateId,
+        details: {
+          from: candidate.status,
+          to: parsedStatus,
+        } satisfies Prisma.InputJsonValue,
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: candidate.intermediaryId,
+        organizationId: tenant.organizationId!,
+        candidateId,
+        type: "STATUS_UPDATE",
+        title: "Actualización de estado",
+        message: `El estado de ${candidate.firstName ?? ""} ${candidate.lastName ?? ""} cambió a ${parsedStatus.replace(/_/g, " ")}${outcomeMeta?.category ? ` - Categoria: ${outcomeMeta.category}` : ""}${rejectionReason ? ` - Motivo: ${rejectionReason}` : ""}`.trim(),
+      },
+    });
+
+    if (parsedStatus === CandidateStatus.APROBADO) {
+      const adminLogistics = await tx.membership.findMany({
+        where: {
+          organizationId: tenant.organizationId!,
+          role: { in: [Role.ADMIN, Role.SUPERADMIN, Role.LOGISTICA] },
+          isActive: true,
+        },
+        select: { userId: true },
+      });
+
+      if (adminLogistics.length > 0) {
+        await tx.notification.createMany({
+          data: adminLogistics.map((membership) => ({
+            userId: membership.userId,
+            organizationId: tenant.organizationId!,
+            candidateId,
+            type: "CANDIDATE_APPROVED",
+            title: "Candidato aprobado",
+            message: `${candidate.firstName ?? ""} ${candidate.lastName ?? ""} ha sido aprobado. Pendiente de logística.`.trim(),
+          })),
+        });
+      }
+    }
+  });
 
       await emitEvent(
         "STATUS_CHANGED",
@@ -834,6 +862,10 @@ export async function updateCandidateStatus(
 export async function updateCandidateNotes(candidateId: string, notes: string) {
   const tenant = await requireTenant();
 
+  if (!canEditCandidateNotes(tenant.role)) {
+    throw new Error("Tu rol no puede modificar las notas internas del candidato.");
+  }
+
   const candidate = await prisma.candidate.findFirst({
     where: {
       id: candidateId,
@@ -847,18 +879,29 @@ export async function updateCandidateNotes(candidateId: string, notes: string) {
     throw new Error("Sin permisos");
   }
 
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: { notes },
-  });
+  await prisma.$transaction(async (tx) => {
+    const updatedCount = await tx.candidate.updateMany({
+      where: {
+        id: candidateId,
+        organizationId: tenant.organizationId,
+        ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+      },
+      data: { notes },
+    });
+    if (updatedCount.count !== 1) {
+      throw new Error("El candidato cambió de organización o propietario. Actualiza la página y vuelve a intentarlo.");
+    }
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "CANDIDATE_NOTES_UPDATED",
-    entityType: "Candidate",
-    entityId: candidateId,
-    details: { notes },
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "CANDIDATE_NOTES_UPDATED",
+        entityType: "Candidate",
+        entityId: candidateId,
+        details: { changedFields: ["notes"] } satisfies Prisma.InputJsonValue,
+      },
+    });
   });
 
   revalidatePath(`/candidatos/${candidateId}`);
@@ -875,25 +918,41 @@ export async function importCandidatesFromExcel(formData: FormData) {
   }
 
   if (!file) return { success: false, error: "No file provided" };
+  if (file.size <= 0) return { success: false, error: "El archivo está vacío." };
+  if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+    return { success: false, error: "Formato no admitido. Sube un archivo XLSX, XLS o CSV." };
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    return { success: false, error: "El archivo supera el límite de 10 MB." };
+  }
 
   try {
     const rows = await parseSpreadsheetRows(file);
+    if (rows.length === 0) {
+      return { success: false, error: "No se encontraron filas con datos debajo de los encabezados." };
+    }
+    if (rows.length > 5000) {
+      return { success: false, error: "El archivo supera el límite de 5.000 filas. Divide la importación en lotes más pequeños." };
+    }
     let createdCount = 0;
     let updatedCount = 0;
     let skippedCount = 0;
+    const rowErrors: Array<{ rowNumber: number; message: string }> = [];
 
-    for (const row of rows) {
+    for (const { rowNumber, values: row } of rows) {
+      try {
       const baseData = buildImportedCandidateBase(row);
       const firstName = baseData.firstName;
       const lastName = baseData.lastName;
 
       if (!firstName || !lastName) {
         skippedCount++;
+        rowErrors.push({ rowNumber, message: "Falta nombre o apellido; no se importó." });
         continue;
       }
       const { peselNumber, passportNumber } = baseData;
 
-      const existing = await prisma.candidate.findFirst({
+      const matches = await prisma.candidate.findMany({
         where: {
           organizationId: tenant.organizationId!,
           OR: [
@@ -907,31 +966,101 @@ export async function importCandidatesFromExcel(formData: FormData) {
             },
           ],
         },
+        take: 2,
+        select: { id: true, intermediaryId: true },
       });
 
+      if (matches.length > 1) {
+        skippedCount++;
+        rowErrors.push({ rowNumber, message: "Coincide con más de un candidato; no se modificó ningún registro para evitar una mezcla de datos." });
+        continue;
+      }
+
+      const existing = matches[0] ?? null;
+
       if (existing) {
-        const patch = buildImportedCandidatePatch(row, baseData);
-        if (Object.keys(patch).length === 0) {
+        if (
+          tenant.role === Role.INTERMEDIARIO &&
+          existing.intermediaryId !== tenant.userId
+        ) {
           skippedCount++;
+          rowErrors.push({ rowNumber, message: "Coincide con un candidato fuera de tu ámbito; no se modificó." });
           continue;
         }
 
-        await prisma.candidate.update({
-          where: { id: existing.id },
-          data: patch,
+        const patch = buildImportedCandidatePatch(row, baseData);
+        if (Object.keys(patch).length === 0) {
+          skippedCount++;
+          rowErrors.push({ rowNumber, message: "No hay datos nuevos para aplicar." });
+          continue;
+        }
+
+        const importedUpdate = await prisma.$transaction(async (tx) => {
+          const result = await tx.candidate.updateMany({
+            where: {
+              id: existing.id,
+              organizationId: tenant.organizationId,
+              ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+            },
+            data: patch,
+          });
+          if (result.count === 1) {
+            await tx.auditLog.create({
+              data: {
+                userId: tenant.userId,
+                organizationId: tenant.organizationId!,
+                action: "CANDIDATE_IMPORTED_UPDATED",
+                entityType: "Candidate",
+                entityId: existing.id,
+                details: { changedFields: Object.keys(patch) } satisfies Prisma.InputJsonValue,
+              },
+            });
+          }
+          return result;
         });
+        if (importedUpdate.count !== 1) {
+          skippedCount++;
+          rowErrors.push({ rowNumber, message: "El registro cambió durante la importación; vuelve a revisar esta fila." });
+          continue;
+        }
         updatedCount++;
       } else {
         await assertWithinPlanLimit(tenant.organizationId!, "candidates");
-        await prisma.candidate.create({
-          data: {
-            ...baseData,
-            intermediaryId: tenant.userId,
-            organizationId: tenant.organizationId!,
-            status: CandidateStatus.RECOPILANDO_DOCS,
-          },
+        await prisma.$transaction(async (tx) => {
+          const created = await tx.candidate.create({
+            data: {
+              ...baseData,
+              intermediaryId: tenant.userId,
+              organizationId: tenant.organizationId!,
+              status: CandidateStatus.RECOPILANDO_DOCS,
+            },
+            select: { id: true },
+          });
+          await tx.auditLog.create({
+            data: {
+              userId: tenant.userId,
+              organizationId: tenant.organizationId!,
+              action: "CANDIDATE_IMPORTED_CREATED",
+              entityType: "Candidate",
+              entityId: created.id,
+              details: { source: "spreadsheet_import" },
+            },
+          });
         });
         createdCount++;
+      }
+      } catch (error) {
+        skippedCount++;
+        const databaseCode = (error as { code?: string } | null)?.code;
+        const message = databaseCode === "P2002"
+          ? "Conflicto con un dato único (correo o identificador); no se importó."
+          : databaseCode === "P2003"
+            ? "Referencia de relación no válida; no se importó."
+            : "Error al guardar la fila; no se confirmó. Revisa los datos y vuelve a intentarlo.";
+        rowErrors.push({
+          rowNumber,
+          message,
+        });
       }
     }
 
@@ -944,6 +1073,7 @@ export async function importCandidatesFromExcel(formData: FormData) {
       updatedCount,
       skippedCount,
       totalRows: rows.length,
+      rowErrors,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido";
@@ -963,6 +1093,12 @@ export async function generateRegistrationLink(candidateId: string) {
       id: candidateId,
       organizationId: tenant.organizationId!,
     },
+    select: {
+      id: true,
+      intermediaryId: true,
+      status: true,
+      selfRegistered: true,
+    },
   });
 
   if (!candidate) throw new Error("Candidato no encontrado");
@@ -971,12 +1107,44 @@ export async function generateRegistrationLink(candidateId: string) {
     throw new Error("Sin permisos");
   }
 
-  const token = crypto.randomUUID();
+  if (
+    candidate.selfRegistered ||
+    candidate.status === CandidateStatus.RECHAZADO ||
+    candidate.status === CandidateStatus.RETIRADO
+  ) {
+    throw new Error("No se puede generar un enlace para un registro ya completado o cerrado.");
+  }
 
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: { registrationToken: token },
+  const token = crypto.randomUUID();
+  const tokenCreated = await prisma.$transaction(async (tx) => {
+    const result = await tx.candidate.updateMany({
+      where: {
+        id: candidateId,
+        organizationId: tenant.organizationId,
+        selfRegistered: false,
+        status: { notIn: [CandidateStatus.RECHAZADO, CandidateStatus.RETIRADO] },
+        ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+      },
+      data: { registrationToken: token },
+    });
+    if (result.count === 1) {
+      await tx.auditLog.create({
+        data: {
+          userId: tenant.userId,
+          organizationId: tenant.organizationId!,
+          action: "CANDIDATE_REGISTRATION_LINK_GENERATED",
+          entityType: "Candidate",
+          entityId: candidateId,
+          details: { tokenStored: true },
+        },
+      });
+    }
+    return result;
   });
+
+  if (tokenCreated.count !== 1) {
+    throw new Error("El candidato ya fue registrado, cerrado o cambio de propietario.");
+  }
 
   revalidatePath(`/candidatos/${candidateId}`);
 
@@ -994,14 +1162,6 @@ export async function deleteCandidate(candidateId: string) {
     where: candidateVisibilityWhere(tenant, { id: candidateId }),
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      organizationId: true,
-      documents: {
-        select: {
-          url: true,
-        },
-      },
     },
   });
 
@@ -1009,7 +1169,15 @@ export async function deleteCandidate(candidateId: string) {
     throw new Error("Candidato no encontrado o sin permisos.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  const cleanupJobId = await prisma.$transaction(async (tx) => {
+    const documents = await tx.document.findMany({
+      where: {
+        candidateId: candidate.id,
+        organizationId: tenant.organizationId,
+      },
+      select: { id: true, url: true },
+    });
+
     await tx.notification.updateMany({
       where: {
         candidateId: candidate.id,
@@ -1020,12 +1188,20 @@ export async function deleteCandidate(candidateId: string) {
       },
     });
 
-    await tx.document.deleteMany({
+    const deletedDocuments = await tx.document.deleteMany({
       where: {
         candidateId: candidate.id,
         organizationId: tenant.organizationId,
       },
     });
+    if (deletedDocuments.count !== documents.length) {
+      throw new Error("Los documentos del candidato cambiaron durante el borrado. Actualiza e inténtalo de nuevo.");
+    }
+    const jobId = await enqueueStoredObjectDeletion(
+      tx,
+      tenant.organizationId!,
+      documents.map((document) => document.url)
+    );
 
     await tx.logisticsEvent.deleteMany({
       where: {
@@ -1041,31 +1217,43 @@ export async function deleteCandidate(candidateId: string) {
       },
     });
 
-    await tx.candidate.delete({
-      where: { id: candidate.id },
+    const deletedCount = await tx.candidate.deleteMany({
+      where: {
+        id: candidate.id,
+        organizationId: tenant.organizationId,
+        ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
+      },
     });
-  });
+    if (deletedCount.count !== 1) {
+      throw new Error("El candidato cambió de organización o propietario. Actualiza la página y vuelve a intentarlo.");
+    }
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "CANDIDATE_DELETED",
+        entityType: "Candidate",
+        entityId: candidate.id,
+        details: {
+          documentCount: documents.length,
+          storageDeletionQueued: Boolean(jobId),
+          storageDeletionJobId: jobId,
+        },
+      },
+    });
+    return jobId;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-  await removeCandidateStoredFiles(candidate.documents);
-
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId,
-    action: "CANDIDATE_DELETED",
-    entityType: "Candidate",
-    entityId: candidate.id,
-    details: {
-      firstName: candidate.firstName,
-      lastName: candidate.lastName,
-    },
-  });
+  const storageCleanup = cleanupJobId
+    ? await processStorageDeletionJob(cleanupJobId)
+    : "complete";
 
   revalidatePath("/candidatos");
   revalidatePath("/dashboard");
   revalidatePath("/legal");
   revalidatePath("/logistica");
 
-  return { success: true };
+  return { success: true, storageCleanup };
 }
 
 export async function deleteCandidatesBulk(candidateIds: string[]) {
@@ -1085,13 +1273,6 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
     }),
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      documents: {
-        select: {
-          url: true,
-        },
-      },
     },
   });
 
@@ -1101,7 +1282,15 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
 
   const candidateIdsToDelete = candidates.map((candidate) => candidate.id);
 
-  await prisma.$transaction(async (tx) => {
+  const cleanupJobId = await prisma.$transaction(async (tx) => {
+    const documents = await tx.document.findMany({
+      where: {
+        organizationId: tenant.organizationId,
+        candidateId: { in: candidateIdsToDelete },
+      },
+      select: { id: true, candidateId: true, url: true },
+    });
+
     await tx.notification.updateMany({
       where: {
         organizationId: tenant.organizationId,
@@ -1112,12 +1301,20 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
       },
     });
 
-    await tx.document.deleteMany({
+    const deletedDocuments = await tx.document.deleteMany({
       where: {
         organizationId: tenant.organizationId,
         candidateId: { in: candidateIdsToDelete },
       },
     });
+    if (deletedDocuments.count !== documents.length) {
+      throw new Error("Los documentos de la selección cambiaron durante el borrado. Actualiza e inténtalo de nuevo.");
+    }
+    const jobId = await enqueueStoredObjectDeletion(
+      tx,
+      tenant.organizationId!,
+      documents.map((document) => document.url)
+    );
 
     await tx.logisticsEvent.deleteMany({
       where: {
@@ -1133,32 +1330,37 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
       },
     });
 
-    await tx.candidate.deleteMany({
+    const deletedCandidates = await tx.candidate.deleteMany({
       where: {
         organizationId: tenant.organizationId,
         id: { in: candidateIdsToDelete },
+        ...(tenant.role === Role.INTERMEDIARIO ? { intermediaryId: tenant.userId } : {}),
       },
     });
-  });
-
-  await removeCandidateStoredFiles(candidates.flatMap((candidate) => candidate.documents));
-
-  await Promise.all(
-    candidates.map((candidate) =>
-      writeAuditLog({
+    if (deletedCandidates.count !== candidateIdsToDelete.length) {
+      throw new Error("Algunos candidatos cambiaron de organización o propietario. Actualiza la página y vuelve a intentarlo.");
+    }
+    await tx.auditLog.createMany({
+      data: candidates.map((candidate) => ({
         userId: tenant.userId,
-        organizationId: tenant.organizationId,
+        organizationId: tenant.organizationId!,
         action: "CANDIDATE_DELETED",
         entityType: "Candidate",
         entityId: candidate.id,
         details: {
-          firstName: candidate.firstName,
-          lastName: candidate.lastName,
+          documentCount: documents.filter((document) => document.candidateId === candidate.id).length,
           bulk: true,
+          storageDeletionQueued: Boolean(jobId),
+          storageDeletionJobId: jobId,
         },
-      })
-    )
-  );
+      })),
+    });
+    return jobId;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+  const storageCleanup = cleanupJobId
+    ? await processStorageDeletionJob(cleanupJobId)
+    : "complete";
 
   revalidatePath("/candidatos");
   revalidatePath("/dashboard");
@@ -1168,5 +1370,6 @@ export async function deleteCandidatesBulk(candidateIds: string[]) {
   return {
     success: true,
     deletedCount: candidates.length,
+    storageCleanup,
   };
 }

@@ -1,440 +1,138 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  CalendarDays,
-  CheckCircle2,
-  FileText,
-  Globe2,
-  LockKeyhole,
-  PlayCircle,
-  ShieldCheck,
-  Users,
-  Zap,
-} from "lucide-react";
+import { ArrowDownRight, ArrowRight, Check, MoveUpRight } from "lucide-react";
 import LanguageSwitcher from "@/components/public/LanguageSwitcher";
-import { localizedHref, normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
+import BrandLogo from "@/components/BrandLogo";
+import ScrollRevealObserver from "@/components/ScrollRevealObserver";
+import MarketingScrollTop from "@/components/public/MarketingScrollTop";
+import { localizedHref, normalizeLanguage } from "@/lib/i18n";
+import { publicPageMetadata } from "@/lib/public-seo";
 
-const problemCards = [
-  {
-    icon: Zap,
-    title: "public.problem.messagesTitle",
-    text: "public.problem.messagesText",
-  },
-  {
-    icon: FileText,
-    title: "public.problem.dataTitle",
-    text: "public.problem.dataText",
-  },
-  {
-    icon: CalendarDays,
-    title: "public.problem.logisticsTitle",
-    text: "public.problem.logisticsText",
-  },
-] as const satisfies readonly { icon: typeof Zap; title: TranslationKey; text: TranslationKey }[];
-
-const featureCards = [
-  {
-    icon: Users,
-    title: "public.features.atsTitle",
-    text: "public.features.atsText",
-  },
-  {
-    icon: Zap,
-    title: "public.features.ocrTitle",
-    text: "public.features.ocrText",
-  },
-  {
-    icon: ShieldCheck,
-    title: "public.features.legalTitle",
-    text: "public.features.legalText",
-  },
-  {
-    icon: Globe2,
-    title: "public.features.logisticsTitle",
-    text: "public.features.logisticsText",
-  },
-  {
-    icon: BarChart3,
-    title: "public.features.reportsTitle",
-    text: "public.features.reportsText",
-  },
-  {
-    icon: CheckCircle2,
-    title: "public.features.saasTitle",
-    text: "public.features.saasText",
-  },
-] as const satisfies readonly { icon: typeof Zap; title: TranslationKey; text: TranslationKey }[];
-
-const demoSteps = [
-  {
-    icon: PlayCircle,
-    title: "public.demo.step1Title",
-    text: "public.demo.step1Text",
-  },
-  {
-    icon: FileText,
-    title: "public.demo.step2Title",
-    text: "public.demo.step2Text",
-  },
-  {
-    icon: Globe2,
-    title: "public.demo.step3Title",
-    text: "public.demo.step3Text",
-  },
-] as const satisfies readonly { icon: typeof PlayCircle; title: TranslationKey; text: TranslationKey }[];
-
-const trustCards = [
-  {
-    icon: LockKeyhole,
-    title: "public.security.dataTitle",
-    text: "public.security.dataText",
-  },
-  {
-    icon: ShieldCheck,
-    title: "public.security.gdprTitle",
-    text: "public.security.gdprText",
-  },
-  {
-    icon: BarChart3,
-    title: "public.security.auditTitle",
-    text: "public.security.auditText",
-  },
-  {
-    icon: CalendarDays,
-    title: "public.security.backupTitle",
-    text: "public.security.backupText",
-  },
-] as const satisfies readonly { icon: typeof LockKeyhole; title: TranslationKey; text: TranslationKey }[];
-
-type PricingPlan = {
-  badge: TranslationKey;
-  title?: TranslationKey;
-  price?: `EUR ${number}`;
-  suffix?: TranslationKey;
-  items: readonly TranslationKey[];
-  featured: boolean;
-  darkBadge?: boolean;
-};
-
-const pricingPlans: readonly PricingPlan[] = [
-  {
-    badge: "public.pricing.basic",
-    title: "public.pricing.free",
-    items: ["public.pricing.candidates25", "public.pricing.users2", "public.pricing.ocrLimited", "public.pricing.brandingOri"],
-    featured: false,
-  },
-  {
-    badge: "public.pricing.popular",
-    price: "EUR 49",
-    suffix: "public.pricing.perMonth",
-    items: ["public.pricing.candidates250", "public.pricing.users5", "public.pricing.ocrStandard", "public.pricing.exportXlsx"],
-    featured: true,
-  },
-  {
-    badge: "public.pricing.professional",
-    price: "EUR 149",
-    suffix: "public.pricing.perMonth",
-    items: ["public.pricing.candidates2500", "public.pricing.users20", "public.pricing.ocrFull", "public.pricing.legalLogistics"],
-    featured: false,
-    darkBadge: true,
-  },
-  {
-    badge: "public.pricing.company",
-    price: "EUR 349",
-    suffix: "public.pricing.perMonth",
-    items: ["public.pricing.candidates10000", "public.pricing.users50", "public.pricing.apiIntegration", "public.pricing.customBranding"],
-    featured: false,
-  },
-];
-
-export default async function LandingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ lang?: string }>;
-}) {
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
   const { lang } = await searchParams;
   const language = normalizeLanguage(lang);
-  const labels = t.bind(null, language);
-  const securityHref = localizedHref("/security", language);
-  const pricingHref = localizedHref("/pricing", language);
-  const demoHref = localizedHref("/demo", language);
-  const onboardingHref = localizedHref("/onboarding", language);
-  const loginHref = localizedHref("/login", language);
+  const localized = {
+    es: { title: "Gestión de reclutamiento internacional | ORI CRUIT HUB", description: "Coordina candidatos, documentos, revisión y logística en un flujo de trabajo para agencias de reclutamiento internacional." },
+    en: { title: "International recruitment workflow | ORI CRUIT HUB", description: "Coordinate candidates, documents, reviews, and logistics in one workflow for international recruitment agencies." },
+    pl: { title: "Proces rekrutacji międzynarodowej | ORI CRUIT HUB", description: "Koordynuj kandydatów, dokumenty, weryfikację i logistykę w jednym procesie dla agencji rekrutacyjnych." },
+  }[language];
+  return publicPageMetadata({ language, path: "/", ...localized });
+}
 
-  return (
-    <div className="public-landing">
-      <nav className="public-topbar">
-        <div className="public-brand">
-          ORI CRUIT <span className="public-brand-accent">HUB</span>
-        </div>
-        <div className="public-nav-links">
-          <Link href="#features" className="public-nav-link">
-            {labels("public.nav.features")}
-          </Link>
-          <Link href={demoHref} className="public-nav-link">
-            {labels("public.nav.demo")}
-          </Link>
-          <Link href={securityHref} className="public-nav-link">
-            {labels("public.nav.security")}
-          </Link>
-          <Link href={pricingHref} className="public-nav-link">
-            {labels("public.nav.pricing")}
-          </Link>
-          <LanguageSwitcher currentLanguage={language} />
-          <Link href={loginHref} className="button public-login-link">
-            {labels("public.nav.login")}
-          </Link>
-        </div>
-      </nav>
+const content = {
+  es: {
+    nav: ["El sistema", "Proceso", "Seguridad", "Precios"], signIn: "Acceder", demo: "Solicitar demo", discover: "Explorar el sistema",
+    heroScroll: "DESPLÁZATE PARA DESCUBRIR ↓", navLabel: "Navegación principal", regionLabel: "EUROPA ↔ LATAM", artBrand: "ORI / OPERACIONES", artTitle: ["RECLUTAMIENTO", "COMO SISTEMA"], productProgress: "TRABAJO ORGANIZADO / PROGRESO VISIBLE", previewSection: "OPERACIONES / 01", previewTitle: "Resumen", previewWorkflow: "FLUJO / ESTADO", previewFigure: "FIGURA / 02", nextLabel: "ORI CRUIT HUB / SIGUIENTE PASO",
+    eyebrow: "RECLUTAMIENTO INTERNACIONAL / EUROPA ↔ LATAM", first: "Todo el proceso.", second: "Una sola vista.",
+    lead: "Coordina candidatos, documentos, revisión legal y llegadas desde un espacio de trabajo diseñado para agencias que operan entre países.",
+    caseLabel: "01 / UN SISTEMA MÁS CLARO", caseTitle: "Cuando todo avanza, necesitas verlo todo.",
+    caseText: "Los datos dispersos en hojas, mensajes y archivos ralentizan cada incorporación. ORI CRUIT HUB reúne el trabajo diario, sus responsables y los próximos pasos.",
+    steps: ["Captación", "Documentos", "Revisión legal", "Logística"],
+    productLabel: "02 / ESPACIO DE TRABAJO", productTitle: "Diseñado para decidir con contexto.",
+    productText: "Una visión de las prioridades de hoy y el detalle que necesitas para resolverlas.",
+    metric: ["Documentos pendientes", "Revisión legal", "Listos para llegar"], illustrative: "VISTA ILUSTRATIVA DEL PRODUCTO",
+    workflowLabel: "03 / DEL INGRESO A LA LLEGADA", workflowTitle: "Un recorrido conectado. Equipos coordinados.",
+    workflowText: "Cada equipo ve lo que le corresponde y trabaja sobre el mismo expediente. La extracción de datos ayuda a preparar la revisión; las decisiones permanecen en manos de las personas autorizadas.",
+    modules: [["Candidatos", "Perfil, estado y actividad en un solo lugar."], ["Documentos", "Carga, extracción y corrección con fuentes visibles."], ["Legal", "Colas de revisión y decisiones motivadas."], ["Logística", "Llegadas, transporte y alojamiento coordinados."]],
+    offerLabel: "04 / EMPEZAR CON CRITERIO", offerTitle: "Un piloto empieza con el alcance correcto.",
+    offerText: "Empezamos con una demo de datos sintéticos. Si encaja, acordamos versión, alcance de datos y soporte antes de proponer un piloto con datos reales.",
+    offerCardLabel: "PROPUESTA DE PILOTO", setup: "Implantación propuesta", cycle: "Piloto guiado propuesto / hasta 30 días", operators: "Hasta 5 operadores, sujeto al alcance", note: "Precio y alcance se confirman por escrito. La demo usa datos sintéticos; el piloto real requiere aprobación de versión y condiciones.",
+    proposalBased: "A consultar", resources: "Recursos y herramientas",
+    securityLabel: "CONTROL Y TRAZABILIDAD", securityTitle: "Cada expediente, con el acceso adecuado.",
+    securityText: "Roles, permisos y actividad registrada para que cada persona trabaje con el contexto que necesita.",
+    finalTitle: "Hagamos visible toda la operación.", finalText: "Conversemos sobre el flujo de tu agencia y preparemos una demostración enfocada en tu equipo.",
+  },
+  en: {
+    nav: ["The system", "Workflow", "Security", "Pricing"], signIn: "Sign in", demo: "Request a demo", discover: "Explore the system",
+    heroScroll: "SCROLL TO DISCOVER ↓", navLabel: "Main navigation", regionLabel: "EUROPE ↔ LATAM", artBrand: "ORI / OPERATIONS", artTitle: ["RECRUITMENT", "AS A SYSTEM"], productProgress: "ORGANIZED WORK / VISIBLE PROGRESS", previewSection: "OPERATIONS / 01", previewTitle: "Overview", previewWorkflow: "WORKFLOW / STATUS", previewFigure: "FIG / 02", nextLabel: "ORI CRUIT HUB / NEXT STEP",
+    eyebrow: "INTERNATIONAL RECRUITMENT / EUROPE ↔ LATAM", first: "The entire process.", second: "One clear view.",
+    lead: "Coordinate candidates, documents, legal review and arrivals from a workspace built for agencies operating across borders.",
+    caseLabel: "01 / A CLEARER SYSTEM", caseTitle: "When everything moves, you need to see it all.",
+    caseText: "Information scattered across sheets, messages and files slows down each placement. ORI CRUIT HUB brings daily work, ownership and next steps together.",
+    steps: ["Sourcing", "Documents", "Legal review", "Logistics"],
+    productLabel: "02 / WORKSPACE", productTitle: "Designed for decisions in context.",
+    productText: "A view of today's priorities and the detail you need to resolve them.",
+    metric: ["Documents pending", "Legal review", "Ready to arrive"], illustrative: "ILLUSTRATIVE PRODUCT VIEW",
+    workflowLabel: "03 / FROM INTAKE TO ARRIVAL", workflowTitle: "One connected journey. Coordinated teams.",
+    workflowText: "Each team sees what it needs and works from the same record. Data extraction supports review; authorized people make the decisions.",
+    modules: [["Candidates", "Profile, status and activity in one place."], ["Documents", "Upload, extraction and correction with visible sources."], ["Legal", "Review queues and reasoned decisions."], ["Logistics", "Coordinated arrivals, transport and accommodation."]],
+    offerLabel: "04 / START WITH PURPOSE", offerTitle: "A pilot starts with the right scope.",
+    offerText: "We start with a synthetic-data demo. If it fits, we agree the release, data scope and support before proposing a real-data pilot.",
+    offerCardLabel: "PILOT PROPOSAL", setup: "Proposed setup", cycle: "Proposed guided pilot / up to 30 days", operators: "Up to 5 operators, subject to scope", note: "Price and scope are confirmed in writing. Demos use synthetic data; a real-data pilot requires release and terms approval.", proposalBased: "On request", resources: "Resources and tools",
+    securityLabel: "CONTROL AND TRACEABILITY", securityTitle: "The right access for every record.",
+    securityText: "Roles, permissions and recorded activity give each person the context they need to work.",
+    finalTitle: "Make the whole operation visible.", finalText: "Let's discuss your agency's workflow and prepare a demo focused on your team.",
+  },
+  pl: {
+    nav: ["System", "Proces", "Bezpieczeństwo", "Cennik"], signIn: "Zaloguj się", demo: "Umów prezentację", discover: "Poznaj system",
+    heroScroll: "PRZEWIŃ, ABY ODKRYĆ ↓", navLabel: "Nawigacja główna", regionLabel: "EUROPA ↔ AMERYKA ŁACIŃSKA", artBrand: "ORI / OPERACJE", artTitle: ["REKRUTACJA", "JAKO SYSTEM"], productProgress: "UPORZĄDKOWANA PRACA / WIDOCZNY POSTĘP", previewSection: "OPERACJE / 01", previewTitle: "Przegląd", previewWorkflow: "PROCES / STATUS", previewFigure: "RYS. / 02", nextLabel: "ORI CRUIT HUB / NASTĘPNY KROK",
+    eyebrow: "REKRUTACJA MIĘDZYNARODOWA / EUROPA ↔ LATAM", first: "Cały proces.", second: "Jeden obraz.",
+    lead: "Koordynuj kandydatów, dokumenty, weryfikację prawną i przyjazdy w jednym miejscu pracy dla agencji działających międzynarodowo.",
+    caseLabel: "01 / PRZEJRZYSTY SYSTEM", caseTitle: "Gdy wszystko jest w ruchu, potrzebujesz pełnego obrazu.",
+    caseText: "Dane rozproszone w arkuszach, wiadomościach i plikach spowalniają proces. ORI CRUIT HUB łączy codzienną pracę, osoby odpowiedzialne i kolejne kroki.",
+    steps: ["Pozyskiwanie", "Dokumenty", "Weryfikacja prawna", "Logistyka"],
+    productLabel: "02 / MIEJSCE PRACY", productTitle: "Decyzje podejmowane z pełnym kontekstem.",
+    productText: "Widok dzisiejszych priorytetów i szczegóły potrzebne do ich rozwiązania.",
+    metric: ["Brakujące dokumenty", "Weryfikacja prawna", "Gotowi do przyjazdu"], illustrative: "POGLĄDOWY WIDOK PRODUKTU",
+    workflowLabel: "03 / OD ZGŁOSZENIA DO PRZYJAZDU", workflowTitle: "Jeden proces. Skoordynowane zespoły.",
+    workflowText: "Każdy zespół widzi właściwe informacje i pracuje na tej samej sprawie. Odczyt danych pomaga weryfikować dokumenty; decyzje podejmują uprawnione osoby.",
+    modules: [["Kandydaci", "Profil, status i aktywność w jednym miejscu."], ["Dokumenty", "Przesyłanie, odczyt i poprawki z widocznym źródłem danych."], ["Prawo", "Kolejki weryfikacji i uzasadnione decyzje."], ["Logistyka", "Koordynacja przyjazdu, transportu i zakwaterowania."]],
+    offerLabel: "04 / DOBRY POCZĄTEK", offerTitle: "Dobry pilotaż zaczyna się od właściwego zakresu.",
+    offerText: "Zaczynamy od prezentacji z danymi syntetycznymi. Jeśli proces odpowiada potrzebom, przed propozycją pilotażu z prawdziwymi danymi uzgadniamy wersję, zakres i wsparcie.",
+    offerCardLabel: "PROPOZYCJA PILOTAŻU", setup: "Proponowane wdrożenie", cycle: "Proponowany pilotaż / do 30 dni", operators: "Do 5 operatorów, zgodnie z zakresem", note: "Cenę i zakres potwierdzamy na piśmie. Prezentacja wykorzystuje dane syntetyczne; pilotaż z prawdziwymi danymi wymaga zatwierdzenia wersji i warunków.", proposalBased: "Na zapytanie", resources: "Materiały i narzędzia",
+    securityLabel: "KONTROLA I HISTORIA ZMIAN", securityTitle: "Właściwy dostęp do każdej sprawy.",
+    securityText: "Role, uprawnienia i historia działań zapewniają każdej osobie kontekst potrzebny do pracy.",
+    finalTitle: "Zobacz cały proces w jednym miejscu.", finalText: "Porozmawiajmy o pracy Twojej agencji i przygotujmy prezentację dla zespołu.",
+  },
+} as const;
 
-      <header className="public-hero">
-        <h1 className="public-hero-title">
-          {labels("public.hero.titleA")} <br />
-          <span>{labels("public.hero.titleB")}</span>
-        </h1>
-        <p className="public-hero-copy">
-          {labels("public.hero.description")}
-        </p>
-        <div className="public-hero-actions">
-          <Link href={onboardingHref} className="button public-hero-primary-action">
-            {labels("public.hero.primaryCta")} <ArrowRight size={22} className="public-hero-arrow" />
-          </Link>
-          <Link
-            href={demoHref}
-            className="button public-hero-secondary-action"
-          >
-            {labels("public.hero.secondaryCta")}
-          </Link>
-        </div>
+function Orbit({ small = false }: { small?: boolean }) {
+  return <svg className={`ori-orbit ${small ? "ori-orbit-small" : ""}`} viewBox="0 0 600 600" aria-hidden="true">
+    <circle cx="300" cy="300" r="242" /><circle cx="300" cy="300" r="184" /><circle cx="300" cy="300" r="126" /><circle cx="300" cy="300" r="69" />
+    <path d="M300 58v484M58 300h484M128 128l344 344M472 128 128 472" className="ori-orbit-guides" />
+    <circle cx="300" cy="58" r="12" className="ori-orbit-point ori-orbit-point-lime" />
+    <circle cx="484" cy="300" r="10" className="ori-orbit-point ori-orbit-point-stone" />
+    <circle cx="300" cy="426" r="10" className="ori-orbit-point ori-orbit-point-green" />
+    <circle cx="231" cy="300" r="9" className="ori-orbit-point ori-orbit-point-lime" />
+    <circle cx="300" cy="300" r="19" className="ori-orbit-center" />
+  </svg>;
+}
 
-        <div className="public-card-grid public-card-grid--3 public-hero-card-grid">
-          {featureCards.slice(0, 3).map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.title}
-                className="card public-card public-card-dark public-hero-card"
-              >
-                <Icon size={28} className="public-hero-card-icon" />
-                <h3 className="public-hero-card-title">{labels(card.title)}</h3>
-                <p className="public-hero-card-copy">{labels(card.text)}</p>
-              </div>
-            );
-          })}
-        </div>
-      </header>
+export default async function LandingPage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
+  const { lang } = await searchParams;
+  const language = normalizeLanguage(lang);
+  const c = content[language];
+  const demo = localizedHref("/demo", language);
+  const pricing = localizedHref("/pricing", language);
+  const security = localizedHref("/security", language);
+  const resources = localizedHref("/resources", language);
+  const login = localizedHref("/login", language);
 
-      <section className="public-section public-section--dark">
-        <div className="public-section-inner public-section-inner--narrow public-section-copy">
-          <h2 className="public-section-title">
-            {labels("public.problem.title")}
-          </h2>
-          <div className="public-card-grid public-card-grid--4">
-            {problemCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div key={card.title} className="card public-card public-card-dark-alt">
-                  <Icon size={40} className="public-problem-icon" />
-                  <h3 className="public-problem-title">{labels(card.title)}</h3>
-                  <p className="public-problem-copy">{labels(card.text)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+  return <div id="top" className="ori-landing">
+    <ScrollRevealObserver />
+    <MarketingScrollTop label={language === "es" ? "Volver arriba" : language === "pl" ? "Wróć na górę" : "Back to top"} />
+    <nav className="ori-nav" aria-label={c.navLabel}>
+      <Link href={localizedHref("/", language)} aria-label="ORI CRUIT HUB" className="ori-brand-link"><BrandLogo /></Link>
+      <div className="ori-nav-links"><Link href="#system">{c.nav[0]}</Link><Link href="#workflow">{c.nav[1]}</Link><Link href={security}>{c.nav[2]}</Link><Link href={pricing}>{c.nav[3]}</Link></div>
+      <div className="ori-nav-actions"><LanguageSwitcher currentLanguage={language} /><Link href={login} className="ori-nav-login">{c.signIn}</Link><Link href={demo} className="ori-nav-demo">{c.demo}<ArrowRight size={15} /></Link></div>
+    </nav>
+
+    <main>
+      <section className="ori-hero" aria-labelledby="ori-hero-title">
+        <div className="ori-hero-content"><div className="ori-kicker"><i />{c.eyebrow}</div><h1 id="ori-hero-title"><span className="ori-hero-line">{c.first}</span><br /><em>{c.second}</em></h1><p>{c.lead}</p><div className="ori-hero-actions"><Link href={demo} className="ori-action ori-action-lime">{c.demo}<ArrowRight size={18} /></Link><Link href="#system" className="ori-action ori-action-outline">{c.discover}<ArrowDownRight size={18} /></Link></div><div className="ori-hero-foot"><span>01 / 04</span><span>{c.heroScroll}</span></div></div>
+        <div className="ori-hero-graphic"><div className="ori-art-head"><span>{c.artBrand}</span><span>001—004</span></div><Orbit /><div className="ori-art-foot"><span>{c.artTitle[0]}<br />{c.artTitle[1]}</span><span>{c.regionLabel}</span></div></div>
       </section>
 
-      <section id="features" className="public-section public-section--light">
-        <div className="public-section-inner public-section-inner--narrow">
-          <div className="public-section-copy">
-            <h2 className="public-section-title">
-              {labels("public.features.title")}
-            </h2>
-            <p>
-              {labels("public.features.description")}
-            </p>
-          </div>
+      <section id="system" className="ori-section ori-overview"><div className="ori-section-label"><span>{c.caseLabel}</span><span>↘</span></div><div className="ori-overview-copy"><h2 data-scroll-reveal>{c.caseTitle}</h2><div data-scroll-reveal><p>{c.caseText}</p><Link href="#workflow" className="ori-text-link">{c.discover}<ArrowRight size={17} /></Link></div></div><div className="ori-step-rail">{c.steps.map((step, index) => <div key={step} data-scroll-reveal style={{ transitionDelay: `${index * 70}ms` }}><span>0{index + 1}</span><strong>{step}</strong><MoveUpRight size={17} /></div>)}</div></section>
 
-          <div className="public-card-grid public-card-grid--pricing">
-            {featureCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.title}
-                  className="card public-card public-card-light public-card-accent"
-                >
-                  <Icon size={32} className="public-feature-icon" />
-                  <h3 className="public-feature-title">{labels(card.title)}</h3>
-                  <p>{labels(card.text)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <section className="ori-section ori-product"><div className="ori-product-copy"><div className="ori-section-label"><span>{c.productLabel}</span><span>↗</span></div><h2 data-scroll-reveal>{c.productTitle}</h2><p data-scroll-reveal>{c.productText}</p><div className="ori-product-copy-foot"><span>◉</span> {c.productProgress}</div></div><div className="ori-product-frame" data-scroll-reveal><div className="ori-product-preview"><div className="ori-preview-rail"><BrandLogo compact variant="green-dark" /><i /><i /><i /><i /></div><div className="ori-preview-content"><div className="ori-preview-top">{c.previewSection} <span>ORI CRUIT HUB</span></div><h3>{c.previewTitle}<span>.</span></h3><div className="ori-preview-metrics">{c.metric.map((metric, index) => <div key={metric}><small>0{index + 1} / {metric}</small><strong>{[24, 8, 12][index]}</strong><i /></div>)}</div><div className="ori-preview-bottom"><div><small>{c.previewWorkflow}</small><div className="ori-preview-bars"><i /><i /><i /><i /></div><div className="ori-preview-bars"><i /><i /><i /><i /></div><div className="ori-preview-bars"><i /><i /><i /><i /></div></div><Orbit small /></div></div></div><div className="ori-preview-caption"><span>{c.illustrative}</span><span>{c.previewFigure}</span></div></div></section>
 
-      <section id="demo" className="public-section public-section--dark">
-        <div className="public-section-inner">
-          <div className="public-section-copy">
-            <h2 className="public-section-title">
-              {labels("public.demo.title")}
-            </h2>
-            <p>
-              {labels("public.demo.description")}
-            </p>
-          </div>
+      <section id="workflow" className="ori-section ori-workflow"><div className="ori-section-label"><span>{c.workflowLabel}</span><span>03 / 04</span></div><div className="ori-workflow-intro"><h2 data-scroll-reveal>{c.workflowTitle}</h2><p data-scroll-reveal>{c.workflowText}</p></div><div className="ori-module-grid">{c.modules.map(([title, description], index) => <article key={title} className="ori-module" data-scroll-reveal style={{ transitionDelay: `${index * 75}ms` }}><div><span>0{index + 1} / 04</span><span>↗</span></div><h3>{title}</h3><p>{description}</p><i /></article>)}</div></section>
 
-          <div className="public-card-grid public-demo-card-grid">
-            {demoSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.title}
-                  className="card public-card public-card-dark-alt"
-                >
-                  <div className="public-demo-step-header">
-                    <span className="status-badge active public-demo-step-badge">
-                      0{index + 1}
-                    </span>
-                    <Icon size={28} className="public-demo-step-icon" />
-                  </div>
-                  <h3 className="public-demo-step-title">{labels(step.title)}</h3>
-                  <p className="public-demo-step-copy">{labels(step.text)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <section className="ori-section ori-offer"><div className="ori-offer-copy"><div className="ori-section-label"><span>{c.offerLabel}</span><span>04 / 04</span></div><h2 data-scroll-reveal>{c.offerTitle}</h2><p data-scroll-reveal>{c.offerText}</p><Link href={pricing} className="ori-text-link">{c.nav[3]}<ArrowRight size={17} /></Link></div><div className="ori-offer-card" data-scroll-reveal><small>{c.offerCardLabel}</small><div><span>{c.setup}</span><strong>{c.proposalBased}</strong></div><div><span>{c.cycle}</span><strong>{c.proposalBased}</strong></div><p><Check size={16} />{c.operators}</p><small>{c.note}</small><Link href={demo} className="ori-action ori-action-black">{c.demo}<ArrowRight size={18} /></Link></div></section>
 
-      <section id="security" className="public-section public-section--light">
-        <div className="public-section-inner public-section-inner--narrow">
-          <div className="public-section-copy">
-            <h2 className="public-section-title">
-              {labels("public.security.title")}
-            </h2>
-            <p>{labels("public.security.description")}</p>
-          </div>
-
-          <div className="public-card-grid public-card-grid--4 public-security-card-grid">
-            {trustCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.title}
-                  className="card public-card public-card-light"
-                >
-                  <Icon size={30} className="public-security-icon" />
-                  <h3 className="public-security-title">{labels(card.title)}</h3>
-                  <p className="public-security-copy">{labels(card.text)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="public-section public-section--light">
-        <div className="public-section-inner">
-          <div className="public-section-copy">
-            <h2 className="public-section-title">
-              {labels("public.pricing.title")}
-            </h2>
-            <p>{labels("public.pricing.description")}</p>
-          </div>
-
-          <div className="public-card-grid public-card-grid--pricing">
-            {pricingPlans.map((plan) => {
-              const planHref = plan.title === "public.pricing.free" ? onboardingHref : pricingHref;
-              const planLabel =
-                plan.title === "public.pricing.free"
-                  ? labels("public.hero.primaryCta")
-                  : labels("public.pricing.selectPlan");
-
-              return (
-                <div
-                  key={plan.title ?? plan.price}
-                  className={`card public-card public-pricing-card ${plan.featured ? "public-card-accent" : ""} ${plan.darkBadge ? "public-pricing-card--dark-badge" : ""}`.trim()}
-                >
-                  <div className="public-pricing-header">
-                    <div
-                      className={`status-badge ${plan.featured ? "active" : ""} public-pricing-badge ${plan.darkBadge ? "public-pricing-badge--dark" : ""}`}
-                    >
-                    {labels(plan.badge)}
-                    </div>
-                    <h3 className="public-pricing-title">
-                      {plan.price ?? labels(plan.title ?? "public.pricing.free")}
-                      {plan.suffix ? <span className="public-pricing-suffix">{labels(plan.suffix)}</span> : null}
-                    </h3>
-                  </div>
-                  <ul className="public-pricing-list">
-                    {plan.items.map((item) => (
-                      <li key={item} className="public-pricing-item">
-                        <CheckCircle2 size={18} color="green" /> {labels(item)}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={planHref} className="button public-pricing-action">
-                    {planLabel}
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section id="cta" className="public-section public-section--dark public-cta-section">
-        <div className="public-section-inner public-section-inner--narrow public-cta-inner">
-          <h2 className="public-section-title">
-            {labels("public.finalCta.title")}
-          </h2>
-          <p className="public-cta-copy">
-            {labels("public.finalCta.description")}
-          </p>
-          <div className="public-section-actions">
-            <Link href={demoHref} className="button public-cta-primary">
-              {labels("public.finalCta.primary")} <ArrowRight size={20} className="public-cta-arrow" />
-            </Link>
-            <Link
-              href={loginHref}
-              className="button public-cta-secondary"
-            >
-              {labels("public.finalCta.secondary")}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="public-footer">
-        <div className="public-footer-inner">
-          <div className="public-footer-brand">
-            ORI CRUIT HUB
-          </div>
-          <p className="public-footer-copy">{labels("public.footer.description")}</p>
-          <div className="public-footer-links">
-            <Link href="#features" className="public-footer-link">
-              {labels("public.nav.features")}
-            </Link>
-            <Link href={demoHref} className="public-footer-link">
-              {labels("public.nav.demo")}
-            </Link>
-            <Link href={securityHref} className="public-footer-link">
-              {labels("public.nav.security")}
-            </Link>
-            <Link href={pricingHref} className="public-footer-link">
-              {labels("public.nav.pricing")}
-            </Link>
-            <Link href={loginHref} className="public-footer-link">
-              {labels("public.nav.login")}
-            </Link>
-          </div>
-          <div className="public-footer-rights">
-            {labels("public.footer.rights")}
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+      <section className="ori-security"><div data-scroll-reveal><small>{c.securityLabel}</small><h2>{c.securityTitle}</h2><p>{c.securityText}</p></div><Link href={security} aria-label={c.nav[2]} data-scroll-reveal><ArrowRight size={25} /></Link></section>
+      <section className="ori-final"><small data-scroll-reveal>{c.nextLabel}</small><h2 data-scroll-reveal>{c.finalTitle}</h2><p data-scroll-reveal>{c.finalText}</p><Link href={demo} className="ori-action ori-action-lime" data-scroll-reveal>{c.demo}<ArrowRight size={18} /></Link></section>
+    </main>
+    <footer className="ori-footer"><Link href="#top" className="ori-brand-link" aria-label="ORI CRUIT HUB — top"><BrandLogo variant="green" /></Link><div><Link href={security}>{c.nav[2]}</Link><Link href={pricing}>{c.nav[3]}</Link><Link href={resources}>{c.resources}</Link><Link href={login}>{c.signIn}</Link></div><small>© 2026 ORI CRUIT HUB</small></footer>
+  </div>;
 }

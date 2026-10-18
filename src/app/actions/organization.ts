@@ -1,14 +1,53 @@
 "use server";
 
 import { auth, unstable_update } from "@/auth";
-import { signIn } from "@/auth";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import { sendTransactionalEmail } from "@/lib/providers/email";
+import { logger } from "@/lib/logger";
+import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
+import { isValidAccountPassword } from "@/lib/security/password-policy";
+
+const ORGANIZATION_SIGNUP_TTL_MS = 24 * 60 * 60 * 1000;
+const ORGANIZATION_SIGNUP_RESEND_DELAY_MS = 60 * 1000;
+
+type OrganizationCreationErrorKey = "onboarding.error.session" | "onboarding.error.alreadyMember";
+
+class OrganizationCreationError extends Error {
+  constructor(readonly translationKey: OrganizationCreationErrorKey) {
+    super(translationKey);
+    this.name = "OrganizationCreationError";
+  }
+}
+
+function logOrganizationOnboardingFailure(
+  operation: "create" | "verification-info" | "verify",
+  error: unknown
+) {
+  const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+  logger.error("Organization onboarding operation failed", {
+    operation,
+    errorKind: prismaCode
+      ? "PRISMA_KNOWN_REQUEST"
+      : error instanceof Error
+        ? "UNEXPECTED_ERROR"
+        : "UNKNOWN_ERROR",
+    ...(prismaCode ? { prismaCode } : {}),
+  });
+}
+
+function hashOrganizationSignupToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function formatOrganizationSignupEmail(template: string, values: Record<string, string>) {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) => values[key] ?? "");
+}
 
 function slugifyOrganizationName(name: string) {
   const base = name
@@ -148,31 +187,33 @@ async function seedDemoWorkspace(
 }
 
 export async function createOrganizationAction(
-  _prevState: { error: string },
+  _prevState: { error: string; notice?: string },
   formData: FormData
 ) {
-  const session = await auth();
-
   const name = String(formData.get("name") ?? "").trim();
-  const workspaceMode = String(formData.get("mode") ?? "standard").trim();
-  if (!name) {
-    return { error: "El nombre de la organizacion es obligatorio." };
+  const workspaceMode = formData.get("mode") === "demo" ? "demo" : "standard";
+  const language = normalizeLanguage(String(formData.get("language") ?? "es"));
+  let session: Awaited<ReturnType<typeof auth>>;
+  try {
+    session = await auth();
+  } catch (error) {
+    logOrganizationOnboardingFailure("create", error);
+    return { error: t(language, "onboarding.error.create") };
+  }
+
+  if (name.length < 2 || name.length > 120) {
+    return { error: t(language, "onboarding.error.organizationName") };
   }
 
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
 
-  if (!session && !fullName) {
-    return { error: "Tu nombre es obligatorio para crear el acceso inicial." };
+  if (!session && (fullName.length < 2 || fullName.length > 100)) {
+    return { error: t(language, "onboarding.error.fullName") };
   }
 
-  if (!session && !email) {
-    return { error: "El correo electronico es obligatorio para crear el acceso inicial." };
-  }
-
-  if (!session && password.length < 8) {
-    return { error: "La contrasena inicial debe tener al menos 8 caracteres." };
+  if (!session && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    return { error: t(language, "onboarding.error.email") };
   }
 
   const slug = slugifyOrganizationName(name);
@@ -180,28 +221,56 @@ export async function createOrganizationAction(
   try {
     const currentUser = session
       ? await prisma.user.findFirst({
-          where: {
-            OR: [
-              ...(session?.user?.id ? [{ id: session.user.id }] : []),
-              ...(session?.user?.email ? [{ email: session.user.email }] : []),
-            ],
-          },
+          // The authenticated user ID is the identity source of truth. An OR
+          // lookup could select a different account if a stale session email
+          // happens to belong to another user.
+          where: session.user?.id
+            ? { id: session.user.id }
+            : { email: session.user?.email ?? "" },
           select: {
             id: true,
             email: true,
             isPlatformAdmin: true,
+            isActive: true,
+            organizationId: true,
+            memberships: {
+              select: { id: true },
+            },
           },
         })
       : null;
 
-    if (session && !currentUser) {
+    if (session && (!currentUser || !currentUser.isActive)) {
       return {
-        error: "La sesion actual no corresponde a un usuario valido. Cierra sesion y vuelve a entrar.",
+        error: t(language, "onboarding.error.session"),
+      };
+    }
+
+    if (currentUser && (currentUser.organizationId || currentUser.memberships.length > 0)) {
+      return {
+        error: t(language, "onboarding.error.alreadyMember"),
       };
     }
 
     if (currentUser) {
       const result = await prisma.$transaction(async (tx) => {
+        const currentState = await tx.user.findUnique({
+          where: { id: currentUser.id },
+          select: {
+            isActive: true,
+            organizationId: true,
+            memberships: { select: { id: true } },
+          },
+        });
+
+        if (!currentState?.isActive) {
+          throw new OrganizationCreationError("onboarding.error.session");
+        }
+
+        if (currentState.organizationId || currentState.memberships.length > 0) {
+          throw new OrganizationCreationError("onboarding.error.alreadyMember");
+        }
+
         const organizationId = randomUUID();
         const org = await tx.organization.create({
           data: {
@@ -213,18 +282,8 @@ export async function createOrganizationAction(
           },
         });
 
-        await tx.membership.upsert({
-          where: {
-            userId_organizationId: {
-              userId: currentUser.id,
-              organizationId: org.id,
-            },
-          },
-          update: {
-            role: "SUPERADMIN",
-            isActive: true,
-          },
-          create: {
+        await tx.membership.create({
+          data: {
             organizationId: org.id,
             userId: currentUser.id,
             role: "SUPERADMIN",
@@ -245,7 +304,7 @@ export async function createOrganizationAction(
         }
 
         return org;
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       await unstable_update({
         user: {
@@ -256,86 +315,132 @@ export async function createOrganizationAction(
         },
       });
     } else {
+      const now = new Date();
+      const configuredAppUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || "";
+      let appBaseUrl: URL;
+      try {
+        if (!configuredAppUrl && process.env.NODE_ENV === "production") {
+          return { error: t(language, "onboarding.verifyUrlMissing") };
+        }
+        appBaseUrl = new URL(configuredAppUrl || "http://localhost:3000");
+        if (process.env.NODE_ENV === "production" && appBaseUrl.protocol !== "https:") {
+          return { error: t(language, "onboarding.verifyUrlHttps") };
+        }
+      } catch {
+        return { error: t(language, "onboarding.verifyUrlInvalid") };
+      }
+
       const existingUser = await prisma.user.findUnique({
         where: { email },
         select: { id: true },
       });
-
       if (existingUser) {
-        return {
-          error: "Ya existe una cuenta con este correo. Inicia sesion para continuar con la activacion.",
-        };
+        await prisma.pendingOrganizationSignup.deleteMany({ where: { email } });
+        return { error: "", notice: t(language, "onboarding.verifySentNotice") };
       }
 
-      const passwordHash = await bcrypt.hash(password, 12);
-
-      await prisma.$transaction(async (tx) => {
-        const organizationId = randomUUID();
-        const org = await tx.organization.create({
-          data: {
-            id: organizationId,
-            name,
-            slug,
-            plan: "FREE",
-            isActive: true,
-          },
+      const token = randomBytes(32).toString("base64url");
+      const tokenHash = hashOrganizationSignupToken(token);
+      const expiresAt = new Date(now.getTime() + ORGANIZATION_SIGNUP_TTL_MS);
+      await prisma.pendingOrganizationSignup.deleteMany({ where: { expiresAt: { lte: now } } });
+      const pendingSignup = await prisma.$transaction(async (tx) => {
+        const currentSignup = await tx.pendingOrganizationSignup.findUnique({
+          where: { email },
+          select: { lastSentAt: true },
         });
-
-        const createdUser = await tx.user.create({
-          data: {
-            email,
-            name: fullName,
-            passwordHash,
-            organizationId: org.id,
-            role: "SUPERADMIN",
-            isActive: true,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        await tx.membership.create({
-          data: {
-            organizationId: org.id,
-            userId: createdUser.id,
-            role: "SUPERADMIN",
-            isActive: true,
-          },
-        });
-
-        if (workspaceMode === "demo") {
-          await seedDemoWorkspace(tx, org, createdUser.id);
+        if (
+          currentSignup?.lastSentAt &&
+          now.getTime() - currentSignup.lastSentAt.getTime() < ORGANIZATION_SIGNUP_RESEND_DELAY_MS
+        ) {
+          return null;
         }
-      });
 
-      revalidatePath("/", "layout");
-      revalidatePath("/dashboard");
-      revalidatePath("/candidatos");
-      revalidatePath("/legal");
-      revalidatePath("/logistica");
-      revalidatePath("/notificaciones");
+        return tx.pendingOrganizationSignup.upsert({
+          where: { email },
+          create: {
+            email,
+            fullName,
+            organizationName: name,
+            workspaceMode,
+            language,
+            tokenHash,
+            expiresAt,
+            lastSentAt: now,
+          },
+          update: {
+            fullName,
+            organizationName: name,
+            workspaceMode,
+            language,
+            tokenHash,
+            expiresAt,
+            lastSentAt: now,
+          },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
-      await signIn("credentials", {
-        email,
-        password,
-        redirectTo: "/dashboard",
-      });
+      if (!pendingSignup) {
+        return { error: "", notice: t(language, "onboarding.verifySentNotice") };
+      }
+
+      const verifyUrl = new URL("/onboarding/verify", appBaseUrl);
+      verifyUrl.searchParams.set("lang", language);
+      verifyUrl.hash = new URLSearchParams({ token }).toString();
+      const emailValues = { name: fullName, organization: name, url: verifyUrl.toString() };
+      const emailText = (key: TranslationKey) =>
+        formatOrganizationSignupEmail(t(language, key), emailValues);
+      let emailSent = false;
+      try {
+        const emailResult = await sendTransactionalEmail({
+          to: email,
+          subject: t(language, "onboarding.verifyEmailSubject"),
+          body: [
+            emailText("onboarding.verifyEmailGreeting"),
+            "",
+            emailText("onboarding.verifyEmailBody"),
+            "",
+            emailText("onboarding.verifyEmailAction"),
+            emailValues.url,
+            "",
+            emailText("onboarding.verifyEmailExpiry"),
+            emailText("onboarding.verifyEmailIgnore"),
+          ].join("\n"),
+        });
+        emailSent = emailResult.success;
+      } catch {
+        emailSent = false;
+      }
+
+      if (!emailSent) {
+        logger.warn("Organization signup verification email delivery was not confirmed.");
+        await prisma.pendingOrganizationSignup.deleteMany({ where: { email, tokenHash } });
+        return { error: "", notice: t(language, "onboarding.verifySentNotice") };
+      }
+
+      return {
+        error: "",
+        notice: t(language, "onboarding.verifySentNotice"),
+      };
     }
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
     }
 
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return {
-        error: "Ya existe una cuenta o espacio con esos datos. Usa otro nombre o inicia sesion con el correo ya creado.",
-      };
+    if (error instanceof OrganizationCreationError) {
+      return { error: t(language, error.translationKey) };
     }
 
-    const message = error instanceof Error ? error.message : "Error desconocido";
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      if (!session) {
+        return { error: "", notice: t(language, "onboarding.verifySentNotice") };
+      }
+      return { error: t(language, "onboarding.error.duplicate") };
+    }
+
+    logOrganizationOnboardingFailure("create", error);
     return {
-      error: `No se pudo crear la organizacion. ${message}`,
+      error: t(language, "onboarding.error.create"),
     };
   }
 
@@ -346,4 +451,158 @@ export async function createOrganizationAction(
   revalidatePath("/logistica");
   revalidatePath("/notificaciones");
   redirect("/dashboard");
+}
+
+export async function getOrganizationSignupVerificationInfo(rawToken: string) {
+  const token = typeof rawToken === "string" && /^[A-Za-z0-9_-]{43}$/.test(rawToken) ? rawToken : "";
+  if (!token) return { status: "invalid" as const, organizationName: "" };
+
+  try {
+    const pending = await prisma.pendingOrganizationSignup.findUnique({
+      where: { tokenHash: hashOrganizationSignupToken(token) },
+      select: { organizationName: true, expiresAt: true },
+    });
+    if (!pending || pending.expiresAt <= new Date()) {
+      return { status: "invalid" as const, organizationName: "" };
+    }
+    return { status: "valid" as const, organizationName: pending.organizationName };
+  } catch (error) {
+    logOrganizationOnboardingFailure("verification-info", error);
+    return { status: "error" as const, organizationName: "" };
+  }
+}
+
+export async function verifyOrganizationSignupAction(formData: FormData) {
+  const rawToken = String(formData.get("token") ?? "");
+  const token = /^[A-Za-z0-9_-]{43}$/.test(rawToken) ? rawToken : "";
+  const tokenHash = token ? hashOrganizationSignupToken(token) : "";
+  const language = normalizeLanguage(String(formData.get("language") ?? "es"));
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+  const verifyUrl = `/onboarding/verify?${new URLSearchParams({ lang: language, error: "password" }).toString()}#${new URLSearchParams({ token }).toString()}`;
+  const now = new Date();
+  try {
+    await prisma.pendingOrganizationSignup.deleteMany({ where: { expiresAt: { lte: now } } });
+  } catch (error) {
+    logOrganizationOnboardingFailure("verify", error);
+    redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "error" }).toString()}`);
+  }
+
+  if (
+    !token || !isValidAccountPassword(password) ||
+    password !== confirmPassword
+  ) {
+    redirect(verifyUrl);
+  }
+
+  let pendingBeforeHash: { expiresAt: Date } | null;
+  try {
+    pendingBeforeHash = await prisma.pendingOrganizationSignup.findUnique({
+      where: { tokenHash },
+      select: { expiresAt: true },
+    });
+  } catch (error) {
+    logOrganizationOnboardingFailure("verify", error);
+    redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "error" }).toString()}`);
+  }
+  if (!pendingBeforeHash || pendingBeforeHash.expiresAt <= now) {
+    redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "invalid" }).toString()}`);
+  }
+
+  let passwordHash: string;
+  try {
+    passwordHash = await bcrypt.hash(password, 12);
+  } catch (error) {
+    logOrganizationOnboardingFailure("verify", error);
+    redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "error" }).toString()}`);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const pending = await tx.pendingOrganizationSignup.findUnique({
+        where: { tokenHash },
+      });
+      if (!pending || pending.expiresAt <= new Date()) {
+        throw new Error("SIGNUP_TOKEN_INVALID");
+      }
+
+      const existingUser = await tx.user.findUnique({
+        where: { email: pending.email },
+        select: { id: true },
+      });
+      if (existingUser) {
+        throw new Error("SIGNUP_EMAIL_ALREADY_USED");
+      }
+
+      const organization = await tx.organization.create({
+        data: {
+          name: pending.organizationName,
+          slug: slugifyOrganizationName(pending.organizationName),
+          plan: "FREE",
+          isActive: true,
+        },
+      });
+      const user = await tx.user.create({
+        data: {
+          email: pending.email,
+          name: pending.fullName,
+          passwordHash,
+          organizationId: organization.id,
+          role: "SUPERADMIN",
+          isActive: true,
+          settings: { interfaceLanguage: normalizeLanguage(pending.language) },
+        },
+        select: { id: true },
+      });
+
+      await tx.membership.create({
+        data: {
+          organizationId: organization.id,
+          userId: user.id,
+          role: "SUPERADMIN",
+          isActive: true,
+        },
+      });
+
+      if (pending.workspaceMode === "demo") {
+        await seedDemoWorkspace(tx, organization, user.id);
+      }
+
+      await tx.auditLog.create({
+        data: {
+          action: "ORGANIZATION_SIGNUP_VERIFIED",
+          entityType: "Organization",
+          entityId: organization.id,
+          userId: user.id,
+          organizationId: organization.id,
+          details: { emailVerified: true, workspaceMode: pending.workspaceMode },
+        },
+      });
+
+      const consumed = await tx.pendingOrganizationSignup.deleteMany({
+        where: { id: pending.id, tokenHash, expiresAt: { gt: new Date() } },
+      });
+      if (consumed.count !== 1) {
+        throw new Error("SIGNUP_TOKEN_ALREADY_USED");
+      }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    const conflict = error instanceof Error ? error.message : "";
+    const expectedConflict = [
+      "SIGNUP_TOKEN_INVALID",
+      "SIGNUP_EMAIL_ALREADY_USED",
+      "SIGNUP_TOKEN_ALREADY_USED",
+    ].includes(conflict);
+    if (!expectedConflict) logOrganizationOnboardingFailure("verify", error);
+    if (conflict === "SIGNUP_EMAIL_ALREADY_USED") {
+      redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "existing" }).toString()}`);
+    }
+    if (["SIGNUP_TOKEN_INVALID", "SIGNUP_TOKEN_ALREADY_USED"].includes(conflict)) {
+      redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "invalid" }).toString()}`);
+    }
+    redirect(`/onboarding/verify?${new URLSearchParams({ lang: language, status: "error" }).toString()}`);
+  }
+
+  revalidatePath("/", "layout");
+  redirect(`/login?${new URLSearchParams({ lang: language, verified: "1" }).toString()}`);
 }

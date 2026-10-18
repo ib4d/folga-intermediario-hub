@@ -25,7 +25,7 @@ export default async function BrokerDetailPage({
   if (!broker) redirect("/brokers");
 
   return (
-    <div className="main-content module-page-shell">
+    <div className="main-content module-page-shell brokers-page-shell broker-detail-page-shell">
       <PageHeader
         title={broker.displayName}
         description={broker.legalOrBillingName || broker.displayName}

@@ -4,7 +4,7 @@ import ExcelJS from "exceljs";
 import { CandidateStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { requireTenant } from "@/lib/tenant";
+import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { canExportCandidates, canExportLegalReview, canExportLogistics } from "@/lib/permissions";
 
 type ExportResponse = {
@@ -244,6 +244,7 @@ export async function exportLogisticsArrivalsXLSX(): Promise<ExportResponse> {
   const events = await prisma.logisticsEvent.findMany({
     where: {
       organizationId: tenant.organizationId!,
+      candidate: candidateVisibilityWhere(tenant),
     },
     include: {
       candidate: true,

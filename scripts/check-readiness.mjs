@@ -74,6 +74,7 @@ function shouldRunPermissions() {
 }
 
 try {
+  runNpmStep("Production dependency audit", ["audit", "--omit=dev"]);
   runNpmStep("Production environment check", ["run", "check:prod-env"]);
 
   if (shouldRunLint()) {
@@ -104,8 +105,9 @@ try {
 
   if (shouldRunBuild()) {
     runNpmStep("Production build", ["run", "build"]);
+    runNpmStep("Standalone runtime dependency scan", ["run", "check:runtime-deps"]);
   } else {
-    console.warn("CHECK_READINESS_SKIP_BUILD=true. Skipping production build.");
+    console.warn("CHECK_READINESS_SKIP_BUILD=true. Skipping production build and runtime dependency scan.");
   }
 
   console.log("\nReadiness check passed.");

@@ -12,24 +12,30 @@ export async function createLead(formData: FormData) {
     throw new Error("Tu rol no puede gestionar leads");
   }
   
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const company = formData.get("company") as string;
-  const source = formData.get("source") as string;
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const company = String(formData.get("company") ?? "").trim();
+  const source = String(formData.get("source") ?? "").trim();
+  if (!name) throw new Error("El nombre del lead es obligatorio");
+  if (name.length > 160 || company.length > 160 || source.length > 120 || email.length > 254) {
+    throw new Error("Uno de los campos supera la longitud permitida");
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("El correo electrónico no es válido");
+  }
 
-  const lead = await prisma.lead.create({
+  await prisma.lead.create({
     data: {
       name,
-      email,
-      company,
-      source,
+      email: email || null,
+      company: company || null,
+      source: source || null,
       organizationId: tenant.organizationId!,
       status: "NEW"
     }
   });
 
   revalidatePath("/leads");
-  return { success: true, leadId: lead.id };
 }
 
 export async function sendLeadOutreach(leadId: string, message: string, step: number) {

@@ -6,6 +6,7 @@ import { checkBruteForce, registerFailedAttempt, resetAttempts } from "@/lib/sec
 import { Prisma, Role } from "@prisma/client";
 import { authConfig } from "./auth.config";
 import { normalizeLanguage } from "@/lib/i18n";
+import { resolveOrganizationAccess } from "@/lib/organization-access";
 
 function getInterfaceLanguage(settings: Prisma.JsonValue | null | undefined) {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -36,10 +37,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email },
           include: {
-            memberships: {
-              where: { isActive: true },
-              take: 1,
-            },
+            memberships: true,
           },
         });
 
@@ -60,21 +58,19 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         resetAttempts(email);
 
-        // Determine current organization and role
-        let currentOrgId = user.organizationId;
-        let currentRole = user.role;
-
-        if (!currentOrgId && user.memberships.length > 0) {
-          currentOrgId = user.memberships[0].organizationId;
-          currentRole = user.memberships[0].role;
-        }
+        const organizationAccess = resolveOrganizationAccess({
+          organizationId: user.organizationId,
+          role: user.role,
+          memberships: user.memberships,
+        });
+        if (!organizationAccess && !user.isPlatformAdmin) return null;
 
         return { 
           id: user.id, 
           email: user.email, 
           name: user.name || "", 
-          role: currentRole as Role,
-          organizationId: currentOrgId,
+          role: (organizationAccess?.role ?? user.role) as Role,
+          organizationId: organizationAccess?.organizationId ?? null,
           isPlatformAdmin: user.isPlatformAdmin,
           interfaceLanguage: getInterfaceLanguage(user.settings),
         };

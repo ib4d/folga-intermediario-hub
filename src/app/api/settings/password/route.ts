@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
+import { getCurrentTenant } from "@/lib/tenant";
 
 type PasswordPayload = {
   currentPassword?: unknown;
@@ -60,23 +60,28 @@ export async function PATCH(request: Request) {
   }
 
   const passwordHash = await bcrypt.hash(nextPassword, 12);
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash },
-  });
-
-  if (session.user.organizationId) {
-    await writeAuditLog({
-      userId: user.id,
-      organizationId: session.user.organizationId,
-      action: "PASSWORD_CHANGED",
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        changedAt: new Date().toISOString(),
-      },
+  const tenant = await getCurrentTenant();
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
     });
-  }
+
+    if (tenant) {
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          organizationId: tenant.organizationId,
+          action: "PASSWORD_CHANGED",
+          entityType: "User",
+          entityId: user.id,
+          details: {
+            changedAt: new Date().toISOString(),
+          },
+        },
+      });
+    }
+  });
 
   return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }

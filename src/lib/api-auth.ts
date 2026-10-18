@@ -23,6 +23,8 @@ type RateLimitBucket = {
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_RATE_LIMIT = 120;
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 60_000;
+let nextRateLimitCleanupAt = 0;
 
 const rateLimitStore = globalThis as typeof globalThis & {
   __oriApiRateLimitStore?: Map<string, RateLimitBucket>;
@@ -60,6 +62,7 @@ function buildRateLimitResponse(bucket: RateLimitBucket, limit: number) {
     {
       status: 429,
       headers: {
+        "Cache-Control": "no-store",
         "Retry-After": String(retryAfterSeconds),
         "X-RateLimit-Limit": String(limit),
         "X-RateLimit-Remaining": "0",
@@ -72,6 +75,14 @@ function buildRateLimitResponse(bucket: RateLimitBucket, limit: number) {
 function enforceRateLimit(apiKeyId: string, pathname: string, limit = DEFAULT_RATE_LIMIT) {
   const store = getRateLimitStore();
   const now = Date.now();
+
+  if (now >= nextRateLimitCleanupAt) {
+    for (const [bucketKey, bucket] of store) {
+      if (bucket.resetAt <= now) store.delete(bucketKey);
+    }
+    nextRateLimitCleanupAt = now + RATE_LIMIT_CLEANUP_INTERVAL_MS;
+  }
+
   const key = `${apiKeyId}:${pathname}`;
   const current = store.get(key);
 
@@ -98,7 +109,10 @@ export async function authenticateApiKey(
   if (!rawKey) {
     return {
       apiKey: null,
-      response: NextResponse.json({ error: "API key requerida" }, { status: 401 }),
+      response: NextResponse.json(
+        { error: "API key requerida" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
+      ),
     };
   }
 
@@ -122,14 +136,20 @@ export async function authenticateApiKey(
   if (!apiKey) {
     return {
       apiKey: null,
-      response: NextResponse.json({ error: "API key invalida o revocada" }, { status: 401 }),
+      response: NextResponse.json(
+        { error: "API key invalida o revocada" },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
+      ),
     };
   }
 
   if (!apiKey.organization.isActive) {
     return {
       apiKey: null,
-      response: NextResponse.json({ error: "Organizacion inactiva" }, { status: 403 }),
+      response: NextResponse.json(
+        { error: "Organizacion inactiva" },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      ),
     };
   }
 

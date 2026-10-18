@@ -43,6 +43,11 @@ export async function isDocumentUrlReachable(publicUrl: string): Promise<boolean
     }
   }
 
+  const checkUrl = objectPath
+    ? await storage.createSignedDownloadUrl(objectPath)
+    : null;
+  if (!checkUrl) return false;
+
   const timeoutMs = 5000;
   const createAbortSignal = () => {
     const controller = new AbortController();
@@ -53,7 +58,7 @@ export async function isDocumentUrlReachable(publicUrl: string): Promise<boolean
   const checkWithMethod = async (method: "HEAD" | "GET") => {
     const { controller, timeout } = createAbortSignal();
     try {
-      const response = await fetch(publicUrl, {
+      const response = await fetch(checkUrl, {
         method,
         cache: "no-store",
         redirect: "follow",
@@ -85,11 +90,17 @@ export async function isDocumentUrlReachable(publicUrl: string): Promise<boolean
 export async function inspectDocumentIntegrity(
   documents: DocumentIntegrityRecord[]
 ): Promise<DocumentIntegritySummary> {
-  const checks = await Promise.all(
-    documents.map(async (document) => ({
-      document,
-      accessible: await isDocumentUrlReachable(document.url),
-    }))
+  const checks: Array<{ document: DocumentIntegrityRecord; accessible: boolean }> = [];
+  const concurrency = Math.min(8, Math.max(1, documents.length));
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (nextIndex < documents.length) {
+        const document = documents[nextIndex++];
+        checks.push({ document, accessible: await isDocumentUrlReachable(document.url) });
+      }
+    })
   );
 
   const issues: DocumentIntegrityIssue[] = checks

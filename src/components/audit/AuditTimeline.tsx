@@ -308,7 +308,12 @@ export default function AuditTimeline({ logs }: Props) {
         <Search size={20} /> Historial de auditoría
       </h3>
 
-      <div className="audit-timeline-scroll relative ml-3 space-y-8 border-l-2 border-gray-200 pl-6">
+      <div
+        className="audit-timeline-scroll relative ml-3 space-y-8 border-l-2 border-gray-200 pl-6"
+        role="region"
+        aria-label="Historial de auditoría"
+        tabIndex={0}
+      >
         {logs.length === 0 ? (
           <p className="text-muted-foreground italic">No hay registros de auditoría disponibles.</p>
         ) : null}

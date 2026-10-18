@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 import {
   buildBrokerLeadsCsv,
   buildBrokerLeadsWorkbook,
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
       contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 
-    await writeAuditLog({
+    await writeAuditLogOrThrow({
       userId: tenant.userId,
       organizationId: tenant.organizationId,
       action: "BROKER_LEADS_EXPORTED",

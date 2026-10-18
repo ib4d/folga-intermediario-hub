@@ -3,15 +3,15 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-folga}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-folga123}
-      POSTGRES_DB: ${DB_NAME:-folga_hub}
+      POSTGRES_USER: ${DB_USER:-ori}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-this-password}
+      POSTGRES_DB: ${DB_NAME:-ori_cruit_hub}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${DB_PUBLISHED_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-folga} -d ${DB_NAME:-folga_hub}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ori} -d ${DB_NAME:-ori_cruit_hub}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -22,13 +22,13 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-folga}:${DB_PASSWORD:-folga123}@db:5432/${DB_NAME:-folga_hub}?schema=public
+      DATABASE_URL: postgresql://${DB_USER:-ori}:${DB_PASSWORD:-change-this-password}@db:5432/${DB_NAME:-ori_cruit_hub}?schema=public
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_SECRET: ${AUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-${AUTH_URL:-http://localhost:3000}}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${AUTH_SECRET}}
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-supabase}
-      LOCAL_STORAGE_DIR: ${LOCAL_STORAGE_DIR:-/app/public/uploads}
+      LOCAL_STORAGE_DIR: ${LOCAL_STORAGE_DIR:-/app/private-uploads}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}

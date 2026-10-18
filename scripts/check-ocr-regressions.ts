@@ -122,6 +122,18 @@ P<POLKOWALSKA<<ANNA<MARIA<<<<<<<<<<<<<<
 AB1234567<POL9001011F3001012<<<<<<<<<<<<<<04
 `;
 
+const passportWithOcrDateConfusions = `
+PASSPORT
+Surname
+NOWAK
+Given names
+JAN
+Date of expiry
+23 JUL/JUL 2O34
+P<POLNOWAK<<JAN<<<<<<<<<<<<<<<<
+AB1234567<POL9001011M34O7231<<<<<<<<<<<<<<
+`;
+
 const carlos = parseIdentityDocumentText(carlosPassport);
 assert.equal(carlos.documentType, "PASSPORT");
 assert.equal(carlos.documentNumber, "AX689190");
@@ -194,6 +206,9 @@ assert.equal(
 
 const singleLongSurname = parseIdentityDocumentText(singleLongSurnamePassport);
 assert.equal(singleLongSurname.lastName, "KOWALSKA");
+
+const repairedPassportDates = parseIdentityDocumentText(passportWithOcrDateConfusions);
+assert.equal(repairedPassportDates.dateOfExpiry, "2034-07-23");
 
 const permanentKartaResult = parseIdentityDocumentText(permanentKarta);
 assert.equal(permanentKartaResult.documentType, "KARTA_POBYTU");

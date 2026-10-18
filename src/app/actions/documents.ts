@@ -7,6 +7,7 @@ import {
   analyzeIdentityDocument,
 } from "@/lib/providers/ocr";
 import { getStorageProvider } from "@/lib/providers/storage";
+import { enqueueStoredObjectDeletion, processStorageDeletionJob } from "@/lib/storage-deletion-queue";
 import { getProviderStatus } from "@/lib/provider-status";
 import { requireTenant } from "@/lib/tenant";
 import { assertWithinPlanLimit } from "@/lib/billing/limits";
@@ -1089,12 +1090,13 @@ async function resolveSmartUploadCandidate(
   }
 
   await assertWithinPlanLimit(tenant.organizationId!, "candidates");
-  const intermediaryId = await findIntermediaryForCandidate(
-    tenant.organizationId!,
-    tenant.userId
-  );
+  const intermediaryId =
+    tenant.role === Role.INTERMEDIARIO
+      ? tenant.userId
+      : await findIntermediaryForCandidate(tenant.organizationId!, tenant.userId);
 
-  const createdCandidate = await prisma.candidate.create({
+  const createdCandidate = await prisma.$transaction(async (tx) => {
+    const created = await tx.candidate.create({
     data: {
       firstName,
       lastName,
@@ -1153,19 +1155,18 @@ async function resolveSmartUploadCandidate(
       heightCm: ocrData?.heightCm ?? null,
       polishAddress: normalizeOptionalString(ocrData?.addressOfRegistration),
     },
-  });
-
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "CANDIDATE_CREATED_FROM_SMART_UPLOAD",
-    entityType: "Candidate",
-    entityId: createdCandidate.id,
-    details: toInputJsonValue({
-      filename: file.name,
-      inferredFirstName: firstName,
-      inferredLastName: lastName,
-    }),
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "CANDIDATE_CREATED_FROM_SMART_UPLOAD",
+        entityType: "Candidate",
+        entityId: created.id,
+        details: toInputJsonValue({ source: "smart_upload" }),
+      },
+    });
+    return created;
   });
 
   await safeEmitEvent(
@@ -1356,7 +1357,9 @@ export async function uploadDocument(formData: FormData) {
         );
       } else {
         ocrOutcome = "failed";
-        await markDocumentOcrFailed(newDoc.id, docType, "OCR engine returned no data");
+        const noDataReason =
+          "El OCR no extrajo ningún campo identificable. Comprueba que el archivo sea legible y corresponda al tipo de documento seleccionado; queda pendiente de revisión manual.";
+        await markDocumentOcrFailed(newDoc.id, docType, noDataReason);
 
         await writeAuditLog({
           userId: tenant.userId,
@@ -1366,7 +1369,7 @@ export async function uploadDocument(formData: FormData) {
           entityId: newDoc.id,
           details: toInputJsonValue({
             docType,
-            reason: "OCR engine returned no data",
+            reason: noDataReason,
           }),
         });
       }
@@ -1485,21 +1488,27 @@ export async function verifyDocument(documentId: string) {
 
   if (!doc) throw new Error("Documento no encontrado");
 
-  const updated = await prisma.document.update({
-    where: { id: documentId },
-    data: {
-      isVerified: true,
-      verifiedById: tenant.userId,
-    },
-  });
+  const updated = await prisma.$transaction(async (tx) => {
+    const verifiedDocument = await tx.document.update({
+      where: { id: documentId, organizationId: tenant.organizationId },
+      data: {
+        isVerified: true,
+        verifiedById: tenant.userId,
+      },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "DOCUMENT_VERIFIED",
-    entityType: "Document",
-    entityId: documentId,
-    details: toInputJsonValue({ verifiedBy: tenant.userId }),
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "DOCUMENT_VERIFIED",
+        entityType: "Document",
+        entityId: documentId,
+        details: toInputJsonValue({ verifiedBy: tenant.userId }),
+      },
+    });
+
+    return verifiedDocument;
   });
 
   await syncCandidateOperationalAlerts({
@@ -1585,6 +1594,45 @@ export async function reviewDocumentOcr(input: {
   const normalizedHeight =
     typeof input.heightCm === "number" && Number.isFinite(input.heightCm) ? input.heightCm : null;
 
+  if (input.markVerified) {
+    const requiredFields = normalizedType === DocumentType.PASSPORT
+      ? [
+          ["número de documento", normalizedDocumentNumber],
+          ["fecha de vencimiento", normalizedExpiry],
+          ["nombre", normalizedFirstName],
+          ["apellido", normalizedLastName],
+          ["nacionalidad", normalizedNationality],
+          ["país emisor", normalizedIssuingCountry],
+          ["fecha de nacimiento", normalizedDob],
+        ] as const
+      : normalizedType === DocumentType.KARTA_POBYTU
+        ? [
+            ["número de tarjeta", normalizedDocumentNumber],
+            ["fecha de vencimiento", normalizedExpiry],
+            ["nombre", normalizedFirstName],
+            ["apellido", normalizedLastName],
+            ["PESEL", normalizedPersonalNumber],
+            ["tipo de permiso", normalizedKartaType],
+            ["nacionalidad", normalizedNationality],
+            ["país emisor", normalizedIssuingCountry],
+            ["fecha de nacimiento", normalizedDob],
+          ] as const
+        : normalizedType === DocumentType.PESEL
+          ? [
+              ["PESEL", normalizedPersonalNumber],
+              ["nombre", normalizedFirstName],
+              ["apellido", normalizedLastName],
+              ["fecha de nacimiento", normalizedDob],
+            ] as const
+          : [];
+    const missingFields = requiredFields
+      .filter(([, value]) => !value)
+      .map(([label]) => label);
+    if (missingFields.length > 0) {
+      throw new Error(`No se puede verificar el documento. Completa primero: ${missingFields.join(", ")}.`);
+    }
+  }
+
   const updatedExtractedData = buildReviewedOcrData(
     document.extractedData && typeof document.extractedData === "object" && !Array.isArray(document.extractedData)
       ? (document.extractedData as Record<string, unknown>)
@@ -1613,24 +1661,6 @@ export async function reviewDocumentOcr(input: {
       heightCm: normalizedHeight,
     }
   );
-
-  await prisma.document.update({
-    where: { id: document.id },
-    data: {
-      type: normalizedType,
-      number:
-        normalizedType === DocumentType.PESEL
-          ? normalizedPersonalNumber ?? normalizedDocumentNumber
-          : normalizedDocumentNumber,
-      expiryDate: parseDateSafe(normalizedExpiry),
-      issueDate: parseDateSafe(normalizedIssue),
-      issuerCountry: normalizedIssuingCountry,
-      extractedData: toInputJsonValue(updatedExtractedData),
-      ocrStatus: input.markVerified ? "SUCCESS" : "REVIEW_REQUIRED",
-      isVerified: Boolean(input.markVerified),
-      verifiedById: input.markVerified ? tenant.userId : null,
-    },
-  });
 
   const currentCandidateFirstName = isMeaningfulCandidateString(document.candidate.firstName)
     ? document.candidate.firstName
@@ -1697,26 +1727,47 @@ export async function reviewDocumentOcr(input: {
     candidateUpdateData.peselNumber = normalizedPersonalNumber ?? normalizedDocumentNumber;
   }
 
-  await prisma.candidate.update({
-    where: { id: document.candidateId },
-    data: candidateUpdateData,
-  });
+  await prisma.$transaction(async (tx) => {
+    await tx.document.update({
+      where: { id: document.id, organizationId: tenant.organizationId },
+      data: {
+        type: normalizedType,
+        number:
+          normalizedType === DocumentType.PESEL
+            ? normalizedPersonalNumber ?? normalizedDocumentNumber
+            : normalizedDocumentNumber,
+        expiryDate: parseDateSafe(normalizedExpiry),
+        issueDate: parseDateSafe(normalizedIssue),
+        issuerCountry: normalizedIssuingCountry,
+        extractedData: toInputJsonValue(updatedExtractedData),
+        ocrStatus: input.markVerified ? "SUCCESS" : "REVIEW_REQUIRED",
+        isVerified: Boolean(input.markVerified),
+        verifiedById: input.markVerified ? tenant.userId : null,
+      },
+    });
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "DOCUMENT_OCR_REVIEWED",
-    entityType: "Document",
-    entityId: document.id,
-    details: toInputJsonValue({
-      type: normalizedType,
-      markVerified: Boolean(input.markVerified),
-      number:
-        normalizedType === DocumentType.PESEL
-          ? normalizedPersonalNumber ?? normalizedDocumentNumber
-          : normalizedDocumentNumber,
-      disposition: normalizedDisposition,
-    }),
+    await tx.candidate.update({
+      where: {
+        id: document.candidateId,
+        organizationId: tenant.organizationId,
+      },
+      data: candidateUpdateData,
+    });
+
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "DOCUMENT_OCR_REVIEWED",
+        entityType: "Document",
+        entityId: document.id,
+        details: toInputJsonValue({
+          type: normalizedType,
+          markVerified: Boolean(input.markVerified),
+          disposition: normalizedDisposition,
+        }),
+      },
+    });
   });
 
   await syncCandidateOperationalAlerts({
@@ -1866,28 +1917,42 @@ export async function deleteDocument(documentId: string) {
     throw new Error("Sin permisos");
   }
 
-  await prisma.document.delete({
-    where: { id: documentId },
-  });
-
-  const storage = getStorageProvider();
-  const filePath = storage.getObjectPathFromPublicUrl(document.url);
-  if (filePath) {
-    try {
-      await storage.removeObjects([filePath]);
-    } catch (error) {
-      console.error("[deleteDocument] storage cleanup failed", error);
+  const { deleted, cleanupJobId } = await prisma.$transaction(async (tx) => {
+    const result = await tx.document.deleteMany({
+      where: {
+        id: documentId,
+        organizationId: tenant.organizationId,
+        candidateId: document.candidateId,
+        url: document.url,
+        ...(tenant.role === Role.INTERMEDIARIO
+          ? { candidate: { intermediaryId: tenant.userId } }
+          : {}),
+      },
+    });
+    if (result.count !== 1) {
+      throw new Error("El documento o su propietario cambió. Actualiza la página y vuelve a intentarlo.");
     }
-  }
 
-  await writeAuditLog({
-    userId: tenant.userId,
-    organizationId: tenant.organizationId!,
-    action: "DOCUMENT_DELETED",
-    entityType: "Document",
-    entityId: documentId,
-    details: toInputJsonValue({ url: document.url, type: document.type }),
-  });
+    const jobId = await enqueueStoredObjectDeletion(tx, tenant.organizationId!, [document.url]);
+    await tx.auditLog.create({
+      data: {
+        userId: tenant.userId,
+        organizationId: tenant.organizationId!,
+        action: "DOCUMENT_DELETED",
+        entityType: "Document",
+        entityId: documentId,
+        details: toInputJsonValue({
+          type: document.type,
+          storageDeletionQueued: Boolean(jobId),
+          storageDeletionJobId: jobId,
+        }),
+      },
+    });
+    return { deleted: result, cleanupJobId: jobId };
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  const storageCleanup = cleanupJobId
+    ? await processStorageDeletionJob(cleanupJobId)
+    : "complete";
 
   await syncCandidateOperationalAlerts({
     candidateId: document.candidateId,
@@ -1900,7 +1965,7 @@ export async function deleteDocument(documentId: string) {
   revalidatePath("/logistica");
   revalidatePath("/notificaciones");
 
-  return { success: true };
+  return { success: true, storageCleanup };
 }
 
 export async function smartBatchUpload(formData: FormData) {

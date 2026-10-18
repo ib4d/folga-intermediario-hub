@@ -1,5 +1,8 @@
 import { auth } from "@/auth";
 import { Prisma, Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { resolveOrganizationAccess } from "@/lib/organization-access";
+import { LOGISTICS_BLOCKED_STATUSES } from "@/lib/logistics-policy";
 
 export interface TenantContext {
   userId: string;
@@ -20,13 +23,48 @@ const crossCandidateRoles = new Set<Role>([
  */
 export async function getCurrentTenant(): Promise<TenantContext | null> {
   const session = await auth();
-  if (!session?.user?.id || !session.user.organizationId) return null;
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      organizationId: true,
+      role: true,
+      isActive: true,
+      isPlatformAdmin: true,
+      memberships: {
+        select: {
+          organizationId: true,
+          role: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+
+  if (!user?.isActive) return null;
+
+  const organizationAccess = resolveOrganizationAccess({
+    organizationId: user.organizationId,
+    role: user.role,
+    memberships: user.memberships,
+  });
+  if (!organizationAccess?.organizationId) return null;
+
+  // Organization deactivation is a tenant-wide access stop. It must apply to
+  // every organization role; platform access is resolved independently below.
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationAccess.organizationId },
+    select: { isActive: true },
+  });
+  if (!organization?.isActive) return null;
 
   return {
-    userId: session.user.id,
-    organizationId: session.user.organizationId,
-    role: session.user.role as Role,
-    isPlatformAdmin: Boolean(session.user.isPlatformAdmin),
+    userId: user.id,
+    organizationId: organizationAccess.organizationId,
+    role: organizationAccess.role,
+    isPlatformAdmin: user.isPlatformAdmin,
   };
 }
 
@@ -58,15 +96,17 @@ export function withTenantScope<T extends { organizationId?: string }>(
 }
 
 /**
- * True for roles that can see all candidates inside their organization.
+ * True for roles that are not limited to intermediary-owned records. A role
+ * may still have workflow filters applied by candidateVisibilityWhere.
  */
 export function canAccessAllCandidates(role: Role | string): boolean {
   return crossCandidateRoles.has(role as Role);
 }
 
 /**
- * Builds a candidate where clause scoped to the organization and, for
- * intermediaries, to their own candidate ownership.
+ * Builds a candidate where clause scoped to the organization and the role's
+ * visibility policy: intermediaries see their own candidates, while Logistics
+ * sees active cases only.
  */
 export function candidateVisibilityWhere(
   tenant: TenantContext,
@@ -78,6 +118,10 @@ export function candidateVisibilityWhere(
 
   if (!canAccessAllCandidates(tenant.role)) {
     clauses.push({ intermediaryId: tenant.userId });
+  }
+
+  if (tenant.role === Role.LOGISTICA) {
+    clauses.push({ status: { notIn: [...LOGISTICS_BLOCKED_STATUSES] } });
   }
 
   if (Object.keys(where).length > 0) {
@@ -114,12 +158,35 @@ export function assertSameTenant(
 /**
  * Checks if the user is a platform-level administrator.
  */
-export async function requirePlatformAdmin(): Promise<TenantContext> {
-  const tenant = await getCurrentTenant();
-  if (!tenant?.isPlatformAdmin) {
+export interface PlatformAdminContext {
+  userId: string;
+  isPlatformAdmin: true;
+}
+
+/**
+ * Checks platform-wide authority independently from organization membership.
+ */
+export async function getCurrentPlatformAdmin(): Promise<PlatformAdminContext | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const account = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, isActive: true, isPlatformAdmin: true },
+  });
+
+  if (!account?.isActive || !account.isPlatformAdmin) return null;
+
+  return { userId: account.id, isPlatformAdmin: true };
+}
+
+export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
+  const platformAdmin = await getCurrentPlatformAdmin();
+  if (!platformAdmin) {
     throw new Error(
       "Acceso denegado: Se requiere rol de administrador de plataforma."
     );
   }
-  return tenant;
+
+  return platformAdmin;
 }
