@@ -1,14 +1,22 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { canUploadCandidateDocuments, canAccessCandidateByOwnership } from "@/lib/permissions";
-import { requireTenant, canAccessAllCandidates } from "@/lib/tenant";
+import {
+  canAccessCandidateByOwnership,
+  canUploadCandidateDocuments,
+  canViewCandidateDocuments,
+} from "@/lib/permissions";
+import { getCurrentTenant, canAccessAllCandidates } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { getStorageProvider, resolveLocalStorageAbsolutePath } from "@/lib/providers/storage";
-import { writeAuditLog } from "@/lib/audit";
+import {
+  getStorageProvider,
+  resolveLocalStorageAbsolutePath,
+  StoredObjectRemovalError,
+} from "@/lib/providers/storage";
 import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
+import { enqueueStoredObjectDeletion, processStorageDeletionJob } from "@/lib/storage-deletion-queue";
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -33,7 +41,23 @@ function getContentTypeFromFileName(fileName: string) {
 }
 
 async function findDocumentForTenant(documentId: string) {
-  const tenant = await requireTenant();
+  const tenant = await getCurrentTenant();
+
+  if (!tenant) {
+    return {
+      tenant: null,
+      document: null,
+      denialResponse: NextResponse.json({ success: false, error: "Autenticacion requerida" }, { status: 401, headers: { "Cache-Control": "no-store" } }),
+    };
+  }
+
+  if (!canViewCandidateDocuments(tenant.role)) {
+    return {
+      tenant,
+      document: null,
+      denialResponse: NextResponse.json({ success: false, error: "Tu rol no puede consultar documentos originales." }, { status: 403, headers: { "Cache-Control": "no-store" } }),
+    };
+  }
 
   const document = await prisma.document.findFirst({
     where: {
@@ -48,7 +72,7 @@ async function findDocumentForTenant(documentId: string) {
     return {
       tenant,
       document: null,
-      denialResponse: NextResponse.json({ success: false, error: "Documento no encontrado" }, { status: 404 }),
+      denialResponse: NextResponse.json({ success: false, error: "Documento no encontrado" }, { status: 404, headers: { "Cache-Control": "no-store" } }),
     };
   }
 
@@ -59,7 +83,7 @@ async function findDocumentForTenant(documentId: string) {
     return {
       tenant,
       document: null,
-      denialResponse: NextResponse.json({ success: false, error: "Sin permisos" }, { status: 403 }),
+      denialResponse: NextResponse.json({ success: false, error: "Sin permisos" }, { status: 403, headers: { "Cache-Control": "no-store" } }),
     };
   }
 
@@ -80,27 +104,43 @@ export async function GET(
 
     const storage = getStorageProvider();
     const objectPath = storage.getObjectPathFromPublicUrl(document.url);
+    if (!objectPath) {
+      return NextResponse.json({ success: false, error: "Documento no encontrado" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    }
+    const fileName = path.basename(objectPath);
+    const asAttachment = req.nextUrl.searchParams.get("download") === "1";
 
-    if ((process.env.STORAGE_PROVIDER || "supabase").trim() === "local" && objectPath) {
+    if (storage.name === "local") {
       const { target } = resolveLocalStorageAbsolutePath(objectPath);
       const fileBuffer = await readFile(target);
-      const fileName = path.basename(objectPath);
-      const asAttachment = req.nextUrl.searchParams.get("download") === "1";
+      const safeFileName = fileName.replace(/[\r\n"\\]/g, "_");
 
       return new NextResponse(fileBuffer, {
         status: 200,
         headers: {
           "Content-Type": getContentTypeFromFileName(fileName),
-          "Content-Disposition": `${asAttachment ? "attachment" : "inline"}; filename="${fileName}"`,
-          "Cache-Control": "private, max-age=300",
+          "Content-Disposition": `${asAttachment ? "attachment" : "inline"}; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+          "Cache-Control": "private, no-store, max-age=0",
+          "X-Content-Type-Options": "nosniff",
+          "Cross-Origin-Resource-Policy": "same-origin",
         },
       });
     }
 
-    return NextResponse.redirect(document.url);
+    const signedUrl = await storage.createSignedDownloadUrl(objectPath, asAttachment ? fileName : undefined);
+    if (!signedUrl) {
+      return NextResponse.json({ success: false, error: "Proveedor de almacenamiento no disponible" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    return NextResponse.redirect(signedUrl, {
+      status: 302,
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0",
+        "Referrer-Policy": "no-referrer",
+      },
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo abrir el documento.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[GET /api/documents/:id] document access failed", error);
+    return NextResponse.json({ success: false, error: "No se pudo abrir el documento." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }
 
@@ -112,39 +152,66 @@ export async function DELETE(
     const { id } = await params;
     const { tenant, document, denialResponse } = await findDocumentForTenant(id);
 
-    if (!canUploadCandidateDocuments(tenant.role)) {
-      return NextResponse.json(
-        { success: false, error: "Tu rol no puede eliminar documentos de candidatos." },
-        { status: 403 }
-      );
+    if (!tenant) {
+      return denialResponse!;
     }
 
     if (!document) {
       return denialResponse!;
     }
 
-    await prisma.document.delete({
-      where: { id: document.id },
-    });
-
-    const storage = getStorageProvider();
-    const filePath = storage.getObjectPathFromPublicUrl(document.url);
-    if (filePath) {
-      try {
-        await storage.removeObjects([filePath]);
-      } catch (error) {
-        console.error("[deleteDocument] storage cleanup failed", error);
-      }
+    if (!canUploadCandidateDocuments(tenant.role)) {
+      return NextResponse.json(
+        { success: false, error: "Tu rol no puede eliminar documentos de candidatos." },
+        { status: 403, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
-    await writeAuditLog({
-      userId: tenant.userId,
-      organizationId: tenant.organizationId,
-      action: "DOCUMENT_DELETED",
-      entityType: "Document",
-      entityId: document.id,
-      details: toInputJsonValue({ url: document.url, type: document.type }),
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      const result = await tx.document.deleteMany({
+        where: {
+          id: document.id,
+          organizationId: tenant.organizationId,
+          candidateId: document.candidateId,
+          url: document.url,
+          ...(tenant.role === Role.INTERMEDIARIO
+            ? { candidate: { intermediaryId: tenant.userId } }
+            : {}),
+        },
+      });
+
+      if (result.count !== 1) {
+        return { deleted: result, cleanupJobId: null };
+      }
+
+      const cleanupJobId = await enqueueStoredObjectDeletion(tx, tenant.organizationId, [document.url]);
+      await tx.auditLog.create({
+        data: {
+          userId: tenant.userId,
+          organizationId: tenant.organizationId,
+          action: "DOCUMENT_DELETED",
+          entityType: "Document",
+          entityId: document.id,
+          details: toInputJsonValue({
+            type: document.type,
+            storageDeletionQueued: Boolean(cleanupJobId),
+            storageDeletionJobId: cleanupJobId,
+          }),
+        },
+      });
+
+      return { deleted: result, cleanupJobId };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    if (result.deleted.count !== 1) {
+      return NextResponse.json(
+        { success: false, error: "El documento o su propietario cambió. Actualiza y vuelve a intentarlo." },
+        { status: 409, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const storageCleanup = result.cleanupJobId
+      ? await processStorageDeletionJob(result.cleanupJobId)
+      : "complete";
 
     await syncCandidateOperationalAlerts({
       candidateId: document.candidateId,
@@ -157,9 +224,15 @@ export async function DELETE(
     revalidatePath("/logistica");
     revalidatePath("/notificaciones");
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { success: true, storageCleanup },
+      { status: storageCleanup === "pending" ? 202 : 200, headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo eliminar el documento.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("[DELETE /api/documents/:id] document deletion failed", error);
+    if (error instanceof StoredObjectRemovalError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    return NextResponse.json({ success: false, error: "No se pudo eliminar el documento." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

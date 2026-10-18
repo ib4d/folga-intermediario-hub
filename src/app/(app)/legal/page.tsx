@@ -1,5 +1,4 @@
 import { Scale, Users, CheckCircle, XCircle } from "lucide-react";
-import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -15,13 +14,13 @@ import type { ComponentProps } from "react";
 
 export default async function LegalPage() {
   const session = await auth();
-  if (!session || !canMakeLegalDecision(session.user.role as Role)) {
-    redirect("/dashboard");
-  }
+  if (!session) redirect("/login");
+
+  const tenant = await requireTenant();
+  if (!canMakeLegalDecision(tenant.role)) redirect("/dashboard");
 
   const language = normalizeLanguage(session.user.interfaceLanguage);
   const labels = t.bind(null, language);
-  const tenant = await requireTenant();
 
   const candidates = await prisma.candidate.findMany({
     where: {

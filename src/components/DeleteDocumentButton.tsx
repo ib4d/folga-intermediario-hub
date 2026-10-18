@@ -6,19 +6,32 @@ import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { deleteDocumentById } from "@/lib/document-client";
 
-export default function DeleteDocumentButton({ documentId }: { documentId: string }) {
+export default function DeleteDocumentButton({
+  documentId,
+  storageCleanupPendingText,
+}: {
+  documentId: string;
+  storageCleanupPendingText: string;
+}) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
   const router = useRouter();
 
   const handleDelete = async () => {
     setIsConfirmOpen(false);
     setIsDeleting(true);
     setErrorMessage("");
+    setStatusMessage("");
     try {
-      await deleteDocumentById(documentId);
-      router.refresh();
+      const cleanup = await deleteDocumentById(documentId);
+      if (cleanup === "pending") {
+        setStatusMessage(storageCleanupPendingText);
+        window.setTimeout(() => router.refresh(), 3000);
+      } else {
+        router.refresh();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
       setErrorMessage(`Error al eliminar documento: ${msg}`);
@@ -47,6 +60,11 @@ export default function DeleteDocumentButton({ documentId }: { documentId: strin
       {errorMessage ? (
         <span className="form-message-error" role="alert">
           {errorMessage}
+        </span>
+      ) : null}
+      {statusMessage ? (
+        <span className="form-message-warning" role="status">
+          {statusMessage}
         </span>
       ) : null}
       <ConfirmDialog

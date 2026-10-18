@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, CheckCircle, Loader2, Save, Shield } from "lucide-react";
 import { AppLanguage, LANGUAGE_LABELS, SUPPORTED_LANGUAGES, t } from "@/lib/i18n";
 
@@ -8,7 +9,6 @@ type Settings = {
   notifyNewCandidates: boolean;
   notifyLegalAlerts: boolean;
   notifyExpiringDocs: boolean;
-  twoFactorEnabled: boolean;
   interfaceLanguage: AppLanguage;
   avatarUrl?: string;
 };
@@ -22,11 +22,11 @@ const defaultSettings: Settings = {
   notifyNewCandidates: true,
   notifyLegalAlerts: true,
   notifyExpiringDocs: true,
-  twoFactorEnabled: false,
   interfaceLanguage: "es",
 };
 
 export default function AjustesSettings() {
+  const router = useRouter();
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [saved, setSaved] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<PasswordMessage | null>(null);
@@ -57,7 +57,13 @@ export default function AjustesSettings() {
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          notifyNewCandidates: settings.notifyNewCandidates,
+          notifyLegalAlerts: settings.notifyLegalAlerts,
+          notifyExpiringDocs: settings.notifyExpiringDocs,
+          interfaceLanguage: settings.interfaceLanguage,
+          avatarUrl: settings.avatarUrl,
+        }),
       });
 
       if (response.ok) {
@@ -66,6 +72,7 @@ export default function AjustesSettings() {
           type: "success",
           text: labels("settings.preferencesSaved"),
         });
+        router.refresh();
         setTimeout(() => setSaved(false), 3000);
       } else {
         setSettingsMessage({
@@ -76,7 +83,7 @@ export default function AjustesSettings() {
     });
   };
 
-  const toggle = (key: keyof Settings) => {
+  const toggle = (key: "notifyNewCandidates" | "notifyLegalAlerts" | "notifyExpiringDocs") => {
     setSettings((previous) => ({ ...previous, [key]: !previous[key] }));
   };
 
@@ -162,12 +169,9 @@ export default function AjustesSettings() {
 
         <div className="input-group">
           <label className="label">{labels("settings.twoFactor")}</label>
-          <label className="ajustes-settings-toggle-label">
-            <div className="ajustes-settings-toggle">
-              <div className="ajustes-settings-toggle-thumb" />
-            </div>
-            <span>{labels("settings.disabled")}</span>
-          </label>
+          <div className="ajustes-settings-unavailable" role="status">
+            <span className="ajustes-settings-unavailable-badge">{labels("settings.twoFactorUnavailable")}</span>
+          </div>
           <p className="ajustes-settings-help">
             {labels("settings.twoFactorHelp")}
           </p>
@@ -268,11 +272,13 @@ export default function AjustesSettings() {
             { key: "notifyNewCandidates", label: labels("settings.notifyNewCandidates") },
             { key: "notifyLegalAlerts", label: labels("settings.notifyLegalAlerts") },
             { key: "notifyExpiringDocs", label: labels("settings.notifyExpiringDocs") },
-          ] as { key: keyof Settings; label: string }[]).map(({ key, label }) => (
+          ] as {
+            key: "notifyNewCandidates" | "notifyLegalAlerts" | "notifyExpiringDocs";
+            label: string;
+          }[]).map(({ key, label }) => (
             <label
               key={key}
               className="label ajustes-settings-notification-item"
-              onClick={() => toggle(key)}
             >
               <input
                 type="checkbox"

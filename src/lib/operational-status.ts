@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isStripeConfigured, isStripePortalConfigured } from "@/lib/billing/stripe";
 
 type RuntimeMetadata = {
   version: string;
@@ -30,12 +31,9 @@ function readPackageVersion() {
 export function getRuntimeMetadata(): RuntimeMetadata {
   const emailProvider = process.env.EMAIL_PROVIDER?.trim() || "smtp";
   const jobProvider = process.env.JOB_PROVIDER?.trim() || "inline";
-  const stripeConfigured = Boolean(
-    process.env.STRIPE_SECRET_KEY?.trim() &&
-      process.env.STRIPE_WEBHOOK_SECRET?.trim() &&
-      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim()
-  );
-  const stripePortalConfigured = isHttpsUrl(process.env.STRIPE_CUSTOMER_PORTAL_URL);
+  const stripeConfigured = isStripeConfigured();
+  // An explicit operator flag enables the portal only after sandbox validation.
+  const stripePortalConfigured = isStripePortalConfigured();
   const stripePaymentLinksConfigured = [
     process.env.STRIPE_PAYMENT_LINK_STARTER,
     process.env.STRIPE_PAYMENT_LINK_PRO,

@@ -1,11 +1,11 @@
 "use client";
 
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+export default function Error({ reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="route-error-shell">
+    <div className="route-error-shell" role="alert" aria-live="assertive">
       <div className="card route-error-card">
         <h2>⚠️ Error al cargar logística</h2>
-        <p className="route-error-copy">{error.message}</p>
+        <p className="route-error-copy">No se pudo cargar logística. Comprueba tu conexión e inténtalo de nuevo.</p>
         <button className="button" onClick={reset}>
           Reintentar
         </button>

@@ -47,7 +47,12 @@ export default async function ApiKeysPage() {
         </div>
       </div>
 
-      <ApiKeyCreateForm />
+      <aside className="settings-api-scope-notice" role="note">
+        <strong>{labels("settings.apiKeyScopeTitle")}</strong>
+        <p>{labels("settings.apiKeyScopeNotice")}</p>
+      </aside>
+
+      <ApiKeyCreateForm language={language} />
 
       <div className="card settings-keys-card">
         <h2 className="settings-card-heading">{labels("settings.activeKeys")}</h2>
@@ -96,9 +101,9 @@ export default async function ApiKeysPage() {
       <div className="card settings-endpoints-card">
         <h3 className="settings-endpoints-title">{labels("settings.availableEndpoints")}</h3>
         <ul className="settings-endpoints-list">
-          <li>GET /api/v1/candidates - Listar candidatos</li>
-          <li>GET /api/v1/documents - Listar documentos</li>
-          <li>GET /api/v1/status - Estado del sistema</li>
+          <li><code>GET /api/v1/candidates</code><span>{labels("settings.endpointCandidates")}</span></li>
+          <li><code>GET /api/v1/documents</code><span>{labels("settings.endpointDocuments")}</span></li>
+          <li><code>GET /api/v1/status</code><span>{labels("settings.endpointStatus")}</span></li>
         </ul>
         <p className="settings-endpoints-copy">
           {labels("settings.apiHeaderHelp")}: <code>Authorization: Bearer fhk_...</code>

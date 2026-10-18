@@ -1,12 +1,12 @@
 {
-  "name": "folga-intermediario-hub",
+  "name": "ori-cruit-hub",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:prod": "next start -p 3000",
+    "start:prod": "node .next-prod/standalone/server.js",
     "lint": "eslint .",
     "ops:tenant-audit": "node scripts/tenant-audit.mjs",
     "ops:tenant-prune": "node scripts/tenant-prune.mjs",
@@ -14,12 +14,16 @@
     "check:hardening": "node scripts/check-hardening.mjs",
     "check:backup": "node scripts/check-backup.mjs",
     "check:restore": "node scripts/check-restore.mjs",
+    "check:suppression-attestation": "node scripts/check-suppression-attestation.mjs",
+    "backup:set": "bash scripts/backup-set.sh",
     "check:prod-env": "node scripts/check-production-env.mjs",
     "check:permissions": "node scripts/check-permissions.mjs",
     "check:smoke": "node scripts/check-production-smoke.mjs",
     "check:smtp": "node scripts/check-smtp.mjs",
     "check:monitoring": "node scripts/check-monitoring.mjs",
     "check:release": "node scripts/check-release.mjs",
+    "check:runtime-deps": "node scripts/check-runtime-deps.mjs",
+    "progress:release": "node scripts/release-progress.mjs",
     "check:ocr": "tsx scripts/check-ocr-regressions.ts",
     "check:broker": "node scripts/check-broker-regressions.mjs"
   },
@@ -45,6 +49,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.74.0",
     "recharts": "^3.8.1",
+    "stripe": "22.6.0",
     "tesseract.js": "^7.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.1"
@@ -56,8 +61,8 @@
     "source-map-js": "^1.2.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@playwright/test": "^1.51.1",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",

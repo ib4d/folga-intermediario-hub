@@ -18,7 +18,7 @@ const BASE_REJECTION_REASONS = [
   "Documentos faltantes",
   "Documento expirado",
   "Documento ilegible",
-  "Historial negativo en FOLGA",
+  "Historial negativo en la plataforma",
   "Proceso migratorio incompleto",
   "Falta pago 400 PLN",
   "Otro",

@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Home, Plane, ShieldAlert, Users } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { normalizeLanguage, t } from "@/lib/i18n";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 
 type BottomNavRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
 
-export default function BottomNav() {
+export default function BottomNav({
+  role,
+  interfaceLanguage,
+}: {
+  role: BottomNavRole;
+  interfaceLanguage?: string;
+}) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const role = session?.user?.role as BottomNavRole | undefined;
-  const language = normalizeLanguage(session?.user?.interfaceLanguage);
+  const language = normalizeLanguage(interfaceLanguage);
   const labels = t.bind(null, language);
 
   const navItems = [

@@ -1,6 +1,9 @@
+import { isIP } from "node:net";
 import { NextResponse, type NextRequest } from "next/server";
 import { isPublicRoute } from "@/lib/public-routes";
 import { LIMITS, checkRateLimit, type RateLimitConfig } from "@/lib/security/rate-limit";
+import { isSupportedLanguage, normalizeLanguage } from "@/lib/i18n";
+import { logger } from "@/lib/logger";
 
 type ProxyRateLimitRule = {
   pathPrefix: string;
@@ -23,6 +26,11 @@ const PROXY_RATE_LIMIT_RULES: ProxyRateLimitRule[] = [
     pathPrefix: "/onboarding",
     methods: ["POST"],
     config: { windowMs: 15 * 60 * 1000, max: 10 },
+  },
+  {
+    pathPrefix: "/invitations/accept",
+    methods: ["GET", "POST"],
+    config: { windowMs: 15 * 60 * 1000, max: 30 },
   },
   {
     pathPrefix: "/api/health",
@@ -51,10 +59,15 @@ function hasAuthSessionCookie(request: NextRequest) {
 function getClientIdentifier(request: NextRequest) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
+    // The deployment proxy appends the peer address to X-Forwarded-For.
+    // The first value can be supplied by the client and must not drive limits.
+    const addresses = forwardedFor.split(",").map((address) => address.trim()).filter(Boolean);
+    const trustedPeerAddress = addresses.at(-1);
+    if (trustedPeerAddress && isIP(trustedPeerAddress)) return trustedPeerAddress;
   }
 
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  return realIp && isIP(realIp) ? realIp : null;
 }
 
 function getMatchingRateLimitRule(request: NextRequest) {
@@ -94,21 +107,77 @@ function buildRateLimitResponse(request: NextRequest, config: RateLimitConfig, r
   });
 }
 
-export function proxy(request: NextRequest) {
+function buildRateLimitUnavailableResponse(request: NextRequest) {
+  const headers = { "Cache-Control": "no-store", "Retry-After": "30" };
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "service_unavailable" }, { status: 503, headers });
+  }
+
+  return new NextResponse("Service temporarily unavailable", { status: 503, headers });
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const rateLimitRule = getMatchingRateLimitRule(request);
 
+  if (pathname === "/uploads" || pathname.startsWith("/uploads/")) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
   if (rateLimitRule) {
-    const identifier = `${getClientIdentifier(request)}:${pathname}:${request.method.toUpperCase()}`;
-    const rateLimitResult = checkRateLimit(identifier, rateLimitRule.config);
+    const clientIdentifier = getClientIdentifier(request);
+    if (!clientIdentifier) {
+      logger.error("Shared rate limiter cannot identify the client", {
+        reason: "CLIENT_IP_UNAVAILABLE",
+      });
+      return buildRateLimitUnavailableResponse(request);
+    }
+
+    const identifier = [
+      clientIdentifier,
+      rateLimitRule.pathPrefix,
+      request.method.toUpperCase(),
+    ].join("\0");
+    let rateLimitResult: Awaited<ReturnType<typeof checkRateLimit>>;
+    try {
+      rateLimitResult = await checkRateLimit(identifier, rateLimitRule.config);
+    } catch (error) {
+      logger.error("Shared rate limiter unavailable", {
+        reason: error instanceof Error && error.message === "RATE_LIMIT_HASH_SECRET_MISSING"
+          ? "MISSING_HASH_SECRET"
+          : "COUNTER_STORE_UNAVAILABLE",
+      });
+      return buildRateLimitUnavailableResponse(request);
+    }
 
     if (rateLimitResult.blocked) {
       return buildRateLimitResponse(request, rateLimitRule.config, rateLimitResult.resetAt);
     }
   }
 
-  if (isPublicRoute(pathname) || hasAuthSessionCookie(request)) {
-    return NextResponse.next();
+  if (
+    (process.env.NODE_ENV === "development" && pathname === "/design-preview") ||
+    isPublicRoute(pathname) ||
+    hasAuthSessionCookie(request)
+  ) {
+    const requestedLanguage = request.nextUrl.searchParams.get("lang");
+    const savedLanguage = request.cookies.get("ori-language")?.value;
+    const language = isSupportedLanguage(requestedLanguage)
+      ? requestedLanguage
+      : normalizeLanguage(savedLanguage);
+    const forwardedHeaders = new Headers(request.headers);
+    forwardedHeaders.set("x-ori-language", language);
+    return NextResponse.next({ request: { headers: forwardedHeaders } });
+  }
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { success: false, error: "Autenticacion requerida" },
+      { status: 401, headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   const loginUrl = new URL("/login", request.url);

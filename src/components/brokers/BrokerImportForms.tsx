@@ -74,12 +74,12 @@ export default function BrokerImportForms() {
         <p className="broker-import-note">
           Si el Excel usa una variante con o sin tilde, la importación la resuelve igual.
         </p>
-        <input className="input" type="file" name="file" accept=".xlsx,.xls" required />
+        <input className="input" type="file" name="file" accept=".xlsx,.xls" aria-label="Archivo Excel de leads" required />
         <button className="button" type="submit" disabled={leadPending}>
           {leadPending ? "Importando..." : "Importar leads"}
         </button>
         {leadState.message ? (
-          <div className={`broker-import-message ${leadState.success ? "success" : "error"}`}>{leadState.message}</div>
+          <div role={leadState.success ? "status" : "alert"} aria-live={leadState.success ? "polite" : "assertive"} className={`broker-import-message ${leadState.success ? "success" : "error"}`}>{leadState.message}</div>
         ) : null}
       </form>
 
@@ -88,12 +88,12 @@ export default function BrokerImportForms() {
         <p className="broker-import-copy">
           Importa el Excel FV, detecta umbral 100h/200h y contrasta RESUMEN_FV antes de consolidar el resultado.
         </p>
-        <input className="input" type="file" name="file" accept=".xlsx,.xls" required />
+        <input className="input" type="file" name="file" accept=".xlsx,.xls" aria-label="Archivo Excel de facturas" required />
         <button className="button" type="submit" disabled={invoicePending}>
           {invoicePending ? "Importando..." : "Importar facturación"}
         </button>
         {invoiceState.message ? (
-          <div className={`broker-import-message ${invoiceState.success ? "success" : "error"}`}>{invoiceState.message}</div>
+          <div role={invoiceState.success ? "status" : "alert"} aria-live={invoiceState.success ? "polite" : "assertive"} className={`broker-import-message ${invoiceState.success ? "success" : "error"}`}>{invoiceState.message}</div>
         ) : null}
       </form>
     </div>

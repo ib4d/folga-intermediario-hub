@@ -1,19 +1,21 @@
 import { requireTenant } from "@/lib/tenant";
 import { PLAN_LIMITS } from "@/lib/billing/limits";
-import { getStripePaymentLink } from "@/lib/billing/stripe";
+import { resolveEffectivePlan } from "@/lib/billing/entitlements";
 import { CheckCircle2, ExternalLink } from "lucide-react";
 import { Plan } from "@prisma/client";
 import { canAccessModule } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { normalizeLanguage, t, type AppLanguage } from "@/lib/i18n";
 import { auth } from "@/auth";
+import Link from "next/link";
 
-const plans: Array<{ name: Plan; priceKey: string }> = [
-  { name: Plan.FREE, priceKey: "billing.price.free" },
-  { name: Plan.STARTER, priceKey: "billing.price.starter" },
-  { name: Plan.PRO, priceKey: "billing.price.pro" },
-  { name: Plan.BUSINESS, priceKey: "billing.price.business" },
-  { name: Plan.ENTERPRISE, priceKey: "billing.price.enterprise" },
+const plans: Plan[] = [
+  Plan.FREE,
+  Plan.STARTER,
+  Plan.PRO,
+  Plan.BUSINESS,
+  Plan.ENTERPRISE,
 ];
 
 function planNameKey(plan: Plan) {
@@ -65,9 +67,27 @@ export default async function PlansPage() {
   const session = await auth();
   const language = normalizeLanguage(session?.user?.interfaceLanguage);
   const labels = t.bind(null, language);
+  const organization = await prisma.organization.findUnique({
+    where: { id: tenant.organizationId },
+    select: {
+      plan: true,
+      subscription: {
+        select: {
+          plan: true,
+          status: true,
+          provider: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+        },
+      },
+    },
+  });
+  const currentPlan = organization
+    ? resolveEffectivePlan(organization.plan, organization.subscription)
+    : Plan.FREE;
 
   return (
-    <div className="content-shell">
+    <div className="content-shell billing-plans-page">
       <section className="hero-section billing-plans-hero">
         <h1>{labels("billing.plansTitle")}</h1>
         <p>{labels("billing.plansDescription")}</p>
@@ -75,25 +95,23 @@ export default async function PlansPage() {
 
       <div className="billing-plans-grid">
         {plans.map((plan) => {
-          const limits = PLAN_LIMITS[plan.name];
-          const paymentLink = getStripePaymentLink(plan.name);
-          const isRecommended = plan.name === Plan.PRO;
+          const limits = PLAN_LIMITS[plan];
+          const isCurrent = plan === currentPlan;
 
           return (
-            <div key={plan.name} className={`card billing-plan-card ${isRecommended ? "billing-plan-card--featured" : ""}`}>
-              {isRecommended ? (
-                <div className="billing-plan-recommended">
-                  {labels("billing.recommended")}
-                </div>
-              ) : null}
+            <div key={plan} className={`card billing-plan-card ${isCurrent ? "billing-plan-card--current" : ""}`}>
+              {isCurrent ? <div className="billing-plan-current">{labels("billing.currentPlanBadge")}</div> : null}
 
               <div className="billing-plan-header">
-                <h2 className="billing-plan-title">{labels(planNameKey(plan.name))}</h2>
+                <h2 className="billing-plan-title">{labels(planNameKey(plan))}</h2>
                 <div className="billing-plan-price">
-                  {labels(plan.priceKey as Parameters<typeof labels>[0])}
-                  <span className="billing-plan-period">{labels("billing.perMonth")}</span>
+                  {plan === Plan.FREE ? (
+                    <>{labels("billing.price.free")}<span className="billing-plan-period">{labels("billing.perMonth")}</span></>
+                  ) : (
+                    <span className="billing-plan-price-guided">{labels("billing.guidedPrice")}</span>
+                  )}
                 </div>
-                <p className="billing-plan-description">{labels(planDescKey(plan.name))}</p>
+                <p className="billing-plan-description">{labels(planDescKey(plan))}</p>
               </div>
 
               <ul className="billing-plan-features">
@@ -103,28 +121,27 @@ export default async function PlansPage() {
                   formatFeature(limits.ocrPerMonth, language, "billing.feature.ocrReads", "billing.feature.unlimitedOcrReads"),
                   formatFeature(limits.documentsPerMonth, language, "billing.feature.documents", "billing.feature.unlimitedDocuments"),
                   labels("billing.feature.dashboardOps"),
-                  labels("billing.feature.emailSupport"),
                 ].map((feature) => (
                   <li key={feature} className="billing-plan-feature">
-                    <CheckCircle2 size={16} color="var(--amber-flame)" />
+                    <CheckCircle2 size={16} />
                     {feature}
                   </li>
                 ))}
               </ul>
 
-              {plan.name === Plan.FREE ? (
+              {isCurrent ? (
                 <button className="button button-secondary billing-plan-cta" disabled>
-                  {labels("billing.initialPlan")}
+                  {labels("billing.currentPlanBadge")}
                 </button>
-              ) : paymentLink ? (
-                <a className="button billing-plan-cta" href={paymentLink} target="_blank" rel="noreferrer">
-                  <ExternalLink size={16} />
-                  {labels("billing.selectPlan")}
-                </a>
+              ) : plan === Plan.FREE ? (
+                <button className="button button-secondary billing-plan-cta" disabled>
+                  {labels("billing.freePlanReference")}
+                </button>
               ) : (
-                <button className="button button-secondary billing-plan-cta" disabled>
-                  {labels("billing.stripePending")}
-                </button>
+                <Link className="button billing-plan-cta" href={`/demo?lang=${language}`}>
+                  <ExternalLink size={16} />
+                  {labels("billing.requestProposal")}
+                </Link>
               )}
             </div>
           );

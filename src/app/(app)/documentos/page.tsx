@@ -124,7 +124,7 @@ export default async function DocumentosPage({
   });
 
   return (
-    <>
+    <div className="documents-page-root">
       <PageHeader
         eyebrow="Documentos"
         title={labels("documents.title")}
@@ -146,26 +146,7 @@ export default async function DocumentosPage({
         }
       />
 
-      <div className="module-page-shell">
-        <ProviderStatusCard
-          title={labels("documents.providersTitle")}
-          description={labels("documents.providersDescription")}
-          storageLabel={labels("documents.storageProvider")}
-          storageValue={storage.mode === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
-          storageNote={
-            storage.mode === "local"
-              ? labels("documents.storageLocalNote")
-              : labels("documents.storageSupabaseNote")
-          }
-          storageAvailableLabel={labels("documents.providersAvailable")}
-          storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
-          ocrLabel={labels("documents.ocrProvider")}
-          ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
-          ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
-          ocrAvailableLabel={labels("documents.providersAvailable")}
-          ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
-        />
-
+      <div className="module-page-shell documents-page-shell">
         <div className="dashboard-grid">
           <MetricCard
             title={labels("documents.pendingReview")}
@@ -188,6 +169,51 @@ export default async function DocumentosPage({
             helper="Todos los documentos visibles con el filtro actual."
           />
         </div>
+
+        <DocumentTable
+          initialDocuments={toPlainData(documents)}
+          canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
+          canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
+          ocrMode={manualOcrMode ? "manual" : "automatic"}
+          labels={{
+            processedTitle: labels("documents.processedTitle"),
+            deleteSelected: labels("documents.deleteSelected"),
+            clearSelection: labels("documents.clearSelection"),
+            deleteBulkTitle: labels("documents.deleteBulkTitle"),
+            deleteSingleTitle: labels("documents.deleteSingleTitle"),
+            deleteBulkDescription: labels("documents.deleteBulkDescription"),
+            deleteSingleDescription: labels("documents.deleteSingleDescription"),
+            deleteConfirm: labels("documents.deleteConfirm"),
+            empty: labels("documents.empty"),
+            file: labels("documents.file"),
+            candidate: labels("documents.candidate"),
+            type: labels("documents.type"),
+            number: labels("documents.number"),
+            expiry: labels("documents.expiry"),
+            ocrStatus: labels("documents.ocrStatus"),
+            action: labels("documents.action"),
+            ocrCaptured: labels("documents.ocrCaptured"),
+            ocrFailed: labels("documents.ocrFailed"),
+            manualReview: labels("documents.manualReview"),
+            pending: labels("documents.pending"),
+            deletedManySuccess: labels("documents.deletedManySuccess"),
+            deletedOneSuccess: labels("documents.deletedOneSuccess"),
+            storageCleanupPending: labels("documents.storageCleanupPending"),
+            deleteManyError: labels("documents.deleteManyError"),
+            deleteOneError: labels("documents.deleteOneError"),
+            fix: labels("documents.fix"),
+            verify: labels("documents.verify"),
+            review: labels("documents.review"),
+            duplicateWorkbenchTitle: labels("documents.duplicateWorkbenchTitle"),
+            duplicateWorkbenchDescription: labels("documents.duplicateWorkbenchDescription"),
+            duplicateWorkbenchPagination: labels("documents.duplicateWorkbenchPagination"),
+            duplicateWorkbenchBadge: labels("documents.duplicateWorkbenchBadge"),
+            duplicateSuggestedAction: labels("documents.duplicateSuggestedAction"),
+            duplicateSuggestFrontBack: labels("documents.duplicateSuggestFrontBack"),
+            duplicateSuggestReclassify: labels("documents.duplicateSuggestReclassify"),
+            openCandidate: labels("documents.openCandidate"),
+          }}
+        />
 
         <DocumentIntegrityCard
           labels={{
@@ -240,51 +266,25 @@ export default async function DocumentosPage({
             )}
           </div>
         </div>
+        <ProviderStatusCard
+          title={labels("documents.providersTitle")}
+          description={labels("documents.providersDescription")}
+          storageLabel={labels("documents.storageProvider")}
+          storageValue={storage.mode === "local" ? labels("documents.storageLocal") : labels("documents.storageSupabase")}
+          storageNote={
+            storage.mode === "local"
+              ? labels("documents.storageLocalNote")
+              : labels("documents.storageSupabaseNote")
+          }
+          storageAvailableLabel={labels("documents.providersAvailable")}
+          storageAvailableValue={availableStorage.map((provider) => provider.statusLabel)}
+          ocrLabel={labels("documents.ocrProvider")}
+          ocrValue={manualOcrMode ? labels("documents.ocrManualMode") : labels("documents.ocrAutomaticMode")}
+          ocrNote={manualOcrMode ? labels("documents.ocrManualNote") : labels("documents.ocrAutomaticNote")}
+          ocrAvailableLabel={labels("documents.providersAvailable")}
+          ocrAvailableValue={availableOcr.map((provider) => provider.statusLabel)}
+        />
       </div>
-
-      <DocumentTable
-        initialDocuments={toPlainData(documents)}
-        canReviewDocuments={canReviewCandidateDocuments(tenant.role)}
-        canDeleteDocuments={canUploadCandidateDocuments(tenant.role)}
-        ocrMode={manualOcrMode ? "manual" : "automatic"}
-        labels={{
-          processedTitle: labels("documents.processedTitle"),
-          deleteSelected: labels("documents.deleteSelected"),
-          clearSelection: labels("documents.clearSelection"),
-          deleteBulkTitle: labels("documents.deleteBulkTitle"),
-          deleteSingleTitle: labels("documents.deleteSingleTitle"),
-          deleteBulkDescription: labels("documents.deleteBulkDescription"),
-          deleteSingleDescription: labels("documents.deleteSingleDescription"),
-          deleteConfirm: labels("documents.deleteConfirm"),
-          empty: labels("documents.empty"),
-          file: labels("documents.file"),
-          candidate: labels("documents.candidate"),
-          type: labels("documents.type"),
-          number: labels("documents.number"),
-          expiry: labels("documents.expiry"),
-          ocrStatus: labels("documents.ocrStatus"),
-          action: labels("documents.action"),
-          ocrCaptured: labels("documents.ocrCaptured"),
-          ocrFailed: labels("documents.ocrFailed"),
-          manualReview: labels("documents.manualReview"),
-          pending: labels("documents.pending"),
-          deletedManySuccess: labels("documents.deletedManySuccess"),
-          deletedOneSuccess: labels("documents.deletedOneSuccess"),
-          deleteManyError: labels("documents.deleteManyError"),
-          deleteOneError: labels("documents.deleteOneError"),
-          fix: labels("documents.fix"),
-          verify: labels("documents.verify"),
-          review: labels("documents.review"),
-          duplicateWorkbenchTitle: labels("documents.duplicateWorkbenchTitle"),
-          duplicateWorkbenchDescription: labels("documents.duplicateWorkbenchDescription"),
-          duplicateWorkbenchPagination: labels("documents.duplicateWorkbenchPagination"),
-          duplicateWorkbenchBadge: labels("documents.duplicateWorkbenchBadge"),
-          duplicateSuggestedAction: labels("documents.duplicateSuggestedAction"),
-          duplicateSuggestFrontBack: labels("documents.duplicateSuggestFrontBack"),
-          duplicateSuggestReclassify: labels("documents.duplicateSuggestReclassify"),
-          openCandidate: labels("documents.openCandidate"),
-        }}
-      />
-    </>
+    </div>
   );
 }

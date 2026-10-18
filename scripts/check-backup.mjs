@@ -5,8 +5,8 @@ import { join, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const composeFile = process.env.COMPOSE_FILE || "docker-compose.prod.yml";
-const dbUser = process.env.DB_USER || "folga";
-const dbName = process.env.DB_NAME || "folga_hub";
+const dbUser = process.env.DB_USER || "ori";
+const dbName = process.env.DB_NAME || "ori_cruit_hub";
 const dryRun = process.env.CHECK_BACKUP_DRY_RUN === "true";
 const requireCompose = process.env.CHECK_BACKUP_REQUIRE_COMPOSE === "true";
 const composePath = resolve(process.cwd(), composeFile);
@@ -22,7 +22,7 @@ if (!existsSync(composePath)) {
 }
 
 if (dryRun) {
-  console.log("Backup drill dry run passed. Compose file is present and configuration was loaded.");
+  console.log("PostgreSQL backup dry run passed. Compose file is present and configuration was loaded; document storage was not checked.");
   process.exit(0);
 }
 
@@ -58,7 +58,7 @@ try {
     throw new Error("Backup drill produced an empty compressed file.");
   }
 
-  console.log(`Backup drill passed. Temporary file created at ${backupFile}`);
+  console.log(`PostgreSQL backup drill passed. Temporary SQL archive created at ${backupFile}; document storage was not included.`);
 } finally {
   try {
     rmSync(workDir, { recursive: true, force: true });

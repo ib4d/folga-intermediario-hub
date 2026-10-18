@@ -86,7 +86,10 @@ function buildDuplicateGroups(documents: Document[]): DocumentDuplicateGroup[] {
   return Array.from(groups.values()).filter((group) => group.count > 1);
 }
 
-export function getCandidateDocumentChecklist(candidate: CandidateWithDocuments): DocumentChecklist {
+export function getCandidateDocumentChecklist(
+  candidate: CandidateWithDocuments,
+  options: { includePaymentStatus?: boolean } = {},
+): DocumentChecklist {
   const required: string[] = ["PASSPORT"];
   const uploadedUnique: string[] = [];
   const verifiedUnique: string[] = [];
@@ -151,7 +154,7 @@ export function getCandidateDocumentChecklist(candidate: CandidateWithDocuments)
     warnings.push("Karta Pobytu vence en menos de 30 dias");
   }
 
-  if (!candidate.paid400pln) {
+  if (options.includePaymentStatus !== false && !candidate.paid400pln) {
     warnings.push("Falta pago de 400 PLN");
   }
 

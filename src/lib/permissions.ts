@@ -231,6 +231,10 @@ export function canReviewCandidateDocuments(viewerRole: Role): boolean {
   return ([Role.SUPERADMIN, Role.ADMIN, Role.LEGAL] as Role[]).includes(viewerRole);
 }
 
+export function canViewCandidateDocuments(viewerRole: Role): boolean {
+  return canAccessModule(viewerRole, "documents");
+}
+
 export function canRequestLegalReview(viewerRole: Role): boolean {
   return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
 }
@@ -296,7 +300,7 @@ export function canViewCandidateAudit(viewerRole: Role): boolean {
 }
 
 export function canEditCandidateNotes(viewerRole: Role): boolean {
-  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO, Role.LOGISTICA] as Role[]).includes(viewerRole);
+  return ([Role.SUPERADMIN, Role.ADMIN, Role.INTERMEDIARIO] as Role[]).includes(viewerRole);
 }
 
 export function roleLabel(role: Role, language: AppLanguage = "es"): string {

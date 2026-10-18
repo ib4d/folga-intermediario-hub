@@ -47,28 +47,28 @@ async function upsertWorkflowWithSteps(input: {
 async function main() {
   const isProduction = process.env.NODE_ENV === "production";
   const allowDemoSeed = process.env.ALLOW_DEMO_SEED === "true";
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@folga.com";
-  const legalEmail = process.env.SEED_LEGAL_EMAIL || "legal@folga.com";
-  const intermediaryEmail = process.env.SEED_INTERMEDIARY_EMAIL || "maria@folga.com";
-  const seedPassword = process.env.SEED_ADMIN_PASSWORD || "folga2024admin";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@example.test";
+  const legalEmail = process.env.SEED_LEGAL_EMAIL || "legal@example.test";
+  const intermediaryEmail = process.env.SEED_INTERMEDIARY_EMAIL || "operator@example.test";
+  const seedPassword = process.env.SEED_ADMIN_PASSWORD || "local-only-demo-password";
 
   if (isProduction && !allowDemoSeed) {
     throw new Error("Production seed blocked. Set ALLOW_DEMO_SEED=true and SEED_ADMIN_PASSWORD to seed intentionally.");
   }
 
-  if (isProduction && seedPassword === "folga2024admin") {
+  if (isProduction && seedPassword === "local-only-demo-password") {
     throw new Error("Refusing to seed production with the default demo password.");
   }
 
   const passwordHash = await bcrypt.hash(seedPassword, 12);
 
   const org = await prisma.organization.upsert({
-    where: { slug: "folga-default" },
+    where: { slug: "ori-default" },
     update: {},
     create: {
       id: "org_default_migration",
-      name: "Folga Sp. z o.o.",
-      slug: "folga-default",
+      name: "ORI CRUIT HUB",
+      slug: "ori-default",
       plan: "ENTERPRISE",
       isActive: true,
     },
@@ -118,19 +118,19 @@ async function main() {
 
   await prisma.membership.upsert({
     where: { userId_organizationId: { userId: admin.id, organizationId: org.id } },
-    update: {},
+    update: { role: "SUPERADMIN", isActive: true },
     create: { userId: admin.id, organizationId: org.id, role: "SUPERADMIN", isActive: true },
   });
 
   await prisma.membership.upsert({
     where: { userId_organizationId: { userId: legal.id, organizationId: org.id } },
-    update: {},
+    update: { role: "LEGAL", isActive: true },
     create: { userId: legal.id, organizationId: org.id, role: "LEGAL", isActive: true },
   });
 
   await prisma.membership.upsert({
     where: { userId_organizationId: { userId: intermediary.id, organizationId: org.id } },
-    update: {},
+    update: { role: "INTERMEDIARIO", isActive: true },
     create: { userId: intermediary.id, organizationId: org.id, role: "INTERMEDIARIO", isActive: true },
   });
 
@@ -627,7 +627,7 @@ async function main() {
   });
 
   console.log("Seed ejecutado.");
-  console.log("- Org:          folga-default (ENTERPRISE)");
+  console.log("- Org:          ori-default (ENTERPRISE)");
   console.log(`- Admin:        ${adminEmail} / ${isProduction ? "[configured password]" : seedPassword} (isPlatformAdmin=true)`);
   console.log(`- Legal:        ${legalEmail} / ${isProduction ? "[configured password]" : seedPassword}`);
   console.log(`- Intermediario: ${intermediaryEmail} / ${isProduction ? "[configured password]" : seedPassword}`);

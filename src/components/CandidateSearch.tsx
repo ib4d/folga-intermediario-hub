@@ -84,7 +84,7 @@ export default function CandidateSearch({
         <input
           type="text"
           className="input candidate-search-input"
-          aria-label="Buscar candidatos por nombre, teléfono, país o pasaporte"
+          aria-label={labels.placeholder}
           placeholder={labels.placeholder}
           defaultValue={searchParams.get("q")?.toString()}
           onChange={(event) => handleSearch(event.target.value)}

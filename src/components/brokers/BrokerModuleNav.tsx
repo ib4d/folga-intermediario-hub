@@ -12,11 +12,14 @@ const links = [
 
 export default function BrokerModuleNav() {
   const pathname = usePathname();
+  const currentSection = links
+    .filter((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))
+    .sort((left, right) => right.href.length - left.href.length)[0];
 
   return (
     <div className="broker-module-nav">
       {links.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = currentSection?.href === link.href;
         return (
           <Link
             key={link.href}

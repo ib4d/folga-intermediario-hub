@@ -36,6 +36,7 @@ export default async function OnboardingPage({
         }
       >
         <OnboardingForm
+          language={language}
           mode={workspaceMode}
           title={workspaceMode === "demo" ? labels("onboarding.demoFormTitle") : labels("onboarding.formTitle")}
           description={
@@ -49,17 +50,16 @@ export default async function OnboardingPage({
           }
           nameLabel={labels("onboarding.nameLabel")}
           namePlaceholder={labels("onboarding.namePlaceholder")}
-          submitLabel={workspaceMode === "demo" ? labels("onboarding.demoSubmit") : labels("onboarding.submit")}
-          submittingLabel={workspaceMode === "demo" ? labels("onboarding.demoSubmitting") : labels("onboarding.submitting")}
+          submitLabel={workspaceMode === "demo" ? labels("onboarding.demoSendVerification") : labels("onboarding.sendVerification")}
+          submittingLabel={workspaceMode === "demo" ? labels("onboarding.demoSendingVerification") : labels("onboarding.sendingVerification")}
           footerText={workspaceMode === "demo" ? labels("onboarding.demoTerms") : labels("onboarding.terms")}
           requiresAccount={true}
           accountTitle={labels("onboarding.accountTitle")}
+          accountDescription={labels("onboarding.accountDescription")}
           fullNameLabel={labels("onboarding.fullNameLabel")}
           fullNamePlaceholder={labels("onboarding.fullNamePlaceholder")}
           emailLabel={labels("onboarding.emailLabel")}
           emailPlaceholder={labels("onboarding.emailPlaceholder")}
-          passwordLabel={labels("onboarding.passwordLabel")}
-          passwordPlaceholder={labels("onboarding.passwordPlaceholder")}
           existingAccountLabel={labels("onboarding.existingAccountLabel")}
           existingAccountAction={labels("onboarding.existingAccountAction")}
           existingAccountHref={loginHref}
@@ -97,6 +97,7 @@ export default async function OnboardingPage({
       }
     >
       <OnboardingForm
+        language={language}
         mode={workspaceMode}
         title={workspaceMode === "demo" ? labels("onboarding.demoFormTitle") : labels("onboarding.formTitle")}
         description={
@@ -115,12 +116,11 @@ export default async function OnboardingPage({
         footerText={workspaceMode === "demo" ? labels("onboarding.demoTerms") : labels("onboarding.terms")}
         requiresAccount={false}
         accountTitle={labels("onboarding.accountTitle")}
+        accountDescription={labels("onboarding.accountDescription")}
         fullNameLabel={labels("onboarding.fullNameLabel")}
         fullNamePlaceholder={labels("onboarding.fullNamePlaceholder")}
         emailLabel={labels("onboarding.emailLabel")}
         emailPlaceholder={labels("onboarding.emailPlaceholder")}
-        passwordLabel={labels("onboarding.passwordLabel")}
-        passwordPlaceholder={labels("onboarding.passwordPlaceholder")}
         existingAccountLabel={labels("onboarding.existingAccountLabel")}
         existingAccountAction={labels("onboarding.existingAccountAction")}
         existingAccountHref={loginHref}

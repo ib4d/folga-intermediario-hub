@@ -8,6 +8,7 @@ type PlatformStatusCardProps = {
     label: string;
     value: string;
     badge?: boolean;
+    badgeTone?: "active" | "warning" | "danger" | "info";
   }>;
   openHealthLabel: string;
   openProvidersLabel: string;
@@ -57,7 +58,7 @@ export default function PlatformStatusCard({
             <div style={labelStyle}>{item.label}</div>
             <div style={item.badge ? valueStyle : { marginTop: "0.5rem", fontSize: "1.05rem", fontWeight: 900, lineHeight: 1.45 }}>
               {item.badge ? (
-                <span className="status-badge active" style={{ paddingInline: "0.75rem" }}>
+                <span className={`status-badge ${item.badgeTone ?? "active"}`} style={{ paddingInline: "0.75rem" }}>
                   {item.value}
                 </span>
               ) : (

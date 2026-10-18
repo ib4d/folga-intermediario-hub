@@ -101,7 +101,7 @@ function normalizeRecipients(to: string) {
 }
 
 function createMessage(payload: EmailPayload, config: SmtpConfig, recipients: string[]) {
-  const boundary = `folga-${randomUUID()}`;
+  const boundary = `ori-cruit-${randomUUID()}`;
   const messageId = `<${randomUUID()}@${config.host}>`;
   const textBody = payload.body.replace(/\r?\n/g, "\r\n");
   const htmlBody = textToHtml(payload.body).replace(/\r?\n/g, "\r\n");
@@ -320,8 +320,7 @@ export async function sendEmail(payload: EmailPayload) {
   const config = getSmtpConfig();
 
   console.info("[Email Service] Email requested", {
-    to: payload.to,
-    subject: payload.subject,
+    recipientCount: normalizeRecipients(payload.to).length,
     smtpConfigured: Boolean(config),
   });
 

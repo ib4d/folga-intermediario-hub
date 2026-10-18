@@ -5,8 +5,10 @@ import { auth, signOut } from "@/auth";
 import GlobalSearch from "./GlobalSearch";
 import { prisma } from "@/lib/prisma";
 import { normalizeLanguage, t } from "@/lib/i18n";
+import { resolveEffectivePlan } from "@/lib/billing/entitlements";
 
 function getRoleLabel(role: string, language: ReturnType<typeof normalizeLanguage>) {
+  if (role === "PLATFORM_ADMIN") return t(language, "nav.platformAdmin");
   switch (role) {
     case "SUPERADMIN":
       return t(language, "role.superadmin");
@@ -44,7 +46,10 @@ async function getHeaderOrganization(organizationId: string | null | undefined):
         plan: true,
         subscription: {
           select: {
+            plan: true,
             status: true,
+            provider: true,
+            currentPeriodStart: true,
             currentPeriodEnd: true,
           },
         },
@@ -56,7 +61,8 @@ async function getHeaderOrganization(organizationId: string | null | undefined):
     }
 
     const status = organization.subscription?.status?.toLowerCase() ?? "missing";
-    const isHealthy = organization.plan === "FREE" || ["active", "trialing"].includes(status);
+    const effectivePlan = resolveEffectivePlan(organization.plan, organization.subscription);
+    const isHealthy = effectivePlan === "FREE" || ["active", "trialing"].includes(status);
 
     return {
       name: organization.name,
@@ -91,12 +97,18 @@ function getBillingAttentionStatusLabel(status: string, language: ReturnType<typ
   }
 }
 
-export default async function Header() {
+export default async function Header({
+  role,
+  organizationId,
+}: {
+  role: string | null;
+  organizationId: string | null;
+}) {
   const session = await auth();
   if (!session) return null;
 
   const language = normalizeLanguage(session.user.interfaceLanguage);
-  const organization = await getHeaderOrganization(session.user.organizationId);
+  const organization = await getHeaderOrganization(organizationId);
   const labels = t.bind(null, language);
   const dateFormatter = new Intl.DateTimeFormat(language, { dateStyle: "medium" });
 
@@ -136,7 +148,7 @@ export default async function Header() {
 
       <header className="header">
         <div className="header-primary">
-          <GlobalSearch />
+          {role ? <GlobalSearch /> : null}
           {organization?.name ? (
             <span className="badge org-badge" title={organization.name}>
               {organization.name}
@@ -145,7 +157,7 @@ export default async function Header() {
         </div>
 
         <div className="header-actions">
-          <NotificationsDropdown language={language} />
+          {role ? <NotificationsDropdown language={language} /> : null}
 
           <div className="user-chip user-chip-panel">
             <div className="user-chip-text">
@@ -153,7 +165,7 @@ export default async function Header() {
                 {session.user.name}
               </div>
               <div className="user-chip-role">
-                {getRoleLabel(session.user.role, language)}
+                {getRoleLabel(role ?? "PLATFORM_ADMIN", language)}
               </div>
             </div>
             <div className="user-chip-avatar">

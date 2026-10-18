@@ -1,13 +1,16 @@
 import { auth } from "@/auth";
 import { getPlanLimits } from "@/lib/billing/limits";
-import { getStripePortalUrl, isStripeConfigured } from "@/lib/billing/stripe";
+import { formatManualPlanDate, formatManualPlanEndDate, resolveEffectivePlan } from "@/lib/billing/entitlements";
+import { isStripeConfigured, isStripePortalConfigured } from "@/lib/billing/stripe";
 import { canAccessModule } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
-import { CalendarClock, CreditCard, ExternalLink, Zap } from "lucide-react";
+import { CalendarClock, CreditCard, Zap } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { normalizeLanguage, t, type AppLanguage, type TranslationKey } from "@/lib/i18n";
+import BillingPortalButton from "@/components/BillingPortalButton";
+import BillingReviewControls from "@/components/BillingReviewControls";
 
 function formatLimit(value: number, language: AppLanguage) {
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
@@ -46,6 +49,53 @@ function getBillingAttentionStatusLabel(status: string, language: AppLanguage) {
   }
 }
 
+function getBillingIncidentLabel(status: string, eventType: string, language: AppLanguage) {
+  if (eventType === "checkout.session.async_payment_failed") {
+    return status === "RECOVERED"
+      ? t(language, "billing.checkoutAsyncPaymentRecovered")
+      : t(language, "billing.checkoutAsyncPaymentFailed");
+  }
+  if (status === "CLOSED") return t(language, "billing.invoiceIncidentClosed");
+  if (status === "RECOVERED") return t(language, "billing.invoiceIncidentRecovered");
+  if (eventType === "invoice.finalization_failed") {
+    return t(language, "billing.invoiceIncidentFinalizationFailed");
+  }
+  if (eventType === "invoice.payment_action_required") {
+    return t(language, "billing.invoiceIncidentActionRequired");
+  }
+  return t(language, "billing.invoiceIncidentPaymentFailed");
+}
+
+function getBillingReviewLabel(kind: string, language: AppLanguage) {
+  switch (kind) {
+    case "REFUND":
+      return t(language, "billing.reviewRefundTitle");
+    case "DISPUTE":
+      return t(language, "billing.reviewDisputeTitle");
+    default:
+      return t(language, "billing.reviewFraudTitle");
+  }
+}
+
+function getBillingReviewStatusLabel(status: string, language: AppLanguage) {
+  const statusKeys: Partial<Record<string, TranslationKey>> = {
+    pending: "billing.reviewStatusPending",
+    requires_action: "billing.reviewStatusRequiresAction",
+    succeeded: "billing.reviewStatusSucceeded",
+    failed: "billing.reviewStatusFailed",
+    canceled: "billing.reviewStatusCanceled",
+    needs_response: "billing.reviewStatusNeedsResponse",
+    under_review: "billing.reviewStatusUnderReview",
+    won: "billing.reviewStatusWon",
+    lost: "billing.reviewStatusLost",
+    warning_needs_response: "billing.reviewStatusWarningNeedsResponse",
+    warning_under_review: "billing.reviewStatusWarningUnderReview",
+    warning_closed: "billing.reviewStatusWarningClosed",
+  };
+  const key = statusKeys[status];
+  return key ? t(language, key) : status.replaceAll("_", " ");
+}
+
 export default async function BillingPage() {
   const tenant = await requireTenant();
   if (!canAccessModule(tenant.role, "billing")) redirect("/sin-permisos");
@@ -54,18 +104,50 @@ export default async function BillingPage() {
   const labels = t.bind(null, language);
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
   const stripeConfigured = isStripeConfigured();
-  const portalUrl = getStripePortalUrl();
 
   const organization = await prisma.organization.findUnique({
     where: { id: tenant.organizationId },
-    include: { subscription: true },
+    include: {
+      subscription: true,
+      stripeBillingIncidents: {
+        orderBy: [{ status: "asc" }, { lastEventCreatedAt: "desc" }],
+        take: 10,
+      },
+      stripeBillingReviews: {
+        orderBy: [{ reviewedAt: "asc" }, { actionDueAt: "asc" }, { lastEventCreatedAt: "desc" }],
+        take: 10,
+      },
+    },
   });
 
   if (!organization) return null;
 
-  const limits = getPlanLimits(organization.plan);
+  const now = new Date();
+  const effectivePlan = resolveEffectivePlan(organization.plan, organization.subscription, now);
+  const limits = getPlanLimits(effectivePlan);
+  const manualSubscription = organization.subscription?.provider?.toLowerCase() === "manual"
+    ? organization.subscription
+    : null;
+  const manualBilling = manualSubscription !== null;
+  const stripePortalAvailable = Boolean(
+    isStripePortalConfigured() &&
+      organization.subscription?.provider?.toLowerCase() === "stripe" &&
+      organization.subscription.providerCustomerId,
+  );
+  const manualPilotExpired = Boolean(
+    manualSubscription &&
+      manualSubscription.status.toLowerCase() === "active" &&
+      (!manualSubscription.currentPeriodEnd || manualSubscription.currentPeriodEnd <= now),
+  );
+  const manualPilotNotStarted = Boolean(
+    manualSubscription &&
+      manualSubscription.status.toLowerCase() === "active" &&
+      manualSubscription.currentPeriodEnd &&
+      manualSubscription.currentPeriodEnd > now &&
+      (!manualSubscription.currentPeriodStart || manualSubscription.currentPeriodStart > now),
+  );
   const billingAttention =
-    organization.plan === "FREE"
+    effectivePlan === "FREE" || manualPilotExpired
       ? null
       : (() => {
           const status = organization.subscription?.status?.toLowerCase() ?? "missing";
@@ -112,40 +194,73 @@ export default async function BillingPage() {
       : null;
 
   return (
-    <div className="content-shell billing-page-shell">
+    <div className="module-page-shell billing-page-shell">
       <section className="hero-section">
         <h1>{labels("billing.title")}</h1>
         <p>{labels("billing.description")}</p>
       </section>
 
-      {billingAttention ? (
-        <section className="card billing-alert billing-alert--danger">
+      {manualPilotExpired || manualPilotNotStarted || billingAttention ? (
+        <section className={`card billing-alert ${manualPilotNotStarted && !manualPilotExpired ? "billing-alert--warning" : "billing-alert--danger"}`}>
           <div className="card-header billing-alert-header">
-            <h3 className="billing-alert-title">{labels("billing.subscriptionAttentionTitle")}</h3>
+            <h3 className="billing-alert-title">
+              {labels(manualPilotExpired
+                ? "billing.manualPilotExpiredTitle"
+                : manualPilotNotStarted
+                  ? "billing.manualPilotNotStartedTitle"
+                  : "billing.subscriptionAttentionTitle")}
+            </h3>
           </div>
-          <p className="billing-alert-copy">{labels("billing.subscriptionAttentionMessage")}</p>
-          <div className="billing-alert-details">
-            <div>
-              {labels("billing.subscriptionAttentionStatus").replace(
-                "{status}",
-                getBillingAttentionStatusLabel(billingAttention.status, language),
-              )}
-            </div>
-            <div>
-              {labels("billing.subscriptionAttentionPeriodEnd").replace(
-                "{date}",
-                billingAttention.currentPeriodEnd
-                  ? formatBillingDate(billingAttention.currentPeriodEnd, language) ?? labels("billing.notAvailable")
-                  : labels("billing.notAvailable"),
-              )}
-            </div>
-          </div>
+          {manualPilotExpired ? (
+            <p className="billing-alert-copy">
+              {labels("billing.manualPilotExpiredMessage")
+                .replace("{organization}", organization.name)
+                .replace(
+                  "{date}",
+                  formatManualPlanEndDate(manualSubscription?.currentPeriodEnd, locale) ??
+                    labels("billing.notAvailable"),
+                )}
+            </p>
+          ) : manualPilotNotStarted ? (
+            <p className="billing-alert-copy">
+              {labels("billing.manualPilotNotStartedMessage")
+                .replace("{organization}", organization.name)
+                .replace(
+                  "{date}",
+                  formatManualPlanDate(manualSubscription?.currentPeriodStart, locale) ??
+                    labels("billing.notAvailable"),
+                )}
+            </p>
+          ) : billingAttention ? (
+            <>
+              <p className="billing-alert-copy">{labels("billing.subscriptionAttentionMessage")}</p>
+              <div className="billing-alert-details">
+                <div>
+                  {labels("billing.subscriptionAttentionStatus").replace(
+                    "{status}",
+                    getBillingAttentionStatusLabel(billingAttention.status, language),
+                  )}
+                </div>
+                <div>
+                  {labels("billing.subscriptionAttentionPeriodEnd").replace(
+                    "{date}",
+                    billingAttention.currentPeriodEnd
+                      ? formatBillingDate(billingAttention.currentPeriodEnd, language) ?? labels("billing.notAvailable")
+                      : labels("billing.notAvailable"),
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
           <div className="billing-actions">
-            {portalUrl ? (
-              <a className="button" href={portalUrl} target="_blank" rel="noreferrer">
-                <ExternalLink size={16} />
-                {labels("billing.manageStripe")}
-              </a>
+            {!manualBilling ? (
+              stripePortalAvailable ? (
+                <BillingPortalButton language={language} />
+              ) : (
+                <button className="button" type="button" disabled>
+                  {labels("billing.stripePortalUnavailable")}
+                </button>
+              )
             ) : null}
             <Link href="/billing/plans" className="button button-secondary">
               {labels("billing.changePlan")}
@@ -177,13 +292,75 @@ export default async function BillingPage() {
         </section>
       ) : null}
 
+      {organization.stripeBillingIncidents.length > 0 ? (
+        <section className="card billing-alert billing-alert--warning" aria-labelledby="billing-invoice-incidents-title">
+          <div className="card-header billing-alert-header">
+            <h2 id="billing-invoice-incidents-title" className="billing-alert-title">
+              {labels("billing.invoiceIncidentsTitle")}
+            </h2>
+          </div>
+          <p className="billing-alert-copy">{labels("billing.invoiceIncidentsDescription")}</p>
+          <ul className="billing-detail-list">
+            {organization.stripeBillingIncidents.map((incident) => (
+              <li className="billing-detail-row" key={incident.id}>
+                <span className="billing-detail-label">
+                  {getBillingIncidentLabel(incident.status, incident.lastEventType, language)}
+                </span>
+                <span className="billing-detail-value">
+                    {incident.invoiceId ?? incident.checkoutSessionId ?? incident.id} · {formatBillingDate(incident.lastEventCreatedAt, language) ?? labels("billing.notAvailable")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {organization.stripeBillingReviews.length > 0 ? (
+        <section className="card billing-alert billing-alert--warning" aria-labelledby="billing-review-cases-title">
+          <div className="card-header billing-alert-header">
+            <h2 id="billing-review-cases-title" className="billing-alert-title">
+              {labels("billing.reviewCasesTitle")}
+            </h2>
+          </div>
+          <p className="billing-alert-copy">{labels("billing.reviewCasesDescription")}</p>
+          <ul className="billing-detail-list">
+            {organization.stripeBillingReviews.map((review) => (
+              <li className="billing-detail-row" key={review.id}>
+                <span className="billing-detail-label">{getBillingReviewLabel(review.kind, language)}</span>
+                <span className="billing-detail-value">
+                  {review.resourceStatus
+                    ? `${labels("billing.reviewStripeStatus")}: ${getBillingReviewStatusLabel(review.resourceStatus, language)} · `
+                    : ""}
+                  {review.providerObjectId}
+                  {review.actionDueAt
+                    ? ` · ${labels("billing.reviewActionDue")}: ${formatBillingDate(review.actionDueAt, language)}`
+                    : ""}
+                  {review.actionable === true
+                    ? ` · ${labels("billing.reviewActionable")}`
+                    : review.actionable === false
+                      ? ` · ${labels("billing.reviewNotActionable")}`
+                      : ""}
+                </span>
+                <BillingReviewControls
+                  reviewId={review.id}
+                  status={review.reviewStatus}
+                  note={review.reviewNote}
+                  reviewedAt={formatBillingDate(review.reviewedAt, language)}
+                  language={language}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div className="dashboard-grid billing-metric-grid">
         <div className="card billing-summary-card">
           <div className="card-header">
             <h3>{labels("billing.currentPlan")}</h3>
             <Zap size={24} color="var(--amber-flame)" />
           </div>
-          <div className="billing-summary-value">{organization.plan}</div>
+          <div className="billing-summary-value">{effectivePlan}</div>
           <Link href="/billing/plans" className="button billing-full-width">
             {labels("billing.changePlan")}
           </Link>
@@ -201,16 +378,18 @@ export default async function BillingPage() {
                 ? labels("billing.stripeConfiguredNoSubscription")
                 : labels("billing.stripePendingConfig")}
           </div>
-          {portalUrl ? (
-            <a className="button button-secondary billing-full-width" href={portalUrl} target="_blank" rel="noreferrer">
-              <ExternalLink size={16} />
-              {labels("billing.manageStripe")}
-            </a>
-          ) : (
-            <button className="button button-secondary billing-full-width" disabled>
-              {labels("billing.stripePortalUnavailable")}
-            </button>
-          )}
+          {!manualBilling ? (
+            stripePortalAvailable ? (
+              <BillingPortalButton
+                language={language}
+                className="button button-secondary billing-full-width"
+              />
+            ) : (
+              <button className="button button-secondary billing-full-width" type="button" disabled>
+                {labels("billing.stripePortalUnavailable")}
+              </button>
+            )
+          ) : null}
         </div>
 
         <div className="card billing-summary-card">
@@ -228,7 +407,9 @@ export default async function BillingPage() {
               />
               <BillingDetailRow
                 label={labels("billing.periodEnd")}
-                value={formatBillingDate(organization.subscription.currentPeriodEnd, language) ?? labels("billing.notAvailable")}
+                value={manualBilling
+                  ? formatManualPlanEndDate(organization.subscription.currentPeriodEnd, locale) ?? labels("billing.notAvailable")
+                  : formatBillingDate(organization.subscription.currentPeriodEnd, language) ?? labels("billing.notAvailable")}
               />
               <BillingDetailRow
                 label={labels("billing.providerCustomerId")}

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getPlanLimits } from "@/lib/billing/limits";
+import { formatManualPlanEndDate, resolveEffectivePlan } from "@/lib/billing/entitlements";
 import PlatformAutomationCard from "@/components/PlatformAutomationCard";
 import PlatformOperationalPulseCard from "@/components/PlatformOperationalPulseCard";
 import PlatformReadinessCard from "@/components/PlatformReadinessCard";
@@ -9,6 +10,7 @@ import { getRuntimeMetadata } from "@/lib/operational-status";
 import { getProviderStatus } from "@/lib/provider-status";
 import { TRACKED_OPERATIONAL_ALERT_TYPES } from "@/lib/operational-alerts-shared";
 import { prisma } from "@/lib/prisma";
+import { getStorageDeletionQueueBacklog } from "@/lib/storage-deletion-queue";
 import { requirePlatformAdmin } from "@/lib/tenant";
 import { Activity, Building2, FileText, Users } from "lucide-react";
 import Link from "next/link";
@@ -80,13 +82,22 @@ export default async function PlatformAdminPage() {
   const runtime = getRuntimeMetadata();
   const { storage, ocr } = providerStatus;
   const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+  const storageDeletionBacklogPromise = getStorageDeletionQueueBacklog().catch((error) => {
+    console.error("[platform] storage deletion backlog query failed", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
+    return null;
+  });
 
-  const [orgs, stats] = await Promise.all([
+  const [orgs, stats, storageDeletionBacklog] = await Promise.all([
     prisma.organization.findMany({
       include: {
         subscription: {
           select: {
+            plan: true,
             status: true,
+            provider: true,
+            currentPeriodStart: true,
             currentPeriodEnd: true,
           },
         },
@@ -99,10 +110,27 @@ export default async function PlatformAdminPage() {
     prisma.organization.aggregate({
       _count: { _all: true },
     }),
+    storageDeletionBacklogPromise,
   ]);
 
+  const storageDeletionBadgeTone = storageDeletionBacklog === null
+    ? "danger"
+    : storageDeletionBacklog.pending > 0
+      ? "warning"
+      : "active";
+  const storageDeletionQueueValue = storageDeletionBacklog === null
+    ? labels("platform.storageDeletionUnavailable")
+    : storageDeletionBacklog.pending === 0
+      ? labels("platform.storageDeletionClear")
+      : `${storageDeletionBacklog.pending} ${labels("platform.storageDeletionOpenJobs")} · ${labels("platform.storageDeletionOldest")}: ${storageDeletionBacklog.oldestPendingAt
+        ? new Date(storageDeletionBacklog.oldestPendingAt).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })
+        : "—"}`;
+
+  const effectivePlanByOrg = new Map(
+    orgs.map((org) => [org.id, resolveEffectivePlan(org.plan, org.subscription)])
+  );
   const billingAttentionOrgs = orgs.filter((org) => {
-    if (org.plan === "FREE") {
+    if (effectivePlanByOrg.get(org.id) === "FREE") {
       return false;
     }
 
@@ -112,13 +140,15 @@ export default async function PlatformAdminPage() {
 
   const planPressureOrgs = orgs
     .map((org) => {
-      const limits = getPlanLimits(org.plan);
+      const effectivePlan = effectivePlanByOrg.get(org.id) ?? org.plan;
+      const limits = getPlanLimits(effectivePlan);
       const candidateRatio = usageRatio(org._count.candidates, limits.candidates);
       const userRatio = usageRatio(org._count.memberships, limits.users);
       const maxRatio = Math.max(candidateRatio, userRatio);
 
       return {
         org,
+        effectivePlan,
         maxRatio,
         pressureLabel:
           candidateRatio >= userRatio
@@ -127,15 +157,18 @@ export default async function PlatformAdminPage() {
         pressureType: candidateRatio >= userRatio ? "candidates" : "users",
       };
     })
-    .filter(({ org, maxRatio }) => org.plan !== "ENTERPRISE" && maxRatio >= 0.8)
+    .filter(({ effectivePlan, maxRatio }) => effectivePlan !== "ENTERPRISE" && maxRatio >= 0.8)
     .sort((a, b) => b.maxRatio - a.maxRatio);
 
   const totalUsers = await prisma.user.count();
   const totalCandidates = await prisma.candidate.count();
   const totalSubscriptions = await prisma.subscription.count();
-  const activeSubscriptions = await prisma.subscription.count({
-    where: { status: { in: ["active", "trialing"] } },
-  });
+  const activeSubscriptions = orgs.filter((org) => {
+    const status = org.subscription?.status.toLowerCase();
+    if (!org.isActive || !status || !["active", "trialing"].includes(status)) return false;
+    return org.subscription?.provider?.toLowerCase() !== "manual" ||
+      effectivePlanByOrg.get(org.id) !== "FREE";
+  }).length;
   const totalWorkflows = await prisma.workflow.count();
   const activeWorkflows = await prisma.workflow.count({
     where: { isActive: true },
@@ -209,6 +242,12 @@ export default async function PlatformAdminPage() {
           {
             label: labels("platform.systemStatusJobs"),
             value: `${runtime.jobProvider} | ${runtime.cronConfigured ? labels("platform.systemStatusCronReady") : labels("platform.systemStatusCronMissing")}`,
+          },
+          {
+            label: labels("platform.storageDeletionQueue"),
+            value: storageDeletionQueueValue,
+            badge: true,
+            badgeTone: storageDeletionBadgeTone,
           },
           {
             label: labels("platform.systemStatusRelease"),
@@ -382,7 +421,7 @@ export default async function PlatformAdminPage() {
                         <div className="platform-admin-table-meta">{org.slug}</div>
                       </td>
                       <td>
-                        <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
+                        <span className="status-badge active platform-admin-badge-amber">{effectivePlanByOrg.get(org.id) ?? org.plan}</span>
                       </td>
                       <td>
                         <span className="status-badge platform-admin-badge-danger">
@@ -390,9 +429,11 @@ export default async function PlatformAdminPage() {
                         </span>
                       </td>
                       <td>
-                        {org.subscription?.currentPeriodEnd
-                          ? org.subscription.currentPeriodEnd.toLocaleDateString(locale)
-                          : labels("billing.notAvailable")}
+                        {org.subscription?.provider?.toLowerCase() === "manual"
+                          ? formatManualPlanEndDate(org.subscription.currentPeriodEnd, locale) ?? labels("billing.notAvailable")
+                          : org.subscription?.currentPeriodEnd
+                            ? org.subscription.currentPeriodEnd.toLocaleDateString(locale)
+                            : labels("billing.notAvailable")}
                       </td>
                     </tr>
                   );
@@ -449,14 +490,14 @@ export default async function PlatformAdminPage() {
             </thead>
             <tbody>
               {planPressureOrgs.length > 0 ? (
-                planPressureOrgs.slice(0, 6).map(({ org, maxRatio, pressureLabel, pressureType }) => (
+                planPressureOrgs.slice(0, 6).map(({ org, effectivePlan, maxRatio, pressureLabel, pressureType }) => (
                   <tr key={org.id}>
                     <td className="platform-admin-table-name">
                       {org.name}
                       <div className="platform-admin-table-meta">{org.slug}</div>
                     </td>
                     <td>
-                      <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
+                      <span className="status-badge active platform-admin-badge-amber">{effectivePlan}</span>
                     </td>
                     <td>
                       <span
@@ -488,6 +529,9 @@ export default async function PlatformAdminPage() {
           <Activity size={20} />
         </div>
         <p className="platform-admin-section-copy">{labels("platform.billingPulseDescription")}</p>
+        <Link href="/platform/billing" className="button button-secondary platform-manual-billing-manage-link">
+          {labels("platformBilling.manageButton")}
+        </Link>
         <div className="dashboard-grid platform-admin-mini-grid">
           <div className="card platform-admin-kpi-card">
             <div className="platform-admin-kpi-value">{totalSubscriptions}</div>
@@ -571,7 +615,7 @@ export default async function PlatformAdminPage() {
                     <div className="platform-admin-table-meta">{org.slug}</div>
                   </td>
                   <td>
-                    <span className="status-badge active platform-admin-badge-amber">{org.plan}</span>
+                    <span className="status-badge active platform-admin-badge-amber">{effectivePlanByOrg.get(org.id) ?? org.plan}</span>
                   </td>
                   <td>
                     <span className={`status-badge ${org.isActive ? "active" : ""}`}>

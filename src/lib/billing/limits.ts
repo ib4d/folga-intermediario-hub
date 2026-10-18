@@ -1,5 +1,6 @@
 import { Plan } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { resolveEffectivePlan } from "@/lib/billing/entitlements";
 
 export interface PlanLimits {
   candidates: number;
@@ -57,12 +58,24 @@ export async function assertWithinPlanLimit(
 ) {
   const organization = await prisma.organization.findUnique({
     where: { id: organizationId },
-    select: { plan: true },
+    select: {
+      plan: true,
+      subscription: {
+        select: {
+          plan: true,
+          status: true,
+          provider: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+        },
+      },
+    },
   });
 
   if (!organization) throw new Error("Organización no encontrada");
 
-  const limits = getPlanLimits(organization.plan);
+  const effectivePlan = resolveEffectivePlan(organization.plan, organization.subscription);
+  const limits = getPlanLimits(effectivePlan);
   const currentLimit = limits[feature];
 
   if (currentLimit === Infinity) return true;
@@ -74,7 +87,21 @@ export async function assertWithinPlanLimit(
       currentUsage = await prisma.candidate.count({ where: { organizationId } });
       break;
     case "users":
-      currentUsage = await prisma.membership.count({ where: { organizationId, isActive: true } });
+      {
+        const now = new Date();
+        const [activeMembers, pendingInvitations] = await Promise.all([
+          prisma.membership.count({ where: { organizationId, isActive: true } }),
+          prisma.organizationInvitation.count({
+            where: {
+              organizationId,
+              acceptedAt: null,
+              revokedAt: null,
+              expiresAt: { gt: now },
+            },
+          }),
+        ]);
+        currentUsage = activeMembers + pendingInvitations;
+      }
       break;
     case "documentsPerMonth":
     case "ocrPerMonth":
@@ -101,7 +128,7 @@ export async function assertWithinPlanLimit(
 
   if (currentUsage >= currentLimit) {
     throw new Error(
-      `Límite de plan alcanzado (${feature}). Su plan actual (${organization.plan}) permite hasta ${currentLimit}.`
+      `Límite de plan alcanzado (${feature}). Su plan actual (${effectivePlan}) permite hasta ${currentLimit}.`
     );
   }
 

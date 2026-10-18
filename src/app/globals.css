@@ -185,16 +185,6 @@ body::before {
   gap: 0.85rem;
 }
 
-.sidebar-brand-mark {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  background-color: var(--pitch-black);
-  border: 1px solid rgba(11, 5, 0, 0.12);
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 3px var(--primary);
-}
-
 .sidebar-nav {
   flex: 1;
   padding: 1rem 0;
@@ -1241,6 +1231,11 @@ p { margin-bottom: 1rem; color: var(--muted-foreground); }
   border-radius: var(--border-radius);
   background-color: var(--surface);
   box-shadow: var(--shadow-soft);
+}
+
+.table-container:focus-visible {
+  outline: 3px solid #00513f;
+  outline-offset: 2px;
 }
 
 .table-container thead th {
@@ -3002,6 +2997,13 @@ tr:hover td {
   color: #991b1b;
 }
 
+.billing-portal-action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
 .ajustes-settings-shell {
   display: flex;
   flex-direction: column;
@@ -3406,6 +3408,95 @@ tr:hover td {
 .billing-detail-value {
   font-weight: 700;
   word-break: break-word;
+}
+
+.billing-review-controls {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(120, 113, 108, 0.25);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.billing-review-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.billing-review-status {
+  display: inline-flex;
+  padding: 0.22rem 0.5rem;
+  border: 1px solid currentColor;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.billing-review-status--open {
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.billing-review-status--acknowledged {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.billing-review-status--closed {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+.billing-review-note {
+  margin: 0;
+  color: var(--muted-foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.billing-review-form {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.billing-review-form label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.billing-review-form textarea {
+  width: 100%;
+  min-height: 4.25rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(120, 113, 108, 0.35);
+  background: #fff;
+  color: inherit;
+  resize: vertical;
+}
+
+.billing-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.billing-review-actions .button {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.billing-review-feedback {
+  margin: 0;
+  color: #047857;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .billing-plans-hero {
@@ -4577,13 +4668,6 @@ tr:hover td {
   letter-spacing: 0.04em;
 }
 
-.public-auth-shell-brand-mark {
-  width: 18px;
-  height: 18px;
-  background-color: var(--amber-flame);
-  border: 1px solid var(--ghost-white);
-}
-
 .public-auth-shell-badge {
   width: fit-content;
 }
@@ -4703,6 +4787,19 @@ tr:hover td {
   font-weight: 700;
 }
 
+.public-login-success {
+  padding: 0.85rem 1rem;
+  background-color: #effaf2;
+  color: #087a39;
+  border: 1px solid #86d9a0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+#team-members {
+  scroll-margin-top: 6rem;
+}
+
 .public-login-form {
   display: grid;
   gap: 1rem;
@@ -4797,6 +4894,166 @@ tr:hover td {
 
 .dashboard-empty-button-secondary {
   border: 1px solid var(--pitch-black);
+}
+
+.dashboard-onboarding {
+  max-width: 1120px;
+  margin: 0 auto 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--white-smoke);
+  text-align: left;
+}
+
+.dashboard-onboarding-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-onboarding-kicker {
+  color: var(--grey-olive);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.dashboard-onboarding-header h2 {
+  margin: 0.3rem 0;
+  font-size: 1.35rem;
+}
+
+.dashboard-onboarding-header p,
+.dashboard-onboarding-card p {
+  margin: 0;
+  color: var(--grey-olive);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.dashboard-onboarding-progress,
+.dashboard-onboarding-status {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  color: var(--grey-olive);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.dashboard-onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.dashboard-onboarding-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+a.dashboard-onboarding-card:hover {
+  border-color: var(--pitch-black);
+  transform: translateY(-2px);
+}
+
+.dashboard-onboarding-card--complete {
+  border-color: #86d9a0;
+  background: #effaf2;
+}
+
+.dashboard-onboarding-card--primary {
+  border-color: var(--pitch-black);
+  background: var(--amber-flame);
+}
+
+.dashboard-onboarding-card--info {
+  background: #f6f7f5;
+}
+
+.dashboard-onboarding-step-number {
+  display: grid;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  color: var(--pitch-black);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.dashboard-onboarding-card-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dashboard-onboarding-card-copy strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+
+.dashboard-onboarding-status {
+  border-color: #86d9a0;
+  color: #087a39;
+}
+
+.dashboard-onboarding-arrow {
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+}
+
+.dashboard-onboarding-next-step {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--grey-olive);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.dashboard-onboarding-next-step strong {
+  flex: 0 0 auto;
+  color: var(--pitch-black);
+}
+
+@media (max-width: 900px) {
+  .dashboard-onboarding-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-onboarding {
+    padding: 1rem;
+  }
+
+  .dashboard-onboarding-header {
+    flex-direction: column;
+  }
+
+  .dashboard-onboarding-next-step {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .dashboard-alert-card {
@@ -6539,7 +6796,7 @@ tr:hover td {
 
 .broker-empty-table-state {
   text-align: center;
-  opacity: 0.6;
+  opacity: 0.9;
   padding: 2rem;
 }
 
@@ -7425,3 +7682,215 @@ tr:hover td {
   scrollbar-gutter: stable;
 }
 
+.legal-preview-page {
+  --legal-ink: #f5f4ee;
+  --legal-muted: #b6b6ad;
+  --legal-accent: #ffb900;
+  min-height: 100vh;
+  padding: 0 clamp(20px, 5vw, 84px) 48px;
+  background: #090805;
+  color: var(--legal-ink);
+  font-family: var(--font-sans), Arial, sans-serif;
+}
+
+.legal-preview-topbar {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #39352c;
+}
+
+.legal-preview-brand { color: var(--legal-accent); font-weight: 800; letter-spacing: .04em; text-decoration: none; }
+.legal-preview-brand span { color: var(--legal-ink); }
+.legal-preview-mode, .legal-preview-eyebrow { color: var(--legal-accent); font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+.legal-preview-heading { max-width: 840px; padding: 64px 0 28px; }
+.legal-preview-heading h1 { margin: 10px 0; font-family: Georgia, serif; font-size: clamp(38px, 5vw, 64px); letter-spacing: -.04em; }
+.legal-preview-heading > p:last-child { color: var(--legal-muted); font-size: 15px; line-height: 1.7; }
+.legal-preview-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 26px; }
+.legal-preview-tabs a { display: block; padding: 18px; border: 1px solid #39352c; color: var(--legal-ink); text-decoration: none; transition: border-color .15s, background .15s; }
+.legal-preview-tabs a:hover, .legal-preview-tabs a[aria-current="page"] { border-color: var(--legal-accent); background: #17140d; }
+.legal-preview-tabs span { display: block; margin-bottom: 7px; font-weight: 700; }
+.legal-preview-tabs small { color: var(--legal-muted); line-height: 1.5; }
+.legal-preview-document { max-width: 1060px; margin: 0 auto; border: 1px solid #39352c; background: #11100d; }
+.legal-preview-document-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 26px; border-bottom: 1px solid #39352c; }
+.legal-preview-draft-tag { display: inline-block; padding: 6px 9px; background: #36290b; color: var(--legal-accent); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.legal-preview-document-head p { margin: 9px 0 0; color: var(--legal-muted); font-size: 13px; }
+.legal-preview-permalink { color: var(--legal-muted); font-size: 11px; letter-spacing: .08em; text-decoration: none; }
+.legal-preview-prose { padding: clamp(22px, 4vw, 48px); color: #d9d8d1; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
+.legal-preview-prose h1, .legal-preview-prose h2, .legal-preview-prose h3 { color: var(--legal-ink); font-family: Georgia, serif; line-height: 1.25; }
+.legal-preview-prose h1 { margin: 0 0 28px; font-size: clamp(30px, 4vw, 44px); }
+.legal-preview-prose h2 { margin: 38px 0 12px; padding-top: 12px; border-top: 1px solid #302d27; font-size: 24px; }
+.legal-preview-prose h3 { margin-top: 28px; font-size: 19px; }
+.legal-preview-prose p, .legal-preview-prose li { margin: 13px 0; color: #d9d8d1; }
+.legal-preview-prose strong { color: #fff; }
+.legal-preview-prose a { color: var(--legal-accent); text-decoration: underline; text-underline-offset: 3px; }
+.legal-preview-prose ul, .legal-preview-prose ol { padding-left: 24px; }
+.legal-preview-prose li { margin: 7px 0; padding-left: 3px; }
+.legal-preview-prose blockquote { margin: 0 0 24px; padding: 15px 18px; border-left: 3px solid var(--legal-accent); background: #201b10; color: #f2e4bf; }
+.legal-preview-prose code { padding: 2px 5px; background: #25231e; color: #ffe09a; font-size: .9em; }
+.legal-preview-prose hr { margin: 28px 0; border: 0; border-top: 1px solid #39352c; }
+.legal-preview-table-wrap { width: 100%; overflow-x: auto; margin: 20px 0; }
+.legal-preview-prose table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.6; }
+.legal-preview-prose th, .legal-preview-prose td { min-width: 150px; padding: 12px; border: 1px solid #39352c; text-align: left; vertical-align: top; }
+.legal-preview-prose th { background: #201b10; color: var(--legal-accent); }
+.legal-preview-footer { padding-top: 26px; color: var(--legal-muted); font-size: 11px; letter-spacing: .1em; text-align: center; }
+.legal-preview-footer span { color: var(--legal-accent); }
+
+.platform-manual-billing-page {
+  width: min(100%, 1500px);
+  margin: 0 auto;
+}
+
+.platform-manual-billing-page .platform-admin-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.platform-manual-billing-eyebrow {
+  margin: 0 0 8px !important;
+  color: var(--muted-foreground);
+  font: 700 11px monospace;
+  letter-spacing: .1em;
+}
+
+.platform-manual-billing-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #d9a82d;
+  background: #fff7d6;
+  color: #46340d;
+}
+
+.platform-manual-billing-notice p {
+  margin: 5px 0 0;
+  line-height: 1.55;
+}
+
+.platform-manual-billing-card {
+  min-width: 0;
+}
+
+.platform-manual-billing-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.platform-manual-billing-form > label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--foreground);
+  font-size: .875rem;
+  font-weight: 700;
+}
+
+.platform-manual-billing-form > label > input:not([type="checkbox"]),
+.platform-manual-billing-form > label > select,
+.platform-manual-billing-form > label > textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.platform-manual-billing-form > label > textarea {
+  resize: vertical;
+}
+
+.platform-manual-billing-form .platform-manual-billing-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  grid-column: 1 / -1;
+  max-width: 900px;
+  line-height: 1.5;
+}
+
+.platform-manual-billing-confirm input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--primary);
+}
+
+.platform-manual-billing-help,
+.platform-manual-billing-wide-field {
+  grid-column: 1 / -1;
+}
+
+.platform-manual-billing-help {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+
+.platform-manual-billing-form > .button {
+  justify-self: start;
+}
+
+.platform-manual-billing-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.platform-manual-billing-feedback.is-error {
+  border-color: #e19494;
+  background: #fff1f1;
+  color: #8d1c1c;
+}
+
+.platform-manual-billing-feedback.is-success {
+  border-color: #83c9a0;
+  background: #eaf8ef;
+  color: #17633a;
+}
+
+.platform-manual-billing-manage-link {
+  margin: 4px 0 18px;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .platform-manual-billing-page {
+    padding: 1rem;
+  }
+
+  .platform-manual-billing-form {
+    grid-template-columns: 1fr;
+  }
+
+  .platform-manual-billing-form .platform-manual-billing-confirm,
+  .platform-manual-billing-help,
+  .platform-manual-billing-wide-field {
+    grid-column: auto;
+  }
+
+  .platform-manual-billing-form > .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .legal-preview-mode { max-width: 130px; text-align: right; line-height: 1.5; }
+  .legal-preview-heading { padding-top: 42px; }
+  .legal-preview-tabs { grid-template-columns: 1fr; }
+  .legal-preview-document-head { align-items: flex-start; flex-direction: column; }
+  .legal-preview-prose { font-size: 14px; }
+}

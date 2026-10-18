@@ -2,10 +2,11 @@ import { auth } from "@/auth";
 import { getCandidateDocumentChecklist } from "@/lib/document-checklist";
 import { syncCandidateOperationalAlerts } from "@/lib/operational-alerts";
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
 import { NextRequest, NextResponse } from "next/server";
-import { CandidateStatus, Role } from "@prisma/client";
+import { CandidateStatus, Prisma, Role } from "@prisma/client";
 import { canAccessCandidateByOwnership, canRequestLegalReview } from "@/lib/permissions";
+import { candidateAccessWhere, getCurrentTenant } from "@/lib/tenant";
+import { isLogisticsSchedulableStatus } from "@/lib/logistics-policy";
 
 export async function POST(
   _req: NextRequest,
@@ -13,45 +14,53 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id || !session.user.organizationId) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    const tenant = await getCurrentTenant();
+    if (!session?.user?.id || !tenant) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401, headers: { "Cache-Control": "no-store" } });
     }
 
     const { id } = await params;
-    const organizationId = session.user.organizationId;
-    const role = session.user.role as Role;
+    const organizationId = tenant.organizationId;
+    const role = tenant.role;
 
     if (!canRequestLegalReview(role)) {
-      return NextResponse.json({ error: "Tu rol no puede solicitar revision legal" }, { status: 403 });
+      return NextResponse.json({ error: "Tu rol no puede solicitar revision legal" }, { status: 403, headers: { "Cache-Control": "no-store" } });
     }
 
     const candidate = await prisma.candidate.findFirst({
-      where: {
-        id,
-        organizationId,
-      },
+      where: candidateAccessWhere(tenant, id),
       include: {
         documents: true,
       },
     });
 
     if (!candidate) {
-      return NextResponse.json({ error: "Candidato no encontrado en esta organizacion" }, { status: 404 });
+      return NextResponse.json({ error: "Candidato no encontrado en esta organizacion" }, { status: 404, headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (!isLogisticsSchedulableStatus(candidate.status)) {
+      return NextResponse.json({ error: "No se puede solicitar revision para un candidato rechazado o retirado." }, { status: 409, headers: { "Cache-Control": "no-store" } });
     }
 
     if (!canAccessCandidateByOwnership(role, candidate.intermediaryId, session.user.id)) {
-      return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403 });
+      return NextResponse.json({ error: "Sin permisos sobre este candidato" }, { status: 403, headers: { "Cache-Control": "no-store" } });
     }
 
     const checklist = getCandidateDocumentChecklist(candidate);
     const targetStatus = CandidateStatus.EN_REVISION_LEGAL;
 
-    if (candidate.status !== targetStatus) {
-      await prisma.$transaction(async (tx) => {
-        await tx.candidate.update({
-          where: { id },
+    await prisma.$transaction(async (tx) => {
+      if (candidate.status !== targetStatus) {
+        const updatedCount = await tx.candidate.updateMany({
+          where: {
+            ...candidateAccessWhere(tenant, id, { status: candidate.status }),
+          },
           data: { status: targetStatus },
         });
+
+        if (updatedCount.count !== 1) {
+          throw new Error("El estado del candidato cambió durante la solicitud. Actualiza la página y vuelve a intentarlo.");
+        }
 
         await tx.statusHistory.create({
           data: {
@@ -63,8 +72,24 @@ export async function POST(
             reason: "Revision legal solicitada por intermediario",
           },
         });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          organizationId,
+          action: "LEGAL_REVIEW_REQUESTED",
+          entityType: "Candidate",
+          entityId: id,
+          details: {
+            requestedBy: session.user.id,
+            blockersAtRequest: checklist.blockers,
+            missingAtRequest: checklist.missing,
+            warningsAtRequest: checklist.warnings,
+          } satisfies Prisma.InputJsonValue,
+        },
       });
-    }
+    });
 
     try {
       const membershipsToNotify = await prisma.membership.findMany({
@@ -92,20 +117,6 @@ export async function POST(
       console.error("[request-review] notification fanout failed", error);
     }
 
-    await writeAuditLog({
-      userId: session.user.id,
-      organizationId,
-      action: "LEGAL_REVIEW_REQUESTED",
-      entityType: "Candidate",
-      entityId: id,
-      details: {
-        requestedBy: session.user.id,
-        blockersAtRequest: checklist.blockers,
-        missingAtRequest: checklist.missing,
-        warningsAtRequest: checklist.warnings,
-      },
-    });
-
     await syncCandidateOperationalAlerts({
       candidateId: id,
       organizationId,
@@ -116,7 +127,7 @@ export async function POST(
       missing: checklist.missing,
       blockers: checklist.blockers,
       warnings: checklist.warnings,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[request-review] failed", error);
     return NextResponse.json(
@@ -126,7 +137,7 @@ export async function POST(
             ? error.message
             : "No se pudo solicitar la revision legal",
       },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

@@ -47,71 +47,54 @@ export default async function BrokerLeadsPage({
   });
 
   return (
-    <div className="main-content module-page-shell">
+    <div className="main-content module-page-shell brokers-page-shell broker-leads-page-shell">
       <PageHeader
         title="Broker Leads"
-        description="Ingesta operativa desde POŚREDNICY LATAM, con foco en Guatemala."
+        description="Registro de contactos recibidos de intermediarios, con filtros por origen, tipo y seguimiento."
       />
 
       <BrokerModuleNav />
 
-      <form className="card module-panel broker-filters-grid">
+      <form className="card module-panel broker-leads-filter-form">
         <input
-          className="input"
+          className="input broker-leads-search"
           type="text"
           name="query"
           placeholder="Buscar nombre, email, teléfono..."
           defaultValue={filters.query ?? ""}
         />
-        <select className="input" name="sourceCountrySheet" defaultValue={filters.sourceCountrySheet ?? ""}>
-          <option value="">Todas las hojas</option>
-          {options.sourceCountrySheets.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <select className="input" name="leadType" defaultValue={filters.leadType ?? ""}>
-          <option value="">Todos los tipos</option>
-          <option value="PROVIDER">Proveedor</option>
-          <option value="CANDIDATE">Candidato</option>
-          <option value="UNKNOWN">Sin clasificar</option>
-        </select>
-        <select className="input" name="rawStatus" defaultValue={filters.rawStatus ?? ""}>
-          <option value="">Todos los raw status</option>
-          {options.rawStatuses.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <select className="input" name="normalizedStatus" defaultValue={filters.normalizedStatus ?? ""}>
-          <option value="">Todos los normalized status</option>
-          {options.normalizedStatuses.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <select className="input" name="flowStatus" defaultValue={filters.flowStatus ?? ""}>
-          <option value="">Todos los flow status</option>
-          {options.flowStatuses.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <select className="input" name="emailStatus" defaultValue={filters.emailStatus ?? ""}>
-          <option value="">Todos los email status</option>
-          {options.emailStatuses.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <button className="button" type="submit">
-          Filtrar
-        </button>
+        <button className="button broker-leads-filter-submit" type="submit">Buscar leads</button>
+        <details className="broker-leads-advanced-filters" open={Boolean(
+          filters.sourceCountrySheet || filters.leadType || filters.rawStatus || filters.normalizedStatus || filters.flowStatus || filters.emailStatus
+        )}>
+          <summary>Filtros avanzados</summary>
+          <div className="broker-leads-advanced-grid">
+            <select className="input" name="sourceCountrySheet" defaultValue={filters.sourceCountrySheet ?? ""}>
+              <option value="">Todas las hojas</option>
+              {options.sourceCountrySheets.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select className="input" name="leadType" defaultValue={filters.leadType ?? ""}>
+              <option value="">Todos los tipos</option><option value="PROVIDER">Proveedor</option><option value="CANDIDATE">Candidato</option><option value="UNKNOWN">Sin clasificar</option>
+            </select>
+            <select className="input" name="rawStatus" defaultValue={filters.rawStatus ?? ""}>
+              <option value="">Todos los raw status</option>
+              {options.rawStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select className="input" name="normalizedStatus" defaultValue={filters.normalizedStatus ?? ""}>
+              <option value="">Todos los normalized status</option>
+              {options.normalizedStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select className="input" name="flowStatus" defaultValue={filters.flowStatus ?? ""}>
+              <option value="">Todos los flow status</option>
+              {options.flowStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+            <select className="input" name="emailStatus" defaultValue={filters.emailStatus ?? ""}>
+              <option value="">Todos los email status</option>
+              {options.emailStatuses.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </div>
+          <button className="button button-secondary broker-leads-advanced-submit" type="submit">Aplicar filtros</button>
+        </details>
       </form>
 
       <div className="broker-toolbar no-print">
@@ -123,8 +106,19 @@ export default async function BrokerLeadsPage({
         </a>
       </div>
 
-      <div className="card module-panel">
-        <div className="table-container table-container--responsive">
+      <div className="card module-panel broker-leads-results">
+        <div className="broker-leads-results-copy">
+          <div>
+            <p className="broker-leads-kicker">REGISTRO DE CONTACTOS</p>
+            <h2>Leads recibidos</h2>
+            <p>Consulta el origen y el estado operativo de cada contacto.</p>
+          </div>
+          <div className="broker-leads-result-count" aria-live="polite">
+            <strong>{leadsPage.totalItems}</strong>
+            <span>{leadsPage.totalItems === 1 ? "resultado" : "resultados"}</span>
+          </div>
+        </div>
+        <div className="table-container table-container--responsive" role="region" aria-label="Leads recibidos" tabIndex={0}>
           <table className="broker-table broker-table--leads">
             <thead>
               <tr>

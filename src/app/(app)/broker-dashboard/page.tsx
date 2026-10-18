@@ -18,14 +18,14 @@ export default async function BrokerDashboardPage() {
   const metrics = await getBrokerDashboardMetrics(tenant.organizationId);
 
   return (
-    <div className="main-content module-page-shell">
+    <div className="main-content module-page-shell brokers-page-shell broker-dashboard-page-shell">
       <PageHeader
         title="Broker Dashboard"
         description="KPIs operativos de leads, brokers e invoices del módulo broker."
       />
       <BrokerModuleNav />
 
-      <div className="card module-panel">
+      <div className="card module-panel broker-dashboard-summary">
         <div className="page-section-header">
           <div className="page-section-copy">
             <h2 className="page-section-title">Resumen operativo</h2>
@@ -35,7 +35,7 @@ export default async function BrokerDashboardPage() {
           </div>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="dashboard-grid broker-summary-metrics">
           <MetricCard title="Total leads importados" value={metrics.totalLeads} />
           <MetricCard title="Leads replied" value={metrics.repliedLeads} tone="success" />
           <MetricCard title="Leads Candidate" value={metrics.candidateLeads} tone="accent" />

@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { isPublicRoute } from "@/lib/public-routes";
+import { isSupportedLanguage } from "@/lib/i18n";
 
 export const authConfig = {
   providers: [
@@ -25,7 +26,7 @@ export const authConfig = {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -33,13 +34,20 @@ export const authConfig = {
         token.isPlatformAdmin = user.isPlatformAdmin;
         token.interfaceLanguage = user.interfaceLanguage;
       }
+      if (
+        trigger === "update" &&
+        session?.user?.interfaceLanguage &&
+        isSupportedLanguage(session.user.interfaceLanguage)
+      ) {
+        token.interfaceLanguage = session.user.interfaceLanguage;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as import("@prisma/client").Role;
-        session.user.organizationId = token.organizationId as string;
+        session.user.organizationId = token.organizationId as string | null;
         session.user.isPlatformAdmin = !!token.isPlatformAdmin;
         session.user.interfaceLanguage = token.interfaceLanguage as import("@/lib/i18n").AppLanguage | undefined;
       }

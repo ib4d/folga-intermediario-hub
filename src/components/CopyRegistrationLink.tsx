@@ -43,7 +43,7 @@ export default function CopyRegistrationLink({ candidateId, token, className }: 
   };
 
   return (
-    <span style={{ display: "inline-flex", flexDirection: "column", gap: "0.4rem" }}>
+    <span className="candidate-registration-link-wrap" style={{ display: "inline-flex", flexDirection: "column", gap: "0.4rem" }}>
       <button
         onClick={handleCopy}
         disabled={loading || copied}

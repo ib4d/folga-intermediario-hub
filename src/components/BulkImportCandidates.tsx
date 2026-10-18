@@ -7,7 +7,11 @@ import { useRouter } from "next/navigation";
 
 export default function BulkImportCandidates() {
   const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+    rowErrors?: Array<{ rowNumber: number; message: string }>;
+  } | null>(null);
   const router = useRouter();
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -27,7 +31,11 @@ export default function BulkImportCandidates() {
           `Actualizados: ${res.updatedCount ?? res.count ?? 0}`,
           `Saltados: ${res.skippedCount ?? 0}`,
         ].join(" | ");
-        setMessage({ tone: "success", text: `Importacion completada. ${summary}` });
+        setMessage({
+          tone: res.rowErrors?.length ? "error" : "success",
+          text: `${res.rowErrors?.length ? "Importación parcial; revisa las filas indicadas." : "Importación completada."} ${summary}`,
+          rowErrors: res.rowErrors,
+        });
         router.refresh();
       } else {
         setMessage({ tone: "error", text: `Error al importar: ${res.error}` });
@@ -46,6 +54,7 @@ export default function BulkImportCandidates() {
       <div style={{ position: "relative", display: "inline-block" }}>
         <input
           type="file"
+          aria-label="Importar candidatos desde Excel o CSV"
           accept=".xlsx, .xls, .csv"
           onChange={handleFileChange}
           style={{
@@ -69,9 +78,21 @@ export default function BulkImportCandidates() {
         </button>
       </div>
       {message ? (
-        <p className={message.tone === "success" ? "form-message-success" : "form-message-error"}>
-          {message.text}
-        </p>
+        <div
+          role={message.tone === "error" ? "alert" : "status"}
+          aria-live={message.tone === "error" ? "assertive" : "polite"}
+          className={message.tone === "success" ? "form-message-success" : "form-message-error"}
+        >
+          <p style={{ margin: 0 }}>{message.text}</p>
+          {message.rowErrors?.length ? (
+            <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.25rem" }}>
+              {message.rowErrors.slice(0, 8).map((item) => (
+                <li key={`${item.rowNumber}-${item.message}`}>Fila {item.rowNumber}: {item.message}</li>
+              ))}
+              {message.rowErrors.length > 8 ? <li>Y {message.rowErrors.length - 8} filas más con incidencias.</li> : null}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

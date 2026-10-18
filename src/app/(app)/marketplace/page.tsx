@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { marketplacePlugins } from "@/plugins";
-import { Puzzle, ShieldCheck, Zap } from "lucide-react";
+import { Info, Puzzle } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function MarketplacePage() {
@@ -12,10 +12,10 @@ export default async function MarketplacePage() {
   if (!canAccessModule(tenant.role, "marketplace")) redirect("/sin-permisos");
 
   return (
-    <div className="main-content marketplace-page">
+    <div className="module-page-shell marketplace-page">
       <div className="marketplace-hero">
-        <h1>ORI-OS Marketplace</h1>
-        <p>Extiende las capacidades de ORI CRUIT HUB con plugins y agentes de terceros.</p>
+        <h1>Conectores en preparación</h1>
+        <p>El catálogo actual documenta prototipos. Estas integraciones aún no se pueden instalar ni activar desde la app.</p>
       </div>
 
       <div className="dashboard-grid marketplace-grid">
@@ -25,17 +25,17 @@ export default async function MarketplacePage() {
               <div className="marketplace-plugin-icon">
                 <Puzzle size={24} />
               </div>
-              <span className="status-badge marketplace-version">v{plugin.version}</span>
+              <span className="status-badge marketplace-version">Prototipo · v{plugin.version}</span>
             </div>
             <h3>{plugin.name}</h3>
             <p className="marketplace-description">{plugin.description}</p>
 
             <div className="marketplace-card-footer">
               <div className="marketplace-verification">
-                <ShieldCheck size={14} color="#4ade80" /> Verificado
+                <Info size={14} /> Integración no implementada
               </div>
-              <button className={`button ${plugin.isEnabled ? "button-secondary" : ""}`} disabled={plugin.isEnabled}>
-                {plugin.isEnabled ? "Instalado" : "Instalar"}
+              <button className="button button-secondary" disabled>
+                No disponible
               </button>
             </div>
           </div>
@@ -44,14 +44,11 @@ export default async function MarketplacePage() {
 
       <div className="card marketplace-cta-card">
         <div className="marketplace-cta">
-          <Zap size={32} className="marketplace-cta-icon" />
-          <h3>¿Eres Desarrollador?</h3>
+          <Info size={28} className="marketplace-cta-icon" />
+          <h3>Estado del catálogo</h3>
           <p>
-            Crea tus propios plugins usando el SDK de ORI-OS y monetiza tus integraciones en nuestro marketplace.
+            Los conectores se muestran como referencia de producto. No se ha configurado aquí la conexión con WhatsApp Business ni HRappka.
           </p>
-          <button className="button button-secondary marketplace-cta-button">
-            Leer Documentación del SDK
-          </button>
         </div>
       </div>
     </div>

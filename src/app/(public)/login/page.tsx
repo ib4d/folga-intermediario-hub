@@ -14,6 +14,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const language = normalizeLanguage(searchParams.get("lang"));
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const emailVerified = searchParams.get("verified") === "1";
   const [callbackPathname, callbackQuery = ""] = callbackUrl.split("?");
   const callbackQueryParams = new URLSearchParams(callbackQuery);
   const isDemoOnboarding =
@@ -93,6 +94,7 @@ export default function LoginPage() {
           <p className="public-login-heading-copy">{labels("login.description")}</p>
         </div>
 
+        {emailVerified ? <div className="public-login-success" role="status">{labels("login.emailVerified")}</div> : null}
         {error ? <div className="public-login-error">{error}</div> : null}
 
         <form onSubmit={handleSubmit} className="public-login-form">

@@ -70,6 +70,7 @@ type DocumentTableLabels = {
   pending: string;
   deletedManySuccess: string;
   deletedOneSuccess: string;
+  storageCleanupPending: string;
   deleteManyError: string;
   deleteOneError: string;
   fix: string;
@@ -100,7 +101,7 @@ export default function DocumentTable({
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ type: "single"; id: string } | { type: "bulk"; ids: string[] } | null>(null);
   const router = useRouter();
   const interpolate = (template: string, replacements: Record<string, string | number>) =>
@@ -198,12 +199,16 @@ export default function DocumentTable({
     setIsDeleting(true);
     setTableMessage(null);
     try {
+      let cleanupPending = false;
       for (const id of ids) {
-        await deleteDocumentById(id);
+        if (await deleteDocumentById(id) === "pending") cleanupPending = true;
       }
       setSelectedIds([]);
       router.refresh();
-      setTableMessage({ tone: "success", text: labels.deletedManySuccess });
+      setTableMessage({
+        tone: cleanupPending ? "warning" : "success",
+        text: cleanupPending ? labels.storageCleanupPending : labels.deletedManySuccess,
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
       setTableMessage({ tone: "error", text: interpolate(labels.deleteManyError, { message }) });
@@ -221,9 +226,12 @@ export default function DocumentTable({
     setIsDeleting(true);
     setTableMessage(null);
     try {
-      await deleteDocumentById(id);
+      const cleanup = await deleteDocumentById(id);
       router.refresh();
-      setTableMessage({ tone: "success", text: labels.deletedOneSuccess });
+      setTableMessage({
+        tone: cleanup === "pending" ? "warning" : "success",
+        text: cleanup === "pending" ? labels.storageCleanupPending : labels.deletedOneSuccess,
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
       setTableMessage({ tone: "error", text: interpolate(labels.deleteOneError, { message }) });
@@ -293,7 +301,7 @@ export default function DocumentTable({
         </div>
       ) : null}
 
-      <div className="card module-panel">
+      <div className="card module-panel document-main-queue">
         {ocrMode === "manual" ? (
           <div className="document-manual-banner">
             Modo manual activo: los documentos se guardan correctamente, pero quedan en revisión antes de validar los datos.
@@ -330,7 +338,7 @@ export default function DocumentTable({
         </div>
 
         {tableMessage ? (
-          <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error document-table-message"}>
+          <p className={`${tableMessage.tone === "warning" ? "form-message-warning" : tableMessage.tone === "success" ? "form-message-success" : "form-message-error"} document-table-message`}>
             {tableMessage.text}
           </p>
         ) : null}

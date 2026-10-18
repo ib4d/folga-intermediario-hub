@@ -4,7 +4,7 @@ import { canAccessModule } from "@/lib/permissions";
 import { candidateVisibilityWhere, requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { inspectDocumentIntegrity, toDocumentIntegrityRecords } from "@/lib/document-integrity";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -14,7 +14,7 @@ export async function GET() {
   try {
     const tenant = await requireTenant();
     if (!canAccessModule(tenant.role, "documents")) {
-      return NextResponse.json({ success: false, message: "Sin permisos" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Sin permisos" }, { status: 403, headers: { "Cache-Control": "no-store" } });
     }
 
     const documents = await prisma.document.findMany({
@@ -42,7 +42,7 @@ export async function GET() {
 
     const integrity = await inspectDocumentIntegrity(toDocumentIntegrityRecords(documents));
 
-    await writeAuditLog({
+    await writeAuditLogOrThrow({
       userId: tenant.userId,
       organizationId: tenant.organizationId,
       action: "DOCUMENT_INTEGRITY_CHECKED",
@@ -58,9 +58,9 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       integrity,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo comprobar la integridad documental.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return NextResponse.json({ success: false, message }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

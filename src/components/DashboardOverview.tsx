@@ -21,7 +21,7 @@ type DashboardPreferences = {
   visibleIds: string[];
 };
 
-const STORAGE_KEY = "folga-dashboard-preferences-v1";
+const STORAGE_KEY = "ori-dashboard-preferences-v1";
 
 function metricIcon(icon: DashboardMetric["icon"]) {
   if (icon === "clock") return <Clock3 size={18} />;
@@ -127,7 +127,9 @@ export default function DashboardOverview({ metrics }: { metrics: DashboardMetri
 
   return (
     <div className="dashboard-overview-shell">
-      <div className="card dashboard-preferences-panel">
+      <details className="dashboard-preferences-disclosure">
+        <summary><Settings2 size={16} /> Personalizar indicadores</summary>
+        <div className="card dashboard-preferences-panel">
         <div className="dashboard-preferences-header">
           <div>
             <h2 className="dashboard-preferences-title">Vista del tablero</h2>
@@ -175,7 +177,8 @@ export default function DashboardOverview({ metrics }: { metrics: DashboardMetri
             );
           })}
         </div>
-      </div>
+        </div>
+      </details>
 
       <div className="dashboard-main-grid">
         {mainMetrics.map((metric) => (

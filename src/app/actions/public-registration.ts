@@ -1,7 +1,6 @@
 "use server";
 
 import { CandidateStatus, LocationStatus, RecruitmentSource, Role } from "@prisma/client";
-import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { candidateRegistrationSchema, type CandidateRegistrationData } from "@/lib/validations/candidate-registration";
 
@@ -38,36 +37,10 @@ function parseRecruitmentSource(value: unknown): RecruitmentSource | null {
 
 async function writeRegistrationSideEffects(
   candidate: PublicRegistrationCandidate,
-  registration: {
-    firstName: string;
-    lastName: string;
-    email?: string | null;
-  }
+  registration: CandidateRegistrationData
 ) {
   try {
-    const tasks: Promise<unknown>[] = [
-      prisma.statusHistory.create({
-        data: {
-          candidateId: candidate.id,
-          organizationId: candidate.organizationId,
-          fromStatus: candidate.status,
-          toStatus: CandidateStatus.EN_REVISION_LEGAL,
-          changedById: "SELF_REGISTRATION",
-          reason: "Candidato completo el formulario de autoregistro",
-        },
-      }),
-      writeAuditLog({
-        organizationId: candidate.organizationId,
-        action: "SELF_REGISTRATION_COMPLETED",
-        entityType: "Candidate",
-        entityId: candidate.id,
-        details: {
-          firstName: registration.firstName,
-          lastName: registration.lastName,
-          email: registration.email || null,
-        },
-      }),
-    ];
+    const tasks: Promise<unknown>[] = [];
 
     if (candidate.intermediaryId) {
       tasks.push(
@@ -160,11 +133,7 @@ async function applyRegistrationUpdate(
   candidate: PublicRegistrationCandidate,
   registration: CandidateRegistrationData
 ) {
-  const paymentDate = parseDateSafe(registration.paymentDate);
-
-  return prisma.candidate.update({
-    where: { id: candidate.id },
-    data: {
+  const data = {
       firstName: registration.firstName,
       lastName: registration.lastName,
       email: registration.email || null,
@@ -195,15 +164,70 @@ async function applyRegistrationUpdate(
       recruitmentSource: parseRecruitmentSource(registration.recruitmentSource),
       arrivalDate: parseDateSafe(registration.arrivalDate),
       arrivalNotes: registration.arrivalNotes || null,
-      accommodation: registration.accommodation || null,
-      accommodationNotes: registration.accommodationNotes || null,
-      paid400pln: registration.paid400pln,
-      paymentDate: registration.paid400pln ? (paymentDate ?? new Date()) : paymentDate,
+      // Candidate declarations are not proof of an assigned accommodation or
+      // verified payment. Keep the accommodation claim in notes for operations;
+      // only an authorized staff workflow can mark payment as received.
+      accommodation: candidate.accommodation,
+      accommodationNotes: registration.accommodation
+        ? [
+            candidate.accommodationNotes,
+            `Autorregistro sin verificar: ${registration.accommodation === "YES" ? "solicita alojamiento" : "declara tener alojamiento propio"}.`,
+          ].filter(Boolean).join("\n")
+        : candidate.accommodationNotes,
+      paid400pln: candidate.paid400pln,
+      paymentDate: candidate.paymentDate,
       gdprConsent: true,
       gdprConsentDate: new Date(),
       selfRegistered: true,
       status: CandidateStatus.EN_REVISION_LEGAL,
-    },
+  };
+
+  return prisma.$transaction(async (tx) => {
+    const updatedCount = await tx.candidate.updateMany({
+      where: {
+        id: candidate.id,
+        organizationId: candidate.organizationId,
+        registrationToken: candidate.registrationToken,
+        selfRegistered: false,
+        status: { notIn: [CandidateStatus.RECHAZADO, CandidateStatus.RETIRADO] },
+      },
+      data,
+    });
+
+    if (updatedCount.count !== 1) {
+      throw new Error("Este enlace ya fue usado o el registro fue cerrado.");
+    }
+
+    const updatedCandidate = await tx.candidate.findUnique({
+      where: { id: candidate.id },
+    });
+
+    if (!updatedCandidate) {
+      throw new Error("No se pudo recuperar el registro actualizado.");
+    }
+
+    await tx.statusHistory.create({
+      data: {
+        candidateId: candidate.id,
+        organizationId: candidate.organizationId,
+        fromStatus: candidate.status,
+        toStatus: CandidateStatus.EN_REVISION_LEGAL,
+        changedById: "SELF_REGISTRATION",
+        reason: "Candidato completo el formulario de autoregistro",
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        userId: null,
+        organizationId: candidate.organizationId,
+        action: "SELF_REGISTRATION_COMPLETED",
+        entityType: "Candidate",
+        entityId: candidate.id,
+        details: { changedFields: Object.keys(data) },
+      },
+    });
+
+    return updatedCandidate;
   });
 }
 
@@ -242,11 +266,18 @@ export async function submitCandidateRegistration(token: string, data: unknown) 
     const candidate = await findCandidateByToken(token);
 
     if (!candidate) {
-      return { error: { _global: ["Token invalido o expirado"] } };
+      return { error: { _global: ["Token invalido o revocado"] } };
     }
 
     if (candidate.selfRegistered) {
       return { error: { _global: ["Este formulario ya fue completado"] } };
+    }
+
+    if (
+      candidate.status === CandidateStatus.RECHAZADO ||
+      candidate.status === CandidateStatus.RETIRADO
+    ) {
+      return { error: { _global: ["Este registro esta cerrado y ya no acepta cambios"] } };
     }
 
     const registration = parsed.data;
@@ -276,6 +307,7 @@ export async function getCandidateByToken(token: string) {
       id: true,
       firstName: true,
       lastName: true,
+      status: true,
       selfRegistered: true,
       intermediary: { select: { name: true } },
     },

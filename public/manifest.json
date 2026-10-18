@@ -1,7 +1,7 @@
 {
   "name": "ORI CRUIT HUB",
   "short_name": "ORI CRUIT",
-  "description": "Gestión de candidatos para intermediarios FOLGA",
+  "description": "Gestión de candidatos, documentos y operaciones de reclutamiento internacional.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fbf9ff",

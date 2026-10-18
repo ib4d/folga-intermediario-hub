@@ -3,6 +3,8 @@ import { Plan, Prisma, Role } from "@prisma/client";
 import { emitEvent } from "@/core/events";
 import { getPlanLimits } from "@/lib/billing/limits";
 import { prisma } from "@/lib/prisma";
+import { formatManualPlanDate, resolveEffectivePlan } from "@/lib/billing/entitlements";
+import { normalizeLanguage, t } from "@/lib/i18n";
 
 const BILLING_ALERT_RECIPIENT_ROLES: Role[] = [Role.SUPERADMIN, Role.ADMIN];
 
@@ -15,6 +17,7 @@ export type BillingNotificationType = (typeof BILLING_NOTIFICATION_TYPES)[number
 
 type BillingAttentionState = {
   status: string;
+  currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
 };
 
@@ -34,6 +37,7 @@ type RecipientMembership = {
   organizationId: string;
   userId: string;
   role: Role;
+  settings: Prisma.JsonValue | null;
 };
 
 function isHealthySubscription(status: string | null | undefined) {
@@ -47,8 +51,31 @@ function formatPeriodEnd(value: Date | null) {
 
 function buildBillingAttentionState(organization: {
   plan: Plan;
-  subscription: { status: string | null; currentPeriodEnd: Date | null } | null;
+  subscription: {
+    status: string | null;
+    provider: string | null;
+    currentPeriodStart: Date | null;
+    currentPeriodEnd: Date | null;
+  } | null;
 }): BillingAttentionState | null {
+  if (organization.subscription?.provider?.toLowerCase() === "manual") {
+    if (organization.subscription.status?.toLowerCase() !== "active") return null;
+
+    const periodEnd = organization.subscription.currentPeriodEnd;
+    const periodStart = organization.subscription.currentPeriodStart;
+    const now = new Date();
+    if (!periodEnd || periodEnd <= now) {
+      return { status: "manual_expired", currentPeriodStart: periodStart, currentPeriodEnd: periodEnd };
+    }
+    if (!periodStart || periodStart > now) {
+      return { status: "manual_not_started", currentPeriodStart: periodStart, currentPeriodEnd: periodEnd };
+    }
+    if (periodEnd.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
+      return { status: "manual_expiring", currentPeriodStart: periodStart, currentPeriodEnd: periodEnd };
+    }
+    return null;
+  }
+
   if (organization.plan === "FREE") {
     return null;
   }
@@ -60,6 +87,7 @@ function buildBillingAttentionState(organization: {
 
   return {
     status,
+    currentPeriodStart: organization.subscription?.currentPeriodStart ?? null,
     currentPeriodEnd: organization.subscription?.currentPeriodEnd ?? null,
   };
 }
@@ -124,6 +152,16 @@ function billingAttentionTitle(organizationName: string) {
 
 function billingAttentionMessage(organizationName: string, state: BillingAttentionState) {
   const periodEnd = formatPeriodEnd(state.currentPeriodEnd);
+  if (state.status === "manual_expiring") {
+    return `El piloto de ${organizationName} vence el ${periodEnd}. Acordad cualquier renovación antes de esa fecha; al vencer se aplican los límites FREE.`;
+  }
+  if (state.status === "manual_expired") {
+    return `El periodo de piloto de ${organizationName} venció (${periodEnd}); ya se aplican los límites FREE. Revisa la renovación o el cierre del piloto.`;
+  }
+  if (state.status === "manual_not_started") {
+    const periodStart = state.currentPeriodStart ? formatManualPlanDate(state.currentPeriodStart, "es-ES") : "no disponible";
+    return `El piloto de ${organizationName} todavía no ha comenzado (${periodStart}); hasta entonces se aplican los límites FREE. Revisa la fecha inicial o registra una nueva concesión.`;
+  }
   return `La suscripcion de ${organizationName} necesita revision (${state.status}). Periodo actual: ${periodEnd}.`;
 }
 
@@ -162,7 +200,10 @@ export async function syncBillingAutomationNotifications() {
     include: {
       subscription: {
         select: {
+          plan: true,
           status: true,
+          provider: true,
+          currentPeriodStart: true,
           currentPeriodEnd: true,
         },
       },
@@ -184,18 +225,20 @@ export async function syncBillingAutomationNotifications() {
       organizationId: { in: organizations.map((organization) => organization.id) },
       role: { in: BILLING_ALERT_RECIPIENT_ROLES },
       isActive: true,
+      user: { isActive: true },
     },
     select: {
       organizationId: true,
       userId: true,
       role: true,
+      user: { select: { settings: true } },
     },
   });
 
   const membershipByOrganization = memberships.reduce<Record<string, RecipientMembership[]>>(
     (acc, membership) => {
       const list = acc[membership.organizationId] ?? [];
-      list.push(membership);
+      list.push({ ...membership, settings: membership.user.settings });
       acc[membership.organizationId] = list;
       return acc;
     },
@@ -212,7 +255,8 @@ export async function syncBillingAutomationNotifications() {
   };
 
   for (const organization of organizations) {
-    const billingAttention = buildBillingAttentionState(organization);
+    const effectivePlan = resolveEffectivePlan(organization.plan, organization.subscription);
+    const billingAttention = buildBillingAttentionState({ ...organization, plan: effectivePlan });
     const monthlyDocumentCount = await prisma.document.count({
       where: {
         organizationId: organization.id,
@@ -227,7 +271,7 @@ export async function syncBillingAutomationNotifications() {
       },
     });
     const usagePressure = buildBillingPressureState({
-      plan: organization.plan,
+      plan: effectivePlan,
       counts: {
         candidates: organization._count.candidates,
         memberships: organization._count.memberships,
@@ -312,6 +356,44 @@ export async function syncBillingAutomationNotifications() {
 
     for (const signal of activeSignals) {
       for (const recipient of recipients) {
+        const settings = recipient.settings;
+        const preferredLanguage = settings && typeof settings === "object" && !Array.isArray(settings)
+          ? (settings as Prisma.JsonObject).interfaceLanguage
+          : undefined;
+        const language = normalizeLanguage(preferredLanguage);
+        const manualAttention = signal.type === "BILLING_SUBSCRIPTION_ATTENTION"
+          ? signal.payload.billingAttention
+          : null;
+        let localizedTitle = signal.title;
+        let localizedMessage = signal.message;
+
+        if (manualAttention?.status === "manual_not_started") {
+          localizedTitle = t(language, "billing.manualPilotNotStartedTitle");
+          const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+          const periodStart = formatManualPlanDate(manualAttention.currentPeriodStart, locale) ?? t(language, "billing.notAvailable");
+          localizedMessage = t(language, "billing.manualPilotNotStartedMessage")
+            .split("{organization}").join(organization.name)
+            .split("{date}").join(periodStart);
+        } else if (manualAttention?.status === "manual_expiring" || manualAttention?.status === "manual_expired") {
+          const expiring = manualAttention.status === "manual_expiring";
+          localizedTitle = t(language, expiring
+            ? "billing.manualPilotExpiringTitle"
+            : "billing.manualPilotExpiredTitle");
+          const locale = language === "pl" ? "pl-PL" : language === "en" ? "en-US" : "es-ES";
+          const periodEnd = manualAttention.currentPeriodEnd
+            ? new Intl.DateTimeFormat(locale, {
+              dateStyle: "medium",
+              timeZone: "UTC",
+            }).format(manualAttention.currentPeriodEnd)
+            : "—";
+          const template = t(language, expiring
+            ? "billing.manualPilotExpiringMessage"
+            : "billing.manualPilotExpiredMessage");
+          localizedMessage = template
+            .split("{organization}").join(organization.name)
+            .split("{date}").join(periodEnd);
+        }
+
         const activeKey = recipientKey(recipient.userId, signal.type);
         activeKeys.add(activeKey);
 
@@ -328,13 +410,13 @@ export async function syncBillingAutomationNotifications() {
         }
 
         if (primaryUnread) {
-          if (primaryUnread.title !== signal.title || primaryUnread.message !== signal.message) {
+          if (primaryUnread.title !== localizedTitle || primaryUnread.message !== localizedMessage) {
             updateOperations.push(
               prisma.notification.update({
                 where: { id: primaryUnread.id },
                 data: {
-                  title: signal.title,
-                  message: signal.message,
+                  title: localizedTitle,
+                  message: localizedMessage,
                 },
               })
             );
@@ -348,8 +430,8 @@ export async function syncBillingAutomationNotifications() {
           organizationId: organization.id,
           candidateId: null,
           type: signal.type,
-          title: signal.title,
-          message: signal.message,
+          title: localizedTitle,
+          message: localizedMessage,
         });
         summary.notificationsCreated += 1;
       }
@@ -394,7 +476,7 @@ export async function syncBillingAutomationNotifications() {
         {
           organizationId: organization.id,
           organizationName: organization.name,
-          plan: organization.plan,
+          plan: effectivePlan,
           subscriptionStatus: billingAttention.status,
           subscriptionPeriodEnd: billingAttention.currentPeriodEnd?.toISOString() ?? null,
           billingAttention,
@@ -411,7 +493,7 @@ export async function syncBillingAutomationNotifications() {
         {
           organizationId: organization.id,
           organizationName: organization.name,
-          plan: organization.plan,
+          plan: effectivePlan,
           pressureType: usagePressure.label,
           pressurePercent: Math.round(usagePressure.ratio * 100),
           pressureUsed: usagePressure.used,

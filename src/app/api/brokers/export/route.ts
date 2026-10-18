@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
+import { writeAuditLogOrThrow } from "@/lib/audit";
 import { buildBrokersCsv, buildBrokersWorkbook, type BrokerExportRow } from "@/lib/brokers/export";
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     }
 
-    await writeAuditLog({
+    await writeAuditLogOrThrow({
       userId: tenant.userId,
       organizationId: tenant.organizationId,
       action: "BROKERS_EXPORTED",

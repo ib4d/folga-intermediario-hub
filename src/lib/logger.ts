@@ -1,5 +1,5 @@
 /**
- * Centralized logging utility for FOLGA Hub.
+ * Centralized logging utility for ORI CRUIT HUB.
  * Can be extended to send logs to external services (Sentry, Logtail, etc.)
  */
 

@@ -7,10 +7,12 @@ const copy = {
   es: {
     invalidTitle: "Enlace inválido",
     invalidDescription:
-      "Este enlace de registro no es válido o ha expirado. Por favor, contacte a su reclutador.",
+      "Este enlace de registro no es válido o ya no está disponible. Contacte a su reclutador.",
     usedTitle: "Ya registrado",
     usedDescription:
       "Este enlace ya ha sido utilizado. Si necesita realizar cambios, contacte con su reclutador.",
+    closedTitle: "Registro cerrado",
+    closedDescription: "Este registro ya está cerrado y no acepta cambios. Contacte a su reclutador.",
     badge: "Registro oficial",
     description: "Complete su información para iniciar el proceso de legalización.",
     recruiter: "Reclutador",
@@ -19,10 +21,12 @@ const copy = {
   en: {
     invalidTitle: "Invalid link",
     invalidDescription:
-      "This registration link is not valid or has expired. Please contact your recruiter.",
+      "This registration link is invalid or no longer available. Please contact your recruiter.",
     usedTitle: "Already registered",
     usedDescription:
       "This link has already been used. If you need changes, contact your recruiter.",
+    closedTitle: "Registration closed",
+    closedDescription: "This registration is closed and no longer accepts changes. Please contact your recruiter.",
     badge: "Official registration",
     description: "Complete your information to start the legalization process.",
     recruiter: "Recruiter",
@@ -31,10 +35,12 @@ const copy = {
   pl: {
     invalidTitle: "Nieprawidłowy link",
     invalidDescription:
-      "Ten link rejestracyjny jest nieprawidłowy albo wygasł. Skontaktuj się z rekruterem.",
+      "Ten link rejestracyjny jest nieprawidłowy lub niedostępny. Skontaktuj się z rekruterem.",
     usedTitle: "Już zarejestrowano",
     usedDescription:
       "Ten link został już użyty. Jeśli potrzebujesz zmian, skontaktuj się z rekruterem.",
+    closedTitle: "Rejestracja zamknięta",
+    closedDescription: "Ta rejestracja jest zamknięta i nie można już wprowadzać zmian. Skontaktuj się z rekruterem.",
     badge: "Oficjalna rejestracja",
     description: "Uzupełnij dane, aby rozpocząć proces legalizacji.",
     recruiter: "Rekruter",
@@ -94,6 +100,10 @@ export default async function RegistroPage({
 
   if (candidate.selfRegistered) {
     return <MessageCard language={language} title={text.usedTitle} description={text.usedDescription} />;
+  }
+
+  if (candidate.status === "RECHAZADO" || candidate.status === "RETIRADO") {
+    return <MessageCard language={language} title={text.closedTitle} description={text.closedDescription} />;
   }
 
   return (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createOrganizationAction } from "@/app/actions/organization";
 
 type OnboardingFormProps = {
+  language: string;
   mode: "standard" | "demo";
   title: string;
   description: string;
@@ -17,22 +18,22 @@ type OnboardingFormProps = {
   footerText: string;
   requiresAccount: boolean;
   accountTitle: string;
+  accountDescription: string;
   fullNameLabel: string;
   fullNamePlaceholder: string;
   emailLabel: string;
   emailPlaceholder: string;
-  passwordLabel: string;
-  passwordPlaceholder: string;
   existingAccountLabel: string;
   existingAccountAction: string;
   existingAccountHref: string;
 };
 
-const initialOrganizationState = {
+const initialOrganizationState: { error: string; notice?: string } = {
   error: "",
 };
 
 export default function OnboardingForm({
+  language,
   mode,
   title,
   description,
@@ -45,12 +46,11 @@ export default function OnboardingForm({
   footerText,
   requiresAccount,
   accountTitle,
+  accountDescription,
   fullNameLabel,
   fullNamePlaceholder,
   emailLabel,
   emailPlaceholder,
-  passwordLabel,
-  passwordPlaceholder,
   existingAccountLabel,
   existingAccountAction,
   existingAccountHref,
@@ -63,6 +63,7 @@ export default function OnboardingForm({
   return (
     <form action={formAction} style={{ display: "grid", gap: "1.25rem" }}>
       <input type="hidden" name="mode" value={mode} />
+      <input type="hidden" name="language" value={language} />
       <div style={{ display: "grid", gap: "0.5rem" }}>
         <div style={{ fontSize: "1.5rem", fontWeight: 900 }}>{title}</div>
         <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
@@ -102,6 +103,9 @@ export default function OnboardingForm({
           <div style={{ display: "grid", gap: "0.3rem" }}>
             <div style={{ fontWeight: 900, fontSize: "0.92rem" }}>{accountTitle}</div>
             <div style={{ fontSize: "0.88rem", color: "var(--muted)", lineHeight: 1.5 }}>
+              {accountDescription}
+            </div>
+            <div style={{ fontSize: "0.88rem", color: "var(--muted)", lineHeight: 1.5 }}>
               {existingAccountLabel}{" "}
               <Link href={existingAccountHref} style={{ fontWeight: 800, color: "var(--pitch-black)" }}>
                 {existingAccountAction}
@@ -121,6 +125,8 @@ export default function OnboardingForm({
               placeholder={fullNamePlaceholder}
               required
               disabled={isPending}
+              minLength={2}
+              maxLength={100}
             />
           </div>
 
@@ -137,25 +143,10 @@ export default function OnboardingForm({
               required
               disabled={isPending}
               autoComplete="email"
+              maxLength={254}
             />
           </div>
 
-          <div className="input-group" style={{ marginBottom: 0 }}>
-            <label className="label" htmlFor="password">
-              {passwordLabel}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              className="input"
-              placeholder={passwordPlaceholder}
-              required
-              disabled={isPending}
-              autoComplete="new-password"
-              minLength={8}
-            />
-          </div>
         </div>
       ) : null}
 
@@ -174,6 +165,12 @@ export default function OnboardingForm({
         </div>
       ) : null}
 
+      {state.notice ? (
+        <div className="public-login-success" role="status">
+          {state.notice}
+        </div>
+      ) : null}
+
       <div className="input-group" style={{ marginBottom: 0 }}>
         <label className="label" htmlFor="name">
           {nameLabel}
@@ -186,6 +183,8 @@ export default function OnboardingForm({
           placeholder={namePlaceholder}
           required
           disabled={isPending}
+          minLength={2}
+          maxLength={120}
         />
       </div>
 

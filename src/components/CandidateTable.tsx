@@ -34,6 +34,7 @@ export default function CandidateTable({
   totalCandidates,
   currentLimit,
   canManageCandidates,
+  canGenerateLinks,
   canViewContact,
   labels,
 }: {
@@ -43,6 +44,7 @@ export default function CandidateTable({
   totalCandidates: number;
   currentLimit: string;
   canManageCandidates: boolean;
+  canGenerateLinks: boolean;
   canViewContact: boolean;
   labels: {
     summaryCount: string;
@@ -54,6 +56,7 @@ export default function CandidateTable({
     clearSelection: string;
     bulkDeleted: string;
     singleDeleted: string;
+    storageCleanupPending: string;
     deleteFailed: string;
     deleteOneFailed: string;
     selectAll: string;
@@ -81,7 +84,7 @@ export default function CandidateTable({
   };
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [tableMessage, setTableMessage] = useState<{ tone: "success" | "warning" | "error"; text: string } | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<
     | { type: "single"; candidate: CandidateRow }
     | { type: "bulk"; ids: string[] }
@@ -132,13 +135,16 @@ export default function CandidateTable({
     startTransition(async () => {
       setTableMessage(null);
       try {
-        await deleteCandidate(candidate.id);
+        const result = await deleteCandidate(candidate.id);
         setSelectedIds((current) => current.filter((id) => id !== candidate.id));
         router.refresh();
-        setTableMessage({ tone: "success", text: labels.singleDeleted });
+        setTableMessage({
+          tone: result.storageCleanup === "pending" ? "warning" : "success",
+          text: result.storageCleanup === "pending" ? labels.storageCleanupPending : labels.singleDeleted,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        setTableMessage({ tone: "error", text: `${labels.deleteOneFailed}: ${message}` });
+        setTableMessage({ tone: "error", text: labels.deleteOneFailed.replace("{message}", message) });
       }
     });
   }
@@ -154,13 +160,16 @@ export default function CandidateTable({
     startTransition(async () => {
       setTableMessage(null);
       try {
-        await deleteCandidatesBulk(ids);
+        const result = await deleteCandidatesBulk(ids);
         setSelectedIds([]);
         router.refresh();
-        setTableMessage({ tone: "success", text: labels.bulkDeleted });
+        setTableMessage({
+          tone: result.storageCleanup === "pending" ? "warning" : "success",
+          text: result.storageCleanup === "pending" ? labels.storageCleanupPending : labels.bulkDeleted,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Error desconocido";
-        setTableMessage({ tone: "error", text: `${labels.deleteFailed}: ${message}` });
+        setTableMessage({ tone: "error", text: labels.deleteFailed.replace("{message}", message) });
       }
     });
   }
@@ -208,7 +217,7 @@ export default function CandidateTable({
       </div>
 
       {tableMessage ? (
-        <p className={tableMessage.tone === "success" ? "form-message-success" : "form-message-error"}>
+        <p className={`form-message-${tableMessage.tone}`}>
           {tableMessage.text}
         </p>
       ) : null}
@@ -280,7 +289,7 @@ export default function CandidateTable({
                         {labels.delete}
                       </button>
                     ) : null}
-                    {canManageCandidates && !candidate.selfRegistered ? (
+                    {canGenerateLinks && !candidate.selfRegistered ? (
                       <CopyRegistrationLink
                         candidateId={candidate.registrationToken ? undefined : candidate.id}
                         token={candidate.registrationToken ?? undefined}

@@ -1,7 +1,9 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { getCurrentTenant } from "@/lib/tenant";
+import { Role } from "@prisma/client";
 
-export type AppRole = "SUPERADMIN" | "ADMIN" | "INTERMEDIARIO" | "LEGAL" | "LOGISTICA";
+export type AppRole = Role;
 
 export async function requireSession() {
   const session = await auth();
@@ -11,8 +13,17 @@ export async function requireSession() {
 
 export async function requireRole(allowedRoles: AppRole[]) {
   const session = await requireSession();
-  if (!allowedRoles.includes(session.user.role as AppRole)) {
+  const tenant = await getCurrentTenant();
+  if (!tenant || !allowedRoles.includes(tenant.role)) {
     redirect("/sin-permisos");
   }
-  return session;
+  return {
+    ...session,
+    user: {
+      ...session.user,
+      role: tenant.role,
+      organizationId: tenant.organizationId,
+      isPlatformAdmin: tenant.isPlatformAdmin,
+    },
+  };
 }

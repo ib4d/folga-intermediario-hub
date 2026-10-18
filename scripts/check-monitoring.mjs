@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 try {
   const baseUrl = resolveBaseUrl();
   const timeoutMs = Number(process.env.MONITORING_TIMEOUT_MS || "15000");
@@ -7,10 +10,11 @@ try {
     expectedStatus: 200,
     timeoutMs,
   });
-  const providers = await fetchJson(new URL("/api/providers/status", baseUrl), {
-    expectedStatus: 200,
+  const providerAccess = await fetchJson(new URL("/api/providers/status", baseUrl), {
+    expectedStatus: 403,
     timeoutMs,
   });
+  const runtime = readRuntimeSignals();
 
   if (health.status !== "ok") {
     throw new Error(`Health endpoint reported non-ok status: ${health.status}`);
@@ -18,40 +22,37 @@ try {
 
   await verifyDatabaseConnection();
 
-  if (health.cronConfigured === false) {
+  if (!providerAccess?.error) {
+    throw new Error("Provider status endpoint did not return its expected access-denied response.");
+  }
+
+  if (!runtime.cronConfigured) {
     warnings.push("CRON_SECRET is not wired into the live runtime.");
   }
 
-  if (health.smtpConfigured === false) {
+  if (!runtime.smtpConfigured) {
     warnings.push("SMTP is not fully configured in the live runtime.");
   }
 
-  if (health.externalMonitoringConfigured === false) {
+  if (!runtime.externalMonitoringConfigured) {
     warnings.push("External uptime monitoring is not marked as active in the live runtime.");
   }
 
-  enforceStrictSignals(health, warnings);
-
-  if (!providers?.current?.storage?.statusLabel) {
-    throw new Error("Provider status payload is missing current storage information.");
-  }
-
-  if (!providers?.current?.ocr?.statusLabel) {
-    throw new Error("Provider status payload is missing current OCR information.");
-  }
+  enforceStrictSignals(runtime, warnings);
 
   console.log("Monitoring check passed.");
   console.log(`Base URL: ${baseUrl}`);
-  console.log(`Release: ${health.release || process.env.APP_RELEASE || "private"}`);
-  console.log(`Version: ${health.version || "private"}`);
+  console.log(`Release: ${process.env.APP_RELEASE || "private"}`);
+  console.log(`Version: ${runtime.version || "private"}`);
   console.log("Database: connected (internal query)");
-  console.log(`Storage: ${providers.current.storage.statusLabel}`);
-  console.log(`OCR: ${providers.current.ocr.statusLabel}`);
-  console.log(`Email: ${health.email || "private"}`);
-  console.log(`Jobs: ${health.jobs || "private"}`);
-  console.log(`Cron configured: ${formatPrivateSignal(health.cronConfigured)}`);
-  console.log(`SMTP configured: ${formatPrivateSignal(health.smtpConfigured)}`);
-  console.log(`External monitoring configured: ${formatPrivateSignal(health.externalMonitoringConfigured)}`);
+  console.log(`Storage provider configured: ${runtime.storageProvider}`);
+  console.log(`OCR provider configured: ${runtime.ocrProvider}`);
+  console.log(`Email provider: ${runtime.emailProvider}`);
+  console.log(`Jobs provider: ${runtime.jobProvider}`);
+  console.log(`Cron configured: ${runtime.cronConfigured}`);
+  console.log(`SMTP configured: ${runtime.smtpConfigured}`);
+  console.log(`External monitoring configured: ${runtime.externalMonitoringConfigured}`);
+  console.log("Provider endpoint: protected (HTTP 403 without platform-admin session)");
 
   if (warnings.length > 0) {
     console.warn("\nMonitoring warnings:");
@@ -91,8 +92,85 @@ function stripTrailingSlash(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
-function formatPrivateSignal(value) {
-  return typeof value === "boolean" ? String(value) : "private";
+function readRuntimeSignals() {
+  const emailProvider = process.env.EMAIL_PROVIDER?.trim() || "smtp";
+  const storageProvider = (process.env.STORAGE_PROVIDER || "supabase").trim();
+  const ocrProvider = (process.env.OCR_PROVIDER || "tesseract").trim().toLowerCase();
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
+  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  const stripeSecretMode = getStripeSecretMode(stripeSecretKey);
+  const stripePublishableMode = getStripePublishableMode(stripePublishableKey);
+  const stripeExpectedMode = process.env.STRIPE_EXPECTED_MODE?.trim().toLowerCase();
+  const stripeModeIsExplicitAndConsistent =
+    (stripeExpectedMode === "test" || stripeExpectedMode === "live") &&
+    stripeExpectedMode === stripeSecretMode &&
+    stripeSecretMode === stripePublishableMode;
+  const paymentLinks = [
+    process.env.STRIPE_PAYMENT_LINK_STARTER,
+    process.env.STRIPE_PAYMENT_LINK_PRO,
+    process.env.STRIPE_PAYMENT_LINK_BUSINESS,
+    process.env.STRIPE_PAYMENT_LINK_ENTERPRISE,
+  ];
+
+  return {
+    version: readPackageVersion(),
+    storageProvider,
+    ocrProvider,
+    emailProvider,
+    jobProvider: process.env.JOB_PROVIDER?.trim() || "inline",
+    cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
+    smtpConfigured: Boolean(
+      process.env.SMTP_HOST?.trim() &&
+        process.env.SMTP_USER?.trim() &&
+        process.env.SMTP_PASS?.trim() &&
+        process.env.SMTP_FROM?.trim()
+    ),
+    externalMonitoringConfigured: parseBooleanEnv(process.env.EXTERNAL_MONITORING_ACTIVE),
+    stripeConfigured: Boolean(
+      stripeModeIsExplicitAndConsistent &&
+        stripeWebhookSecret?.startsWith("whsec_")
+    ),
+    stripePortalConfigured: Boolean(
+      stripeModeIsExplicitAndConsistent &&
+        process.env.STRIPE_CUSTOMER_PORTAL_ENABLED?.trim().toLowerCase() === "true"
+    ),
+    stripePaymentLinksConfigured: paymentLinks.every(isHttpsUrl),
+  };
+}
+
+function getStripeSecretMode(value) {
+  if (/^(?:sk|rk)_test_/.test(value ?? "")) return "test";
+  if (/^(?:sk|rk)_live_/.test(value ?? "")) return "live";
+  return null;
+}
+
+function getStripePublishableMode(value) {
+  if (/^pk_test_/.test(value ?? "")) return "test";
+  if (/^pk_live_/.test(value ?? "")) return "live";
+  return null;
+}
+
+function readPackageVersion() {
+  try {
+    const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8"));
+    return typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
+  } catch {
+    return "private";
+  }
+}
+
+function parseBooleanEnv(value) {
+  return ["1", "true", "yes", "on"].includes(value?.trim().toLowerCase());
+}
+
+function isHttpsUrl(value) {
+  if (!value?.trim()) return false;
+  try {
+    return new URL(value.trim()).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 async function verifyDatabaseConnection() {
@@ -106,7 +184,7 @@ async function verifyDatabaseConnection() {
   }
 }
 
-function enforceStrictSignals(health, warnings) {
+function enforceStrictSignals(runtime, warnings) {
   const strictSignals = new Set(
     (process.env.MONITORING_STRICT_SIGNALS || "")
       .split(",")
@@ -124,49 +202,37 @@ function enforceStrictSignals(health, warnings) {
   const signalFailures = [];
 
   if (strictSignals.has("cron")) {
-    if (typeof health.cronConfigured !== "boolean") {
-      signalFailures.push("Cron configuration is private on this health endpoint.");
-    } else if (!health.cronConfigured) {
+    if (!runtime.cronConfigured) {
       signalFailures.push("CRON_SECRET is not wired into the live runtime.");
     }
   }
 
   if (strictSignals.has("smtp")) {
-    if (typeof health.smtpConfigured !== "boolean") {
-      signalFailures.push("SMTP configuration is private on this health endpoint.");
-    } else if (!health.smtpConfigured) {
+    if (!runtime.smtpConfigured) {
       signalFailures.push("SMTP is not fully configured in the live runtime.");
     }
   }
 
   if (strictSignals.has("external-monitoring")) {
-    if (typeof health.externalMonitoringConfigured !== "boolean") {
-      signalFailures.push("External monitoring configuration is private on this health endpoint.");
-    } else if (!health.externalMonitoringConfigured) {
+    if (!runtime.externalMonitoringConfigured) {
       signalFailures.push("External uptime monitoring is not marked as active in the live runtime.");
     }
   }
 
   if (strictSignals.has("stripe-core")) {
-    if (typeof health.stripeConfigured !== "boolean") {
-      signalFailures.push("Stripe configuration is private on this health endpoint.");
-    } else if (!health.stripeConfigured) {
+    if (!runtime.stripeConfigured) {
       signalFailures.push("Stripe core configuration is not active in the live runtime.");
     }
   }
 
   if (strictSignals.has("stripe-portal")) {
-    if (typeof health.stripePortalConfigured !== "boolean") {
-      signalFailures.push("Stripe portal configuration is private on this health endpoint.");
-    } else if (!health.stripePortalConfigured) {
+    if (!runtime.stripePortalConfigured) {
       signalFailures.push("Stripe customer portal is not active in the live runtime.");
     }
   }
 
   if (strictSignals.has("stripe-payment-links")) {
-    if (typeof health.stripePaymentLinksConfigured !== "boolean") {
-      signalFailures.push("Stripe payment-link configuration is private on this health endpoint.");
-    } else if (!health.stripePaymentLinksConfigured) {
+    if (!runtime.stripePaymentLinksConfigured) {
       signalFailures.push("Stripe payment links are not active in the live runtime.");
     }
   }
