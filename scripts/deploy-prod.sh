@@ -7,6 +7,7 @@ set -euo pipefail
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env}"
 RELEASE_FILE="${RELEASE_FILE:-.release}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-folga-intermediario-hub}"
 
 for required_file in "$COMPOSE_FILE" "$ENV_FILE"; do
   if [ ! -f "$required_file" ]; then
@@ -54,7 +55,7 @@ compose=(env -i
   "HOME=${HOME:-/root}"
   "PATH=${PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
   "DOCKER_CONFIG=${DOCKER_CONFIG:-${HOME:-/root}/.docker}"
-  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
+  docker compose --project-name "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
 echo "==> Validate Compose configuration"
 "${compose[@]}" config --quiet
