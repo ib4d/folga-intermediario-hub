@@ -56,11 +56,11 @@ export default function OrganizationSignupVerification({
       };
     }
 
-    setToken(linkToken);
     getOrganizationSignupVerificationInfo(linkToken)
       .then((result) => {
         if (!active) return;
         if (result.status === "valid") {
+          setToken(linkToken);
           setOrganizationName(result.organizationName);
           setLookupStatus("valid");
         } else {
