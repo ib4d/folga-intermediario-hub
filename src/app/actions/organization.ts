@@ -1,6 +1,7 @@
 "use server";
 
 import { auth, unstable_update } from "@/auth";
+import type { Session } from "next-auth";
 import { CandidateStatus, LocationStatus, Prisma } from "@prisma/client";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -193,7 +194,7 @@ export async function createOrganizationAction(
   const name = String(formData.get("name") ?? "").trim();
   const workspaceMode = formData.get("mode") === "demo" ? "demo" : "standard";
   const language = normalizeLanguage(String(formData.get("language") ?? "es"));
-  let session: Awaited<ReturnType<typeof auth>>;
+  let session: Session | null;
   try {
     session = await auth();
   } catch (error) {
