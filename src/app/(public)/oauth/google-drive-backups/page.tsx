@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "ORI CRUIT HUB VPS Backups",
@@ -14,7 +15,7 @@ export default function GoogleDriveBackupHomePage() {
   return (
     <main className="legal-preview-page">
       <header className="legal-preview-topbar">
-        <a href="/" className="legal-preview-brand">ORI <span>CRUIT HUB</span></a>
+        <Link href="/" className="legal-preview-brand">ORI <span>CRUIT HUB</span></Link>
         <span className="legal-preview-mode">COPIAS DE RECUPERACIÓN</span>
       </header>
       <section className="legal-preview-heading">

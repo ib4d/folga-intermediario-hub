@@ -23,12 +23,15 @@ export default function OrganizationSignupVerification({
   const labels = t.bind(null, language);
   const [token, setToken] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [lookupStatus, setLookupStatus] = useState<LookupStatus>(
-    status === "existing" ? "existing" : "checking",
-  );
+  const [lookupStatus, setLookupStatus] = useState<LookupStatus>("checking");
 
   useEffect(() => {
     let active = true;
+    const scheduleLookupStatus = (nextStatus: LookupStatus) => {
+      void Promise.resolve().then(() => {
+        if (active) setLookupStatus(nextStatus);
+      });
+    };
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const linkToken = fragment.get("token") ?? "";
 
@@ -41,14 +44,13 @@ export default function OrganizationSignupVerification({
     }
 
     if (status === "existing") {
-      setLookupStatus("existing");
       return () => {
         active = false;
       };
     }
 
     if (!/^[A-Za-z0-9_-]{43}$/.test(linkToken) || status === "invalid" || status === "error") {
-      setLookupStatus(status === "error" ? "error" : "invalid");
+      scheduleLookupStatus(status === "error" ? "error" : "invalid");
       return () => {
         active = false;
       };
@@ -74,14 +76,15 @@ export default function OrganizationSignupVerification({
     };
   }, [status]);
 
-  const valid = lookupStatus === "valid";
+  const currentLookupStatus = status === "existing" ? "existing" : lookupStatus;
+  const valid = currentLookupStatus === "valid";
   const description = valid
     ? labels("onboarding.verifyDescription").replace("{organization}", organizationName)
-    : lookupStatus === "existing"
+    : currentLookupStatus === "existing"
       ? labels("onboarding.verifyExisting")
-      : lookupStatus === "checking"
+      : currentLookupStatus === "checking"
         ? labels("onboarding.verifyLoading")
-        : lookupStatus === "error" || status === "error"
+        : currentLookupStatus === "error" || status === "error"
           ? labels("onboarding.verifyFailure")
           : labels("onboarding.verifyInvalid");
 
@@ -129,18 +132,18 @@ export default function OrganizationSignupVerification({
             {labels("onboarding.verifySubmit")}
           </button>
         </form>
-      ) : lookupStatus === "checking" ? (
+      ) : currentLookupStatus === "checking" ? (
         <p role="status" className="public-login-success">{labels("onboarding.verifyLoading")}</p>
       ) : (
         <div className="compact-stack">
-          {lookupStatus === "existing" ? null : (
+          {currentLookupStatus === "existing" ? null : (
             <p role="alert" className="public-login-error">
-              {lookupStatus === "error" || status === "error"
+              {currentLookupStatus === "error" || status === "error"
                 ? labels("onboarding.verifyFailure")
                 : labels("onboarding.verifyInvalid")}
             </p>
           )}
-          {lookupStatus === "existing" ? (
+          {currentLookupStatus === "existing" ? (
             <Link href={`/login?lang=${language}`} className="button">
               {labels("onboarding.existingAccountAction")}
             </Link>

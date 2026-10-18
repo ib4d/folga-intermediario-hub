@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getOrganizationInvitationInfo } from "@/app/actions/invitations";
 import AcceptOrganizationInvitationForm from "@/components/public/AcceptOrganizationInvitationForm";
@@ -29,6 +30,7 @@ export default function InvitationAcceptance({
   initialStatus: string;
 }) {
   const labels = t.bind(null, language);
+  const router = useRouter();
   const [token, setToken] = useState("");
   const [info, setInfo] = useState<InvitationInfo | null>(null);
   const [lookupState, setLookupState] = useState<LookupState>("checking");
@@ -38,6 +40,11 @@ export default function InvitationAcceptance({
   useEffect(() => {
     let active = true;
     let invitationToken = "";
+    const scheduleLookupState = (nextState: LookupState) => {
+      void Promise.resolve().then(() => {
+        if (active) setLookupState(nextState);
+      });
+    };
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const fragmentToken = fragment.get("token") ?? "";
 
@@ -62,25 +69,25 @@ export default function InvitationAcceptance({
         invitationTokenRef.current = invitationToken;
       }
     } catch {
-      if (active) setLookupState("error");
+      scheduleLookupState("error");
       return () => {
         active = false;
       };
     }
 
     if (initialStatus === "invalid" || !/^[A-Za-z0-9_-]{43}$/.test(invitationToken)) {
-      setLookupState("invalid");
+      scheduleLookupState("invalid");
       return () => {
         active = false;
       };
     }
 
-    setToken(invitationToken);
     startTransition(() => {
       void getOrganizationInvitationInfo(invitationToken, language)
         .then((result) => {
           if (!active) return;
           if (result.status === "valid") {
+            setToken(invitationToken);
             setInfo(result);
             setLookupState("valid");
           } else {
@@ -103,7 +110,7 @@ export default function InvitationAcceptance({
     event.preventDefault();
     try {
       window.sessionStorage.setItem(PENDING_INVITATION_TOKEN_KEY, token);
-      window.location.assign(loginHref);
+      router.push(loginHref);
     } catch {
       setHandoffFailed(true);
     }
