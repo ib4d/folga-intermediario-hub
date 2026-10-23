@@ -13,6 +13,7 @@ import { sendTransactionalEmail } from "@/lib/providers/email";
 import { logger } from "@/lib/logger";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { isValidAccountPassword } from "@/lib/security/password-policy";
+import { isAllowedAppBaseUrlInProduction } from "@/lib/auth-app-url";
 
 const ORGANIZATION_SIGNUP_TTL_MS = 24 * 60 * 60 * 1000;
 const ORGANIZATION_SIGNUP_RESEND_DELAY_MS = 60 * 1000;
@@ -324,7 +325,7 @@ export async function createOrganizationAction(
           return { error: t(language, "onboarding.verifyUrlMissing") };
         }
         appBaseUrl = new URL(configuredAppUrl || "http://localhost:3000");
-        if (process.env.NODE_ENV === "production" && appBaseUrl.protocol !== "https:") {
+        if (process.env.NODE_ENV === "production" && !isAllowedAppBaseUrlInProduction(appBaseUrl)) {
           return { error: t(language, "onboarding.verifyUrlHttps") };
         }
       } catch {

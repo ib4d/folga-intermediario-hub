@@ -17,12 +17,20 @@ import { resolveOrganizationAccess } from "@/lib/organization-access";
 import { logger } from "@/lib/logger";
 import { normalizeLanguage, t, type TranslationKey } from "@/lib/i18n";
 import { isValidAccountPassword } from "@/lib/security/password-policy";
+import { resetAttempts } from "@/lib/security/brute-force";
+import { checkRateLimit, LIMITS, resetRateLimit } from "@/lib/security/rate-limit";
+import { isAllowedAppBaseUrlInProduction } from "@/lib/auth-app-url";
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const INVITATION_RESEND_DELAY_MS = 60 * 1000;
 const INVITE_ROLES = new Set<Role>([Role.ADMIN, Role.INTERMEDIARIO, Role.LEGAL, Role.LOGISTICA]);
 
-type InvitationAcceptanceErrorKey = "invite.invalid" | "invite.signInRequired" | "invite.wrongAccount";
+type InvitationAcceptanceErrorKey =
+  | "invite.invalid"
+  | "invite.signInRequired"
+  | "invite.wrongAccount"
+  | "invite.invalidExistingPassword"
+  | "invite.tooManyPasswordAttempts";
 
 class InvitationAcceptanceError extends Error {
   constructor(readonly translationKey: InvitationAcceptanceErrorKey) {
@@ -183,6 +191,14 @@ export async function inviteUserAction(
           select: { isActive: true },
         });
         if (record?.isActive) return invalidInvitationState(t(interfaceLanguage, "invite.alreadyMember"));
+      } else if (
+        existingUser.isActive &&
+        existingUser.organizationId === tenant.organizationId &&
+        existingUser.memberships.length === 0
+      ) {
+        // Legacy single-organization accounts can still be active without a
+        // Membership row; organization access resolves through organizationId.
+        return invalidInvitationState(t(interfaceLanguage, "invite.alreadyMember"));
       }
     }
   } catch (error) {
@@ -197,7 +213,7 @@ export async function inviteUserAction(
       return invalidInvitationState(t(interfaceLanguage, "invite.authUrlMissing"));
     }
     appBaseUrl = new URL(configuredAppUrl || "http://localhost:3000");
-    if (process.env.NODE_ENV === "production" && appBaseUrl.protocol !== "https:") {
+    if (process.env.NODE_ENV === "production" && !isAllowedAppBaseUrlInProduction(appBaseUrl)) {
       return invalidInvitationState(t(interfaceLanguage, "invite.authUrlHttps"));
     }
   } catch {
@@ -209,8 +225,7 @@ export async function inviteUserAction(
   const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
 
   let invitationResult: "created" | "cooldown";
-  try {
-    invitationResult = await prisma.$transaction(async (tx) => {
+  const runInvitationTransaction = () => prisma.$transaction(async (tx) => {
       const organization = await tx.organization.findUnique({
         where: { id: tenant.organizationId },
         select: {
@@ -266,7 +281,12 @@ export async function inviteUserAction(
             select: { isActive: true },
           })
         : null;
-      if (existingMembership?.isActive) throw new SafeInvitationActionError(t(interfaceLanguage, "invite.alreadyMember"));
+      if (
+        existingMembership?.isActive ||
+        (!existingMembership && currentUser?.isActive && currentUser.organizationId === tenant.organizationId && currentUser.memberships.length === 0)
+      ) {
+        throw new SafeInvitationActionError(t(interfaceLanguage, "invite.alreadyMember"));
+      }
 
       const now = new Date();
       const currentInvitation = await tx.organizationInvitation.findUnique({
@@ -338,6 +358,18 @@ export async function inviteUserAction(
       });
       return "created";
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  try {
+    try {
+      invitationResult = await runInvitationTransaction();
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2034") {
+        throw error;
+      }
+
+      // A concurrent seat reservation can abort a serializable transaction.
+      // Re-read capacity once so the loser receives the normal limit message.
+      invitationResult = await runInvitationTransaction();
+    }
   } catch (error) {
     if (error instanceof SafeInvitationActionError) {
       return invalidInvitationState(error.message);
@@ -425,9 +457,25 @@ export async function acceptInvitationAction(
       return { status: "invalid" as const };
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email: invite.email }, select: { id: true } });
-    if (existingUser && (!currentSession?.user?.id || currentSession.user.email?.trim().toLowerCase() !== invite.email)) {
-      return { status: "sign-in-required" as const };
+    const existingUser = await prisma.user.findUnique({
+      where: { email: invite.email },
+      select: { id: true, passwordHash: true },
+    });
+    if (
+      existingUser && currentSession?.user?.id &&
+      (currentSession.user.id !== existingUser.id || currentSession.user.email?.trim().toLowerCase() !== invite.email)
+    ) {
+      return { status: "wrong-account" as const };
+    }
+    if (existingUser && !currentSession?.user?.id) {
+      const attemptLimit = await checkRateLimit(`invitation-existing-account:${invite.email}`, LIMITS.AUTH_ATTEMPTS);
+      if (attemptLimit.blocked) return { status: "password-attempts-exceeded" as const };
+    }
+    if (
+      existingUser && !currentSession?.user?.id &&
+      (!password || !existingUser.passwordHash || !(await bcrypt.compare(password, existingUser.passwordHash)))
+    ) {
+      return { status: "invalid-existing-password" as const };
     }
     if (!existingUser && (fullName.length < 2 || fullName.length > 100)) {
       return { status: "invalid-name" as const };
@@ -442,16 +490,23 @@ export async function acceptInvitationAction(
     return { status: "error" as const };
   });
 
+  if (preflight.status === "wrong-account") {
+    return { error: t(language, "invite.wrongAccount") };
+  }
+  if (preflight.status === "invalid-existing-password") {
+    return { error: t(language, "invite.invalidExistingPassword") };
+  }
+  if (preflight.status === "password-attempts-exceeded") {
+    return { error: t(language, "invite.tooManyPasswordAttempts") };
+  }
   if (preflight.status !== "ready") {
-    const errorKey = preflight.status === "sign-in-required"
-      ? "invite.signInRequired"
-      : preflight.status === "invalid-name"
-        ? "invite.namePolicyError"
-        : preflight.status === "invalid-password"
-          ? "invite.passwordPolicyError"
-          : preflight.status === "error"
-            ? "invite.acceptFailed"
-            : "invite.invalid";
+    const errorKey = preflight.status === "invalid-name"
+      ? "invite.namePolicyError"
+      : preflight.status === "invalid-password"
+        ? "invite.passwordPolicyError"
+        : preflight.status === "error"
+          ? "invite.acceptFailed"
+          : "invite.invalid";
     return { error: t(language, errorKey) };
   }
 
@@ -478,8 +533,11 @@ export async function acceptInvitationAction(
       });
       if (!organization?.isActive) throw new InvitationAcceptanceError("invite.invalid");
       if (user) {
-        if (!currentSession?.user?.id || currentSession.user.id !== user.id || currentSession.user.email?.trim().toLowerCase() !== currentInvitation.email) {
+        if (currentSession?.user?.id && (currentSession.user.id !== user.id || currentSession.user.email?.trim().toLowerCase() !== currentInvitation.email)) {
           throw new InvitationAcceptanceError("invite.wrongAccount");
+        }
+        if (!currentSession?.user?.id && (!password || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash)))) {
+          throw new InvitationAcceptanceError("invite.invalidExistingPassword");
         }
         if (
           !user.isActive || user.isPlatformAdmin ||
@@ -551,14 +609,23 @@ export async function acceptInvitationAction(
     return { error: t(language, "invite.acceptFailed") };
   }
 
-  if (createdAccount) {
+  if (!createdAccount && !currentSession?.user?.id) {
     try {
+      await resetRateLimit(`invitation-existing-account:${invite.email}`);
+    } catch (error) {
+      logInvitationFailure("acceptance-password-limit-reset", error);
+    }
+  }
+
+  if (createdAccount || !currentSession?.user?.id) {
+    try {
+      if (!createdAccount) resetAttempts(invite.email);
       await signIn("credentials", { email: invite.email, password, redirectTo: "/dashboard" });
     } catch (error) {
       if (isRedirectError(error)) throw error;
       logInvitationFailure("acceptance-sign-in", error);
       return {
-        error: t(language, "invite.acceptedSignInFailed"),
+        error: t(language, createdAccount ? "invite.acceptedSignInFailed" : "invite.acceptedExistingSignInFailed"),
         accepted: true,
       };
     }

@@ -11,11 +11,13 @@ export default function AcceptOrganizationInvitationForm({
   token,
   language,
   requiresNewAccount,
+  requiresExistingAccountPassword = false,
   invitedName,
 }: {
   token: string;
   language: AppLanguage;
   requiresNewAccount: boolean;
+  requiresExistingAccountPassword?: boolean;
   invitedName: string;
 }) {
   const [state, formAction, pending] = useActionState(acceptInvitationAction, initialState);
@@ -69,6 +71,19 @@ export default function AcceptOrganizationInvitationForm({
             />
           </div>
         </>
+      ) : null}
+      {requiresExistingAccountPassword ? (
+        <div className="input-group">
+          <label className="label" htmlFor="invite-existing-password">{labels("invite.acceptExistingPassword")}</label>
+          <input
+            id="invite-existing-password"
+            name="password"
+            type="password"
+            className="input"
+            autoComplete="current-password"
+            required
+          />
+        </div>
       ) : null}
       <button type="submit" className="button" disabled={pending}>
         {pending ? labels("invite.accepting") : labels("invite.acceptButton")}
