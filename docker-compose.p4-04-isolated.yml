@@ -1,0 +1,110 @@
+name: ori-cruit-hub-p4-04-clean
+
+# Local-only development workspace. It has its own database, document volume,
+# network and host ports; it never reads the production .env file.
+# The startup seed creates missing fixtures but preserves existing edits.
+services:
+  synthetic-mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_SMTP_ALLOWED_RECIPIENTS: '@synthetic\.example\.invalid$'
+      MP_ENABLE_CHAOS: "true"
+      MP_MAX: "100"
+      MP_MAX_AGE: 24h
+    # The inbox is visible only from this computer. SMTP stays on the private
+    # Compose network and is not published on a host port.
+    ports:
+      - "127.0.0.1:18099:8025"
+    networks:
+      - synthetic_backend
+
+  synthetic-db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ori_synthetic
+      POSTGRES_PASSWORD: synthetic_only_local_db_password_2026
+      POSTGRES_DB: ori_cruit_synthetic
+    ports:
+      - "127.0.0.1:55499:5432"
+    volumes:
+      - synthetic_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ori_synthetic -d ori_cruit_synthetic"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - synthetic_backend
+
+  synthetic-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: synthetic-runner
+      args:
+        APP_RELEASE: synthetic-local
+    restart: unless-stopped
+    command: >-
+      sh -c "npx prisma migrate deploy && node prisma/seed-synthetic.mjs && node server.js"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://ori_synthetic:synthetic_only_local_db_password_2026@synthetic-db:5432/ori_cruit_synthetic?schema=public
+      SYNTHETIC_WORKSPACE: "1"
+      APP_RELEASE: synthetic-local
+      SYNTHETIC_SEED_PASSWORD: synthetic-only-local-password-2026
+      AUTH_URL: http://localhost:33301
+      AUTH_SECRET: synthetic-only-auth-secret-not-for-production-2026
+      NEXTAUTH_URL: http://localhost:33301
+      NEXTAUTH_SECRET: synthetic-only-auth-secret-not-for-production-2026
+      STORAGE_PROVIDER: local
+      LOCAL_STORAGE_DIR: /tmp/ori-synthetic-private-uploads
+      # Exercise the same local OCR engine used by production by default.
+      # Override with SYNTHETIC_OCR_PROVIDER=manual only when OCR is unavailable.
+      OCR_PROVIDER: ${SYNTHETIC_OCR_PROVIDER:-tesseract}
+      TESSERACT_LANGUAGES: ${SYNTHETIC_TESSERACT_LANGUAGES:-eng+spa+pol}
+      EMAIL_PROVIDER: smtp
+      SMTP_HOST: synthetic-mailpit
+      SMTP_PORT: "1025"
+      SMTP_USER: synthetic@localhost.invalid
+      SMTP_PASS: synthetic-only
+      SMTP_ALLOW_INSECURE: "true"
+      SMTP_FROM: synthetic@localhost.invalid
+      SMTP_FROM_NAME: ORI Synthetic Lab
+      CRON_SECRET: synthetic-only-cron-secret-not-for-production-2026
+      JOB_PROVIDER: inline
+      STRIPE_SECRET_KEY: "${SYNTHETIC_STRIPE_SECRET_KEY:-}"
+      STRIPE_WEBHOOK_SECRET: "${SYNTHETIC_STRIPE_WEBHOOK_SECRET:-}"
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${SYNTHETIC_STRIPE_PUBLISHABLE_KEY:-}"
+      STRIPE_EXPECTED_MODE: "test"
+      STRIPE_CUSTOMER_PORTAL_ENABLED: "${SYNTHETIC_STRIPE_CUSTOMER_PORTAL_ENABLED:-false}"
+    ports:
+      - "127.0.0.1:33301:3000"
+    volumes:
+      - synthetic_private_uploads:/tmp/ori-synthetic-private-uploads
+    depends_on:
+      synthetic-db:
+        condition: service_healthy
+      synthetic-mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - synthetic_backend
+
+volumes:
+  synthetic_postgres_data:
+    name: ori_cruit_hub_p4_04_clean_postgres_data
+  synthetic_private_uploads:
+    name: ori_cruit_hub_p4_04_clean_private_uploads
+
+networks:
+  synthetic_backend:
+    name: ori_cruit_hub_p4_04_clean_backend

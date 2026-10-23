@@ -141,15 +141,22 @@ export default function InvitationAcceptance({
         <p role="alert">{labels("invite.wrongAccount")}</p>
       ) : validInfo.viewer === "signed-out" && !validInfo.requiresNewAccount ? (
         <div className="compact-stack">
-          <p>{labels("invite.signInRequired")}</p>
+          <p>{labels("invite.acceptExistingPasswordDescription")}</p>
+          <AcceptOrganizationInvitationForm
+            token={token}
+            language={language}
+            requiresNewAccount={false}
+            requiresExistingAccountPassword
+            invitedName={validInfo.invitedName}
+          />
           {handoffFailed ? <p role="alert">{labels("invite.loginHandoffError")}</p> : null}
-          <Link className="button" href={loginHref} onClick={beginLogin}>
+          <Link className="button button-secondary" href={loginHref} onClick={beginLogin}>
             {labels("public.nav.login")}
           </Link>
         </div>
       ) : (
         <div className="compact-stack">
-          <p>{labels("invite.acceptDescription")}</p>
+          <p>{labels(validInfo.requiresNewAccount ? "invite.acceptDescription" : "invite.acceptExistingDescription")}</p>
           <AcceptOrganizationInvitationForm
             token={token}
             language={language}
