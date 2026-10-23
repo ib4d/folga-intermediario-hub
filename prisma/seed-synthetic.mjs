@@ -62,6 +62,21 @@ async function main() {
       },
     });
     users.set(spec.role, user);
+    await prisma.membership.upsert({
+      where: {
+        userId_organizationId: {
+          userId: user.id,
+          organizationId: organization.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        organizationId: organization.id,
+        role: spec.role,
+        isActive: user.isActive,
+      },
+    });
   }
 
   const candidates = [
@@ -181,6 +196,21 @@ async function main() {
         },
       });
       pilotUsers.set(persona.key, user);
+      await prisma.membership.upsert({
+        where: {
+          userId_organizationId: {
+            userId: user.id,
+            organizationId: prospectOrg.id,
+          },
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          organizationId: prospectOrg.id,
+          role: persona.role,
+          isActive: user.isActive,
+        },
+      });
       seededPilotUsers += 1;
     }
 
