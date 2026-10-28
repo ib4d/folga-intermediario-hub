@@ -2979,7 +2979,7 @@ const translations = {
     "settings.ocrAutomaticNote": "Automatyczna ekstrakcja jest wlaczona i moze przetwarzac obslugiwane dokumenty.",
     "settings.membersTitleManage": "Czlonkowie organizacji",
     "settings.membersTitleRead": "Uzytkownicy widoczni dla Twojej roli",
-    "settings.inviteUser": "Zapros uzytkownika",
+    "settings.inviteUser": "Zaproś użytkownika",
     "settings.superadminAdminOnly": "Tylko Superadmin lub Administrator",
     "settings.name": "Nazwa",
     "settings.email": "E-mail",

@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { AuthError, CredentialsSignin } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -7,6 +7,7 @@ import { Prisma, Role } from "@prisma/client";
 import { authConfig } from "./auth.config";
 import { normalizeLanguage } from "@/lib/i18n";
 import { resolveOrganizationAccess } from "@/lib/organization-access";
+import { logger as appLogger } from "@/lib/logger";
 
 function getInterfaceLanguage(settings: Prisma.JsonValue | null | undefined) {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -18,6 +19,18 @@ function getInterfaceLanguage(settings: Prisma.JsonValue | null | undefined) {
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
+  logger: {
+    error(error) {
+      if (error instanceof CredentialsSignin) {
+        appLogger.warn("Authentication credentials were rejected.");
+        return;
+      }
+
+      appLogger.error("Authentication framework operation failed", {
+        errorKind: error instanceof AuthError ? error.type : "UNEXPECTED_ERROR",
+      });
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
